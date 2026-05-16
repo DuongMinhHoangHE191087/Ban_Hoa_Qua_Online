@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Trang Chi tiết Cửa hàng - Verdant Market</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#bcfdc9",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#b1f2be",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#b1f2be",
+                        "secondary-fixed": "#b4f0c9",
+                        "on-background": "#00210d",
+                        "on-tertiary-fixed-variant": "#314d3e",
+                        "on-secondary-container": "#386f50",
+                        "inverse-surface": "#00391a",
+                        "surface-dim": "#a9e9b6",
+                        "secondary-container": "#b4f0c9",
+                        "outline-variant": "#c5c8b7",
+                        "tertiary-fixed-dim": "#afceba",
+                        "secondary-fixed-dim": "#99d4ae",
+                        "primary-fixed-dim": "#b3d17a",
+                        "primary-fixed": "#ceee93",
+                        "surface-bright": "#eaffea",
+                        "on-error": "#ffffff",
+                        "secondary": "#31694b",
+                        "on-surface": "#00210d",
+                        "primary-container": "#d9f99d",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#042014",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#b7f7c3",
+                        "inverse-primary": "#b3d17a",
+                        "primary": "#4d661c",
+                        "on-surface-variant": "#44483b",
+                        "tertiary-container": "#d5f5e0",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "background": "#eaffea",
+                        "tertiary": "#486554",
+                        "on-primary-fixed-variant": "#364e03",
+                        "inverse-on-surface": "#c3ffce",
+                        "on-secondary-fixed": "#002111",
+                        "surface-container-low": "#d1ffd8",
+                        "surface-tint": "#4d661c",
+                        "surface": "#eaffea",
+                        "on-primary-fixed": "#131f00",
+                        "on-primary-container": "#597428",
+                        "on-tertiary-container": "#557161",
+                        "on-secondary-fixed-variant": "#175034",
+                        "outline": "#75796a",
+                        "tertiary-fixed": "#caead6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "xs": "4px",
+                        "md": "24px",
+                        "xl": "64px",
+                        "margin-mobile": "16px",
+                        "sm": "12px",
+                        "lg": "40px",
+                        "base": "8px",
+                        "margin-desktop": "48px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Lexend"],
+                        "display-lg": ["Lexend"],
+                        "label-md": ["Lexend"],
+                        "body-lg": ["Lexend"],
+                        "headline-lg": ["Lexend"],
+                        "headline-md": ["Lexend"],
+                        "headline-lg-mobile": ["Lexend"],
+                        "body-md": ["Lexend"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Lexend', sans-serif; background-color: #eaffea; }
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 6px -1px rgba(20, 83, 45, 0.05), 0 2px 4px -1px rgba(20, 83, 45, 0.03);
+        }
+    </style>
+</head>
+<body class="text-on-background min-h-screen">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-16 bg-white/60 dark:bg-surface/60 backdrop-blur-md border-b border-white/20 shadow-sm transition-all duration-300">
+<div class="flex items-center gap-6">
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Verdant Market</div>
+<div class="hidden md:flex gap-4">
+<a class="font-body-md text-body-md text-primary dark:text-primary-fixed border-b-2 border-primary pb-1" href="#">Shop</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-on-surface-variant/80 hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Categories</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-on-surface-variant/80 hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Deals</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-on-surface-variant/80 hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Freshness Guarantee</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-body-md text-body-md text-primary dark:text-primary-fixed hover:text-primary dark:hover:text-primary-fixed transition-colors">Sign In</button>
+<div class="flex gap-2">
+<button class="text-on-surface-variant dark:text-on-surface-variant/80 hover:text-primary dark:hover:text-primary-fixed transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">shopping_cart</span>
+</button>
+<button class="text-on-surface-variant dark:text-on-surface-variant/80 hover:text-primary dark:hover:text-primary-fixed transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="pt-24 pb-32 px-margin-mobile md:px-margin-desktop max-w-[1440px] mx-auto">
+<!-- Shop Header Banner -->
+<div class="glass-card rounded-xl overflow-hidden mb-lg relative h-64 md:h-80 flex items-end p-6 md:p-8">
+<div class="absolute inset-0 z-0">
+<img alt="Shop Banner" class="w-full h-full object-cover opacity-60" data-alt="A lush, vibrant organic farm stall setting with wooden crates overflowing with fresh, bright green vegetables and fruits under warm, natural sunlight. The scene embodies a clean, modern aesthetic with a focus on fresh produce and natural textures, fitting a high-end organic market brand. Soft, airy atmosphere with glass-like reflections." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm-BlhQZZ1th0opQ5oz7OaVo69Pqw1NdUghr30QlRGdQ3lYUVNG8SBTU_JP1eDv6VBSiifyzpmUqQCoXoTJhjL7yNmswgau-1cIQKuPTNs_FqwD0r0nZ5qrXiScKaZ0HCZPdNHVxej09M6ZhnFiWswCvV9L9B4xmxSzb7ADQJusmDHQFQrOMR8ZH9k0jpDVBGb934sPZp-0Fh7FzFE02MG56fAkRi4qN-Rgx9ObHok2QEGretnk-pUoxS6gB9hq9Z2pEMWq18HPE8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+</div>
+<div class="relative z-10 flex flex-col md:flex-row items-center md:items-end gap-6 w-full">
+<div class="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg overflow-hidden shrink-0 bg-white">
+<img alt="Shop Logo" class="w-full h-full object-cover" data-alt="A clean, minimalist logo mark featuring a stylized green leaf or sprout, set against a pristine white background. The design is modern, conveying organic growth and freshness, perfectly suited for an upscale eco-friendly grocery brand. Crisp edges and high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEF6wqeI63mBhLCr7S9Mx8cnksEauJsziZwOI3FDkydrc2uCenKMJi7eFmBykbF5FHOUtpQYX9mxxa9G9L8afjIEuk5XgYgfi2zejocRtO3945Km3UUR4Ou_D448uuFx4LPn_KD6zZitF_oOCM5F0iTQ8F8OfKCBGKljv4rdDe1qq2NrqPzD17pde6LIl6yix6zHwKDlmSj0r7IoGzoP-uSDdDXrFmH654Vd-W-SWzVGM6gIg2R2kEFf3LVwww00XsLCROkn9-JDg"/>
+</div>
+<div class="text-center md:text-left flex-1">
+<h1 class="font-display-lg text-display-lg text-primary mb-2 hidden md:block">Green Valley Organics</h1>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-2 md:hidden">Green Valley Organics</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4 max-w-2xl">Premium, locally sourced organic produce straight from our sustainable farms to your table. Guaranteed freshness every day.</p>
+<div class="flex flex-wrap justify-center md:justify-start gap-4 font-label-md text-label-md text-secondary">
+<div class="flex items-center gap-1 bg-surface-container px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.9 (2.1k Reviews)</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm">group</span>
+<span>15k Followers</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm">verified</span>
+<span>Verified Partner</span>
+</div>
+</div>
+</div>
+<div class="shrink-0">
+<button class="bg-[#14532D] text-white font-label-md text-label-md px-6 py-3 rounded-lg shadow-sm hover:bg-[#14532D]/90 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                        Theo dõi Shop
+                    </button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Left Column: Main Content -->
+<div class="md:col-span-8 lg:col-span-9 flex flex-col gap-lg">
+<!-- Promotions Section -->
+<section>
+<h2 class="font-headline-md text-headline-md text-primary mb-md flex items-center gap-2">
+<span class="material-symbols-outlined">loyalty</span>
+                        Mã Giảm Giá Shop
+                    </h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md">
+<!-- Voucher Card 1 -->
+<div class="glass-card rounded-xl p-4 flex gap-4 items-center border-l-4 border-l-primary">
+<div class="bg-primary-container text-on-primary-container p-3 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">percent_discount</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-background font-bold mb-1">Giảm 10%</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">Đơn từ 200k. Tối đa 50k.</p>
+<button class="font-label-sm text-label-sm text-primary hover:underline">Lưu mã</button>
+</div>
+</div>
+<!-- Voucher Card 2 -->
+<div class="glass-card rounded-xl p-4 flex gap-4 items-center border-l-4 border-l-secondary">
+<div class="bg-secondary-container text-on-secondary-container p-3 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">local_shipping</span>
+</div>
+<div class="flex-1">
+<h3 class="font-label-md text-label-md text-on-background font-bold mb-1">Freeship 50k</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">Đơn từ 300k.</p>
+<button class="font-label-sm text-label-sm text-primary hover:underline">Lưu mã</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Products Section -->
+<section>
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-headline-md text-headline-md text-primary flex items-center gap-2">
+<span class="material-symbols-outlined">inventory_2</span>
+                            Sản Phẩm Của Shop
+                        </h2>
+<div class="flex gap-2">
+<button class="bg-surface-container text-on-surface-variant font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-variant transition-colors">Mới nhất</button>
+<button class="glass-card text-primary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-container transition-colors border border-primary">Bán chạy</button>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+<!-- Product Card 1 -->
+<div class="glass-card rounded-xl overflow-hidden group flex flex-col">
+<div class="relative aspect-square overflow-hidden bg-surface-container-low p-4">
+<img alt="Product" class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 rounded-[1.5rem]" data-alt="A cluster of vibrant, fresh organic avocados resting on a light, clean surface. The lighting is bright and natural, highlighting the textured dark green skin and the promise of freshness. The style is modern, appetizing, and fits a high-end grocery aesthetic with subtle glassmorphic elements in the surrounding design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAv0eGWcgOBx6N0u16lS2oS6idfnitr05EJwNYR5M9MopwqpWsa-aJmjOrufLmYstEwdrKQv6TvzsZdH3zmyjkM9ZF3eVS-3XlFVJC7j8bFp9RCwzNIBpbsKE1cx5hZiSjt3xt5t1RZO9m1UlC0zbx4f1CN3pCjxnbLmdZNiXo7xTuoZZm3rbik9lPi8ULcPsvkKR9cfhaKV4N4DRyzv6olNiiQfePRVTBshVNaHE23bEjcnIa9oLMG_w_ZkMp6Pm3TCTYsUwlSu4Q"/>
+<div class="absolute top-2 left-2 bg-[#14532D] text-white font-label-sm text-label-sm px-2 py-1 rounded">Organic</div>
+</div>
+<div class="p-4 flex flex-col flex-1">
+<h3 class="font-label-md text-label-md text-on-background mb-1 line-clamp-2">Bơ Sáp Hữu Cơ Gia Lai Loại 1 (1kg)</h3>
+<div class="font-body-md text-body-md font-bold text-primary mb-3">85.000 ₫</div>
+<button class="mt-auto w-full glass-card border-primary text-primary font-label-md text-label-md py-2 rounded-lg hover:bg-primary-container transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span> Thêm
+                                </button>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="glass-card rounded-xl overflow-hidden group flex flex-col">
+<div class="relative aspect-square overflow-hidden bg-surface-container-low p-4">
+<img alt="Product" class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 rounded-[1.5rem]" data-alt="A neat bunch of crisp, bright red organic radishes with vibrant green leafy tops, displayed against a pristine, light-colored background. The image is brightly lit, emphasizing natural colors and freshness. The visual style is clean, modern, and aligned with a premium healthy food brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBv-ZiQfcwEkFg2LMhTtdVgdzt8uFcQvjQq6cb5_2qS2ZFQf-X4A6DYynezpLqLuwoKwJMgz-aP6gfHnDFB9Z_rPu4367Hk6looooSmjvI90L4mQe5Y9KBhHhMzNlmClbPbyNt5U2fi-1cT5SkEaCwRRyKUzsf-_CKPHzxmLeXqQcgh_mgIxqEkZmH759nqq71Jme0dO139cXXiujSWhkAbnrV5J7MC6iJC_hUYFWK6BpUOfANxytop-qANiFgfMR3iov0Qh2tvJfQ"/>
+</div>
+<div class="p-4 flex flex-col flex-1">
+<h3 class="font-label-md text-label-md text-on-background mb-1 line-clamp-2">Củ Cải Đỏ Hữu Cơ Đà Lạt Bó 500g</h3>
+<div class="font-body-md text-body-md font-bold text-primary mb-3">35.000 ₫</div>
+<button class="mt-auto w-full glass-card border-primary text-primary font-label-md text-label-md py-2 rounded-lg hover:bg-primary-container transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span> Thêm
+                                </button>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="glass-card rounded-xl overflow-hidden group flex flex-col">
+<div class="relative aspect-square overflow-hidden bg-surface-container-low p-4">
+<img alt="Product" class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 rounded-[1.5rem]" data-alt="Fresh, leafy green kale bundled together, showing rich textures and vibrant color against a clean, soft-focus background. The lighting is soft and natural, creating an appetizing and healthy look. The aesthetic is modern and fits perfectly within a clean, bright interface design for organic produce." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqe5YiAmKXT0KR0oR0v4lohOBXof-kKJ_xOFRlQDFpYzo9mRj0wyCpk7QpntoMAId5TQXs4Pk2bAusezkMhon4T366B-H1Shd_p6-d4FqVRu8J6QTXE_s4MHzD-SvKRv8lsGPvwE-5-wwVwaRppZMqSPbE-rUOAvqAZkc-mbLsI6-iPfrNkuRcVD_HReDVUhNp9oICMnhLi_WI9mZ-WLRL1Ewm6g3cAeduz-rkUGyFOXlhnCZNW089z0RvsIc98HlgKGw2Ts7-rcc"/>
+</div>
+<div class="p-4 flex flex-col flex-1">
+<h3 class="font-label-md text-label-md text-on-background mb-1 line-clamp-2">Cải Kale (Cải Xoăn) Hữu Cơ 300g</h3>
+<div class="font-body-md text-body-md font-bold text-primary mb-3">42.000 ₫</div>
+<button class="mt-auto w-full glass-card border-primary text-primary font-label-md text-label-md py-2 rounded-lg hover:bg-primary-container transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span> Thêm
+                                </button>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="glass-card rounded-xl overflow-hidden group flex flex-col">
+<div class="relative aspect-square overflow-hidden bg-surface-container-low p-4">
+<img alt="Product" class="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 rounded-[1.5rem]" data-alt="A cluster of bright orange, fresh organic carrots with their green tops still attached, lying on a clean surface. The image is vibrant and appetizing, with soft natural lighting that enhances the healthy appearance of the vegetables. The style is modern, minimal, and premium." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMNe7q6EuaVDTh2D0JcRKrE-pkS6clwf93iIvg7ZnFCvUMUy35ymylvyUgLUi3OIW0aPf2S1Y9s_jqnB2goRHIxVjZgjnhqmzbaujdIfqrgfxS15A2ayEPUs_-eGQjq5UqvNfXLLthTe09utaql10OFhy5FHPtdUJpYX9vTDd0-WxOlAi8DT4cvbZPriigqtWdSw8tKPb7X-KWcosYLDQ3NrStGdcaws7lfXjwCWhwtifu77XkP08EwCXZMv86ut2BPTCNScS7bnk"/>
+</div>
+<div class="p-4 flex flex-col flex-1">
+<h3 class="font-label-md text-label-md text-on-background mb-1 line-clamp-2">Cà Rốt Baby Hữu Cơ 500g</h3>
+<div class="font-body-md text-body-md font-bold text-primary mb-3">55.000 ₫</div>
+<button class="mt-auto w-full glass-card border-primary text-primary font-label-md text-label-md py-2 rounded-lg hover:bg-primary-container transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm">add_shopping_cart</span> Thêm
+                                </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Sidebar Info -->
+<div class="md:col-span-4 lg:col-span-3">
+<div class="glass-card rounded-xl p-6 sticky top-24">
+<h3 class="font-headline-md text-headline-md text-primary mb-4 border-b border-surface-variant pb-2">Thông tin Shop</h3>
+<div class="flex flex-col gap-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+<div>
+<h4 class="font-label-md text-label-md text-on-background font-bold">Địa chỉ</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">123 Đường Xanh, Khu Nông Nghiệp Công Nghệ Cao, TP. Đà Lạt</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary mt-1">schedule</span>
+<div>
+<h4 class="font-label-md text-label-md text-on-background font-bold">Giờ hoạt động</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Thứ 2 - Chủ Nhật: 06:00 - 20:00</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary mt-1">call</span>
+<div>
+<h4 class="font-label-md text-label-md text-on-background font-bold">Liên hệ</h4>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">0123 456 789</p>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-surface-variant">
+<button class="w-full bg-[#14532D] text-white font-label-md text-label-md py-3 rounded-lg shadow-sm hover:bg-[#14532D]/90 transition-colors flex justify-center items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-sm">chat</span> Chat với Shop
+                            </button>
+<button class="w-full glass-card border-primary text-primary font-label-md text-label-md py-3 rounded-lg hover:bg-primary-container transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm">share</span> Chia sẻ
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center h-16 md:hidden px-4 bg-white/80 dark:bg-surface-container-highest/80 backdrop-blur-lg border-t border-white/20 shadow-xl rounded-t-xl active:scale-95 transition-transform">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">storefront</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Store</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">shopping_basket</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Cart</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Profile</span>
+</a>
+</nav>
+</body></html>
