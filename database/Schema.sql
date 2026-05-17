@@ -205,7 +205,7 @@ CREATE TABLE order_promotions (
 CREATE TABLE return_requests (
     return_request_id INT IDENTITY(1,1) PRIMARY KEY,
     order_id INT NOT NULL FOREIGN KEY REFERENCES orders(order_id) ON DELETE CASCADE,
-    order_item_id INT NULL FOREIGN KEY REFERENCES order_items(order_item_id) ON DELETE SET NULL,
+    order_item_id INT NULL FOREIGN KEY (order_item_id) REFERENCES dbo.order_items(order_item_id),
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     request_type NVARCHAR(20) NOT NULL CHECK (request_type IN ('CANCEL','RETURN','EXCHANGE')),
     reason_code NVARCHAR(50) NOT NULL CHECK (reason_code IN ('WRONG_ITEM','DAMAGED','MISSING_ITEM','LATE_DELIVERY','NOT_AS_DESCRIBED','OTHER')),
@@ -221,6 +221,7 @@ CREATE TABLE return_requests (
     resolved_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(),
     updated_at DATETIME NOT NULL DEFAULT GETDATE()
+     
 );
 
 CREATE TABLE shop_settlements (

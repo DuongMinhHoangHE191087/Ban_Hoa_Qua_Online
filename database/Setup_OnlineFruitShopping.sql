@@ -300,8 +300,8 @@ BEGIN
         resolved_at DATETIME NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_return_requests_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_return_requests_updated_at DEFAULT GETDATE(),
-        CONSTRAINT FK_return_requests_orders FOREIGN KEY (order_id) REFERENCES dbo.orders(order_id) ON DELETE CASCADE,
-        CONSTRAINT FK_return_requests_order_items FOREIGN KEY (order_item_id) REFERENCES dbo.order_items(order_item_id) ON DELETE SET NULL,
+        CONSTRAINT FK_return_requests_orders FOREIGN KEY (order_id) REFERENCES dbo.orders(order_id),
+        CONSTRAINT FK_return_requests_order_items FOREIGN KEY (order_item_id) REFERENCES dbo.order_items(order_item_id),
         CONSTRAINT FK_return_requests_customers FOREIGN KEY (customer_id) REFERENCES dbo.users(user_id),
         CONSTRAINT FK_return_requests_variants FOREIGN KEY (replacement_variant_id) REFERENCES dbo.product_variants(variant_id),
         CONSTRAINT FK_return_requests_decided_by FOREIGN KEY (decided_by) REFERENCES dbo.users(user_id)
