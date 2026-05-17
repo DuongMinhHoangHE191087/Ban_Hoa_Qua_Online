@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE taglib
+  PUBLIC "-//Sun Microsystems, Inc.//DTD JSP Tag Library 1.2//EN"
+  "http://java.sun.com/dtd/web-jsptaglibrary_1_2.dtd">
+
+<!--
+  fruitmkt.tld — Tag Library Descriptor cho custom tags của dự án.
+
+  CÁCH DÙNG TRONG JSP:
+    <%@ taglib prefix="ft" uri="/WEB-INF/tags/fruitmkt.tld" %>
+
+  Sau đó dùng:
+    <ft:currency value="${product.price}"/>
+    <ft:stars rating="${product.rating}"/>
+    <ft:orderStatus code="${order.status}"/>
+    <ft:pagination current="${page}" total="${totalPages}" baseUrl="/products"/>
+    <ft:allow role="ADMIN">...</ft:allow>
+
+  Tag classes nằm trong package: com.fruitmkt.tag
+-->
+<taglib>
+    <tlib-version>1.0</tlib-version>
+    <jsp-version>1.2</jsp-version>
+    <short-name>ft</short-name>
+    <uri>/WEB-INF/tags/fruitmkt.tld</uri>
+    <description>FruitMkt Custom Tag Library</description>
+
+    <!-- ================================================================
+         ft:currency — Format số tiền VND
+         Ví dụ: <ft:currency value="${item.price}"/> → "150.000 ₫"
+         ================================================================ -->
+    <tag>
+        <name>currency</name>
+        <tag-class>com.fruitmkt.tag.CurrencyFormatTag</tag-class>
+        <body-content>empty</body-content>
+        <description>Format số tiền sang định dạng VND. Ví dụ: 150000 → 150.000 ₫</description>
+        <attribute>
+            <name>value</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>java.math.BigDecimal</type>
+        </attribute>
+    </tag>
+
+    <!-- ================================================================
+         ft:stars — Hiển thị sao đánh giá (1-5)
+         Ví dụ: <ft:stars rating="${product.rating}"/> → ★★★★☆
+         ================================================================ -->
+    <tag>
+        <name>stars</name>
+        <tag-class>com.fruitmkt.tag.StarRatingTag</tag-class>
+        <body-content>empty</body-content>
+        <description>Render star rating từ 1 đến 5. Hỗ trợ nửa sao.</description>
+        <attribute>
+            <name>rating</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>java.math.BigDecimal</type>
+        </attribute>
+        <attribute>
+            <name>showValue</name>
+            <required>false</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>boolean</type>
+        </attribute>
+    </tag>
+
+    <!-- ================================================================
+         ft:orderStatus — Badge màu cho trạng thái đơn hàng
+         Ví dụ: <ft:orderStatus code="${order.status}"/> → badge HTML
+         ================================================================ -->
+    <tag>
+        <name>orderStatus</name>
+        <tag-class>com.fruitmkt.tag.OrderStatusTag</tag-class>
+        <body-content>empty</body-content>
+        <description>Render badge HTML có màu cho order status (DELIVERED=xanh, CANCELLED=đỏ...)</description>
+        <attribute>
+            <name>code</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>java.lang.String</type>
+        </attribute>
+    </tag>
+
+    <!-- ================================================================
+         ft:pagination — Render thanh phân trang
+         Ví dụ: <ft:pagination current="${page}" total="${totalPages}" baseUrl="/products?cat=1"/>
+         ================================================================ -->
+    <tag>
+        <name>pagination</name>
+        <tag-class>com.fruitmkt.tag.PaginationTag</tag-class>
+        <body-content>empty</body-content>
+        <description>Render thanh phân trang với Prev/Next và các số trang</description>
+        <attribute>
+            <name>current</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>int</type>
+        </attribute>
+        <attribute>
+            <name>total</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>int</type>
+        </attribute>
+        <attribute>
+            <name>baseUrl</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>java.lang.String</type>
+        </attribute>
+    </tag>
+
+    <!-- ================================================================
+         ft:allow — Hiển thị nội dung theo role
+         Ví dụ: <ft:allow role="ADMIN"><a href="/admin">Admin</a></ft:allow>
+         ================================================================ -->
+    <tag>
+        <name>allow</name>
+        <tag-class>com.fruitmkt.tag.PermissionTag</tag-class>
+        <body-content>JSP</body-content>
+        <description>Render body content chỉ khi user có role khớp</description>
+        <attribute>
+            <name>role</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+            <type>java.lang.String</type>
+        </attribute>
+    </tag>
+
+</taglib>

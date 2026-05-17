@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                             https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+
+    <display-name>Ban Hoa Qua Online</display-name>
+
+    <!-- ================================================================
+         ERROR PAGES
+         ================================================================ -->
+    <error-page>
+        <error-code>403</error-code>
+        <location>/WEB-INF/jsp/common/error.jsp</location>
+    </error-page>
+    <error-page>
+        <error-code>404</error-code>
+        <location>/WEB-INF/jsp/common/error.jsp</location>
+    </error-page>
+    <error-page>
+        <error-code>500</error-code>
+        <location>/WEB-INF/jsp/common/error.jsp</location>
+    </error-page>
+
+    <!-- ================================================================
+         SESSION CONFIG
+         ================================================================ -->
+    <session-config>
+        <!-- Thời gian session tính bằng phút -->
+        <session-timeout>60</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only>
+            <!-- Đổi sang true khi deploy trên HTTPS -->
+            <secure>false</secure>
+        </cookie-config>
+    </session-config>
+
+    <!-- ================================================================
+         WELCOME FILE
+         ================================================================ -->
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+
+    <!-- ================================================================
+         MULTIPART CONFIG (File Upload)
+         Áp dụng cho các Servlet cần upload file (ProductManageServlet, etc.)
+         Thêm @MultipartConfig annotation trực tiếp trên Servlet class là đủ.
+         Config mặc định ở đây nếu không dùng annotation:
+         ================================================================ -->
+    <!-- Uncomment nếu cần global multipart config
+    <multipart-config>
+        <location>/tmp</location>
+        <max-file-size>5242880</max-file-size>      (5 MB)
+        <max-request-size>10485760</max-request-size> (10 MB)
+        <file-size-threshold>1048576</file-size-threshold> (1 MB)
+    </multipart-config>
+    -->
+
+    <!--
+    NOTE: Các Servlet và Filter đều dùng Annotation (@WebServlet, @WebFilter)
+    nên KHÔNG cần khai báo thêm <servlet> và <filter> ở đây.
+
+    Nếu muốn kiểm soát thứ tự filter, dùng <filter> + <filter-mapping> bên dưới
+    thay vì @WebFilter annotation.
+
+    Thứ tự filter khuyến nghị:
+      1. EncodingFilter  → url-pattern /*
+      2. LoggingFilter   → url-pattern /*
+      3. CsrfFilter      → url-pattern /*
+      4. AuthFilter      → url-pattern /customer/*, /shop/*, /delivery/*, /admin/*
+      5. RoleFilter      → url-pattern /admin/*, /shop/*, /delivery/*
+
+    Khi dùng annotation @WebFilter, thứ tự KHÔNG được đảm bảo.
+    Nếu cần đảm bảo thứ tự, dùng web.xml filter mapping.
+    -->
+
+</web-app>

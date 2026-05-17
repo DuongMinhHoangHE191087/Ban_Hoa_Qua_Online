@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  context.xml — Tomcat JNDI DataSource (dự phòng nếu sau này chuyển sang JNDI)
+  Hiện tại dự án dùng DriverManager trong DBConfig.java
+
+  CÁCH SỬ DỤNG JNDI (tuỳ chọn):
+  1. Copy file này vào: ${TOMCAT_HOME}/conf/Catalina/localhost/Ban_Hoa_Qua_Online.xml
+  2. Đổi DBConfig.java sang dùng InitialContext thay vì DriverManager
+
+  CẤU HÌNH SQL SERVER:
+  - Thay [DB_HOST], [DB_PORT], [DB_NAME], [DB_USER], [DB_PASSWORD] bằng giá trị thực
+  - File này KHÔNG được commit lên git nếu chứa password thật
+-->
+<Context>
+    <Resource
+        name="jdbc/FruitMktDB"
+        auth="Container"
+        type="javax.sql.DataSource"
+        driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+        url="jdbc:sqlserver://[DB_HOST]:[DB_PORT];databaseName=[DB_NAME];encrypt=false"
+        username="[DB_USER]"
+        password="[DB_PASSWORD]"
+        maxTotal="20"
+        maxIdle="10"
+        maxWaitMillis="10000"
+    />
+</Context>
