@@ -1,0 +1,26 @@
+{
+  "chat.promptFiles": true,
+  "github.copilot.chat.codeGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    {
+      "text": "Mirror nearby code, keep changes small, and validate the result against the existing Ant/JSP/Servlet structure before finishing."
+    }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    {
+      "text": "Write the smallest regression check first when possible. Prefer Arrange-Act-Assert, targeted compilation, or a deterministic runtime check if the project has no test harness in the touched area."
+    }
+  ],
+  "github.copilot.chat.reviewSelection.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    {
+      "text": "Review for security issues, session and redirect bugs, SQL mistakes, XSS, missing validation, and regressions against nearby DAO, service, servlet, filter, and JSP patterns."
+    }
+  ],
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Use conventional commit format: <type>: <description>. Types: feat, fix, refactor, docs, test, chore, perf, ci. Keep the subject under 72 characters and describe why the change matters."
+    }
+  ]
+}
