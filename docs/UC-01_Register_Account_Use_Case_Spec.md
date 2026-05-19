@@ -81,7 +81,5 @@
 **Business Rules:** 
 - USR-01: Shop Owner registration accounts must be approved by an Admin to become Active.
 - USR-05: Guests are allowed to browse the cart but must complete the Register/Login Use Case before Checkout.
-**Other Information:** Passwords must be strongly hashed (e.g., BCrypt, PBKDF2) and never stored in plain text. The registration page UI must be fully responsive on mobile devices.
-**Assumptions:** 
-- The connection to the Google OAuth API in the production environment is consistently stable.
-- The database is fully operational to continuously verify Email uniqueness in real-time.
+**Other Information:** Guest can register only as Customer or Shop Owner. Shop Owner accounts may remain Pending until approval if the platform policy requires it. Registration events can be logged for audit if required by system policy.
+**Assumptions:** Email verification, OTP, or captcha may be enabled by configuration. If enabled, the exact mechanism is a system setting, not a separate business actor.

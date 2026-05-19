@@ -80,6 +80,5 @@
 **Business Rules:** 
 - USR-01: Shop Owners pending approval cannot log in.
 - SEC-01: Account should be temporarily locked out after 5 consecutive failed login attempts to prevent brute-force attacks.
-**Other Information:** Passwords must never be logged or exposed during the login process. Session cookies must be secure and HttpOnly.
-**Assumptions:** 
-- SSL/TLS is properly configured so credentials are sent securely over HTTPS.
+**Other Information:** Shop Owner accounts may remain Pending until approval if the platform policy requires it, restricting login access. Login events can be logged for audit if required by system policy.
+**Assumptions:** Email verification, OTP, or captcha may be enabled by configuration. If enabled, the exact mechanism is a system setting, not a separate business actor.
