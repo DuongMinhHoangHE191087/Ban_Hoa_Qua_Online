@@ -6,6 +6,7 @@
 **ID and Name:** UC-01 Register Account
 **Created By:** Duong Minh Hoang
 **Date Created:** May 19, 2026
+**Feature:** Authentication -> Account Access
 
 ## 2. Actor Definitions & Purpose
 **Primary Actor:** Guest
