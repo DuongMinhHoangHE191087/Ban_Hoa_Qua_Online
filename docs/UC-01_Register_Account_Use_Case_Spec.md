@@ -1,86 +1,86 @@
 # Use Case Specification
-## Hệ thống bán hoa quả online (Online Fruit Shop System)
-### UC-01 Đăng ký tài khoản (Register Account)
+## Online Fruit Shop System
+### UC-01 Register Account
 
-## 1. Thông tin Quản lý
-**ID và Tên (ID and Name):** UC-01 Đăng ký tài khoản
-**Người tạo (Created By):** Dương Minh Hoàng
-**Ngày tạo (Date Created):** 19/05/2026
+## 1. Management Information
+**ID and Name:** UC-01 Register Account
+**Created By:** Duong Minh Hoang
+**Date Created:** May 19, 2026
 
-## 2. Định nghĩa Tác nhân & Mục đích
-**Tác nhân chính (Primary Actor):** Khách vãng lai (Guest)
-**Tác nhân phụ (Secondary Actors):** Admin (chỉ khi cần phê duyệt Shop Owner), Hệ thống Google OAuth (Google API), Dịch vụ Gửi Email / OTP (nếu bật).
-**Mô tả (Description):** Cho phép Khách vãng lai tạo mới một tài khoản Customer hoặc Shop Owner để có thể sử dụng các chức năng yêu cầu xác thực của hệ thống Nền tảng Hoa Quả. Hỗ trợ đăng ký thủ công hoặc nhanh chóng thông qua Google OAuth.
+## 2. Actor Definitions & Purpose
+**Primary Actor:** Guest
+**Secondary Actors:** Admin (only when Shop Owner approval is required), Google OAuth System (Google API), Email/OTP Delivery Service (if enabled).
+**Description:** Allows a Guest to create a new Customer or Shop Owner account to securely access authenticated features of the Online Fruit Shop System. It supports both manual registration and quick registration via Google OAuth.
 
-## 3. Điều kiện Thực thi
-**Sự kiện kích hoạt (Trigger):** Khách vãng lai nhấn vào nút "Đăng ký" (Register) từ trang chủ, trang đăng nhập, hoặc khi bị điều hướng sau một thao tác yêu cầu đăng nhập (ví dụ: tạo giỏ hàng sang bước thanh toán).
-**Điều kiện tiên quyết (Preconditions):**
-- PRE-1: Người dùng hiện chưa đăng nhập vào hệ thống.
-- PRE-2: Trang đăng ký hoặc hệ thống Google OAuth API đang hoạt động bình thường.
-**Điều kiện hậu quyết (Postconditions):**
-- POST-1: Hệ thống lưu thành công thông tin tài khoản mới vào cơ sở dữ liệu.
-- POST-2: Trạng thái tài khoản được thiết lập thành "Active" (nếu là Customer hoặc đăng ký qua Google) hoặc "Pending" (nếu là Shop Owner chờ Admin duyệt).
-- POST-3: Hệ thống lưu sự kiện đăng ký vào Audit Log (nếu có yêu cầu).
+## 3. Execution Conditions
+**Trigger:** The Guest clicks the "Register" button from the home page, login page, or is redirected after attempting an action that requires authentication (e.g., proceeding to checkout from the cart).
+**Preconditions:**
+- PRE-1: The user is not currently logged into the system.
+- PRE-2: The registration page and Google OAuth API are functioning normally.
+**Postconditions:**
+- POST-1: The system successfully saves the new account information into the database.
+- POST-2: The account status is set to "Active" (for Customers or Google registrations) or "Pending Approval" (for Shop Owners awaiting Admin verification).
+- POST-3: The system logs the registration event in the Audit Log (if required).
 
-## 4. Kịch bản (Luồng sự kiện)
-### Luồng cơ bản (Normal Flow - Đăng ký bằng Email/Mật khẩu):
-1. Khách vãng lai mở trang Đăng ký (Register Page).
-2. Hệ thống hiển thị biểu mẫu đăng ký với các trường: Họ và tên, Email, Số điện thoại (tùy chọn), Mật khẩu, Xác nhận Mật khẩu, Loại tài khoản (Customer / Shop Owner) và nút đăng ký qua Google.
-3. Khách vãng lai nhập đầy đủ thông tin vào biểu mẫu.
-4. Khách vãng lai chọn Loại tài khoản (Mặc định là Customer).
-5. Khách vãng lai nhấn nút "Đăng ký".
-6. Hệ thống kiểm tra tính hợp lệ của định dạng dữ liệu, mật khẩu (độ mạnh, khớp nhau) và tính duy nhất của Email.
-7. Hệ thống tạo tài khoản mới trong cơ sở dữ liệu và phân quyền theo Loại tài khoản đã chọn.
-8. Hệ thống mã hóa mật khẩu trước khi lưu.
-9. Hệ thống gửi email chào mừng/xác thực (nếu cấu hình yêu cầu).
-10. Hệ thống hiển thị thông báo Đăng ký thành công và điều hướng Khách vãng lai tới trang Đăng nhập (Login Page).
+## 4. Scenarios (Flow of Events)
+### Normal Flow (Registration via Email/Password):
+1. The Guest opens the Register Page.
+2. The system displays the registration form containing the following fields: Full Name, Email, Phone number (optional), Password, Confirm Password, Account Type (Customer / Shop Owner), and a "Register with Google" button.
+3. The Guest enters valid information into the required form fields.
+4. The Guest selects the Account Type (Default is Customer).
+5. The Guest clicks the "Register" button.
+6. The system verifies data format validity, password strength and match, and Email uniqueness.
+7. The system creates a new account in the database and assigns roles based on the selected Account Type.
+8. The system securely encrypts (hashes) the password before persisting it.
+9. The system sends a welcome/verification email (if required by configuration).
+10. The system displays a successful registration message and redirects the user to the Login Page.
 
-### Luồng thay thế (Alternative Flows):
-**4.1. Đăng ký qua Google OAuth**
-1. Ở bước 3 của Luồng cơ bản, Khách vãng lai nhấn nút "Đăng ký bằng Google".
-2. Hệ thống chuyển hướng Khách vãng lai đến trang xác thực của Google.
-3. Khách vãng lai đăng nhập và cấp quyền cho hệ thống truy cập thông tin cơ bản (Email, Họ tên, Ảnh đại diện).
-4. Google trả về Token Profile cho hệ thống.
-5. Hệ thống trích xuất Email và Họ tên từ Token.
-6. Hệ thống nhận diện đây là Email mới (chưa tồn tại trong Database), tự động tạo tài khoản mới với loại mặc định là Customer và trạng thái Active. (Không cần mật khẩu).
-7. Hệ thống tự động thiết lập phiên đăng nhập (session).
-8. Hệ thống điều hướng Khách vãng lai thẳng tới Trang chủ (Home Page) hoặc giao diện được chỉ định.
+### Alternative Flows:
+**4.1. Registration via Google OAuth**
+1. At step 3 of the Normal Flow, the Guest clicks the "Register with Google" button.
+2. The system redirects the Guest to the Google authentication page.
+3. The Guest logs in and grants the system permission to access basic profile information (Email, Full Name, Avatar).
+4. Google returns a Profile Token to the system.
+5. The system extracts the Email and Full Name from the Token.
+6. The system recognizes this as a new Email (not currently existing in the Database), and automatically creates a new account with the default type set to Customer and status set to Active. (No password is required).
+7. The system automatically establishes a login session for the user.
+8. The system redirects the Guest directly to the Home Page or another specified landing page.
 
-**4.2. Đăng ký tài khoản Shop Owner cần Admin phê duyệt**
-1. Ở bước 4 của Luồng cơ bản, Khách vãng lai chọn Loại tài khoản là "Shop Owner".
-2. Khách vãng lai thực hiện tiếp tục đến bước 7.
-3. Hệ thống tạo tài khoản nhưng gán trạng thái là "Pending Approval" thay vì Active (dựa theo quy tắc USR-01).
-4. Hệ thống gửi thông báo cho Admin về yêu cầu mở Shop mới.
-5. Hệ thống thông báo cho Khách vãng lai: "Tạo tài khoản thành công. Tài khoản Shop đang chờ Admin phê duyệt." và kết thúc Use Case.
+**4.2. Shop Owner Account Registration Requiring Admin Approval**
+1. At step 4 of the Normal Flow, the Guest selects the Account Type as "Shop Owner".
+2. The Guest continues through step 7 of the Normal Flow.
+3. The system creates the account but assigns the status as "Pending Approval" instead of Active (enforcing business rule USR-01).
+4. The system sends a notification to the Admin regarding the new Shop creation request.
+5. The system notifies the Guest: "Account created successfully. Your Shop account is currently awaiting Admin approval." and ends the Use Case.
 
-### Ngoại lệ / Xử lý lỗi (Exceptions):
-**6.E1 Dữ liệu không hợp lệ hoặc thiếu**
-1. Ở bước 6 của Luồng cơ bản, Hệ thống phát hiện định dạng Email sai, mật khẩu quá ngắn hoặc hai mật khẩu không khớp.
-2. Hệ thống bôi đỏ các trường bị lỗi và hiển thị thông báo lỗi tương ứng.
-3. Khách vãng lai chỉnh sửa lại dữ liệu và nhấn "Đăng ký" để thử lại. Hệ thống quay lại bước 6.
+### Exceptions / Error Handling:
+**6.E1 Invalid or Missing Data**
+1. At step 6 of the Normal Flow, the system detects an invalid Email format, a password that is too short, or mismatched passwords.
+2. The system highlights the erroneous fields and displays the corresponding error messages.
+3. The Guest corrects the data and clicks "Register" to try again. The system returns to step 6.
 
-**7.E1 Email đã tồn tại trong hệ thống**
-1. Ở bước 6 của Luồng cơ bản, hoặc bước 6 của Luồng 4.1 (Google), Hệ thống kiểm tra thấy Email đã được đăng ký trước đó.
-2. Hệ thống hiển thị thông báo: "Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng Email khác."
-3. Khách vãng lai chọn quay lại trang Đăng nhập hoặc nhập Email mới để tiếp tục.
+**7.E1 Email Already Exists**
+1. At step 6 of the Normal Flow, or step 6 of Alternative Flow 4.1 (Google), the system detects that the Email has already been registered.
+2. The system displays the message: "This email is already in use. Please log in or use a different email address."
+3. The Guest chooses to return to the Login page or enter a new Email to continue.
 
-**4.1.E1 Lỗi xác thực từ Google OAuth**
-1. Ở bước 4 của Luồng 4.1, Google trả về lỗi (do Khách từ chối cấp quyền, hết hạn token, lỗi mạng).
-2. Hệ thống hiển thị thông báo: "Đăng ký bằng Google thất bại. Vui lòng thử lại hoặc đăng ký thủ công."
-3. Khách vãng lai quay lại trang đăng ký bình thường.
+**4.1.E1 Google OAuth Authentication Error**
+1. At step 4 of Flow 4.1, Google returns an error (due to user denying permission, token expiration, or network failure).
+2. The system displays the message: "Google registration failed. Please try again or register manually."
+3. The Guest returns to the standard registration page.
 
-**10.E1 Lỗi Hệ thống / Database**
-1. Ở bước 7 của Luồng cơ bản, hệ thống không thể lưu trữ dữ liệu do mất kết nối CSDL (Database Error).
-2. Hệ thống ghi log lỗi và thông báo: "Hệ thống đang gặp sự cố, vui lòng thử lại sau."
-3. Hệ thống kết thúc Use Case mà không lưu dữ liệu.
+**10.E1 System / Database Error**
+1. At step 7 of the Normal Flow, the system cannot save the data due to a database connection failure.
+2. The system logs the error and displays: "The system is currently experiencing issues. Please try again later."
+3. The system gracefully ends the Use Case without saving partial data.
 
-## 5. Thông tin Bổ sung
-**Độ ưu tiên (Priority):** Cao (P0 - Chức năng cốt lõi)
-**Tần suất sử dụng (Frequency of Use):** Thường xuyên (High). Hàng ngày, mỗi khi có khách hàng hoặc shop mới tiếp cận nền tảng.
-**Quy tắc nghiệp vụ (Business Rules):** 
-- USR-01: Tài khoản Shop Owner đăng ký cần được phê duyệt để Active.
-- USR-05: Guest được phép lướt giỏ hàng nhưng bắt buộc qua Use case Đăng ký/Đăng nhập mới được Checkout.
-**Thông tin khác (Other Information):** Mật khẩu phải được mã hóa một chiều (ví dụ: BCrypt, PBKDF2) không được lưu bản rõ. Giao diện trang đăng ký cần responsive tốt trên thiết bị di động.
-**Giả định (Assumptions):** 
-- Kết nối tới Google OAuth API ở môi trường production luôn ổn định.
-- Database có hoạt động để kiểm tra tính duy nhất của Email ngay lập tức.
+## 5. Additional Information
+**Priority:** High (P0 - Core functionality)
+**Frequency of Use:** High. Daily usage, whenever new customers or shops join the platform.
+**Business Rules:** 
+- USR-01: Shop Owner registration accounts must be approved by an Admin to become Active.
+- USR-05: Guests are allowed to browse the cart but must complete the Register/Login Use Case before Checkout.
+**Other Information:** Passwords must be strongly hashed (e.g., BCrypt, PBKDF2) and never stored in plain text. The registration page UI must be fully responsive on mobile devices.
+**Assumptions:** 
+- The connection to the Google OAuth API in the production environment is consistently stable.
+- The database is fully operational to continuously verify Email uniqueness in real-time.
