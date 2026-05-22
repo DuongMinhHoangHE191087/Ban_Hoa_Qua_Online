@@ -3,9 +3,21 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/admin/Documents/GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/util/HashUtil.java</file>
-            <file>file:/C:/Users/admin/Documents/GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/util/JsonUtil.java</file>
-            <file>file:/C:/Users/admin/Documents/GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/tag/CurrencyFormatTag.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/util/HashUtil.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/util/JsonUtil.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/web/WEB-INF/jsp/auth/register.jsp</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/servlet/auth/RegisterServlet.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/servlet/auth/LoginServlet.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/dao/UserDAO.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/dao/base/BaseDAO.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/service/AuthService.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/model/entity/User.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/nbproject/build-impl.xml</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/servlet/admin/AdminDashboardServlet.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/util/FileUploadUtil.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/filter/CsrfFilter.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/service/EmailService.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/service/NotificationService.java</file>
         </group>
     </open-files>
 </project-private>

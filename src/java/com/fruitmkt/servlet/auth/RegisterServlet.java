@@ -9,7 +9,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.sql.Connection;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 /**
@@ -31,8 +32,7 @@ import java.sql.SQLException;
 @WebServlet("/auth/register")
 public class RegisterServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final AuthService authService = new AuthService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -67,12 +67,15 @@ public class RegisterServlet extends HttpServlet {
             if (phone == null || phone.trim().isEmpty()) {
                 throw new Exception("Số điện thoại không được để trống!");
             }
-            if (password == null || confirmPassword == null ) {
-                throw new Exception("Mật khẩu Không được để trống!");
+            if (password == null || password.trim().isEmpty()) {
+                throw new Exception("Mật khẩu không được để trống!");
             }
-            if ( !password.trim().equals(confirmPassword.trim())) {
+            if (password.length() < 8 || password.length() > 64) {
+                throw new Exception("Mật khẩu phải từ 8 đến 64 ký tự!");
+            }
+            if (!password.equals(confirmPassword)) {
                 throw new Exception("Mật khẩu xác nhận không khớp!");
-            }   
+            }
             // Gán role mặc định nếu bị rỗng hoặc sai
             if (role == null || (!role.equals("CUSTOMER") && !role.equals("SHOP_OWNER"))) {
                 role = "CUSTOMER"; 
@@ -86,20 +89,18 @@ public class RegisterServlet extends HttpServlet {
             user.setPhone(phone);
             user.setRole(role);
 
-            // 4. Khởi tạo Service và Xử lý Đăng Ký
+            // 4. Xử lý Đăng Ký qua Service
             String storeName = req.getParameter("storeName");
             String address = req.getParameter("address");
-
-            AuthService authService = new AuthService();
             User newUser = authService.register(user, storeName, address);
 
             // 6. Xử lý thành công - Sử dụng Pattern PRG với Flash Message
-            SessionUtil.flashSuccess(req.getSession(), "Đăng ký thành công! Vui lòng đăng nhập.");
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            SessionUtil.flashSuccess(req.getSession(), "Đăng ký thành công! Vui lòng kiểm tra email để xác minh trong 5 phút.");
+            req.getSession().setAttribute(AppConfig.SESSION_VERIFY_EMAIL, newUser.getEmail());
+            resp.sendRedirect(req.getContextPath() + "/auth/verify");
 
-        } catch (Throwable e) {
-            // 7. Xử lý Lỗi - Đẩy message về lại form JSP thông qua Request Attributes và Forward
-            e.printStackTrace(); // Log ra console NetBeans
+        } catch (Exception e) {
+            req.getServletContext().log("RegisterServlet error: " + e.getMessage(), e);
             req.setAttribute("errorMsg", e.getMessage());
             req.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp").forward(req, resp);
         }

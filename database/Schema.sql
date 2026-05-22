@@ -10,12 +10,16 @@ CREATE TABLE users (
     full_name NVARCHAR(100) NOT NULL,
     email NVARCHAR(255) NOT NULL UNIQUE,
     password_hash NVARCHAR(255) NULL,
-    phone NVARCHAR(15) NULL,
+    phone NVARCHAR(15) NULL UNIQUE,
     role NVARCHAR(20) NOT NULL DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER','SHOP_OWNER','DELIVERY','ADMIN')),
-    status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE'))
+    status NVARCHAR(20) NOT NULL DEFAULT 'INACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','LOCKED','SUSPENDED')),
     user_address NVARCHAR(500) NULL,
 
     is_email_verified BIT NOT NULL DEFAULT 0,
+    email_verification_code_hash NVARCHAR(255) NULL,
+    email_verification_expires_at DATETIME NULL,
+    email_verification_resend_at DATETIME NULL,
+    email_verification_sent_at DATETIME NULL,
     failed_login_count INT NOT NULL DEFAULT 0,
     locked_until DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]

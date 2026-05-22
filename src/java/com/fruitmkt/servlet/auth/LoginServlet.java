@@ -3,6 +3,7 @@ package com.fruitmkt.servlet.auth;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.AuthService;
+import com.fruitmkt.service.AuthService.VerificationRequiredException;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.TokenUtil;
 
@@ -11,6 +12,8 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * LoginServlet — Controller cho chức năng: Hiển thị form đăng nhập và xử lý xác thực
@@ -46,7 +49,7 @@ public class LoginServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         
-        String email = req.getParameter("email");
+        String identifier = req.getParameter("identifier");
         String password = req.getParameter("password");
         String redirectTarget = req.getParameter("redirect");
         
@@ -61,7 +64,7 @@ public class LoginServlet extends HttpServlet {
 
         try {
             // 2. Xác thực credentials từ AuthService
-            User user = authService.login(email, password);
+            User user = authService.login(identifier, password);
             
             // 3. Chống tấn công Session Fixation bằng cách hủy session cũ và tạo session mới
             req.getSession().invalidate();
@@ -90,6 +93,12 @@ public class LoginServlet extends HttpServlet {
                 redirectToRoleDashboard(req, resp, user);
             }
             
+        } catch (VerificationRequiredException e) {
+            HttpSession session = req.getSession(true);
+            SessionUtil.flashError(session, "Tài khoản chưa được xác minh. Vui lòng nhập mã code để kích hoạt tài khoản.");
+            session.setAttribute(AppConfig.SESSION_VERIFY_EMAIL, e.getEmail());
+            resp.sendRedirect(req.getContextPath() + "/auth/verify");
+
         } catch (Exception e) {
             // Đăng nhập thất bại -> Hiển thị lỗi thân thiện
             req.setAttribute("errorMsg", e.getMessage());

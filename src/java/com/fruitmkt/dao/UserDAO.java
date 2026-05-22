@@ -1,6 +1,7 @@
 package com.fruitmkt.dao;
 
 import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.HashUtil;
 import java.sql.*;
@@ -46,8 +47,32 @@ public class UserDAO extends BaseDAO {
             }
         }
    }
-   public User registerExternalUser(String email, String fullName) throws SQLException {
-    String sql = "INSERT INTO users (full_name, email, password_hash, role, status) VALUES (?, ?, ?, 'CUSTOMER', 'ACTIVE')";
+
+   public User findByPhone(String phone) throws SQLException {
+        String sql = "SELECT * FROM users WHERE phone = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phone);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+                return null;
+            }
+        }
+   }
+
+   public User findByLoginIdentifier(String identifier) throws SQLException {
+        User user = findByEmail(identifier);
+        if (user != null) {
+            return user;
+        }
+        return findByPhone(identifier);
+   }
+
+    public User registerExternalUser(String email, String fullName) throws SQLException {
+     String sql = "INSERT INTO users (full_name, email, password_hash, role, status, is_email_verified) VALUES (?, ?, ?, 'CUSTOMER', 'ACTIVE', 1)";
     try (Connection conn = getConnection();
          PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
          
@@ -89,8 +114,12 @@ public class UserDAO extends BaseDAO {
      * TODO: Implement — save(User user)
      */
     public int saveNewCustomer(String fullName, String email, String passwordHash, String phone, String role) throws SQLException {
+        return saveNewCustomer(fullName, email, passwordHash, phone, role, AppConfig.ACCOUNT_STATUS_INACTIVE, false);
+    }
+
+    public int saveNewCustomer(String fullName, String email, String passwordHash, String phone, String role, String status, boolean emailVerified) throws SQLException {
         // TODO: Viết SQL và xử lý ResultSet ở đây
-        String sql = "INSERT INTO users (full_name, email, password_hash, phone, role, status) VALUES (?, ?, ?, ?, ?, 'ACTIVE')";
+        String sql = "INSERT INTO users (full_name, email, password_hash, phone, role, status, is_email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection(); 
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, fullName);
@@ -98,6 +127,8 @@ public class UserDAO extends BaseDAO {
             stmt.setString(3, passwordHash);
             stmt.setString(4, phone);
             stmt.setString(5, role);
+            stmt.setString(6, status);
+            stmt.setBoolean(7, emailVerified);
             
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -128,6 +159,28 @@ public class UserDAO extends BaseDAO {
     public void updatePassword(int userId, String newHash) throws SQLException {
         // TODO: Viết SQL và xử lý ResultSet ở đây
         throw new UnsupportedOperationException("Not implemented yet: updatePassword(int userId, String newHash)");
+    }
+
+    public void saveEmailVerificationCode(int userId, String codeHash, Timestamp expiresAt, Timestamp resendAt) throws SQLException {
+        String sql = "UPDATE users SET email_verification_code_hash = ?, email_verification_expires_at = ?, email_verification_resend_at = ?, email_verification_sent_at = GETDATE(), updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, codeHash);
+            stmt.setTimestamp(2, expiresAt);
+            stmt.setTimestamp(3, resendAt);
+            stmt.setInt(4, userId);
+            stmt.executeUpdate();
+        }
+    }
+
+    public void activateVerifiedEmail(int userId) throws SQLException {
+        String sql = "UPDATE users SET status = ?, is_email_verified = 1, email_verification_code_hash = NULL, email_verification_expires_at = NULL, email_verification_resend_at = NULL, email_verification_sent_at = NULL, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, AppConfig.ACCOUNT_STATUS_ACTIVE);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
     }
 
     /**
@@ -167,6 +220,24 @@ public class UserDAO extends BaseDAO {
         user.setUserAddress(rs.getString("user_address"));
         user.setEmailVerified(rs.getBoolean("is_email_verified"));
         user.setFailedLoginCount(rs.getInt("failed_login_count"));
+
+        String verificationCodeHash = rs.getString("email_verification_code_hash");
+        user.setEmailVerificationCodeHash(verificationCodeHash);
+
+        Timestamp emailVerificationExpiresAt = rs.getTimestamp("email_verification_expires_at");
+        if (emailVerificationExpiresAt != null) {
+            user.setEmailVerificationExpiresAt(emailVerificationExpiresAt.toLocalDateTime());
+        }
+
+        Timestamp emailVerificationResendAt = rs.getTimestamp("email_verification_resend_at");
+        if (emailVerificationResendAt != null) {
+            user.setEmailVerificationResendAt(emailVerificationResendAt.toLocalDateTime());
+        }
+
+        Timestamp emailVerificationSentAt = rs.getTimestamp("email_verification_sent_at");
+        if (emailVerificationSentAt != null) {
+            user.setEmailVerificationSentAt(emailVerificationSentAt.toLocalDateTime());
+        }
         
         Timestamp lockedUntilTs = rs.getTimestamp("locked_until");
         if (lockedUntilTs != null) {

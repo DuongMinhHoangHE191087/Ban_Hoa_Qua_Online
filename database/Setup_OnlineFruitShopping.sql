@@ -31,11 +31,15 @@ BEGIN
         full_name NVARCHAR(100) NOT NULL,
         email NVARCHAR(255) NOT NULL CONSTRAINT UQ_users_email UNIQUE,
         password_hash NVARCHAR(255) NULL,
-        phone NVARCHAR(15) NULL,
+        phone NVARCHAR(15) NULL CONSTRAINT UQ_users_phone UNIQUE,
         role NVARCHAR(20) NOT NULL CONSTRAINT CK_users_role DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER', 'SHOP_OWNER', 'DELIVERY', 'ADMIN')),
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_users_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
+        status NVARCHAR(20) NOT NULL CONSTRAINT CK_users_status DEFAULT 'INACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'LOCKED', 'SUSPENDED')),
         user_address NVARCHAR(500) NULL,
         is_email_verified BIT NOT NULL CONSTRAINT DF_users_is_email_verified DEFAULT 0,
+        email_verification_code_hash NVARCHAR(255) NULL,
+        email_verification_expires_at DATETIME NULL,
+        email_verification_resend_at DATETIME NULL,
+        email_verification_sent_at DATETIME NULL,
         failed_login_count INT NOT NULL CONSTRAINT DF_users_failed_login_count DEFAULT 0,
         locked_until DATETIME NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_users_created_at DEFAULT GETDATE(),
@@ -469,6 +473,241 @@ END
 GO
 
 -- =========================================================
+-- Indexes for hot DAO paths
+-- =========================================================
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_owner_profiles_approval_status_profile_id' AND object_id = OBJECT_ID(N'dbo.shop_owner_profiles'))
+BEGIN
+    CREATE INDEX IX_shop_owner_profiles_approval_status_profile_id
+        ON dbo.shop_owner_profiles (approval_status, profile_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_owner_id_product_id_desc' AND object_id = OBJECT_ID(N'dbo.products'))
+BEGIN
+    CREATE INDEX IX_products_owner_id_product_id_desc
+        ON dbo.products (owner_id, product_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_category_id_product_id_desc' AND object_id = OBJECT_ID(N'dbo.products'))
+BEGIN
+    CREATE INDEX IX_products_category_id_product_id_desc
+        ON dbo.products (category_id, product_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_images_product_id_display_order' AND object_id = OBJECT_ID(N'dbo.product_images'))
+BEGIN
+    CREATE INDEX IX_product_images_product_id_display_order
+        ON dbo.product_images (product_id, display_order ASC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_variants_product_id_is_active_price' AND object_id = OBJECT_ID(N'dbo.product_variants'))
+BEGIN
+    CREATE INDEX IX_product_variants_product_id_is_active_price
+        ON dbo.product_variants (product_id, is_active, price);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+BEGIN
+    CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_id
+        ON dbo.cart_items (cart_id, variant_id);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_cart_items_cart_id_added_at' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+BEGIN
+    CREATE INDEX IX_cart_items_cart_id_added_at
+        ON dbo.cart_items (cart_id, added_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_customer_id_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+BEGIN
+    CREATE INDEX IX_orders_customer_id_order_id_desc
+        ON dbo.orders (customer_id, order_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_status_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+BEGIN
+    CREATE INDEX IX_orders_owner_id_status_order_id_desc
+        ON dbo.orders (owner_id, status, order_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+BEGIN
+    CREATE INDEX IX_orders_owner_id_order_id_desc
+        ON dbo.orders (owner_id, order_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_status_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+BEGIN
+    CREATE INDEX IX_orders_status_order_id_desc
+        ON dbo.orders (status, order_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_order_id' AND object_id = OBJECT_ID(N'dbo.order_items'))
+BEGIN
+    CREATE INDEX IX_order_items_order_id
+        ON dbo.order_items (order_id, order_item_id);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_variant_id' AND object_id = OBJECT_ID(N'dbo.order_items'))
+BEGIN
+    CREATE INDEX IX_order_items_variant_id
+        ON dbo.order_items (variant_id, order_item_id);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_created_by_is_deleted_promo_id_desc' AND object_id = OBJECT_ID(N'dbo.promotions'))
+BEGIN
+    CREATE INDEX IX_promotions_created_by_is_deleted_promo_id_desc
+        ON dbo.promotions (created_by, is_deleted, promo_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_product_scope_active_validity' AND object_id = OBJECT_ID(N'dbo.promotions'))
+BEGIN
+    CREATE INDEX IX_promotions_product_scope_active_validity
+        ON dbo.promotions (product_id, scope, is_active, is_deleted, valid_from, valid_until);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_inventory_logs_variant_id_changed_at_desc' AND object_id = OBJECT_ID(N'dbo.inventory_logs'))
+BEGIN
+    CREATE INDEX IX_inventory_logs_variant_id_changed_at_desc
+        ON dbo.inventory_logs (variant_id, changed_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_order_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+BEGIN
+    CREATE INDEX IX_return_requests_order_id_created_at_desc
+        ON dbo.return_requests (order_id, created_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_customer_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+BEGIN
+    CREATE INDEX IX_return_requests_customer_id_created_at_desc
+        ON dbo.return_requests (customer_id, created_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+BEGIN
+    CREATE INDEX IX_return_requests_status_created_at_desc
+        ON dbo.return_requests (status, created_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_owner_id_settlement_id_desc' AND object_id = OBJECT_ID(N'dbo.shop_settlements'))
+BEGIN
+    CREATE INDEX IX_shop_settlements_owner_id_settlement_id_desc
+        ON dbo.shop_settlements (owner_id, settlement_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_status_settlement_id_desc' AND object_id = OBJECT_ID(N'dbo.shop_settlements'))
+BEGIN
+    CREATE INDEX IX_shop_settlements_status_settlement_id_desc
+        ON dbo.shop_settlements (status, settlement_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlement_orders_settlement_id_order_id' AND object_id = OBJECT_ID(N'dbo.shop_settlement_orders'))
+BEGIN
+    CREATE INDEX IX_shop_settlement_orders_settlement_id_order_id
+        ON dbo.shop_settlement_orders (settlement_id, order_id);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_status_delivery_id_desc' AND object_id = OBJECT_ID(N'dbo.deliveries'))
+BEGIN
+    CREATE INDEX IX_deliveries_staff_id_status_delivery_id_desc
+        ON dbo.deliveries (staff_id, status, delivery_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_delivery_id_desc' AND object_id = OBJECT_ID(N'dbo.deliveries'))
+BEGIN
+    CREATE INDEX IX_deliveries_staff_id_delivery_id_desc
+        ON dbo.deliveries (staff_id, delivery_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_reviews_order_item_id' AND object_id = OBJECT_ID(N'dbo.reviews'))
+BEGIN
+    CREATE INDEX IX_reviews_order_item_id
+        ON dbo.reviews (order_item_id);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_owner' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+BEGIN
+    CREATE INDEX IX_chat_sessions_customer_owner
+        ON dbo.chat_sessions (customer_id, owner_id);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_id_updated_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+BEGIN
+    CREATE INDEX IX_chat_sessions_customer_id_updated_at_desc
+        ON dbo.chat_sessions (customer_id, updated_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_owner_id_updated_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+BEGIN
+    CREATE INDEX IX_chat_sessions_owner_id_updated_at_desc
+        ON dbo.chat_sessions (owner_id, updated_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_is_read_created_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_messages'))
+BEGIN
+    CREATE INDEX IX_chat_messages_session_id_is_read_created_at_desc
+        ON dbo.chat_messages (session_id, is_read, created_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_messages'))
+BEGIN
+    CREATE INDEX IX_chat_messages_session_id_created_at_desc
+        ON dbo.chat_messages (session_id, created_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_is_read_created_at_desc' AND object_id = OBJECT_ID(N'dbo.notifications'))
+BEGIN
+    CREATE INDEX IX_notifications_user_id_is_read_created_at_desc
+        ON dbo.notifications (user_id, is_read, created_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.notifications'))
+BEGIN
+    CREATE INDEX IX_notifications_user_id_created_at_desc
+        ON dbo.notifications (user_id, created_at DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_payment_transactions_sepay_transaction_id' AND object_id = OBJECT_ID(N'dbo.payment_transactions'))
+BEGIN
+    CREATE INDEX IX_payment_transactions_sepay_transaction_id
+        ON dbo.payment_transactions (sepay_transaction_id);
+END
+GO
+
+-- =========================================================
 -- Seed data
 -- =========================================================
 
@@ -476,15 +715,15 @@ BEGIN TRY
     BEGIN TRAN;
 
     SET IDENTITY_INSERT dbo.users ON;
-    INSERT INTO dbo.users (user_id, full_name, email, password_hash, phone, role, status, user_address, is_email_verified, failed_login_count, locked_until, created_at, updated_at)
+    INSERT INTO dbo.users (user_id, full_name, email, password_hash, phone, role, status, user_address, is_email_verified, email_verification_code_hash, email_verification_expires_at, email_verification_resend_at, email_verification_sent_at, failed_login_count, locked_until, created_at, updated_at)
     VALUES
-        (1, N'Admin System', N'admin@fruitshop.local', N'hash_admin_demo', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', 1, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
-        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'hash_delivery_demo', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', 1, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
-        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'hash_owner1_demo', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', 1, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
-        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'hash_owner2_demo', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
-        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'hash_customer1_demo', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
-        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'hash_customer2_demo', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
-        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'hash_owner3_demo', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00');
+        (1, N'Admin System', N'admin@fruitshop.local', N'hash_admin_demo', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
+        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'hash_delivery_demo', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
+        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'hash_owner1_demo', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
+        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'hash_owner2_demo', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
+        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'hash_customer1_demo', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
+        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'hash_customer2_demo', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
+        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'hash_owner3_demo', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00');
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;

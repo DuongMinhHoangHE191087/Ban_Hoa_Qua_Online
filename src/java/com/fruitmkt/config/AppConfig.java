@@ -9,7 +9,7 @@ package com.fruitmkt.config;
  * @author fruitmkt-team
  */
 public final class AppConfig {
-        // ------------------------------------------------------------------
+        // ——————————————————————————————————————————————————————————————————
         // Database
         // ------------------------------------------------------------------
         public static final String DB_HOST = "localhost";
@@ -29,6 +29,28 @@ public final class AppConfig {
         public static final String GOOGLE_LINK_GET_TOKEN = "https://oauth2.googleapis.com/token";
         public static final String GOOGLE_LINK_GET_USER_INFO = "https://www.googleapis.com/oauth2/v1/userinfo?access_token=";
         public static final String GOOGLE_GRANT_TYPE = "authorization_code";
+
+        public static final String EMAIL_SMTP_HOST = "smtp.gmail.com";
+        public static final String EMAIL_SMTP_PORT = "587";
+        public static final String EMAIL_FROM = "duongminhhoanginwork@gmail.com";
+        public static final String EMAIL_PASSWORD = "jkhg przg aohf pwla";
+        public static final String APP_NAME = "MetaFruit";
+        public static final String APP_SUPPORT_EMAIL = "duongminhhoanginwork@gmail.com";
+        public static final String APP_BRAND_COLOR = "#14532d";
+        public static final String APP_BASE_URL = "http://localhost:8080/Ban_Hoa_Qua_Online";
+
+        // ------------------------------------------------------------------
+        // Email verification
+        // ------------------------------------------------------------------
+        public static final int EMAIL_VERIFICATION_CODE_LENGTH = 6;
+        public static final int EMAIL_VERIFICATION_TTL_MINUTES = 5;
+        public static final int EMAIL_VERIFICATION_RESEND_SECONDS = 60;
+
+        // ------------------------------------------------------------------
+        // Account status
+        // ------------------------------------------------------------------
+        public static final String ACCOUNT_STATUS_ACTIVE = "ACTIVE";
+        public static final String ACCOUNT_STATUS_INACTIVE = "INACTIVE";
 
         // ------------------------------------------------------------------
         // Phân trang (Pagination)
@@ -55,6 +77,8 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         /** Key lưu User object trong session sau khi đăng nhập */
         public static final String SESSION_USER = "currentUser";
+        /** Key lưu email chờ xác minh */
+        public static final String SESSION_VERIFY_EMAIL = "verifyEmail";
         /** Key lưu flash message sau PRG redirect */
         public static final String SESSION_FLASH_MSG = "flashMsg";
         /** Key lưu loại flash (success / error / warning / info) */
@@ -134,4 +158,11 @@ public final class AppConfig {
 
         private AppConfig() {
                 /* Utility class — không khởi tạo */ }
+
+        /**
+         * Đọc config theo ưu tiên: System property -> env variable -> default value.
+         * Production: đặt JVM option (-Ddb.password=...) hoặc env variable
+         * (DB_PASSWORD=...).
+         */
+
 }

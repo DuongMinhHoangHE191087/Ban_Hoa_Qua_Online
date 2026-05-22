@@ -33,6 +33,10 @@ public class User {
     private LocalDateTime  lockedUntil;
     private LocalDateTime  createdAt;
     private LocalDateTime  updatedAt;
+    private String         emailVerificationCodeHash;
+    private LocalDateTime  emailVerificationExpiresAt;
+    private LocalDateTime  emailVerificationResendAt;
+    private LocalDateTime  emailVerificationSentAt;
 
     public User() {}
 
@@ -76,6 +80,18 @@ public class User {
 
     public LocalDateTime getUpdatedAt()           { return updatedAt; }
     public void setUpdatedAt(LocalDateTime t)     { this.updatedAt = t; }
+
+    public String getEmailVerificationCodeHash()        { return emailVerificationCodeHash; }
+    public void setEmailVerificationCodeHash(String h)   { this.emailVerificationCodeHash = h; }
+
+    public LocalDateTime getEmailVerificationExpiresAt() { return emailVerificationExpiresAt; }
+    public void setEmailVerificationExpiresAt(LocalDateTime t) { this.emailVerificationExpiresAt = t; }
+
+    public LocalDateTime getEmailVerificationResendAt()  { return emailVerificationResendAt; }
+    public void setEmailVerificationResendAt(LocalDateTime t) { this.emailVerificationResendAt = t; }
+
+    public LocalDateTime getEmailVerificationSentAt()    { return emailVerificationSentAt; }
+    public void setEmailVerificationSentAt(LocalDateTime t) { this.emailVerificationSentAt = t; }
 
     // ---- Helper Methods ---------------------------------------------
 
