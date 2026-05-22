@@ -1,7 +1,7 @@
 # Ban_hoa_qua_online
 
 ## Project Context
-- Java 25 web app using Jakarta Servlet 6, JSP, JSTL, Tomcat 10, Ant, and NetBeans.
+- Java 17 web app using Jakarta Servlet 6, JSP, JSTL, Tomcat 10, Ant, and NetBeans.
 - Architecture is layered: servlet/controller -> service -> DAO -> database.
 - UI pages live under `web/WEB-INF/jsp`; shared fragments live under `web/WEB-INF/jsp/common`.
 

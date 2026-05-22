@@ -96,6 +96,26 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
+     * Lấy danh sách tất cả sản phẩm đang có chương trình khuyến mãi hoạt động (Flash Sale).
+     */
+    public List<Product> findFlashSaleProducts() throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT p.* FROM products p "
+                   + "JOIN promotions pr ON p.product_id = pr.product_id "
+                   + "WHERE pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
+                   + "ORDER BY p.product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
+
+    /**
      * Tìm kiếm sản phẩm theo từ khóa, danh mục, khoảng giá và phân trang.
      */
     public List<Product> search(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, int page, int pageSize) throws SQLException {
@@ -143,6 +163,50 @@ public class ProductDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Đếm tổng số sản phẩm khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
+     */
+    public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
+        if (minPrice != null || maxPrice != null) {
+            sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
+        }
+        sql.append("WHERE 1=1 ");
+        
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
+            String k = "%" + keyword.trim() + "%";
+            params.add(k);
+            params.add(k);
+        }
+        if (categoryId != null) {
+            sql.append("AND p.category_id = ? ");
+            params.add(categoryId);
+        }
+        if (minPrice != null) {
+            sql.append("AND pv.price >= ? ");
+            params.add(minPrice);
+        }
+        if (maxPrice != null) {
+            sql.append("AND pv.price <= ? ");
+            params.add(maxPrice);
+        }
+        
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
     }
 
     /**

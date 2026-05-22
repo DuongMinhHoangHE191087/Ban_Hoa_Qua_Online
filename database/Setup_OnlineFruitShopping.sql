@@ -507,100 +507,139 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.categories ON;
     INSERT INTO dbo.categories (category_id, name, slug, display_order, is_active)
     VALUES
-        (1, N'Citrus', N'citrus', 1, 1),
-        (2, N'Tropical', N'tropical', 2, 1),
-        (3, N'Berries', N'berries', 3, 1),
-        (4, N'Gift Boxes', N'gift-boxes', 4, 1),
-        (5, N'Apples', N'apples', 5, 1),
-        (6, N'Grapes', N'grapes', 6, 1),
-        (7, N'Melons', N'melons', 7, 1),
-        (8, N'Kiwi', N'kiwi', 8, 1),
-        (9, N'Cherries', N'cherries', 9, 1),
-        (10, N'Imported Mix', N'imported-mix', 10, 1);
+        (1, N'Cam, Bưởi, Quýt', N'citrus', 1, 1),
+        (2, N'Trái Cây Nhiệt Đới', N'tropical', 2, 1),
+        (3, N'Quả Mọng & Dâu Tây', N'berries', 3, 1),
+        (4, N'Hộp Quà Trái Cây', N'gift-boxes', 4, 1),
+        (5, N'Táo Cao Cấp', N'apples', 5, 1),
+        (6, N'Nho Không Hạt', N'grapes', 6, 1),
+        (7, N'Dưa Lưới & Dưa Hấu', N'melons', 7, 1),
+        (8, N'Kiwi Tươi', N'kiwi', 8, 1),
+        (9, N'Cherry Nhập Khẩu', N'cherries', 9, 1),
+        (10, N'Trái Cây Hỗn Hợp', N'imported-mix', 10, 1);
     SET IDENTITY_INSERT dbo.categories OFF;
 
     SET IDENTITY_INSERT dbo.products ON;
     INSERT INTO dbo.products (product_id, owner_id, category_id, name, description, origin_country, origin_region, harvest_date, shelf_life_days, storage_instruction, status, view_count, rating, sold_quantity, created_at, updated_at)
     VALUES
-        (1, 3, 1, N'Cam Sanh Cao Phong', N'Sweet Cao Phong oranges with thin peel', N'Vietnam', N'Cao Phong, Hoa Binh', '2026-05-08', 12, N'Keep chilled at 6-10C', N'ACTIVE', 1820, 4.80, 220, '2026-05-03T09:00:00', '2026-05-16T08:00:00'),
-        (2, 3, 1, N'Buoi Da Xanh', N'Large green pomelo from Ben Tre', N'Vietnam', N'Ben Tre', '2026-05-06', 18, N'Store in a cool dry place', N'ACTIVE', 1140, 4.92, 140, '2026-05-03T09:05:00', '2026-05-16T08:00:00'),
-        (3, 3, 2, N'Chuoi Lun Da Lat', N'Fresh small bananas for daily snack', N'Vietnam', N'Da Lat', '2026-05-12', 8, N'Avoid direct sun', N'ACTIVE', 980, 4.60, 260, '2026-05-03T09:10:00', '2026-05-16T08:00:00'),
-        (4, 4, 2, N'Xoai Cat Hoa Loc', N'Premium ripe mango', N'Vietnam', N'Tien Giang', '2026-05-07', 6, N'Ripen at room temperature', N'ACTIVE', 2150, 4.95, 180, '2026-05-03T09:15:00', '2026-05-16T08:00:00'),
-        (5, 4, 3, N'Dau Tay New Zealand', N'Imported berries for premium gift', N'New Zealand', N'Canterbury', '2026-05-10', 5, N'Keep refrigerated', N'ACTIVE', 760, 4.70, 96, '2026-05-03T09:20:00', '2026-05-16T08:00:00'),
-        (6, 4, 4, N'Nho Xanh Mau Don', N'Seedless green grapes box', N'Chile', N'Central Valley', '2026-05-09', 10, N'Store at 2-4C', N'ACTIVE', 840, 4.85, 72, '2026-05-03T09:25:00', '2026-05-16T08:00:00'),
-        (7, 7, 7, N'Dua Vang Han Quoc Size 11', N'Sweet yellow melon with crisp flesh', N'Korea', N'Gyeongsang', '2026-05-11', 7, N'Refrigerate after cutting', N'ACTIVE', 1460, 4.78, 88, '2026-05-03T09:26:00', '2026-05-16T08:00:00'),
-        (8, 7, 8, N'Kiwi Vang New Zealand 3.5kg', N'Golden kiwi with bright aroma', N'New Zealand', N'Bay of Plenty', '2026-05-10', 9, N'Keep chilled and dry', N'ACTIVE', 1325, 4.87, 64, '2026-05-03T09:27:00', '2026-05-16T08:00:00'),
-        (9, 7, 6, N'Nho Den Khong Hat Ngon Tay Oliver UC', N'Crunchy seedless black grapes in premium pack', N'Australia', N'South Australia', '2026-05-09', 11, N'Store in a ventilated cold room', N'ACTIVE', 1188, 4.90, 55, '2026-05-03T09:28:00', '2026-05-16T08:00:00'),
-        (10, 7, 6, N'Nho Xanh Autumn Nam Phi', N'Green grapes imported from South Africa', N'South Africa', N'Western Cape', '2026-05-09', 11, N'Store at 0-4C', N'ACTIVE', 1040, 4.83, 61, '2026-05-03T09:29:00', '2026-05-16T08:00:00'),
-        (11, 7, 9, N'Cherry Do Orchard View My', N'Premium red cherries from the United States', N'USA', N'Washington', '2026-05-08', 6, N'Keep refrigerated and avoid crushing', N'ACTIVE', 1575, 4.94, 44, '2026-05-03T09:30:00', '2026-05-16T08:00:00'),
-        (12, 7, 5, N'Tao Cosmic Crisp My', N'Crisp and juicy apples with balanced sweetness', N'USA', N'Washington State', '2026-05-09', 20, N'Store in a cool dry place', N'ACTIVE', 1210, 4.81, 73, '2026-05-03T09:31:00', '2026-05-16T08:00:00'),
-        (13, 7, 5, N'Tao Dazzle New Zealand', N'Bright red apples with a refreshing finish', N'New Zealand', N'Hawke''s Bay', '2026-05-09', 18, N'Refrigerate for best crunch', N'ACTIVE', 990, 4.79, 58, '2026-05-03T09:32:00', '2026-05-16T08:00:00'),
-        (14, 7, 10, N'Hop Qua Cherry My 3kg', N'Gift box for premium fruit gifting', N'USA', N'Imported mix', '2026-05-10', 5, N'Keep chilled until gifting', N'ACTIVE', 690, 4.88, 39, '2026-05-03T09:33:00', '2026-05-16T08:00:00'),
-        (15, 7, 10, N'Fruit Mix Premium Season', N'Assorted imported fruit box for family and office', N'Mixed', N'Imported selection', '2026-05-10', 7, N'Refrigerate immediately after delivery', N'ACTIVE', 845, 4.84, 47, '2026-05-03T09:34:00', '2026-05-16T08:00:00');
+        -- Category 1: Citrus
+        (1, 3, 1, N'Cam Sành Cao Phong Hòa Bình', N'Cam sành Cao Phong nổi tiếng vỏ mỏng, mọng nước, vị ngọt thanh tự nhiên xen lẫn chua nhẹ thanh mát. Giàu Vitamin C, rất phù hợp làm nước ép giải nhiệt.', N'Việt Nam', N'Cao Phong, Hòa Bình', '2026-05-18', 12, N'Bảo quản mát ở nhiệt độ 6-10 độ C', N'ACTIVE', 1820, 4.80, 220, '2026-05-03T09:00:00', GETDATE()),
+        (2, 3, 1, N'Bưởi Da Xanh Bến Tre loại đặc biệt', N'Bưởi da xanh ruột hồng tôm bưởi mọng nước, ráo nước, vị ngọt đậm đà không đắng, vỏ mỏng cực kỳ dễ bóc. Đạt tiêu chuẩn xuất khẩu.', N'Việt Nam', N'Chợ Lách, Bến Tre', '2026-05-06', 20, N'Bảo quản nơi khô ráo thoáng mát', N'ACTIVE', 1140, 4.92, 140, '2026-05-03T09:05:00', GETDATE()),
+        -- Category 2: Tropical
+        (3, 3, 2, N'Chuối Lùn Laba Đà Lạt', N'Chuối Laba trứ danh dẻo thơm, ngọt đậm, giàu chất xơ và kali. Sản xuất theo chuẩn hữu cơ không hóa chất, an toàn tuyệt đối cho trẻ nhỏ.', N'Việt Nam', N'Đức Trọng, Lâm Đồng', '2026-05-12', 7, N'Tránh ánh nắng trực tiếp, không để tủ lạnh khi chưa chín', N'ACTIVE', 980, 4.60, 260, '2026-05-03T09:10:00', GETDATE()),
+        (4, 4, 2, N'Xoài Cát Hòa Lộc Tiền Giang', N'Đệ nhất xoài cát miền Tây, quả thon dài, khi chín vỏ vàng ươm, thịt quả vàng đậm, mịn không xơ, vị ngọt lịm thơm lừng khó quên.', N'Việt Nam', N'Cái Bè, Tiền Giang', '2026-05-07', 6, N'Bảo quản nhiệt độ phòng khi chín, giữ mát sau khi bổ', N'ACTIVE', 2150, 4.95, 180, '2026-05-03T09:15:00', GETDATE()),
+        -- Category 3: Berries
+        (5, 4, 3, N'Dâu Tây Đỏ Mỹ Nhập Khẩu Premium', N'Dâu tây đỏ nhập khẩu trực tiếp từ Mỹ, quả to đều, đỏ mọng nước, vị chua ngọt hài hòa đặc trưng, cùi dầy giòn ngọt thơm lừng.', N'Hoa Kỳ', N'California', '2026-05-10', 5, N'Giữ lạnh liên tục ở 2-4 độ C trong khay kín', N'ACTIVE', 760, 4.70, 96, '2026-05-03T09:20:00', GETDATE()),
+        -- Category 7: Melons
+        (6, 4, 7, N'Dưa Lưới Tươi Ruột Vàng VietGAP', N'Dưa lưới giống Nhật trồng nhà màng công nghệ cao, vỏ lưới dày đẹp mắt, cùi màu cam ruột vàng, giòn tan ngọt sắc mát lịm giải nhiệt.', N'Việt Nam', N'Đà Lạt, Lâm Đồng', '2026-05-09', 10, N'Giữ lạnh sau khi cắt để tăng độ giòn ngọt', N'ACTIVE', 840, 4.85, 72, '2026-05-03T09:25:00', GETDATE()),
+        (7, 7, 7, N'Dưa Hấu Vuông Độc Lạ Tài Lộc', N'Quả dưa hấu được tạo hình vuông độc đáo mang ý nghĩa phong thủy may mắn tài lộc. Vỏ xanh thẫm mịn màng, ruột đỏ ngọt mát ít hạt.', N'Việt Nam', N'Vĩnh Long', '2026-05-11', 30, N'Trưng bày nơi khô ráo hoặc trữ lạnh ăn dần', N'ACTIVE', 1460, 4.78, 88, '2026-05-03T09:26:00', GETDATE()),
+        -- Category 9: Cherries (Quả anh đào)
+        (8, 7, 9, N'Cherry Đỏ Chile Nhập Khẩu Size Lớn', N'Cherry nhập khẩu chính ngạch từ nhà vườn Chile danh tiếng. Quả cứng trái màu đỏ sẫm óng ả, cuống tươi xanh, thịt ngọt giòn đậm đà.', N'Chile', N'O''Higgins', '2026-05-10', 7, N'Trữ lạnh ở 0-2 độ C, rửa sạch trước khi ăn', N'ACTIVE', 1325, 4.87, 64, '2026-05-03T09:27:00', GETDATE()),
+        (9, 7, 9, N'Cherry Mỹ Premium Orchard View', N'Dòng Cherry Mỹ thượng hạng trứ danh thế giới từ thương hiệu Orchard View. Trái to vượt trội, giòn đôm đốp, ngọt lịm ngây ngất.', N'Hoa Kỳ', N'Washington', '2026-05-09', 6, N'Trữ tủ mát liên tục, tránh đè nén làm dập quả', N'ACTIVE', 1188, 4.90, 55, '2026-05-03T09:28:00', GETDATE()),
+        -- Category 6: Grapes (Nho không hạt)
+        (10, 7, 6, N'Nho Xanh Mẫu Đơn Không Hạt Chile', N'Nho xanh mẫu đơn không hạt Chile, chùm nho dày đặc quả tròn căng mọng, vỏ mỏng giòn sần sật, vị ngọt mát thơm hương sữa đặc trưng.', N'Chile', N'Maipo Valley', '2026-05-09', 12, N'Trữ mát tủ lạnh, không rửa trước khi cất trữ', N'ACTIVE', 1040, 4.83, 61, '2026-05-03T09:29:00', GETDATE()),
+        -- Category 4: Gift Boxes (Hộp quà trái cây)
+        (11, 7, 4, N'Hộp Quà Tết An Khang Phú Quý', N'Hộp quà tết sang trọng tinh tế kết hợp các loại trái cây nhập khẩu tươi ngon nhất. Món quà sức khỏe ý nghĩa kính tặng gia đình và đối tác.', N'Nhiều nước', N'Hộp quà cao cấp', '2026-05-08', 5, N'Bảo quản mát toàn bộ hộp quà tránh va đập', N'ACTIVE', 1575, 4.94, 44, '2026-05-03T09:30:00', GETDATE()),
+        (12, 7, 4, N'Hộp Quà Trái Cây Tết Thịnh Vượng', N'Hộp quà tết rực rỡ màu sắc cát tường từ các loại quả cao cấp: dâu tây, táo, cam. Thiết kế hộp gỗ lót lụa sang trọng đẳng cấp.', N'Nhiều nước', N'Thiết kế VIP', '2026-05-09', 5, N'Giữ lạnh để giữ độ tươi ngon cao nhất', N'ACTIVE', 1210, 4.81, 73, '2026-05-03T09:31:00', GETDATE()),
+        -- Category 10: Imported Mix (Trái cây hỗn hợp)
+        (13, 7, 10, N'Giỏ Quả Trái Cây Sum Họp Ấm Áp', N'Giỏ trái cây đầy đặn sung túc tượng trưng cho gia đình đoàn viên ấm áp. Bao gồm lê Hàn Quốc, táo Mỹ, bưởi hồng đặc sản.', N'Nhiều nước', N'Lắp ráp thủ công', '2026-05-09', 6, N'Để nơi thoáng mát hoặc ngăn mát tủ lạnh', N'ACTIVE', 990, 4.79, 58, '2026-05-03T09:32:00', GETDATE()),
+        (14, 7, 10, N'Giỏ Trái Cây Cát Tường Như Ý', N'Thiết kế giỏ quà kết hợp hoa tươi và trái cây nhập khẩu tinh tế. Thích hợp làm quà chúc mừng, khai trương, thăm hỏi cao cấp.', N'Nhiều nước', N'Giỏ hoa nghệ thuật', '2026-05-10', 4, N'Tránh nơi nhiệt độ cao, tưới ẩm hoa nhẹ nhàng', N'ACTIVE', 690, 4.88, 39, '2026-05-03T09:33:00', GETDATE()),
+        (15, 7, 10, N'Giỏ Trái Cây Tài Lộc Thịnh Vượng', N'Giỏ quả được kết hợp tỉ mỉ từ nho đen ngón tay, lê vàng, hồng sấy thượng hạng đem lại tài lộc và phú quý cho người nhận.', N'Nhiều nước', N'Lắp ráp VIP', '2026-05-10', 6, N'Trữ mát để duy trì độ tươi giòn của quả', N'ACTIVE', 845, 4.84, 47, '2026-05-03T09:34:00', GETDATE()),
+        -- Category 5: Apples (Táo cao cấp)
+        (16, 7, 5, N'Táo Envy Mỹ Nhập Khẩu Premium', N'Táo Envy Mỹ giòn ngọt vượt trội, thịt táo trắng tinh khiết ít bị thâm khi cắt, hương thơm nồng nàn quyến rũ đặc trưng khó quên.', N'Hoa Kỳ', N'Washington', '2026-05-18', 15, N'Bảo quản mát ở nhiệt độ 2-4 độ C', N'ACTIVE', 1520, 4.88, 125, '2026-05-03T09:35:00', GETDATE()),
+        -- Category 8: Kiwi (Kiwi tươi)
+        (17, 7, 8, N'Kiwi Vàng New Zealand Zespri', N'Kiwi vàng Zespri thượng hạng từ New Zealand, vỏ mịn không lông, thịt quả màu vàng óng ả mọng nước, vị ngọt lịm như mật ong xen lẫn chua dịu thanh khiết.', N'New Zealand', N'Bay of Plenty', '2026-05-19', 14, N'Bảo quản mát tủ lạnh, ăn ngon hơn khi chín mềm tay', N'ACTIVE', 1380, 4.90, 110, '2026-05-03T09:36:00', GETDATE());
     SET IDENTITY_INSERT dbo.products OFF;
 
     SET IDENTITY_INSERT dbo.product_images ON;
     INSERT INTO dbo.product_images (image_id, product_id, file_path, display_order, is_primary, uploaded_at)
     VALUES
-        (1, 1, N'/assets/images/products/cam-sanh-cao-phong/main.jpg', 1, 1, '2026-05-03T09:30:00'),
-        (2, 1, N'/assets/images/products/cam-sanh-cao-phong/side.jpg', 2, 0, '2026-05-03T09:30:00'),
-        (3, 2, N'/assets/images/products/buoi-da-xanh/main.jpg', 1, 1, '2026-05-03T09:31:00'),
-        (4, 3, N'/assets/images/products/chuoi-lun-da-lat/main.jpg', 1, 1, '2026-05-03T09:32:00'),
-        (5, 4, N'/assets/images/products/xoai-cat-hoa-loc/main.jpg', 1, 1, '2026-05-03T09:33:00'),
-        (6, 4, N'/assets/images/products/xoai-cat-hoa-loc/box.jpg', 2, 0, '2026-05-03T09:33:00'),
-        (7, 5, N'/assets/images/products/dau-tay-new-zealand/main.jpg', 1, 1, '2026-05-03T09:34:00'),
-        (8, 6, N'/assets/images/products/nho-xanh-mau-don/main.jpg', 1, 1, '2026-05-03T09:35:00'),
-        (9, 7, N'/assets/images/products/dua-vang-han-quoc/main.jpg', 1, 1, '2026-05-03T09:36:00'),
-        (10, 8, N'/assets/images/products/kiwi-vang-new-zealand/main.jpg', 1, 1, '2026-05-03T09:37:00'),
-        (11, 9, N'/assets/images/products/nho-den-ngon-tay-oliver/main.jpg', 1, 1, '2026-05-03T09:38:00'),
-        (12, 10, N'/assets/images/products/nho-xanh-autumn/main.jpg', 1, 1, '2026-05-03T09:39:00'),
-        (13, 11, N'/assets/images/products/cherry-do-orchard-view/main.jpg', 1, 1, '2026-05-03T09:40:00'),
-        (14, 12, N'/assets/images/products/tao-cosmic-crisp/main.jpg', 1, 1, '2026-05-03T09:41:00'),
-        (15, 13, N'/assets/images/products/tao-dazzle-new-zealand/main.jpg', 1, 1, '2026-05-03T09:42:00'),
-        (16, 14, N'/assets/images/products/hop-qua-cherry-my/main.jpg', 1, 1, '2026-05-03T09:43:00'),
-        (17, 15, N'/assets/images/products/fruit-mix-premium-season/main.jpg', 1, 1, '2026-05-03T09:44:00');
+        (1, 1, N'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (2, 2, N'https://images.unsplash.com/photo-1557800636-894a64c1696f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (3, 3, N'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (4, 4, N'https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (5, 5, N'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (6, 5, N'https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
+        (7, 6, N'https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (8, 6, N'https://images.unsplash.com/photo-1571772996211-2f02c9727629?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
+        (9, 7, N'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (10, 8, N'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (11, 9, N'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (12, 10, N'https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (13, 11, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (14, 11, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
+        (15, 12, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (16, 12, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
+        (17, 13, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (18, 14, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (19, 15, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (20, 15, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
+        -- Táo Envy Mỹ (16)
+        (21, 16, N'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        -- Kiwi Vàng (17)
+        (22, 17, N'https://images.unsplash.com/photo-1585052201332-b8c0ce30972f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE());
     SET IDENTITY_INSERT dbo.product_images OFF;
 
     SET IDENTITY_INSERT dbo.product_variants ON;
     INSERT INTO dbo.product_variants (variant_id, product_id, sku, variant_label, price, stock_quantity, is_active, created_at, updated_at)
     VALUES
-        (1, 1, N'CAM-SANH-1KG', N'1kg', 45000.00, 118, 1, '2026-05-03T09:40:00', '2026-05-16T08:10:00'),
-        (2, 1, N'CAM-SANH-2KG', N'2kg', 85000.00, 57, 1, '2026-05-03T09:40:00', '2026-05-16T08:10:00'),
-        (3, 2, N'BUOI-DA-XANH-1P5KG', N'1.5kg', 78000.00, 48, 1, '2026-05-03T09:41:00', '2026-05-16T08:10:00'),
-        (4, 3, N'CHUOI-LUN-1KG', N'1kg', 32000.00, 148, 1, '2026-05-03T09:42:00', '2026-05-16T08:10:00'),
-        (5, 4, N'XOAI-CAT-1KG', N'1kg', 125000.00, 39, 1, '2026-05-03T09:43:00', '2026-05-16T08:10:00'),
-        (6, 4, N'XOAI-CAT-2KG', N'2kg', 238000.00, 24, 1, '2026-05-03T09:43:00', '2026-05-16T08:10:00'),
-        (7, 5, N'DAU-TAY-500G', N'500g', 89000.00, 34, 1, '2026-05-03T09:44:00', '2026-05-16T08:10:00'),
-        (8, 6, N'NHO-XANH-1KG', N'1kg', 155000.00, 29, 1, '2026-05-03T09:45:00', '2026-05-16T08:10:00'),
-        (9, 7, N'DUA-VANG-KR-1QT', N'1 qua', 99000.00, 52, 1, '2026-05-03T09:46:00', '2026-05-16T08:10:00'),
-        (10, 8, N'KIWI-VANG-NZ-1KG', N'1kg', 265000.00, 31, 1, '2026-05-03T09:47:00', '2026-05-16T08:10:00'),
-        (11, 9, N'NHO-DEN-UC-9KG', N'9kg box', 690000.00, 12, 1, '2026-05-03T09:48:00', '2026-05-16T08:10:00'),
-        (12, 10, N'NHO-AUTUMN-ZA-4P5', N'4.5kg box', 420000.00, 16, 1, '2026-05-03T09:49:00', '2026-05-16T08:10:00'),
-        (13, 11, N'CHERRY-RED-US-500G', N'500g', 249000.00, 27, 1, '2026-05-03T09:50:00', '2026-05-16T08:10:00'),
-        (14, 12, N'TAO-COSMIC-CRISP-1KG', N'1kg', 95000.00, 46, 1, '2026-05-03T09:51:00', '2026-05-16T08:10:00'),
-        (15, 13, N'TAO-DAZZLE-NZ-1KG', N'1kg', 175000.00, 44, 1, '2026-05-03T09:52:00', '2026-05-16T08:10:00'),
-        (16, 14, N'CHERRY-GIFT-BOX-3KG', N'3kg gift box', 799000.00, 9, 1, '2026-05-03T09:53:00', '2026-05-16T08:10:00'),
-        (17, 15, N'FRUIT-MIX-PREMIUM', N'Assorted box', 499000.00, 14, 1, '2026-05-03T09:54:00', '2026-05-16T08:10:00');
+        (1, 1, N'CAM-SANH-1KG', N'Hộp 1kg', 35000.00, 150, 1, '2026-05-03T09:40:00', '2026-05-16T08:10:00'),
+        (2, 1, N'CAM-SANH-3KG', N'Combo 3kg', 95000.00, 80, 1, '2026-05-03T09:40:00', '2026-05-16T08:10:00'),
+        (3, 2, N'BUOI-DX-1P2KG', N'Quả 1.2kg - 1.4kg', 65000.00, 120, 1, '2026-05-03T09:41:00', '2026-05-16T08:10:00'),
+        (4, 2, N'BUOI-DX-1P5KG', N'Quả VIP >1.5kg', 85000.00, 60, 1, '2026-05-03T09:41:00', '2026-05-16T08:10:00'),
+        (5, 3, N'CHUOI-LABA-1KG', N'Nải 1kg', 28000.00, 200, 1, '2026-05-03T09:42:00', '2026-05-16T08:10:00'),
+        (6, 4, N'XOAI-CAT-1KG', N'Hộp 1kg', 89000.00, 90, 1, '2026-05-03T09:43:00', '2026-05-16T08:10:00'),
+        (7, 4, N'XOAI-CAT-2KG', N'Hộp 2kg VIP', 169000.00, 45, 1, '2026-05-03T09:43:00', '2026-05-16T08:10:00'),
+        (8, 5, N'DAU-TAY-250G', N'Hộp 250g', 125000.00, 75, 1, '2026-05-03T09:44:00', '2026-05-16T08:10:00'),
+        (9, 5, N'DAU-TAY-500G', N'Hộp 500g', 239000.00, 40, 1, '2026-05-03T09:44:00', '2026-05-16T08:10:00'),
+        (10, 6, N'DUA-LUOI-1QT', N'Quả 1.5kg', 90000.00, 110, 1, '2026-05-03T09:45:00', '2026-05-16T08:10:00'),
+        (11, 7, N'DUA-HAU-VUONG', N'Quả vuông vẽ chữ', 299000.00, 30, 1, '2026-05-03T09:46:00', '2026-05-16T08:10:00'),
+        (12, 8, N'CHERRY-CL-250G', N'Hộp 250g', 149000.00, 85, 1, '2026-05-03T09:47:00', '2026-05-16T08:10:00'),
+        (13, 8, N'CHERRY-CL-500G', N'Hộp 500g', 289000.00, 50, 1, '2026-05-03T09:47:00', '2026-05-16T08:10:00'),
+        (14, 8, N'CHERRY-CL-1KG', N'Hộp 1kg Premium', 550000.00, 25, 1, '2026-05-03T09:47:00', '2026-05-16T08:10:00'),
+        (15, 9, N'CHERRY-US-500G', N'Hộp 500g Orchard', 320000.00, 60, 1, '2026-05-03T09:48:00', '2026-05-16T08:10:00'),
+        (16, 9, N'CHERRY-US-1KG', N'Thùng 1kg VIP', 620000.00, 30, 1, '2026-05-03T09:48:00', '2026-05-16T08:10:00'),
+        (17, 10, N'NHO-MD-500G', N'Khay 500g', 179000.00, 95, 1, '2026-05-03T09:49:00', '2026-05-16T08:10:00'),
+        (18, 10, N'NHO-MD-1KG', N'Hộp 1kg', 345000.00, 50, 1, '2026-05-03T09:49:00', '2026-05-16T08:10:00'),
+        (19, 11, N'HQ-AN-KHANG', N'Hộp gỗ Premium', 680000.00, 35, 1, '2026-05-03T09:50:00', '2026-05-16T08:10:00'),
+        (20, 12, N'HQ-THINH-VUONG', N'Hộp lụa VIP', 880000.00, 28, 1, '2026-05-03T09:51:00', '2026-05-16T08:10:00'),
+        (21, 13, N'GQ-SUM-HOP', N'Giỏ lục bình lớn', 550000.00, 40, 1, '2026-05-03T09:52:00', '2026-05-16T08:10:00'),
+        (22, 14, N'GQ-CAT-TUONG', N'Giỏ tre hoa tươi', 750000.00, 25, 1, '2026-05-03T09:53:00', '2026-05-16T08:10:00'),
+        (23, 15, N'GQ-TAI-LOC', N'Giỏ VIP đặc biệt', 1250000.00, 20, 1, '2026-05-03T09:54:00', '2026-05-16T08:10:00'),
+        -- Táo Envy Mỹ (16)
+        (24, 16, N'TAO-ENVY-1KG', N'Hộp 1kg', 119000.00, 120, 1, GETDATE(), GETDATE()),
+        (25, 16, N'TAO-ENVY-3KG', N'Combo 3kg', 329000.00, 50, 1, GETDATE(), GETDATE()),
+        -- Kiwi Vàng (17)
+        (26, 17, N'KIWI-VANG-1KG', N'Hộp 1kg', 145000.00, 90, 1, GETDATE(), GETDATE()),
+        (27, 17, N'KIWI-VANG-3KG', N'Combo 3kg', 399000.00, 40, 1, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.product_variants OFF;
 
     SET IDENTITY_INSERT dbo.inventory_logs ON;
     INSERT INTO dbo.inventory_logs (log_id, variant_id, changed_by, change_type, quantity_delta, quantity_after, note, changed_at)
     VALUES
-        (1, 1, 3, N'MANUAL_ADJUST', 18, 118, N'Top up before campaign', '2026-05-12T08:00:00'),
-        (2, 2, 3, N'ORDER_RESERVE', -3, 57, N'Reserved for demo orders', '2026-05-15T09:05:00'),
-        (3, 4, 3, N'ORDER_CONFIRM', -2, 148, N'Confirmed order pick', '2026-05-16T08:20:00'),
-        (4, 5, 4, N'ORDER_RESERVE', -1, 39, N'Reserved for delivery', '2026-05-15T10:00:00'),
-        (5, 6, 4, N'MANUAL_ADJUST', 4, 24, N'Stock audit correction', '2026-05-14T18:00:00'),
-        (6, 8, 1, N'MANUAL_ADJUST', 2, 29, N'Warehouse correction', '2026-05-14T19:00:00');
+        (1, 1, 3, N'MANUAL_ADJUST', 150, 150, N'Nhập kho ban đầu', '2026-05-12T08:00:00'),
+        (2, 3, 3, N'MANUAL_ADJUST', 120, 120, N'Nhập kho đầu mùa bưởi', '2026-05-15T09:05:00'),
+        (3, 8, 4, N'MANUAL_ADJUST', 75, 75, N'Nhập lô dâu tây Mỹ kiểm dịch', '2026-05-16T08:20:00'),
+        (4, 12, 7, N'MANUAL_ADJUST', 85, 85, N'Nhập container Cherry Chile', '2026-05-15T10:00:00'),
+        (5, 19, 7, N'MANUAL_ADJUST', 35, 35, N'Đóng hộp quà tết', '2026-05-14T18:00:00'),
+        (6, 24, 7, N'MANUAL_ADJUST', 120, 120, N'Nhập kho táo Envy Mỹ', '2026-05-18T09:00:00'),
+        (7, 26, 7, N'MANUAL_ADJUST', 90, 90, N'Nhập kho Kiwi Vàng', '2026-05-19T09:00:00');
     SET IDENTITY_INSERT dbo.inventory_logs OFF;
 
     SET IDENTITY_INSERT dbo.promotions ON;
     INSERT INTO dbo.promotions (promo_id, code, discount_type, discount_scope, discount_max, discount_value, min_order_value, scope, product_id, max_uses, used_count, can_stack, valid_from, valid_until, created_by, created_at, updated_at, is_deleted, is_active)
     VALUES
-        (1, N'WELCOME10', N'PERCENT', N'ALL', 50000.00, 10.00, 120000.00, N'ORDER', NULL, 1000, 36, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:00:00', '2026-05-16T08:00:00', 0, 1),
-        (2, N'SHOP3SAVE20', N'FIXED', N'SHOP', 0.00, 20000.00, 180000.00, N'ORDER', NULL, 200, 18, 0, '2026-04-01T00:00:00', '2026-12-31T23:59:59', 3, '2026-05-01T10:05:00', '2026-05-16T08:00:00', 0, 1),
-        (3, N'MANGO15', N'FIXED', N'SHOP', 0.00, 15000.00, 100000.00, N'PRODUCT', 4, 50, 9, 1, '2026-04-15T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-01T10:10:00', '2026-05-16T08:00:00', 0, 1),
-        (4, N'OLDSPRING5', N'PERCENT', N'ALL', 20000.00, 5.00, 100000.00, N'ORDER', NULL, 50, 2, 0, '2026-01-01T00:00:00', '2026-04-01T23:59:59', 1, '2026-04-01T10:00:00', '2026-04-01T10:00:00', 1, 0);
+        (1, N'FLASHSALE-DAUTAY', N'FIXED', N'ALL', 0.00, 30000.00, 100000.00, N'PRODUCT', 5, 200, 12, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:00:00', '2026-05-16T08:00:00', 0, 1),
+        (2, N'FLASHSALE-CHERRYCL', N'PERCENT', N'ALL', 100000.00, 20.00, 150000.00, N'PRODUCT', 8, 150, 8, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:05:00', '2026-05-16T08:00:00', 0, 1),
+        (3, N'FLASHSALE-DUAVUONG', N'PERCENT', N'ALL', 50000.00, 15.00, 200000.00, N'PRODUCT', 7, 100, 3, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:10:00', '2026-05-16T08:00:00', 0, 1),
+        (4, N'FLASHSALE-NHOMD', N'FIXED', N'ALL', 0.00, 50000.00, 150000.00, N'PRODUCT', 10, 120, 5, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:15:00', '2026-05-16T08:00:00', 0, 1),
+        (5, N'WELCOME10', N'PERCENT', N'ALL', 50000.00, 10.00, 120000.00, N'ORDER', NULL, 1000, 36, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:20:00', '2026-05-16T08:00:00', 0, 1),
+        (6, N'FREESHIP50', N'FIXED', N'ALL', 0.00, 20000.00, 300000.00, N'ORDER', NULL, 500, 45, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:25:00', '2026-05-16T08:00:00', 0, 1),
+        (7, N'FLASHSALE-CAMSANH', N'PERCENT', N'ALL', 20000.00, 20.00, 50000.00, N'PRODUCT', 1, 300, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:30:00', '2026-05-16T08:00:00', 0, 1),
+        (8, N'FLASHSALE-BUOI', N'FIXED', N'ALL', 0.00, 15000.00, 80000.00, N'PRODUCT', 2, 200, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:35:00', '2026-05-16T08:00:00', 0, 1),
+        (9, N'FLASHSALE-XOAI', N'PERCENT', N'ALL', 30000.00, 10.00, 100000.00, N'PRODUCT', 4, 150, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:40:00', '2026-05-16T08:00:00', 0, 1),
+        (10, N'FLASHSALE-TAOENVY', N'PERCENT', N'ALL', 40000.00, 15.00, 120000.00, N'PRODUCT', 16, 250, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:45:00', '2026-05-16T08:00:00', 0, 1),
+        (11, N'FLASHSALE-KIWI', N'FIXED', N'ALL', 0.00, 25000.00, 100000.00, N'PRODUCT', 17, 180, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:50:00', '2026-05-16T08:00:00', 0, 1);
     SET IDENTITY_INSERT dbo.promotions OFF;
 
     SET IDENTITY_INSERT dbo.cart ON;
@@ -615,8 +654,8 @@ BEGIN TRY
     VALUES
         (1, 1, 1, 1, '2026-05-15T08:12:00'),
         (2, 1, 3, 1, '2026-05-15T08:12:00'),
-        (3, 2, 5, 1, '2026-05-15T09:12:00'),
-        (4, 2, 7, 1, '2026-05-15T09:12:00');
+        (3, 2, 6, 1, '2026-05-15T09:12:00'),
+        (4, 2, 8, 1, '2026-05-15T09:12:00');
     SET IDENTITY_INSERT dbo.cart_items OFF;
 
     SET IDENTITY_INSERT dbo.orders ON;
@@ -630,33 +669,33 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.order_items ON;
     INSERT INTO dbo.order_items (order_item_id, order_id, variant_id, product_name_snapshot, variant_label_snapshot, quantity, unit_price, subtotal)
     VALUES
-        (1, 1, 1, N'Cam Sanh Cao Phong', N'1kg', 1, 45000.00, 45000.00),
-        (2, 1, 2, N'Cam Sanh Cao Phong', N'2kg', 1, 85000.00, 85000.00),
-        (3, 2, 5, N'Xoai Cat Hoa Loc', N'1kg', 1, 125000.00, 125000.00),
-        (4, 2, 7, N'Dau Tay New Zealand', N'500g', 1, 89000.00, 89000.00),
-        (5, 3, 3, N'Buoi Da Xanh', N'1.5kg', 1, 78000.00, 78000.00),
-        (6, 3, 4, N'Chuoi Lun Da Lat', N'1kg', 2, 32000.00, 64000.00);
+        (1, 1, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
+        (2, 1, 2, N'Cam Sành Cao Phong Hòa Bình', N'Combo 3kg', 1, 95000.00, 95000.00),
+        (3, 2, 6, N'Xoài Cát Hòa Lộc Tiền Giang', N'Hộp 1kg', 1, 89000.00, 89000.00),
+        (4, 2, 8, N'Dâu Tây Đỏ Mỹ Nhập Khẩu Premium', N'Hộp 250g', 1, 125000.00, 125000.00),
+        (5, 3, 3, N'Bưởi Da Xanh Bến Tre loại đặc biệt', N'Quả 1.2kg - 1.4kg', 1, 86000.00, 86000.00),
+        (6, 3, 5, N'Chuối Lùn Laba Đà Lạt', N'Nải 1kg', 2, 28000.00, 56000.00);
     SET IDENTITY_INSERT dbo.order_items OFF;
 
     SET IDENTITY_INSERT dbo.order_promotions ON;
     INSERT INTO dbo.order_promotions (usage_id, order_id, promo_id, customer_id, discount_applied, used_at)
     VALUES
-        (1, 1, 1, 5, 13000.00, '2026-05-15T09:20:00'),
-        (2, 2, 3, 6, 15000.00, '2026-05-15T10:30:00'),
-        (3, 3, 1, 5, 14200.00, '2026-05-16T08:10:00');
+        (1, 1, 5, 5, 13000.00, '2026-05-15T09:20:00'),
+        (2, 2, 1, 6, 15000.00, '2026-05-15T10:30:00'),
+        (3, 3, 5, 5, 14200.00, '2026-05-16T08:10:00');
     SET IDENTITY_INSERT dbo.order_promotions OFF;
 
     SET IDENTITY_INSERT dbo.return_requests ON;
     INSERT INTO dbo.return_requests (return_request_id, order_id, order_item_id, customer_id, request_type, reason_code, description, evidence_url, requested_quantity, resolution_type, replacement_variant_id, refund_amount, status, decided_by, decision_reason, resolved_at, created_at, updated_at)
     VALUES
-        (1, 3, 6, 5, N'RETURN', N'DAMAGED', N'One box arrived with bruised bananas', N'/evidence/returns/rr-001.jpg', 1, N'REFUND', NULL, 32000.00, N'REQUESTED', NULL, NULL, NULL, '2026-05-16T19:00:00', '2026-05-16T19:00:00');
+        (1, 3, 6, 5, N'RETURN', N'DAMAGED', N'Một nải chuối laba bị dập nát khi vận chuyển', N'/evidence/returns/rr-001.jpg', 1, N'REFUND', NULL, 28000.00, N'REQUESTED', NULL, NULL, NULL, '2026-05-16T19:00:00', '2026-05-16T19:00:00');
     SET IDENTITY_INSERT dbo.return_requests OFF;
 
     SET IDENTITY_INSERT dbo.shop_settlements ON;
     INSERT INTO dbo.shop_settlements (settlement_id, owner_id, period_start, period_end, gross_amount, platform_fee_amount, refund_amount, adjustment_amount, net_amount, status, calculated_at, confirmed_at, paid_at, created_by, note)
     VALUES
-        (1, 3, '2026-05-01', '2026-05-15', 244800.00, 13600.00, 0.00, 0.00, 231200.00, N'PENDING', '2026-05-16T20:00:00', NULL, NULL, 1, N'Pending because order 3 has an open return request'),
-        (2, 4, '2026-05-01', '2026-05-15', 199000.00, 10700.00, 0.00, 0.00, 188300.00, N'PAID', '2026-05-16T20:00:00', '2026-05-16T20:30:00', '2026-05-16T22:00:00', 1, N'Includes order 2');
+        (1, 3, '2026-05-01', '2026-05-15', 272000.00, 13600.00, 0.00, 0.00, 231200.00, N'PENDING', '2026-05-16T20:00:00', NULL, NULL, 1, N'Pending because order 3 has an open return request'),
+        (2, 4, '2026-05-01', '2026-05-15', 214000.00, 10700.00, 0.00, 0.00, 188300.00, N'PAID', '2026-05-16T20:00:00', '2026-05-16T20:30:00', '2026-05-16T22:00:00', 1, N'Includes order 2');
     SET IDENTITY_INSERT dbo.shop_settlements OFF;
 
     SET IDENTITY_INSERT dbo.shop_settlement_orders ON;
@@ -693,8 +732,8 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.reviews ON;
     INSERT INTO dbo.reviews (review_id, order_item_id, customer_id, rating, review_text, is_hidden, created_at)
     VALUES
-        (1, 1, 5, 5, N'Sweet and fresh, fast delivery', 0, '2026-05-15T12:00:00'),
-        (2, 3, 6, 4, N'Good mango quality and careful packing', 0, '2026-05-15T17:00:00');
+        (1, 1, 5, 5, N'Cam rất ngọt và tươi, giao hàng siêu nhanh!', 0, '2026-05-15T12:00:00'),
+        (2, 3, 6, 4, N'Xoài cát chất lượng chín ngọt thơm ngon, đóng gói rất cẩn thận.', 0, '2026-05-15T17:00:00');
     SET IDENTITY_INSERT dbo.reviews OFF;
 
     SET IDENTITY_INSERT dbo.chat_sessions ON;
@@ -732,3 +771,4 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+

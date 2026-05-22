@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -40,6 +40,24 @@
             }
         }
     }
+</script>
+
+<script>
+    /**
+     * Handle image loading error by resolving context path casing mismatch or falling back.
+     * Declared globally early in <head> so it's defined before <img> tags render.
+     */
+    window.handleImageError = function(img) {
+        if (!img.dataset.errorStage) {
+            img.dataset.errorStage = "1";
+            // Tier 1: Try a gorgeous fresh fruit Unsplash CDN image
+            img.src = "https://images.unsplash.com/photo-1610832958506-ee5633619144?w=600&auto=format&fit=crop&q=80";
+        } else if (img.dataset.errorStage === "1") {
+            img.dataset.errorStage = "2";
+            // Tier 2: Inline offline-proof highly premium SVG fallback representing Verdant Market brand
+            img.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMzAwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmNGZiZjciLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlMmY1ZWEiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0icCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzRkNjYxYyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzMxNjk0YiIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYikiIHJ4PSIxNiIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjEyMCIgcj0iNDUiIGZpbGw9IiNkOWY5OWQiIG9wYWNpdHk9IjAuNiIvPjxwYXRoIGQ9Ik0yMDAsODVjMjUsMCA0MCwyNSAxNSw1MGMtMjUsMC00MC0yNS0xNS01MHoiIGZpbGw9InVybCgjcCkiLz48cGF0aCBkPSJNMjAwLDEwNWMtMTUsMC0yNSwxNS0xMCwzMGMxNSwwIDI1LTE1IDEwLTMweiIgZmlsbD0iIzg0Y2MxNiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMwMDIxMGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlZlcmRhbnQgTWFya2V0PC90ZXh0Pjx0ZXh0IHg9IjIwMCIgeT0iMjI1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIGZpbGw9IiM0NDQ4M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk7DtG5nIFPhuqNuIFPhuqFjaCBDYW8gQ2FwPC90ZXh0Pjwvc3ZnPg==";
+        }
+    };
 </script>
 
 <!-- Embedded Premium Style overrides for glassy micro-interactions -->
@@ -161,29 +179,14 @@
         </div>
     </section>
 
-    <!-- Display Notice if Mock Data is activated -->
-    <c:if test="${isMockDataUsed}">
-        <div class="max-w-7xl mx-auto px-6 mb-8">
-            <div class="bg-amber-50/80 backdrop-blur border border-amber-200/50 p-4 rounded-2xl text-amber-800 flex items-center justify-between gap-4 shadow-sm">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-amber-600 text-[28px] animate-pulse">database_off</span>
-                    <div>
-                        <h4 class="font-bold text-sm">Chế độ trải nghiệm (Premium Mock Data) đang hoạt động</h4>
-                        <p class="text-xs text-amber-700/90 font-light mt-0.5">Chúng tôi tự động nạp danh sách đặc sản tươi ngon nhất Việt Nam để bạn dễ dàng trải nghiệm giao diện hoàn hảo.</p>
-                    </div>
-                </div>
-                <span class="text-xs font-semibold bg-amber-100 px-3 py-1 rounded-full text-amber-800 hidden md:inline">Demo Active</span>
-            </div>
-        </div>
-    </c:if>
 
     <!-- FLASH SALE SECTION (Golden hour countdown) -->
     <c:if test="${not empty flashSaleProducts}">
         <section class="px-6 md:px-12 max-w-7xl mx-auto mb-16">
             <div class="glass-panel flash-glow rounded-3xl p-6 md:p-8 border-red-100/50 bg-white/65">
                 
-                <!-- Section Header with Real-Time Clock -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-4 border-b border-red-100/50">
+                <!-- Section Header with Real-Time Clock & Slider Nav -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-4 border-b border-red-100/50">
                     <div class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-red-500 text-[32px] animate-pulse font-bold">bolt</span>
                         <div>
@@ -192,31 +195,43 @@
                         </div>
                     </div>
                     
-                    <!-- Countdown Display -->
-                    <div class="flex items-center gap-2 bg-red-50 border border-red-200/50 px-4 py-2 rounded-2xl shadow-inner">
-                        <span class="text-xs font-bold text-red-600 uppercase tracking-wider hidden sm:inline mr-1">Kết thúc sau:</span>
-                        <div class="flex items-center gap-1 font-mono text-sm font-bold text-red-700">
-                            <span class="bg-red-600 text-white px-2.5 py-1 rounded-lg" id="hourBox">02</span>
-                            <span>:</span>
-                            <span class="bg-red-600 text-white px-2.5 py-1 rounded-lg" id="minuteBox">45</span>
-                            <span>:</span>
-                            <span class="bg-red-600 text-white px-2.5 py-1 rounded-lg text-red-100 animate-pulse" id="secondBox">12</span>
+                    <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                        <!-- Countdown Display -->
+                        <div class="flex items-center gap-2 bg-red-50 border border-red-200/50 px-4 py-2 rounded-2xl shadow-inner">
+                            <span class="text-xs font-bold text-red-600 uppercase tracking-wider hidden sm:inline mr-1">Kết thúc sau:</span>
+                            <div class="flex items-center gap-1 font-mono text-sm font-bold text-red-700">
+                                <span class="bg-red-600 text-white px-2.5 py-1 rounded-lg" id="hourBox">02</span>
+                                <span>:</span>
+                                <span class="bg-red-600 text-white px-2.5 py-1 rounded-lg" id="minuteBox">45</span>
+                                <span>:</span>
+                                <span class="bg-red-600 text-white px-2.5 py-1 rounded-lg text-red-100 animate-pulse" id="secondBox">12</span>
+                            </div>
+                        </div>
+
+                        <!-- Slider Navigation Buttons -->
+                        <div class="flex items-center gap-2 border-l border-red-100/80 pl-4">
+                            <button onclick="scrollFlashSale(-1)" class="w-9 h-9 rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer">
+                                <span class="material-symbols-outlined text-[18px] font-bold">chevron_left</span>
+                            </button>
+                            <button onclick="scrollFlashSale(1)" class="w-9 h-9 rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer">
+                                <span class="material-symbols-outlined text-[18px] font-bold">chevron_right</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Products Grid for Flash Sale -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Products Carousel for Flash Sale -->
+                <div id="flashSaleContainer" class="flex gap-6 overflow-x-auto scroll-smooth hide-scrollbar pb-4 -mx-2 px-2">
                     <c:forEach var="item" items="${flashSaleProducts}">
-                        <article class="bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden">
+                        <article class="w-[280px] sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden">
                             <!-- Discount Tag Badge -->
                             <div class="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm">
                                 -<c:out value="${item.discountPercent}"/>%
                             </div>
                             
                             <!-- Image Section -->
-                            <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
-                                <img src="${item.image}" alt="${item.name}" 
+                            <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                <img src="${item.image}" alt="${item.name}" onerror="handleImageError(this)"
                                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             </div>
 
@@ -350,8 +365,8 @@
                     <article class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                         
                         <!-- High Resolution Image with Zoom Scale on Hover -->
-                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
-                            <img src="${item.image}" alt="${item.name}" 
+                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                            <img src="${item.image}" alt="${item.name}" onerror="handleImageError(this)"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             <!-- Organic Badge Badge -->
                             <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
@@ -406,6 +421,85 @@
                     </article>
                 </c:forEach>
             </div>
+
+            <!-- Beautiful Pagination Controls -->
+            <c:if test="${totalPages > 1}">
+                <div class="flex justify-center items-center mt-12 gap-2">
+                    <!-- Prev Button -->
+                    <c:choose>
+                        <c:when test="${currentPage > 1}">
+                            <c:url var="prevUrl" value="/home">
+                                <c:param name="page" value="${currentPage - 1}"/>
+                                <c:if test="${not empty keyword}">
+                                    <c:param name="keyword" value="${keyword}"/>
+                                </c:if>
+                                <c:if test="${not empty selectedCategoryId}">
+                                    <c:param name="categoryId" value="${selectedCategoryId}"/>
+                                </c:if>
+                            </c:url>
+                            <a href="${prevUrl}" 
+                               class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                            </span>
+                        </c:otherwise>
+                    </c:choose>
+
+                    <!-- Page Numbers -->
+                    <c:forEach var="p" begin="1" end="${totalPages}">
+                        <c:url var="pageUrl" value="/home">
+                            <c:param name="page" value="${p}"/>
+                            <c:if test="${not empty keyword}">
+                                <c:param name="keyword" value="${keyword}"/>
+                            </c:if>
+                            <c:if test="${not empty selectedCategoryId}">
+                                <c:param name="categoryId" value="${selectedCategoryId}"/>
+                            </c:if>
+                        </c:url>
+                        <c:choose>
+                            <c:when test="${currentPage == p}">
+                                <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
+                                    ${p}
+                                </span>
+                            </c:when>
+                            <c:otherwise>
+                                <a href="${pageUrl}" 
+                                   class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                    ${p}
+                                </a>
+                            </c:otherwise>
+                        </c:choose>
+                    </c:forEach>
+
+                    <!-- Next Button -->
+                    <c:choose>
+                        <c:when test="${currentPage < totalPages}">
+                            <c:url var="nextUrl" value="/home">
+                                <c:param name="page" value="${currentPage + 1}"/>
+                                <c:if test="${not empty keyword}">
+                                    <c:param name="keyword" value="${keyword}"/>
+                                </c:if>
+                                <c:if test="${not empty selectedCategoryId}">
+                                    <c:param name="categoryId" value="${selectedCategoryId}"/>
+                                </c:if>
+                            </c:url>
+                            <a href="${nextUrl}" 
+                               class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                            </span>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </c:if>
         </c:if>
     </section>
 
@@ -466,8 +560,23 @@
                 wrapper.classList.add('ring-4', 'ring-primary/40');
                 setTimeout(() => {
                     wrapper.classList.remove('ring-4', 'ring-primary/40');
-                }, 800);
+                    searchInput.closest('form').submit();
+                }, 300);
             }
+        }
+    }
+
+    /**
+     * Scroll Flash Sale Slider horizontally
+     */
+    function scrollFlashSale(direction) {
+        const container = document.getElementById('flashSaleContainer');
+        if (container) {
+            const cardWidth = container.firstElementChild ? container.firstElementChild.offsetWidth + 24 : 300; // card width + gap
+            container.scrollBy({
+                left: direction * cardWidth,
+                behavior: 'smooth'
+            });
         }
     }
 
