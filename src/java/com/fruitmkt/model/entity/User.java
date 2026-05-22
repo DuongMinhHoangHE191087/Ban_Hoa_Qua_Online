@@ -93,4 +93,8 @@ public class User {
     public String toString() {
         return "User{userId=" + userId + ", email='" + email + "', role='" + role + "'}";
     }
+
+    public String getPassword() {
+        return passwordHash;
+    }
 }

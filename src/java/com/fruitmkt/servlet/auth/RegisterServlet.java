@@ -44,79 +44,74 @@ public class RegisterServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        /*
-         * ====================================================================
-         * HƯỚNG DẪN TỰ CODE TAY CHO SERVLET VÀ DAO NGHIỆP VỤ ĐĂNG KÝ (SIGN-UP):
-         * ====================================================================
-         * 
-         * 1. Nhận các tham số từ form đăng ký (register.jsp):
-         *    String role = req.getParameter("accountType"); // 'CUSTOMER' hoặc 'SHOP_OWNER'
-         *    String fullName = req.getParameter("fullName");
-         *    String email = req.getParameter("email");
-         *    String phone = req.getParameter("phone");
-         *    String password = req.getParameter("password");
-         *    String confirmPassword = req.getParameter("confirmPassword");
-         * 
-         * 2. Validate dữ liệu ở phía server:
-         *    if (fullName == null || fullName.trim().length() < 3) {
-         *        req.setAttribute("errorMsg", "Họ tên phải có ít nhất 3 ký tự!");
-         *        req.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp").forward(req, resp);
-         *        return;
-         *    }
-         *    if (!password.equals(confirmPassword)) {
-         *        req.setAttribute("errorMsg", "Mật khẩu xác nhận không khớp!");
-         *        req.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp").forward(req, resp);
-         *        return;
-         *    }
-         * 
-         * 3. Thực hiện đăng ký thông qua DB Connection và băm mật khẩu bằng BCrypt:
-         *    Để sử dụng BCrypt, hãy import:
-         *    import org.mindrot.jbcrypt.BCrypt;
-         * 
-         *    String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
-         * 
-         *    try (Connection conn = com.fruitmkt.config.DBConfig.getConnection()) {
-         *        conn.setAutoCommit(false); // Bắt đầu transaction đảm bảo toàn vẹn dữ liệu
-         *        try {
-         *             User user = new User();
-         *             user.setFullName(fullName);
-         *             user.setEmail(email);
-         *             user.setPasswordHash(hashedPassword);
-         *             user.setPhone(phone);
-         *             user.setRole(role);
-         *             
-         *             // Khởi tạo các DAO tương ứng:
-         *             // UserDAO userDAO = new UserDAO();
-         *             // ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
-         *             
-         *             // Bước 3.1: Lưu User và lấy về userId tự tăng tự sinh
-         *             // int userId = userDAO.saveAndGetId(user, conn);
-         *             
-         *             // Bước 3.2: Nếu vai trò là SHOP_OWNER, lưu hồ sơ shop profile
-         *             // if ("SHOP_OWNER".equals(role)) {
-         *             //     String storeName = req.getParameter("storeName");
-         *             //     String address = req.getParameter("address");
-         *             //     shopProfileDAO.save(userId, storeName, address, conn);
-         *             // }
-         *             
-         *             conn.commit(); // Hoàn tất thành công -> Commit transaction
-         *             
-         *             req.getSession().setAttribute("flash_success", "Đăng ký tài khoản thành công! Vui lòng đăng nhập.");
-         *             resp.sendRedirect(req.getContextPath() + "/auth/login");
-         *             return;
-         *        } catch (SQLException e) {
-         *             conn.rollback(); // Lỗi SQL -> Hủy toàn bộ thay đổi
-         *             throw e;
-         *        }
-         *    } catch (Exception e) {
-         *        req.setAttribute("errorMsg", "Có lỗi xảy ra: " + e.getMessage());
-         *        req.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp").forward(req, resp);
-         *    }
-         */
         
-        // Cảnh báo tạm thời khi người dùng nhấn submit đăng ký nhưng chưa code logic:
-        req.setAttribute("errorMsg", "Chức năng đăng ký phía server đang được cấu hình. Vui lòng tự code tay logic doPost theo hướng dẫn chi tiết trong file RegisterServlet.java!");
-        req.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp").forward(req, resp);
+        req.setCharacterEncoding("UTF-8");
+        
+        // 1. Nhận các tham số từ form đăng ký (register.jsp)
+        String role = req.getParameter("accountType"); // 'CUSTOMER' hoặc 'SHOP_OWNER'
+        String fullName = req.getParameter("fullName");
+        String email = req.getParameter("email");
+        String phone = req.getParameter("phone");
+        String password = req.getParameter("password");
+        String confirmPassword = req.getParameter("confirmPassword");
+
+        try {
+            // 2. Validate phía Servlet (So khớp mật khẩu)
+            
+            if (fullName == null || fullName.trim().isEmpty()) {
+                throw new Exception("Họ và tên không được để trống!");
+            }
+            if (email == null || email.trim().isEmpty()) {
+                throw new Exception("Email không được để trống!");
+            }
+            if (phone == null || phone.trim().isEmpty()) {
+                throw new Exception("Số điện thoại không được để trống!");
+            }
+            if (password == null || confirmPassword == null ) {
+                throw new Exception("Mật khẩu Không được để trống!");
+            }
+            if ( !password.trim().equals(confirmPassword.trim())) {
+                throw new Exception("Mật khẩu xác nhận không khớp!");
+            }   
+            // Gán role mặc định nếu bị rỗng hoặc sai
+            if (role == null || (!role.equals("CUSTOMER") && !role.equals("SHOP_OWNER"))) {
+                role = "CUSTOMER"; 
+            }
+
+            // 3. Đưa dữ liệu thô vào Entity để truyền xuống Tầng Service
+            User user = new User();
+            user.setFullName(fullName);
+            user.setEmail(email);
+            user.setPasswordHash(password); // Truyền mật khẩu thô để Service validate và Hash
+            user.setPhone(phone);
+            user.setRole(role);
+
+            // 4. Khởi tạo Service và Xử lý Đăng Ký
+            AuthService authService = new AuthService();
+            User newUser = authService.register(user);
+
+            // 5. Xử lý Logic riêng biệt dựa theo ROLE (Phân tách theo Spec)
+            if ("SHOP_OWNER".equals(role)) {
+                // Tạo mới Profile cho Shop
+                // String storeName = req.getParameter("storeName");
+                // ShopProfileService shopService = new ShopProfileService();
+                // shopService.createProfile(newUser.getUserId(), storeName);
+            } else if ("CUSTOMER".equals(role)) {
+                // Tạo một Cart trống mặc định (nếu cần theo rule)
+                // CartService cartService = new CartService();
+                // cartService.initCartForCustomer(newUser.getUserId());
+            }
+
+            // 6. Xử lý thành công - Sử dụng Pattern PRG với Flash Message
+            SessionUtil.flashSuccess(req.getSession(), "Đăng ký thành công! Vui lòng đăng nhập.");
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+
+        } catch (Throwable e) {
+            // 7. Xử lý Lỗi - Đẩy message về lại form JSP
+            e.printStackTrace(); // Log ra console NetBeans
+            SessionUtil.flashError(req.getSession(), "Lỗi hệ thống: " + e.getMessage());
+            resp.sendRedirect(req.getContextPath() + "/auth/register");
+        }
     }
 
 }

@@ -31,7 +31,7 @@ public final class HashUtil {
      * @param plainPassword mật khẩu chưa mã hóa
      * @return chuỗi BCrypt hash để lưu vào DB
      */
-    public static String hash(String plainPassword) {
+    public static String hashPassword(String plainPassword) {
         return BCrypt.hashpw(plainPassword, BCrypt.gensalt(BCRYPT_ROUNDS));
     }
 
@@ -45,6 +45,7 @@ public final class HashUtil {
         if (plainPassword == null || storedHash == null) return false;
         return BCrypt.checkpw(plainPassword, storedHash);
     }
+
 
     private HashUtil() {}
 }

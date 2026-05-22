@@ -1,7 +1,8 @@
 package com.fruitmkt.dao.base;
 
-import com.fruitmkt.config.DBConfig;
+import com.fruitmkt.config.AppConfig;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
@@ -36,11 +37,19 @@ import java.sql.SQLException;
  */
 public abstract class BaseDAO {
 
+    static {
+        try {
+            Class.forName(AppConfig.DB_DRIVER_CLASS);
+        } catch (ClassNotFoundException e) {
+            throw new ExceptionInInitializerError("Không tìm thấy JDBC driver cho SQL Server: " + AppConfig.DB_DRIVER_CLASS);
+        }
+    }
+
     /**
-     * Lấy kết nối từ DBConfig.
+     * Lấy kết nối trực tiếp từ cấu hình database.
      * Kết nối phải được đóng bởi caller trong try-with-resources.
      */
     protected Connection getConnection() throws SQLException {
-        return DBConfig.getConnection();
+        return DriverManager.getConnection(AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD);
     }
 }

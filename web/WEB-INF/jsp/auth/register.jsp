@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Đăng ký tài khoản - Verdant Market</title>
+    <title>Đăng ký tài khoản - MetaFruit</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
@@ -21,7 +21,7 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#14532D", // Dark Green for Verdant theme
+                        "primary": "#14532D", // Dark Green for MetaFruit theme
                         "primary-hover": "#166534",
                         "primary-light": "#d1ffd8",
                         "surface": "#eaffea",
@@ -83,7 +83,7 @@
         <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-primary text-3xl font-bold">eco</span>
             <div class="text-2xl font-bold text-primary tracking-wide">
-                Verdant Market
+                MetaFruit
             </div>
         </div>
         <div class="flex items-center gap-2">
@@ -112,25 +112,29 @@
             </div>
 
             <!-- Error message display if any -->
-            <c:if test="${not empty errorMsg}">
+            <c:if test="${not empty requestScope.errorMsg}">
                 <div class="mb-6 p-4 bg-red-50 border-l-4 border-error text-red-800 rounded-r-lg flex items-center gap-3 shadow-sm animate-pulse">
                     <span class="material-symbols-outlined text-error">error</span>
-                    <span class="text-sm font-medium"><c:out value="${errorMsg}"/></span>
+                    <span class="text-sm font-medium"><c:out value="${requestScope.errorMsg}"/></span>
                 </div>
             </c:if>
-            <c:if test="${not empty sessionScope.flash_error}">
-                <div class="mb-6 p-4 bg-red-50 border-l-4 border-error text-red-800 rounded-r-lg flex items-center gap-3 shadow-sm">
-                    <span class="material-symbols-outlined text-error">error</span>
-                    <span class="text-sm font-medium"><c:out value="${sessionScope.flash_error}"/></span>
+            <c:if test="${not empty sessionScope.flashMsg}">
+                <c:set var="isError" value="${sessionScope.flashType == 'error'}"/>
+                <div class="mb-6 p-4 ${isError ? 'bg-red-50 border-error text-red-800' : 'bg-green-50 border-primary text-green-800'} border-l-4 rounded-r-lg flex items-center gap-3 shadow-sm">
+                    <span class="material-symbols-outlined ${isError ? 'text-error' : 'text-primary'}">
+                        ${isError ? 'error' : 'check_circle'}
+                    </span>
+                    <span class="text-sm font-medium"><c:out value="${sessionScope.flashMsg}"/></span>
                 </div>
-                <c:remove var="flash_error" scope="session"/>
+                <c:remove var="flashMsg" scope="session"/>
+                <c:remove var="flashType" scope="session"/>
             </c:if>
 
             <!-- Unified Form -->
-            <form action="${pageContext.request.contextPath}/auth/register" method="post" enctype="multipart/form-data" class="space-y-6" id="registerForm">
+            <form action="${pageContext.request.contextPath}/auth/register" method="post" class="space-y-6" id="registerForm">
                 
                 <!-- Anti-CSRF Token Placeholder -->
-                <input type="hidden" name="_csrf" value="${csrfToken}">
+                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 
                 <!-- Dynamic Account Type Selector (Hidden Input + Tailwind Tabs) -->
                 <input type="hidden" id="accountType" name="accountType" value="CUSTOMER">
@@ -304,7 +308,7 @@
                         <input class="w-4 h-4 rounded border-outline/30 text-primary focus:ring-primary bg-white cursor-pointer" id="terms" name="terms" type="checkbox" required>
                     </div>
                     <label class="text-xs text-on-surface-variant leading-relaxed cursor-pointer" for="terms">
-                        Tôi đồng ý với các <a class="text-primary font-bold hover:underline" href="#">Điều khoản sử dụng dịch vụ</a> và <a class="text-primary font-bold hover:underline" href="#">Chính sách bảo mật dữ liệu khách hàng</a> của Verdant Market.
+                        Tôi đồng ý với các <a class="text-primary font-bold hover:underline" href="#">Điều khoản sử dụng dịch vụ</a> và <a class="text-primary font-bold hover:underline" href="#">Chính sách bảo mật dữ liệu khách hàng</a> của MetaFruit.
                     </label>
                 </div>
 
@@ -350,7 +354,7 @@
 
     <!-- Site Footer -->
     <footer class="w-full py-4 text-center border-t border-white/20 bg-white/40 backdrop-blur-md relative z-10">
-        <p class="text-xs text-on-surface-variant/80 font-light">&copy; 2026 Verdant Market. Giải pháp nông sản Việt sạch và bền vững.</p>
+        <p class="text-xs text-on-surface-variant/80 font-light">&copy; 2026 MetaFruit. Giải pháp nông sản Việt sạch và bền vững.</p>
     </footer>
 
     <!-- Interactive Client Script -->

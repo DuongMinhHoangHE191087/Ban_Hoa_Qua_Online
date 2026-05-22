@@ -53,19 +53,19 @@ public final class SessionUtil {
     }
 
     /** Đặt flash message để hiển thị sau PRG redirect */
-    public static void setFlash(HttpSession session, String message, String type) {
+    public static void setFlashMessage(HttpSession session, String message, String type) {
         session.setAttribute(AppConfig.SESSION_FLASH_MSG, message);
         session.setAttribute(AppConfig.SESSION_FLASH_TYPE, type);
     }
 
     /** Shortcut cho flash thành công */
     public static void flashSuccess(HttpSession session, String message) {
-        setFlash(session, message, "success");
+        setFlashMessage(session, message, "success");
     }
 
     /** Shortcut cho flash lỗi */
     public static void flashError(HttpSession session, String message) {
-        setFlash(session, message, "error");
+        setFlashMessage(session, message, "error");
     }
 
     /** Xóa session khi logout */
