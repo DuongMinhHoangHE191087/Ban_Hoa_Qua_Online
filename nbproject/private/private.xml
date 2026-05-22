@@ -8,6 +8,11 @@
             <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/web/WEB-INF/jsp/auth/register.jsp</file>
             <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/servlet/auth/RegisterServlet.java</file>
             <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/servlet/auth/LoginServlet.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/dao/UserDAO.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/dao/base/BaseDAO.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/service/AuthService.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/src/java/com/fruitmkt/model/entity/User.java</file>
+            <file>file:/D:/DMHoang/Project_GitHub/Ban_hoa_qua_online/nbproject/build-impl.xml</file>
         </group>
     </open-files>
 </project-private>
