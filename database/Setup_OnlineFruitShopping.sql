@@ -32,8 +32,8 @@ BEGIN
         email NVARCHAR(255) NOT NULL CONSTRAINT UQ_users_email UNIQUE,
         password_hash NVARCHAR(255) NULL,
         phone NVARCHAR(15) NULL,
-        role NVARCHAR(20) NOT NULL CONSTRAINT CK_users_role CHECK (role IN ('CUSTOMER', 'SHOP_OWNER', 'DELIVERY', 'ADMIN')),
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_users_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
+        role NVARCHAR(20) NOT NULL CONSTRAINT CK_users_role DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER', 'SHOP_OWNER', 'DELIVERY', 'ADMIN')),
+        status NVARCHAR(20) NOT NULL CONSTRAINT CK_users_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
         user_address NVARCHAR(500) NULL,
         is_email_verified BIT NOT NULL CONSTRAINT DF_users_is_email_verified DEFAULT 0,
         failed_login_count INT NOT NULL CONSTRAINT DF_users_failed_login_count DEFAULT 0,
@@ -100,7 +100,7 @@ BEGIN
         harvest_date DATE NULL,
         shelf_life_days INT NULL,
         storage_instruction NVARCHAR(300) NULL,
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
+        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
         view_count INT NOT NULL CONSTRAINT DF_products_view_count DEFAULT 0,
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
         sold_quantity INT NOT NULL CONSTRAINT DF_products_sold_quantity DEFAULT 0,
@@ -235,7 +235,7 @@ BEGIN
         shop_discount_amount DECIMAL(12,2) NOT NULL CONSTRAINT DF_orders_shop_discount_amount DEFAULT 0,
         platform_fee DECIMAL(12,2) NOT NULL CONSTRAINT DF_orders_platform_fee DEFAULT 0,
         final_amount DECIMAL(14,2) NOT NULL,
-        payment_method NVARCHAR(20) NOT NULL CONSTRAINT CK_orders_payment_method CHECK (payment_method IN ('CK', 'COD')),
+        payment_method NVARCHAR(20) NOT NULL CONSTRAINT CK_orders_payment_method  CHECK (payment_method IN ('CK', 'COD')),
         refund_status NVARCHAR(20) NOT NULL CONSTRAINT DF_orders_refund_status DEFAULT 'NONE' CONSTRAINT CK_orders_refund_status CHECK (refund_status IN ('NONE', 'PENDING', 'APPROVED', 'REJECTED', 'PROCESSING', 'REFUNDED', 'FAILED')),
         created_at DATETIME NOT NULL CONSTRAINT DF_orders_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_orders_updated_at DEFAULT GETDATE(),
@@ -483,7 +483,8 @@ BEGIN TRY
         (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'hash_owner1_demo', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', 1, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
         (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'hash_owner2_demo', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
         (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'hash_customer1_demo', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
-        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'hash_customer2_demo', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00');
+        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'hash_customer2_demo', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
+        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'hash_owner3_demo', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00');
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -499,7 +500,8 @@ BEGIN TRY
     INSERT INTO dbo.shop_owner_profiles (profile_id, user_id, shop_name, shop_description, approval_status, rejection_reason, approved_at, delivery_address, rating, created_at, updated_at)
     VALUES
         (1, 3, N'An Phu Orchard', N'Premium citrus and banana supplier', N'APPROVED', NULL, '2026-05-02T10:00:00', N'12 Le Loi, District 1, HCMC', 4.88, '2026-05-02T10:00:00', '2026-05-16T08:00:00'),
-        (2, 4, N'Mekong Fresh Farm', N'Mango, berries, and grapes specialist', N'APPROVED', NULL, '2026-05-03T10:00:00', N'88 Nguyen Trai, District 5, HCMC', 4.76, '2026-05-03T10:00:00', '2026-05-16T08:00:00');
+        (2, 4, N'Mekong Fresh Farm', N'Mango, berries, and grapes specialist', N'APPROVED', NULL, '2026-05-03T10:00:00', N'88 Nguyen Trai, District 5, HCMC', 4.76, '2026-05-03T10:00:00', '2026-05-16T08:00:00'),
+        (3, 7, N'Klever Premium Fruits', N'Imported fruits, gift boxes, and seasonal premium selections', N'APPROVED', NULL, '2026-05-04T10:00:00', N'52 Vo Thi Sau, District 3, HCMC', 4.91, '2026-05-04T10:00:00', '2026-05-16T08:00:00');
     SET IDENTITY_INSERT dbo.shop_owner_profiles OFF;
 
     SET IDENTITY_INSERT dbo.categories ON;
@@ -508,7 +510,13 @@ BEGIN TRY
         (1, N'Citrus', N'citrus', 1, 1),
         (2, N'Tropical', N'tropical', 2, 1),
         (3, N'Berries', N'berries', 3, 1),
-        (4, N'Gift Boxes', N'gift-boxes', 4, 1);
+        (4, N'Gift Boxes', N'gift-boxes', 4, 1),
+        (5, N'Apples', N'apples', 5, 1),
+        (6, N'Grapes', N'grapes', 6, 1),
+        (7, N'Melons', N'melons', 7, 1),
+        (8, N'Kiwi', N'kiwi', 8, 1),
+        (9, N'Cherries', N'cherries', 9, 1),
+        (10, N'Imported Mix', N'imported-mix', 10, 1);
     SET IDENTITY_INSERT dbo.categories OFF;
 
     SET IDENTITY_INSERT dbo.products ON;
@@ -519,7 +527,16 @@ BEGIN TRY
         (3, 3, 2, N'Chuoi Lun Da Lat', N'Fresh small bananas for daily snack', N'Vietnam', N'Da Lat', '2026-05-12', 8, N'Avoid direct sun', N'ACTIVE', 980, 4.60, 260, '2026-05-03T09:10:00', '2026-05-16T08:00:00'),
         (4, 4, 2, N'Xoai Cat Hoa Loc', N'Premium ripe mango', N'Vietnam', N'Tien Giang', '2026-05-07', 6, N'Ripen at room temperature', N'ACTIVE', 2150, 4.95, 180, '2026-05-03T09:15:00', '2026-05-16T08:00:00'),
         (5, 4, 3, N'Dau Tay New Zealand', N'Imported berries for premium gift', N'New Zealand', N'Canterbury', '2026-05-10', 5, N'Keep refrigerated', N'ACTIVE', 760, 4.70, 96, '2026-05-03T09:20:00', '2026-05-16T08:00:00'),
-        (6, 4, 4, N'Nho Xanh Mau Don', N'Seedless green grapes box', N'Chile', N'Central Valley', '2026-05-09', 10, N'Store at 2-4C', N'ACTIVE', 840, 4.85, 72, '2026-05-03T09:25:00', '2026-05-16T08:00:00');
+        (6, 4, 4, N'Nho Xanh Mau Don', N'Seedless green grapes box', N'Chile', N'Central Valley', '2026-05-09', 10, N'Store at 2-4C', N'ACTIVE', 840, 4.85, 72, '2026-05-03T09:25:00', '2026-05-16T08:00:00'),
+        (7, 7, 7, N'Dua Vang Han Quoc Size 11', N'Sweet yellow melon with crisp flesh', N'Korea', N'Gyeongsang', '2026-05-11', 7, N'Refrigerate after cutting', N'ACTIVE', 1460, 4.78, 88, '2026-05-03T09:26:00', '2026-05-16T08:00:00'),
+        (8, 7, 8, N'Kiwi Vang New Zealand 3.5kg', N'Golden kiwi with bright aroma', N'New Zealand', N'Bay of Plenty', '2026-05-10', 9, N'Keep chilled and dry', N'ACTIVE', 1325, 4.87, 64, '2026-05-03T09:27:00', '2026-05-16T08:00:00'),
+        (9, 7, 6, N'Nho Den Khong Hat Ngon Tay Oliver UC', N'Crunchy seedless black grapes in premium pack', N'Australia', N'South Australia', '2026-05-09', 11, N'Store in a ventilated cold room', N'ACTIVE', 1188, 4.90, 55, '2026-05-03T09:28:00', '2026-05-16T08:00:00'),
+        (10, 7, 6, N'Nho Xanh Autumn Nam Phi', N'Green grapes imported from South Africa', N'South Africa', N'Western Cape', '2026-05-09', 11, N'Store at 0-4C', N'ACTIVE', 1040, 4.83, 61, '2026-05-03T09:29:00', '2026-05-16T08:00:00'),
+        (11, 7, 9, N'Cherry Do Orchard View My', N'Premium red cherries from the United States', N'USA', N'Washington', '2026-05-08', 6, N'Keep refrigerated and avoid crushing', N'ACTIVE', 1575, 4.94, 44, '2026-05-03T09:30:00', '2026-05-16T08:00:00'),
+        (12, 7, 5, N'Tao Cosmic Crisp My', N'Crisp and juicy apples with balanced sweetness', N'USA', N'Washington State', '2026-05-09', 20, N'Store in a cool dry place', N'ACTIVE', 1210, 4.81, 73, '2026-05-03T09:31:00', '2026-05-16T08:00:00'),
+        (13, 7, 5, N'Tao Dazzle New Zealand', N'Bright red apples with a refreshing finish', N'New Zealand', N'Hawke''s Bay', '2026-05-09', 18, N'Refrigerate for best crunch', N'ACTIVE', 990, 4.79, 58, '2026-05-03T09:32:00', '2026-05-16T08:00:00'),
+        (14, 7, 10, N'Hop Qua Cherry My 3kg', N'Gift box for premium fruit gifting', N'USA', N'Imported mix', '2026-05-10', 5, N'Keep chilled until gifting', N'ACTIVE', 690, 4.88, 39, '2026-05-03T09:33:00', '2026-05-16T08:00:00'),
+        (15, 7, 10, N'Fruit Mix Premium Season', N'Assorted imported fruit box for family and office', N'Mixed', N'Imported selection', '2026-05-10', 7, N'Refrigerate immediately after delivery', N'ACTIVE', 845, 4.84, 47, '2026-05-03T09:34:00', '2026-05-16T08:00:00');
     SET IDENTITY_INSERT dbo.products OFF;
 
     SET IDENTITY_INSERT dbo.product_images ON;
@@ -532,7 +549,16 @@ BEGIN TRY
         (5, 4, N'/assets/images/products/xoai-cat-hoa-loc/main.jpg', 1, 1, '2026-05-03T09:33:00'),
         (6, 4, N'/assets/images/products/xoai-cat-hoa-loc/box.jpg', 2, 0, '2026-05-03T09:33:00'),
         (7, 5, N'/assets/images/products/dau-tay-new-zealand/main.jpg', 1, 1, '2026-05-03T09:34:00'),
-        (8, 6, N'/assets/images/products/nho-xanh-mau-don/main.jpg', 1, 1, '2026-05-03T09:35:00');
+        (8, 6, N'/assets/images/products/nho-xanh-mau-don/main.jpg', 1, 1, '2026-05-03T09:35:00'),
+        (9, 7, N'/assets/images/products/dua-vang-han-quoc/main.jpg', 1, 1, '2026-05-03T09:36:00'),
+        (10, 8, N'/assets/images/products/kiwi-vang-new-zealand/main.jpg', 1, 1, '2026-05-03T09:37:00'),
+        (11, 9, N'/assets/images/products/nho-den-ngon-tay-oliver/main.jpg', 1, 1, '2026-05-03T09:38:00'),
+        (12, 10, N'/assets/images/products/nho-xanh-autumn/main.jpg', 1, 1, '2026-05-03T09:39:00'),
+        (13, 11, N'/assets/images/products/cherry-do-orchard-view/main.jpg', 1, 1, '2026-05-03T09:40:00'),
+        (14, 12, N'/assets/images/products/tao-cosmic-crisp/main.jpg', 1, 1, '2026-05-03T09:41:00'),
+        (15, 13, N'/assets/images/products/tao-dazzle-new-zealand/main.jpg', 1, 1, '2026-05-03T09:42:00'),
+        (16, 14, N'/assets/images/products/hop-qua-cherry-my/main.jpg', 1, 1, '2026-05-03T09:43:00'),
+        (17, 15, N'/assets/images/products/fruit-mix-premium-season/main.jpg', 1, 1, '2026-05-03T09:44:00');
     SET IDENTITY_INSERT dbo.product_images OFF;
 
     SET IDENTITY_INSERT dbo.product_variants ON;
@@ -545,7 +571,16 @@ BEGIN TRY
         (5, 4, N'XOAI-CAT-1KG', N'1kg', 125000.00, 39, 1, '2026-05-03T09:43:00', '2026-05-16T08:10:00'),
         (6, 4, N'XOAI-CAT-2KG', N'2kg', 238000.00, 24, 1, '2026-05-03T09:43:00', '2026-05-16T08:10:00'),
         (7, 5, N'DAU-TAY-500G', N'500g', 89000.00, 34, 1, '2026-05-03T09:44:00', '2026-05-16T08:10:00'),
-        (8, 6, N'NHO-XANH-1KG', N'1kg', 155000.00, 29, 1, '2026-05-03T09:45:00', '2026-05-16T08:10:00');
+        (8, 6, N'NHO-XANH-1KG', N'1kg', 155000.00, 29, 1, '2026-05-03T09:45:00', '2026-05-16T08:10:00'),
+        (9, 7, N'DUA-VANG-KR-1QT', N'1 qua', 99000.00, 52, 1, '2026-05-03T09:46:00', '2026-05-16T08:10:00'),
+        (10, 8, N'KIWI-VANG-NZ-1KG', N'1kg', 265000.00, 31, 1, '2026-05-03T09:47:00', '2026-05-16T08:10:00'),
+        (11, 9, N'NHO-DEN-UC-9KG', N'9kg box', 690000.00, 12, 1, '2026-05-03T09:48:00', '2026-05-16T08:10:00'),
+        (12, 10, N'NHO-AUTUMN-ZA-4P5', N'4.5kg box', 420000.00, 16, 1, '2026-05-03T09:49:00', '2026-05-16T08:10:00'),
+        (13, 11, N'CHERRY-RED-US-500G', N'500g', 249000.00, 27, 1, '2026-05-03T09:50:00', '2026-05-16T08:10:00'),
+        (14, 12, N'TAO-COSMIC-CRISP-1KG', N'1kg', 95000.00, 46, 1, '2026-05-03T09:51:00', '2026-05-16T08:10:00'),
+        (15, 13, N'TAO-DAZZLE-NZ-1KG', N'1kg', 175000.00, 44, 1, '2026-05-03T09:52:00', '2026-05-16T08:10:00'),
+        (16, 14, N'CHERRY-GIFT-BOX-3KG', N'3kg gift box', 799000.00, 9, 1, '2026-05-03T09:53:00', '2026-05-16T08:10:00'),
+        (17, 15, N'FRUIT-MIX-PREMIUM', N'Assorted box', 499000.00, 14, 1, '2026-05-03T09:54:00', '2026-05-16T08:10:00');
     SET IDENTITY_INSERT dbo.product_variants OFF;
 
     SET IDENTITY_INSERT dbo.inventory_logs ON;
