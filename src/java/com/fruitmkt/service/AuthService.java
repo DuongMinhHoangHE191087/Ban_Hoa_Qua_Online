@@ -156,9 +156,119 @@ public class AuthService {
     /**
      * TODO: Implement — xem SRS / use case tương ứng
      */
-    public void resetPassword(String email, String newPassword) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: resetPassword(String email, String newPassword)");
+    /**
+     * Đặt lại mật khẩu sau khi đã xác minh OTP forgot-password thành công.
+     */
+    public void resetPassword(String email, String newPassword) throws Exception {
+        if (!ValidationUtil.notBlank(email) || !ValidationUtil.isValidEmail(email)) {
+            throw new Exception("Địa chỉ email không hợp lệ.");
+        }
+        if (!ValidationUtil.isValidPassword(newPassword)) {
+            throw new Exception("Mật khẩu mới phải từ 8 đến 64 ký tự.");
+        }
+
+        User user = userDAO.findByEmail(email);
+        if (user == null) {
+            throw new Exception("Không tìm thấy tài khoản.");
+        }
+
+        String newHash = HashUtil.hashPassword(newPassword);
+        userDAO.updatePassword(user.getUserId(), newHash);
+        userDAO.clearForgotPasswordCode(user.getUserId());
+    }
+
+    /**
+     * Đổi mật khẩu cho user đã đăng nhập — yêu cầu xác nhận mật khẩu cũ.
+     *
+     * @param userId          ID user đang đăng nhập (lấy từ session)
+     * @param currentPassword Mật khẩu hiện tại để xác nhận
+     * @param newPassword     Mật khẩu mới
+     */
+    public void changePassword(int userId, String currentPassword, String newPassword) throws Exception {
+        if (!ValidationUtil.notBlank(currentPassword)) {
+            throw new Exception("Mật khẩu hiện tại không được để trống.");
+        }
+        if (!ValidationUtil.isValidPassword(newPassword)) {
+            throw new Exception("Mật khẩu mới phải từ 8 đến 64 ký tự.");
+        }
+
+        User user = userDAO.findUserById(userId);
+        if (user == null) {
+            throw new Exception("Không tìm thấy tài khoản.");
+        }
+
+        // Tài khoản Google OAuth không có mật khẩu thật — không cho đổi theo cách này
+        if (user.getPasswordHash() == null) {
+            throw new Exception("Tài khoản liên kết Google không hỗ trợ tính năng này.");
+        }
+
+        if (!HashUtil.verify(currentPassword, user.getPasswordHash())) {
+            throw new Exception("Mật khẩu hiện tại không chính xác.");
+        }
+
+        if (HashUtil.verify(newPassword, user.getPasswordHash())) {
+            throw new Exception("Mật khẩu mới không được trùng với mật khẩu hiện tại.");
+        }
+
+        String newHash = HashUtil.hashPassword(newPassword);
+        userDAO.updatePassword(userId, newHash);
+    }
+
+    /**
+     * Gửi OTP đặt lại mật khẩu đến email.
+     * Nếu email chưa đăng kí: silently skip (không lộ thông tin user existence).
+     *
+     * @return true nếu đã gửi mail, false nếu email không tồn tại (caller hiển thị cùng UI)
+     */
+    public boolean sendForgotPasswordCode(String email) throws Exception {
+        if (!ValidationUtil.notBlank(email) || !ValidationUtil.isValidEmail(email)) {
+            throw new Exception("Địa chỉ email không hợp lệ.");
+        }
+
+        User user = userDAO.findByEmail(email);
+        if (user == null) {
+            // Anti-enumeration: không báo lỗi — trả false để servlet biết nhưng không lộ ra UI
+            return false;
+        }
+
+        // Kiểm tra cooldown giống resend email verify
+        if (user.getEmailVerificationResendAt() != null
+                && LocalDateTime.now().isBefore(user.getEmailVerificationResendAt())) {
+            throw new Exception("Vui lòng chờ 1 phút rồi mới gửi lại mã.");
+        }
+
+        issueVerificationCode(user);
+        return true;
+    }
+
+    /**
+     * Xác minh OTP forgot-password — GIỐNG verifyEmailCode nhưng KHÔNG activate tài khoản.
+     * Chỉ trả về user để servlet có thể set session cờ.
+     */
+    public User verifyForgotCode(String email, String code) throws Exception {
+        if (!ValidationUtil.notBlank(email) || !ValidationUtil.isValidEmail(email)) {
+            throw new Exception("Email không hợp lệ.");
+        }
+        if (!ValidationUtil.notBlank(code)) {
+            throw new Exception("Mã xác minh không được để trống.");
+        }
+
+        User user = userDAO.findByEmail(email);
+        if (user == null) {
+            throw new Exception("Không tìm thấy tài khoản.");
+        }
+
+        if (user.getEmailVerificationExpiresAt() == null
+                || LocalDateTime.now().isAfter(user.getEmailVerificationExpiresAt())) {
+            throw new Exception("Mã xác minh đã hết hạn. Vui lòng gửi lại mã mới.");
+        }
+
+        if (!HashUtil.verify(code.trim(), user.getEmailVerificationCodeHash())) {
+            throw new Exception("Mã xác minh không chính xác.");
+        }
+
+        // Không activate — chỉ xác nhận OTP hợp lệ
+        return user;
     }
 
     /**

@@ -79,6 +79,10 @@ public final class AppConfig {
         public static final String SESSION_USER = "currentUser";
         /** Key lưu email chờ xác minh */
         public static final String SESSION_VERIFY_EMAIL = "verifyEmail";
+        /** Key lưu email đang trong quá trình forgot password (tách biệt với verify email) */
+        public static final String SESSION_FORGOT_EMAIL = "forgotEmail";
+        /** Cờ đánh dấu đã verify OTP forgot password thành công — bắt buộc trước khi cho reset */
+        public static final String SESSION_FORGOT_VERIFIED = "forgotVerified";
         /** Key lưu flash message sau PRG redirect */
         public static final String SESSION_FLASH_MSG = "flashMsg";
         /** Key lưu loại flash (success / error / warning / info) */
