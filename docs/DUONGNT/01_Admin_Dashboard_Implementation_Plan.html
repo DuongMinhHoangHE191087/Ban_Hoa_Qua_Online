@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Plan Module Admin Marketplace</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --text-color: #333;
+            --primary: #4D661C;
+            --surface: #ffffff;
+            --code-bg: #1e1e1e;
+            --code-color: #d4d4d4;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: var(--surface); padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1, h2, h3 { color: var(--primary); }
+        .card { border-left: 4px solid var(--primary); padding: 15px 20px; margin-bottom: 25px; background-color: #fbfdff; border-radius: 4px; }
+        .note { background-color: #fff3cd; border-left: 4px solid #ffeeba; padding: 10px; margin: 15px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kế hoạch triển khai Module Admin (Marketplace System)</h1>
+        <p><strong>Người thực hiện:</strong> Dương (DUONGNTHE191504)</p>
+        
+        <div class="card">
+            <h2>1. Tổng quan Module & Phạm vi</h2>
+            <p>Dựa trên thiết kế SRS của toàn nhóm, Admin đóng vai trò giám sát sàn thương mại điện tử (Governance & Settlement). Các nhóm tính năng chính bao gồm:</p>
+            <ul>
+                <li><strong>Admin Dashboard:</strong> Thống kê toàn cảnh (Doanh thu sàn, Đơn hàng, Shop mới).</li>
+                <li><strong>Shop Approval:</strong> Duyệt gian hàng mới đăng ký.</li>
+                <li><strong>User Management & Product Moderation:</strong> Quản trị tài khoản và kiểm duyệt hàng hóa vi phạm.</li>
+                <li><strong>Settlement Management:</strong> Quản lý đối soát dòng tiền cho Shop.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Kế hoạch Database (SQL)</h2>
+            <p>Các chức năng sẽ tái sử dụng cấu trúc bảng hiện tại (`orders`, `users`, `products`, `shop_owner_profiles`). Nếu có bất kỳ chức năng nào yêu cầu lưu thêm bảng mới (như Audit Log nâng cao), tôi sẽ cập nhật lại DB và ghi rõ tài liệu ở đây theo đúng nguyên tắc của Leader.</p>
+        </div>
+
+        <div class="card">
+            <h2>3. Bằng chứng sử dụng AI (AI Evidence Log)</h2>
+            <p>Quá trình AI giúp phân tích hệ thống (SRS), lên chức năng và code sẽ liên tục được log lại tại <code>AI_Evidence_Log.md</code> để tiện báo cáo Leader sau này.</p>
+        </div>
+    </div>
+</body>
+</html>
