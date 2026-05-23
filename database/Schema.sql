@@ -307,6 +307,7 @@ CREATE TABLE reviews (
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     review_text NVARCHAR(1000) NULL,
+    review_image_url NVARCHAR(500) NULL,
     is_hidden BIT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     CONSTRAINT UQ_review_customer_item UNIQUE (customer_id, order_item_id)

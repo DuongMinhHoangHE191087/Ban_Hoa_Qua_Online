@@ -50,6 +50,11 @@ public class Product {
     public java.time.LocalDate getHarvestDate() { return harvestDate; }
     public void setHarvestDate(java.time.LocalDate harvestDate) { this.harvestDate = harvestDate; }
 
+    public String getFormattedHarvestDate() {
+        if (harvestDate == null) return null;
+        return harvestDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
     public Integer getShelfLifeDays() { return shelfLifeDays; }
     public void setShelfLifeDays(Integer shelfLifeDays) { this.shelfLifeDays = shelfLifeDays; }
 

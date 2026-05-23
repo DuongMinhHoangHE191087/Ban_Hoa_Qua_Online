@@ -15,6 +15,9 @@ public class Review {
     private boolean isHidden;
     private java.time.LocalDateTime createdAt;
 
+    private String reviewImageUrl;
+    private String customerName;
+
     public Review() {}
 
     public int getReviewId() { return reviewId; }
@@ -38,4 +41,38 @@ public class Review {
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    /**
+     * Lấy đường dẫn ảnh đánh giá thực tế từ khách hàng.
+     * @return đường dẫn ảnh (có thể null nếu đánh giá không kèm ảnh)
+     */
+    public String getReviewImageUrl() {
+        return reviewImageUrl;
+    }
+
+    /**
+     * Thiết lập đường dẫn ảnh đánh giá thực tế.
+     * @param reviewImageUrl đường dẫn ảnh
+     */
+    public void setReviewImageUrl(String reviewImageUrl) {
+        this.reviewImageUrl = reviewImageUrl;
+    }
+
+    /**
+     * Lấy tên đầy đủ của khách hàng viết đánh giá này.
+     * Thuộc tính này được truy vấn từ bảng users qua câu JOIN SQL.
+     * @return tên đầy đủ của khách hàng
+     */
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    /**
+     * Thiết lập tên đầy đủ của khách hàng viết đánh giá.
+     * @param customerName tên khách hàng
+     */
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
 }
+

@@ -185,6 +185,51 @@ public class PromotionDAO extends BaseDAO {
     }
 
     /**
+     * Lấy danh sách khuyến mãi (phạm vi ORDER) đang hoạt động của một shop owner cụ thể
+     * để hiển thị trên trang chi tiết sản phẩm (giống Shopee voucher shop).
+     */
+    public List<Promotion> findShopActivePromotions(int ownerId) throws SQLException {
+        List<Promotion> list = new ArrayList<>();
+        String sql = "SELECT * FROM promotions "
+                   + "WHERE created_by = ? AND scope = 'ORDER' AND discount_scope = 'SHOP' "
+                   + "AND is_active = 1 AND is_deleted = 0 "
+                   + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
+                   + "ORDER BY discount_value DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách khuyến mãi hệ thống toàn cục (phạm vi ALL)
+     * để hiển thị trên trang chi tiết sản phẩm (giống Shopee voucher sàn).
+     */
+    public List<Promotion> findActiveSystemPromotions() throws SQLException {
+        List<Promotion> list = new ArrayList<>();
+        String sql = "SELECT TOP 5 * FROM promotions "
+                   + "WHERE discount_scope = 'ALL' "
+                   + "AND is_active = 1 AND is_deleted = 0 "
+                   + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
+                   + "ORDER BY discount_value DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
      * Hủy kích hoạt một chương trình khuyến mãi.
      */
     public void deactivate(int promoId) throws SQLException {

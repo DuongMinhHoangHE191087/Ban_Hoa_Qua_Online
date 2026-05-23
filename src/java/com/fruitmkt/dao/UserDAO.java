@@ -205,27 +205,6 @@ public class UserDAO extends BaseDAO {
         }
     }
 
-    public void saveEmailVerificationCode(int userId, String codeHash, Timestamp expiresAt, Timestamp resendAt) throws SQLException {
-        String sql = "UPDATE users SET email_verification_code_hash = ?, email_verification_expires_at = ?, email_verification_resend_at = ?, email_verification_sent_at = GETDATE(), updated_at = GETDATE() WHERE user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, codeHash);
-            stmt.setTimestamp(2, expiresAt);
-            stmt.setTimestamp(3, resendAt);
-            stmt.setInt(4, userId);
-            stmt.executeUpdate();
-        }
-    }
-
-    public void activateVerifiedEmail(int userId) throws SQLException {
-        String sql = "UPDATE users SET status = ?, is_email_verified = 1, email_verification_code_hash = NULL, email_verification_expires_at = NULL, email_verification_resend_at = NULL, email_verification_sent_at = NULL, updated_at = GETDATE() WHERE user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, AppConfig.ACCOUNT_STATUS_ACTIVE);
-            stmt.setInt(2, userId);
-            stmt.executeUpdate();
-        }
-    }
 
     /**
      * TODO: Implement — incrementFailedLogin(int userId)

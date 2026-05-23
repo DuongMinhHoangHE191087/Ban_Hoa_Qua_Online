@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -229,68 +229,76 @@
                                 -<c:out value="${item.discountPercent}"/>%
                             </div>
                             
-                            <!-- Image Section -->
-                            <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                                <img src="${item.image}" alt="${item.name}" onerror="handleImageError(this)"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            </div>
+                            <!-- Clickable Product Area -->
+                            <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}" class="block group/link flex-grow flex flex-col justify-between" style="text-decoration: none; color: inherit;">
+                                <!-- Image Section -->
+                                <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                    <img src="${item.image}" alt="${item.name}" onerror="handleImageError(this)"
+                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                </div>
 
-                            <!-- Content Section -->
-                            <div class="flex-grow flex flex-col justify-between px-1">
-                                <div>
-                                    <div class="flex justify-between items-start gap-2 mb-1">
-                                        <h3 class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
-                                            <c:out value="${item.name}"/>
-                                        </h3>
-                                    </div>
-                                    
-                                    <!-- Stars and Unit Info -->
-                                    <div class="flex items-center gap-2 mb-3">
-                                        <div class="text-amber-500 scale-90 -ml-1">
-                                            <ft:stars rating="${item.rating}" showValue="false"/>
+                                <!-- Content Section -->
+                                <div class="flex-grow flex flex-col justify-between px-1">
+                                    <div>
+                                        <div class="flex justify-between items-start gap-2 mb-1">
+                                            <h3 class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                                <c:out value="${item.name}"/>
+                                            </h3>
                                         </div>
-                                        <span class="text-[10px] bg-emerald-100 text-primary font-semibold px-2 py-0.5 rounded-full">
-                                            Đơn vị: <c:out value="${item.unit}"/>
-                                        </span>
-                                    </div>
+                                        
+                                        <!-- Short Description for Flash Sale items -->
+                                        <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
+                                            <c:out value="${item.description}"/>
+                                        </p>
+                                        
+                                        <!-- Stars and Unit Info -->
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <div class="text-amber-500 scale-90 -ml-1">
+                                                <ft:stars rating="${item.rating}" showValue="false"/>
+                                            </div>
+                                            <span class="text-[10px] bg-emerald-100 text-primary font-semibold px-2 py-0.5 rounded-full">
+                                                Đơn vị: <c:out value="${item.unit}"/>
+                                            </span>
+                                        </div>
 
-                                    <!-- Price Tag -->
-                                    <div class="flex items-baseline gap-2 mb-3">
-                                        <span class="text-base font-bold text-red-600">
-                                            <ft:currency value="${item.price}"/>
-                                        </span>
-                                        <span class="text-xs text-on-surface-variant/60 line-through">
-                                            <ft:currency value="${item.originalPrice}"/>
-                                        </span>
+                                        <!-- Price Tag -->
+                                        <div class="flex items-baseline gap-2 mb-3">
+                                            <span class="text-base font-bold text-red-600">
+                                                <ft:currency value="${item.price}"/>
+                                            </span>
+                                            <span class="text-xs text-on-surface-variant/60 line-through">
+                                                <ft:currency value="${item.originalPrice}"/>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+
+                            <!-- Progress and Buy Actions (outside of standard card link to allow nested form clicks) -->
+                            <div class="space-y-3 px-1 mt-3">
+                                <!-- Custom Progress Bar -->
+                                <c:set var="percentRemaining" value="${(item.stockRemaining / item.stockTotal) * 100}"/>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-[10px] font-semibold">
+                                        <span class="text-red-600">Chỉ còn ${item.stockRemaining} ${item.unit}</span>
+                                        <span class="text-on-surface-variant/60">Đã bán ${item.stockTotal - item.stockRemaining}</span>
+                                    </div>
+                                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden border border-gray-200/50">
+                                        <div class="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all duration-500" 
+                                             style="width: ${percentRemaining}%"></div>
                                     </div>
                                 </div>
 
-                                <!-- Progress and Buy Actions -->
-                                <div class="space-y-3">
-                                    <!-- Custom Progress Bar -->
-                                    <c:set var="percentRemaining" value="${(item.stockRemaining / item.stockTotal) * 100}"/>
-                                    <div class="space-y-1">
-                                        <div class="flex justify-between text-[10px] font-semibold">
-                                            <span class="text-red-600">Chỉ còn ${item.stockRemaining} ${item.unit}</span>
-                                            <span class="text-on-surface-variant/60">Đã bán ${item.stockTotal - item.stockRemaining}</span>
-                                        </div>
-                                        <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden border border-gray-200/50">
-                                            <div class="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all duration-500" 
-                                                 style="width: ${percentRemaining}%"></div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Add to Cart POST action -->
-                                    <form action="${pageContext.request.contextPath}/cart/add" method="post" class="w-full">
-                                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                        <input type="hidden" name="productId" value="${item.productId}">
-                                        <input type="hidden" name="quantity" value="1">
-                                        <button type="submit" class="w-full bg-red-50 border border-red-200 hover:bg-red-600 hover:text-white text-red-600 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
-                                            <span class="material-symbols-outlined text-[16px]">shopping_cart</span>
-                                            Mua ngay Deal sốc
-                                        </button>
-                                    </form>
-                                </div>
+                                <!-- Add to Cart POST action -->
+                                <form action="${pageContext.request.contextPath}/cart/add" method="post" class="w-full">
+                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                    <input type="hidden" name="productId" value="${item.productId}">
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="w-full bg-red-50 border border-red-200 hover:bg-red-600 hover:text-white text-red-600 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+                                        <span class="material-symbols-outlined text-[16px]">shopping_cart</span>
+                                        Mua ngay Deal sốc
+                                    </button>
+                                </form>
                             </div>
                         </article>
                     </c:forEach>
@@ -364,30 +372,29 @@
                 <c:forEach var="item" items="${normalProducts}">
                     <article class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                         
-                        <!-- High Resolution Image with Zoom Scale on Hover -->
-                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                            <img src="${item.image}" alt="${item.name}" onerror="handleImageError(this)"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <!-- Organic Badge Badge -->
-                            <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
-                                Nông sản sạch
+                        <!-- Clickable Product Area -->
+                        <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
+                            <!-- High Resolution Image with Zoom Scale on Hover -->
+                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                <img src="${item.image}" alt="${item.name}" onerror="handleImageError(this)"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <!-- Organic Badge Badge -->
+                                <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+                                    Nông sản sạch
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Card Body Elements -->
-                        <div class="flex-grow flex flex-col justify-between px-1">
-                            <div>
+                            <!-- Card Body Elements -->
+                            <div class="px-1 mb-3">
                                 <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
                                     <c:out value="${item.name}"/>
                                 </h3>
-                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-3 h-8 leading-relaxed">
+                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
                                     <c:out value="${item.description}"/>
                                 </p>
-                            </div>
-                            
-                            <div>
+                                
                                 <!-- Ratings and Sold Volume metadata -->
-                                <div class="flex justify-between items-center mb-4">
+                                <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">
                                         <ft:stars rating="${item.rating}" showValue="true"/>
                                     </div>
@@ -395,28 +402,28 @@
                                         Đã bán ${item.soldQuantity}
                                     </span>
                                 </div>
-
-                                <!-- Lower Action Block (Price & Add to Cart) -->
-                                <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100">
-                                    <div class="flex flex-col">
-                                        <span class="text-base font-bold text-primary">
-                                            <ft:currency value="${item.price}"/>
-                                        </span>
-                                        <span class="text-[10px] text-on-surface-variant font-light">
-                                            / <c:out value="${item.unit}"/>
-                                        </span>
-                                    </div>
-                                    
-                                    <form action="${pageContext.request.contextPath}/cart/add" method="post">
-                                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                        <input type="hidden" name="productId" value="${item.productId}">
-                                        <input type="hidden" name="quantity" value="1">
-                                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer">
-                                            <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
-                                        </button>
-                                    </form>
-                                </div>
                             </div>
+                        </a>
+
+                        <!-- Lower Action Block (Price & Add to Cart) -->
+                        <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
+                            <div class="flex flex-col">
+                                <span class="text-base font-bold text-primary">
+                                    <ft:currency value="${item.price}"/>
+                                </span>
+                                <span class="text-[10px] text-on-surface-variant font-light">
+                                    / <c:out value="${item.unit}"/>
+                                </span>
+                            </div>
+                            
+                            <form action="${pageContext.request.contextPath}/cart/add" method="post">
+                                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                <input type="hidden" name="productId" value="${item.productId}">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer">
+                                    <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+                                </button>
+                            </form>
                         </div>
                     </article>
                 </c:forEach>

@@ -416,6 +416,7 @@ BEGIN
         customer_id INT NOT NULL,
         rating TINYINT NOT NULL CONSTRAINT CK_reviews_rating CHECK (rating BETWEEN 1 AND 5),
         review_text NVARCHAR(1000) NULL,
+        review_image_url NVARCHAR(500) NULL,
         is_hidden BIT NOT NULL CONSTRAINT DF_reviews_is_hidden DEFAULT 0,
         created_at DATETIME NOT NULL CONSTRAINT DF_reviews_created_at DEFAULT GETDATE(),
         CONSTRAINT UQ_review_customer_item UNIQUE (customer_id, order_item_id),
@@ -723,7 +724,13 @@ BEGIN TRY
         (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'hash_owner2_demo', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
         (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'hash_customer1_demo', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
         (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'hash_customer2_demo', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
-        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'hash_owner3_demo', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00');
+        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'hash_owner3_demo', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
+        (10, N'Nguyễn Văn Hùng', N'hungnv@gmail.com', N'hash', N'0912345601', N'CUSTOMER', N'ACTIVE', N'12 Phố Cổ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (11, N'Phạm Minh Tuấn', N'tuanpm@gmail.com', N'hash', N'0912345602', N'CUSTOMER', N'ACTIVE', N'85 Xuân Thủy, Cầu Giấy', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (12, N'Trần Thị Mai', N'maitt@gmail.com', N'hash', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'hash', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'hash', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bà Trưng', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'hash', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -878,7 +885,14 @@ BEGIN TRY
         (8, N'FLASHSALE-BUOI', N'FIXED', N'ALL', 0.00, 15000.00, 80000.00, N'PRODUCT', 2, 200, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:35:00', '2026-05-16T08:00:00', 0, 1),
         (9, N'FLASHSALE-XOAI', N'PERCENT', N'ALL', 30000.00, 10.00, 100000.00, N'PRODUCT', 4, 150, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:40:00', '2026-05-16T08:00:00', 0, 1),
         (10, N'FLASHSALE-TAOENVY', N'PERCENT', N'ALL', 40000.00, 15.00, 120000.00, N'PRODUCT', 16, 250, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:45:00', '2026-05-16T08:00:00', 0, 1),
-        (11, N'FLASHSALE-KIWI', N'FIXED', N'ALL', 0.00, 25000.00, 100000.00, N'PRODUCT', 17, 180, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:50:00', '2026-05-16T08:00:00', 0, 1);
+        (11, N'FLASHSALE-KIWI', N'FIXED', N'ALL', 0.00, 25000.00, 100000.00, N'PRODUCT', 17, 180, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:50:00', '2026-05-16T08:00:00', 0, 1),
+        -- Voucher của Shop (discount_scope = 'SHOP') — hiển thị trên trang chi tiết sản phẩm
+        (12, N'ANPHU-GIAM30K', N'FIXED', N'SHOP', 0.00, 30000.00, 200000.00, N'ORDER', NULL, 500, 17, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 3, '2026-05-02T08:00:00', '2026-05-16T08:00:00', 0, 1),
+        (13, N'ANPHU-GIAM15P', N'PERCENT', N'SHOP', 50000.00, 15.00, 350000.00, N'ORDER', NULL, 300, 8, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 3, '2026-05-02T08:05:00', '2026-05-16T08:00:00', 0, 1),
+        (14, N'MEKONG-GIAM20K', N'FIXED', N'SHOP', 0.00, 20000.00, 150000.00, N'ORDER', NULL, 400, 12, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:00:00', '2026-05-16T08:00:00', 0, 1),
+        (15, N'MEKONG-GIAM10P', N'PERCENT', N'SHOP', 40000.00, 10.00, 250000.00, N'ORDER', NULL, 350, 5, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:05:00', '2026-05-16T08:00:00', 0, 1),
+        (16, N'KLEVER-GIAM50K', N'FIXED', N'SHOP', 0.00, 50000.00, 400000.00, N'ORDER', NULL, 250, 3, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:00:00', '2026-05-16T08:00:00', 0, 1),
+        (17, N'KLEVER-GIAM20P', N'PERCENT', N'SHOP', 80000.00, 20.00, 500000.00, N'ORDER', NULL, 200, 1, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:05:00', '2026-05-16T08:00:00', 0, 1);
     SET IDENTITY_INSERT dbo.promotions OFF;
 
     SET IDENTITY_INSERT dbo.cart ON;
@@ -902,7 +916,13 @@ BEGIN TRY
     VALUES
         (1, 5, 3, N'15 Pasteur, District 3, HCMC', N'15 Pasteur, District 3, HCMC', N'08:00-12:00', N'Leave at reception', NULL, NULL, NULL, N'DELIVERED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-15T09:10:00', '2026-05-16T12:30:00'),
         (2, 6, 4, N'90 Truong Chinh, Tan Binh, HCMC', N'90 Truong Chinh, Tan Binh, HCMC', N'14:00-18:00', N'Call on arrival', NULL, NULL, NULL, N'DELIVERED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'COD', N'NONE', '2026-05-15T10:20:00', '2026-05-16T13:10:00'),
-        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00');
+        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00'),
+        (10, 10, 3, N'12 Phố Cổ, Hà Nội', N'12 Phố Cổ, Hà Nội', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-18T08:00:00', '2026-05-18T14:00:00'),
+        (11, 11, 3, N'85 Xuân Thủy, Cầu Giấy', N'85 Xuân Thủy, Cầu Giấy', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-19T09:00:00', '2026-05-19T15:00:00'),
+        (12, 12, 3, N'45 Chùa Bộc, Đống Đa', N'45 Chùa Bộc, Đống Đa', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'CK', N'NONE', '2026-05-20T10:00:00', '2026-05-20T16:00:00'),
+        (13, 13, 3, N'102 Nguyễn Trãi, Thanh Xuân', N'102 Nguyễn Trãi, Thanh Xuân', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-21T11:00:00', '2026-05-21T17:00:00'),
+        (14, 14, 3, N'56 Bạch Mai, Hai Bà Trưng', N'56 Bạch Mai, Hai Bà Trưng', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'CK', N'NONE', '2026-05-22T13:00:00', '2026-05-22T19:00:00'),
+        (15, 15, 3, N'29 Lạc Long Quân, Tây Hồ', N'29 Lạc Long Quân, Tây Hồ', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'COD', N'NONE', '2026-05-23T08:00:00', '2026-05-23T12:00:00');
     SET IDENTITY_INSERT dbo.orders OFF;
 
     SET IDENTITY_INSERT dbo.order_items ON;
@@ -913,7 +933,13 @@ BEGIN TRY
         (3, 2, 6, N'Xoài Cát Hòa Lộc Tiền Giang', N'Hộp 1kg', 1, 89000.00, 89000.00),
         (4, 2, 8, N'Dâu Tây Đỏ Mỹ Nhập Khẩu Premium', N'Hộp 250g', 1, 125000.00, 125000.00),
         (5, 3, 3, N'Bưởi Da Xanh Bến Tre loại đặc biệt', N'Quả 1.2kg - 1.4kg', 1, 86000.00, 86000.00),
-        (6, 3, 5, N'Chuối Lùn Laba Đà Lạt', N'Nải 1kg', 2, 28000.00, 56000.00);
+        (6, 3, 5, N'Chuối Lùn Laba Đà Lạt', N'Nải 1kg', 2, 28000.00, 56000.00),
+        (10, 10, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
+        (11, 11, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
+        (12, 12, 2, N'Cam Sành Cao Phong Hòa Bình', N'Combo 3kg', 1, 95000.00, 95000.00),
+        (13, 13, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
+        (14, 14, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
+        (15, 15, 2, N'Cam Sành Cao Phong Hòa Bình', N'Combo 3kg', 1, 95000.00, 95000.00);
     SET IDENTITY_INSERT dbo.order_items OFF;
 
     SET IDENTITY_INSERT dbo.order_promotions ON;
@@ -969,10 +995,16 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.deliveries OFF;
 
     SET IDENTITY_INSERT dbo.reviews ON;
-    INSERT INTO dbo.reviews (review_id, order_item_id, customer_id, rating, review_text, is_hidden, created_at)
+    INSERT INTO dbo.reviews (review_id, order_item_id, customer_id, rating, review_text, review_image_url, is_hidden, created_at)
     VALUES
-        (1, 1, 5, 5, N'Cam rất ngọt và tươi, giao hàng siêu nhanh!', 0, '2026-05-15T12:00:00'),
-        (2, 3, 6, 4, N'Xoài cát chất lượng chín ngọt thơm ngon, đóng gói rất cẩn thận.', 0, '2026-05-15T17:00:00');
+        (1, 1, 5, 5, N'Cam Cao Phong cực kỳ nhiều nước, vị ngọt thanh tự nhiên xen chua nhẹ ăn cực đã. Giao hàng nhanh và đóng gói chuyên nghiệp!', N'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=600&auto=format&fit=crop&q=80', 0, '2026-05-15T12:00:00'),
+        (2, 3, 6, 4, N'Xoài cát chất lượng chín ngọt thơm ngon, đóng gói rất cẩn thận.', NULL, 0, '2026-05-15T17:00:00'),
+        (10, 10, 10, 5, N'Quả cam tươi rói, vỏ mỏng, nước nhiều. Vắt nước uống cho các bé ở nhà rất thích, sẽ tiếp tục ủng hộ shop lâu dài.', N'https://images.unsplash.com/photo-1547514701-42782101795e?w=600&auto=format&fit=crop&q=80', 0, '2026-05-18T15:00:00'),
+        (11, 11, 11, 4, N'Cam ngon, thơm ngọt thanh. Giao hàng trong vòng 2 tiếng rất đúng hẹn. Tuy nhiên có vài quả hơi nhỏ hơn so với mô tả một chút.', NULL, 0, '2026-05-19T16:30:00'),
+        (12, 12, 12, 5, N'Combo 3kg rẻ hơn nhiều so với mua lẻ. Trái cây tươi sạch sẽ, vỏ xanh bóng bẩy cực bắt mắt. Khuyên mọi người nên mua nha!', N'https://images.unsplash.com/photo-1618897996318-5a901fa6ca71?w=600&auto=format&fit=crop&q=80', 0, '2026-05-20T17:45:00'),
+        (13, 13, 13, 3, N'Cam ăn cũng tạm được, nước vừa phải chứ không nhiều lắm. Giao hàng trễ mất 30 phút nên trừ 2 sao.', NULL, 0, '2026-05-21T18:20:00'),
+        (14, 14, 14, 2, N'Quả cam nhận được bị dập 2 quả ở dưới đáy hộp do khâu vận chuyển xếp đè lên. Vị ngọt bình thường không đặc sắc.', N'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=600&auto=format&fit=crop&q=80', 0, '2026-05-22T20:10:00'),
+        (15, 15, 15, 1, N'Giao hàng quá chậm, cam thì bị héo vỏ và rụng cuống hết cả chùm. Quá thất vọng về trải nghiệm mua hàng lần này.', NULL, 0, '2026-05-23T10:15:00');
     SET IDENTITY_INSERT dbo.reviews OFF;
 
     SET IDENTITY_INSERT dbo.chat_sessions ON;
