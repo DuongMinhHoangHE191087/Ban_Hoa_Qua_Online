@@ -157,8 +157,30 @@ public class UserDAO extends BaseDAO {
      * TODO: Implement — updatePassword(int userId, String newHash)
      */
     public void updatePassword(int userId, String newHash) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: updatePassword(int userId, String newHash)");
+        String sql = "UPDATE users SET password_hash = ?, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, newHash);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Xóa OTP forgot-password sau khi đã dùng thành công.
+     * Tái dùng cột email_verification — không cần ALTER TABLE.
+     */
+    public void clearForgotPasswordCode(int userId) throws SQLException {
+        String sql = "UPDATE users SET email_verification_code_hash = NULL, "
+                + "email_verification_expires_at = NULL, "
+                + "email_verification_resend_at = NULL, "
+                + "email_verification_sent_at = NULL, "
+                + "updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.executeUpdate();
+        }
     }
 
     public void saveEmailVerificationCode(int userId, String codeHash, Timestamp expiresAt, Timestamp resendAt) throws SQLException {

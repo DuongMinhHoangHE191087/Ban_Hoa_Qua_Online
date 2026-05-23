@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Xác minh email - MetaFruit</title>
+    <title>${requestScope.forgotMode ? 'Xác minh để đặt lại mật khẩu' : 'Xác minh email'} - MetaFruit</title>
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -74,13 +74,43 @@
 
     <main class="flex-1 flex items-center justify-center pt-28 pb-16 px-4 md:px-8 relative z-10 w-full">
         <div class="w-full max-w-xl glass-card rounded-2xl p-6 md:p-10 transition-all duration-300">
+
+            <%-- Step indicator chỉ hiện trong forgot mode --%>
+            <c:if test="${requestScope.forgotMode}">
+                <div class="flex items-center justify-center gap-2 mb-8">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-8 h-8 rounded-full bg-emerald-200 text-primary flex items-center justify-center shadow-sm">
+                            <span class="material-symbols-outlined text-[16px]">check</span>
+                        </div>
+                        <span class="text-xs text-outline hidden sm:block">Nhập email</span>
+                    </div>
+                    <div class="h-px w-8 bg-primary"></div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shadow-md">2</div>
+                        <span class="text-xs font-semibold text-primary hidden sm:block">Xác minh OTP</span>
+                    </div>
+                    <div class="h-px w-8 bg-outline-variant/50"></div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-8 h-8 rounded-full bg-outline-variant/40 text-outline flex items-center justify-center text-xs font-bold">3</div>
+                        <span class="text-xs text-outline hidden sm:block">Đặt lại mật khẩu</span>
+                    </div>
+                </div>
+            </c:if>
+
             <div class="text-center mb-8">
                 <h1 class="text-2xl md:text-3xl font-bold text-primary mb-2 flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-[32px]">mark_email_unread</span>
-                    Xác minh email
+                    <span class="material-symbols-outlined text-[32px]">${requestScope.forgotMode ? 'lock_reset' : 'mark_email_unread'}</span>
+                    ${requestScope.forgotMode ? 'Xác minh để đặt lại mật khẩu' : 'Xác minh email'}
                 </h1>
                 <p class="text-sm md:text-base text-on-surface-variant font-light">
-                    Nhập mã đã gửi tới hộp thư của bạn để kích hoạt tài khoản trong 5 phút.
+                    <c:choose>
+                        <c:when test="${requestScope.forgotMode}">
+                            Nhập mã xác minh đã gửi tới hộp thư của bạn để tiếp tục đặt lại mật khẩu.
+                        </c:when>
+                        <c:otherwise>
+                            Nhập mã đã gửi tới hộp thư của bạn để kích hoạt tài khoản trong 5 phút.
+                        </c:otherwise>
+                    </c:choose>
                 </p>
             </div>
 
@@ -106,7 +136,7 @@
                 Mã xác minh chỉ có hiệu lực <strong>5 phút</strong>. Bạn chỉ có thể gửi lại mã sau <strong>1 phút</strong> kể từ lần gửi gần nhất.
             </div>
 
-            <form action="${pageContext.request.contextPath}/auth/verify" method="post" class="space-y-5" id="verifyForm">
+            <form action="${pageContext.request.contextPath}${requestScope.forgotMode ? '/auth/forgot-verify' : '/auth/verify'}" method="post" class="space-y-5" id="verifyForm">
                 <input type="hidden" name="action" value="verify">
 
                 <div class="bg-white/40 p-5 rounded-xl border border-white/60 space-y-4">
@@ -141,7 +171,7 @@
                 <div class="flex-grow border-t border-outline-variant/40"></div>
             </div>
 
-            <form action="${pageContext.request.contextPath}/auth/verify" method="post" class="space-y-3" id="resendForm">
+            <form action="${pageContext.request.contextPath}${requestScope.forgotMode ? '/auth/forgot-verify' : '/auth/verify'}" method="post" class="space-y-3" id="resendForm">
                 <input type="hidden" name="action" value="resend">
                 <button type="submit" id="resendButton" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-semibold text-sm py-3 px-6 rounded-lg shadow-sm hover:shadow transition-all duration-300 active:scale-[0.99]">
                     <span class="material-symbols-outlined text-[18px]">refresh</span>
@@ -152,8 +182,16 @@
 
             <div class="mt-8 text-center border-t border-outline-variant/30 pt-6">
                 <p class="text-sm text-on-surface-variant font-light">
-                    Đã xác minh xong?
-                    <a class="text-primary font-bold hover:underline hover:text-primary-hover ml-1 transition-colors" href="${pageContext.request.contextPath}/auth/login">Quay lại đăng nhập</a>
+                    <c:choose>
+                        <c:when test="${requestScope.forgotMode}">
+                            Quay lại bước nhập email?
+                            <a class="text-primary font-bold hover:underline hover:text-primary-hover ml-1 transition-colors" href="${pageContext.request.contextPath}/auth/forgot">Thử email khác</a>
+                        </c:when>
+                        <c:otherwise>
+                            Đã xác minh xong?
+                            <a class="text-primary font-bold hover:underline hover:text-primary-hover ml-1 transition-colors" href="${pageContext.request.contextPath}/auth/login">Quay lại đăng nhập</a>
+                        </c:otherwise>
+                    </c:choose>
                 </p>
             </div>
         </div>
