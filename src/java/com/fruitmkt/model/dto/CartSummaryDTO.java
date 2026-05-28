@@ -16,6 +16,7 @@ public class CartSummaryDTO {
     private BigDecimal discountAmount;
     private BigDecimal deliveryFee;
     private BigDecimal total;
+    private BigDecimal totalWeight;
 
     public CartSummaryDTO() {}
 
@@ -25,6 +26,16 @@ public class CartSummaryDTO {
         this.discountAmount = discountAmount;
         this.deliveryFee = deliveryFee;
         this.total = total;
+        this.totalWeight = BigDecimal.ZERO;
+    }
+
+    public CartSummaryDTO(List<CartItem> items, BigDecimal subtotal, BigDecimal discountAmount, BigDecimal deliveryFee, BigDecimal total, BigDecimal totalWeight) {
+        this.items = items;
+        this.subtotal = subtotal;
+        this.discountAmount = discountAmount;
+        this.deliveryFee = deliveryFee;
+        this.total = total;
+        this.totalWeight = totalWeight;
     }
 
     public List<CartItem> getItems() {
@@ -65,5 +76,13 @@ public class CartSummaryDTO {
 
     public void setTotal(BigDecimal total) {
         this.total = total;
+    }
+
+    public BigDecimal getTotalWeight() {
+        return totalWeight;
+    }
+
+    public void setTotalWeight(BigDecimal totalWeight) {
+        this.totalWeight = totalWeight;
     }
 }

@@ -29,7 +29,7 @@ public class CartDAO extends BaseDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, customerId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
+                while (rs.next()) {
                     list.add(mapRow(rs));
                 }
             }
@@ -109,6 +109,21 @@ public class CartDAO extends BaseDAO {
         }
     }
 
+    public void updateItemVariant(int cartItemId, int newVariantId) throws SQLException {
+        String sql = "UPDATE cart_items SET variant_id = ? WHERE cart_item_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, newVariantId);
+            ps.setInt(2, cartItemId);
+            ps.executeUpdate();
+            
+            int cartId = findCartIdByItemId(cartItemId);
+            if (cartId != -1) {
+                touchCart(cartId);
+            }
+        }
+    }
+
     /**
      * Xóa sản phẩm khỏi giỏ hàng.
      */
@@ -146,13 +161,18 @@ public class CartDAO extends BaseDAO {
      */
     public List<CartItem> findItems(int cartId) throws SQLException {
         List<CartItem> list = new ArrayList<>();
-        String sql = "SELECT * FROM cart_items WHERE cart_id = ? ORDER BY added_at DESC";
+        String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path "
+                   + "FROM cart_items ci "
+                   + "JOIN product_variants pv ON ci.variant_id = pv.variant_id "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
+                   + "WHERE ci.cart_id = ? ORDER BY ci.added_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, cartId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapCartItemRow(rs));
+                    list.add(mapCartItemRowWithDetails(rs));
                 }
             }
         }
@@ -167,6 +187,28 @@ public class CartDAO extends BaseDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Tìm một CartItem theo ID.
+     */
+    public CartItem findItemById(int cartItemId) throws SQLException {
+        String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path "
+                   + "FROM cart_items ci "
+                   + "JOIN product_variants pv ON ci.variant_id = pv.variant_id "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
+                   + "WHERE ci.cart_item_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, cartItemId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapCartItemRowWithDetails(rs);
                 }
             }
         }
@@ -208,6 +250,65 @@ public class CartDAO extends BaseDAO {
             ci.setAddedAt(addedAtVal.toLocalDateTime());
         }
         return ci;
+    }
+
+    private CartItem mapCartItemRowWithDetails(ResultSet rs) throws SQLException {
+        CartItem ci = mapCartItemRow(rs);
+        ci.setVariantLabel(rs.getString("variant_label"));
+        ci.setPrice(rs.getBigDecimal("price"));
+        ci.setStockQuantity(rs.getInt("stock_quantity"));
+        ci.setWeightKg(rs.getBigDecimal("weight_kg"));
+        ci.setProductName(rs.getString("product_name"));
+        ci.setImagePath(rs.getString("image_path"));
+        ci.setProductId(rs.getInt("product_id"));
+        return ci;
+    }
+
+    /**
+     * Ghi đè toàn bộ items của giỏ hàng (phục vụ Beacon API Unload sync).
+     * Chạy trong Single DB Transaction.
+     */
+    public void replaceCartItems(int cartId, List<CartItem> items) throws SQLException {
+        String deleteSql = "DELETE FROM cart_items WHERE cart_id = ?";
+        String insertSql = "INSERT INTO cart_items (cart_id, variant_id, quantity, added_at) VALUES (?, ?, ?, GETDATE())";
+        
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Xóa sạch items cũ
+                try (PreparedStatement psDelete = conn.prepareStatement(deleteSql)) {
+                    psDelete.setInt(1, cartId);
+                    psDelete.executeUpdate();
+                }
+                
+                // 2. Insert items mới
+                if (items != null && !items.isEmpty()) {
+                    try (PreparedStatement psInsert = conn.prepareStatement(insertSql)) {
+                        for (CartItem item : items) {
+                            psInsert.setInt(1, cartId);
+                            psInsert.setInt(2, item.getVariantId());
+                            psInsert.setInt(3, item.getQuantity());
+                            psInsert.addBatch();
+                        }
+                        psInsert.executeBatch();
+                    }
+                }
+                
+                // 3. Touch updated_at của Cart
+                String touchSql = "UPDATE cart SET updated_at = GETDATE() WHERE cart_id = ?";
+                try (PreparedStatement psTouch = conn.prepareStatement(touchSql)) {
+                    psTouch.setInt(1, cartId);
+                    psTouch.executeUpdate();
+                }
+                
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 
     /** Ánh xạ ResultSet -> Cart — gọi trong mọi query SELECT */

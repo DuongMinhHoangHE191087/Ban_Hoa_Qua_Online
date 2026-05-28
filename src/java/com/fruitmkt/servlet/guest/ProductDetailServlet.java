@@ -90,6 +90,42 @@ public class ProductDetailServlet extends HttpServlet {
             // 3. Đọc danh sách các biến thể đang hoạt động của sản phẩm
             List<ProductVariant> variants = productVariantDAO.findByProduct(productId);
 
+            // AJAX format=json support for quick-view and variant selector modals on Home page
+            String format = req.getParameter("format");
+            boolean isJson = "json".equals(format) || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+            if (isJson) {
+                // Tự động map các trường sang HashMap để tránh NullPointerException của Map.of khi có giá trị null
+                ProductImage pi = productImageDAO.findPrimary(product.getProductId());
+                String primaryImage = null;
+                if (pi != null && pi.getFilePath() != null) {
+                    primaryImage = pi.getFilePath().trim().replace('\\', '/');
+                }
+
+                Map<String, Object> productMap = new java.util.HashMap<>();
+                productMap.put("productId", product.getProductId());
+                productMap.put("name", product.getName());
+                productMap.put("description", product.getDescription() != null ? product.getDescription() : "");
+                productMap.put("imagePath", primaryImage != null ? primaryImage : "");
+
+                List<Map<String, Object>> variantsMapList = new java.util.ArrayList<>();
+                for (ProductVariant v : variants) {
+                    Map<String, Object> vMap = new java.util.HashMap<>();
+                    vMap.put("variantId", v.getVariantId());
+                    vMap.put("variantLabel", v.getVariantLabel());
+                    vMap.put("price", v.getPrice());
+                    vMap.put("stockQuantity", v.getStockQuantity());
+                    variantsMapList.add(vMap);
+                }
+
+                Map<String, Object> finalResponse = new java.util.HashMap<>();
+                finalResponse.put("success", true);
+                finalResponse.put("product", productMap);
+                finalResponse.put("variants", variantsMapList);
+
+                com.fruitmkt.util.JsonUtil.writeJson(resp, finalResponse);
+                return;
+            }
+
             // 4. Đọc album ảnh của sản phẩm
             List<ProductImage> images = productImageDAO.findByProduct(productId);
 

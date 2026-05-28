@@ -12,6 +12,15 @@ public class CartItem {
     private int variantId;
     private int quantity;
     private java.time.LocalDateTime addedAt;
+    
+    // Transient fields for display
+    private String productName;
+    private String variantLabel;
+    private java.math.BigDecimal price;
+    private java.math.BigDecimal weightKg;
+    private String imagePath;
+    private int stockQuantity;
+    private int productId;
 
     public CartItem() {}
 
@@ -27,7 +36,28 @@ public class CartItem {
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public java.time.LocalDateTime getAddedAt() { return addedAt; }
     public void setAddedAt(java.time.LocalDateTime addedAt) { this.addedAt = addedAt; }
 
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+
+    public String getVariantLabel() { return variantLabel; }
+    public void setVariantLabel(String variantLabel) { this.variantLabel = variantLabel; }
+
+    public java.math.BigDecimal getPrice() { return price; }
+    public void setPrice(java.math.BigDecimal price) { this.price = price; }
+
+    public java.math.BigDecimal getWeightKg() { return weightKg; }
+    public void setWeightKg(java.math.BigDecimal weightKg) { this.weightKg = weightKg; }
+
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
+
+    public int getStockQuantity() { return stockQuantity; }
+    public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
+
+    public int getProductId() { return productId; }
+    public void setProductId(int productId) { this.productId = productId; }
 }
