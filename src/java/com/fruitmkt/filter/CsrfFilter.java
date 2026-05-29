@@ -40,6 +40,12 @@ public class CsrfFilter implements Filter {
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")) {
             String sessionToken = (String) session.getAttribute(AppConfig.SESSION_CSRF_TOKEN);
             String requestToken = req.getParameter("_csrf");
+            if (requestToken == null || requestToken.trim().isEmpty()) {
+                requestToken = req.getHeader("X-CSRF-Token");
+            }
+            if (requestToken == null || requestToken.trim().isEmpty()) {
+                requestToken = req.getHeader("X-XSRF-TOKEN");
+            }
             if (sessionToken == null || !sessionToken.equals(requestToken)) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ.");
                 return;

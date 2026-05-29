@@ -1682,8 +1682,8 @@
         qtyInput.value = currentQty;
     }
 
-    // 4. Add to cart (Guest Cart via localStorage)
-    function handleAddToCart() {
+    // 4. Add to cart (Ajax Premium Unified Helper)
+    async function handleAddToCart() {
         const checkedVariant = document.querySelector('input[name="product_variant"]:checked');
         if (!checkedVariant) { alert('Vui lòng chọn một phân loại sản phẩm.'); return; }
 
@@ -1692,6 +1692,7 @@
         const quantity = parseInt(qtyInput ? qtyInput.value : 1);
         const name = "<c:out value='${product.name}'/> - " + checkedVariant.getAttribute('data-label');
         const price = parseFloat(checkedVariant.getAttribute('data-price'));
+        const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 99;
 
         let imagePath = 'assets/img/placeholder.png';
         const mainImg = document.getElementById('main-product-img');
@@ -1701,12 +1702,16 @@
             if (contextIdx >= 0) imagePath = srcUrl.substring(contextIdx + '/Ban_Hoa_Qua_Online/'.length);
         }
 
-        if (typeof GuestCart !== 'undefined') {
-            GuestCart.add({ variantId, name, price, quantity, imagePath });
-            showSuccessToast();
+        if (window.addCartItem) {
+            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, ${product.productId});
         } else {
-            console.warn('GuestCart not defined');
-            alert('Thêm vào giỏ hàng thành công!');
+            console.warn('window.addCartItem not defined globally, falling back to Local Storage only.');
+            if (typeof GuestCart !== 'undefined') {
+                GuestCart.add({ variantId, name, price, quantity, imagePath });
+                showSuccessToast();
+            } else {
+                alert('Thêm vào giỏ hàng thành công!');
+            }
         }
     }
 

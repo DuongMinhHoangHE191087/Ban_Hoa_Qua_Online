@@ -46,6 +46,15 @@ public class RegisterServlet extends HttpServlet {
             throws ServletException, IOException {
         
         req.setCharacterEncoding("UTF-8");
+
+        // Kiểm tra CSRF token thủ công vì /auth/* bị CsrfFilter bỏ qua
+        String sessionCsrf = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
+        String reqCsrf = req.getParameter("_csrf");
+        if (sessionCsrf != null && !sessionCsrf.equals(reqCsrf)) {
+            req.setAttribute("errorMsg", "CSRF token không hợp lệ hoặc phiên làm việc đã hết hạn.");
+            req.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp").forward(req, resp);
+            return;
+        }
         
         // 1. Nhận các tham số từ form đăng ký (register.jsp)
         String role = req.getParameter("accountType"); // 'CUSTOMER' hoặc 'SHOP_OWNER'

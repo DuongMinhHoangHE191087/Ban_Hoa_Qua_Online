@@ -20,7 +20,7 @@ import java.io.IOException;
  * THỨ TỰ CHẠY: 5
  * @author fruitmkt-team
  */
-@WebFilter(urlPatterns = {"/admin/*", "/shop/*", "/delivery/*"})
+@WebFilter(urlPatterns = {"/admin/*", "/shop/*", "/delivery/*", "/customer/*", "/checkout", "/cart"})
 public class RoleFilter implements Filter {
 
     @Override
@@ -29,15 +29,32 @@ public class RoleFilter implements Filter {
         HttpServletRequest  req  = (HttpServletRequest)  request;
         HttpServletResponse resp = (HttpServletResponse) response;
 
-        User user = SessionUtil.getCurrentUser(req.getSession(false));
+        HttpSession session = req.getSession(false);
+        User user = SessionUtil.getCurrentUser(session);
         String uri = req.getRequestURI();
         String ctx = req.getContextPath();
 
+        // 1. Kiểm tra nếu chưa đăng nhập -> Chuyển hướng về Login
+        if (user == null) {
+            resp.sendRedirect(ctx + "/auth/login");
+            return;
+        }
+
+        // 2. Kiểm tra quyền truy cập theo Vai trò (RBAC)
         boolean allowed = false;
-        if (uri.startsWith(ctx + "/admin/"))    allowed = AppConfig.ROLE_ADMIN.equals(user.getRole());
-        else if (uri.startsWith(ctx + "/shop/")) allowed = AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
-        else if (uri.startsWith(ctx + "/delivery/")) allowed = AppConfig.ROLE_DELIVERY.equals(user.getRole());
-        else allowed = true;
+        if (uri.equals(ctx + "/admin") || uri.startsWith(ctx + "/admin/")) {
+            allowed = AppConfig.ROLE_ADMIN.equals(user.getRole());
+        } else if (uri.equals(ctx + "/shop") || uri.startsWith(ctx + "/shop/")) {
+            allowed = AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
+        } else if (uri.equals(ctx + "/delivery") || uri.startsWith(ctx + "/delivery/")) {
+            allowed = AppConfig.ROLE_DELIVERY.equals(user.getRole());
+        } else if (uri.equals(ctx + "/customer") || uri.startsWith(ctx + "/customer/")) {
+            allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole());
+        } else if (uri.equals(ctx + "/checkout") || uri.equals(ctx + "/cart")) {
+            allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole());
+        } else {
+            allowed = true; // Các URL công cộng khác
+        }
 
         if (!allowed) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập trang này.");
