@@ -60,7 +60,83 @@ public class CheckoutServlet extends HttpServlet {
         String action = req.getParameter("action");
         if ("success".equals(action)) {
             req.setAttribute("isSuccess", true);
-            req.getRequestDispatcher("/WEB-INF/jsp/customer/checkout.jsp").forward(req, resp);
+            String orderIdStr = req.getParameter("orderId");
+            if (orderIdStr != null) {
+                try {
+                    int orderId = Integer.parseInt(orderIdStr);
+                    List<Order> orders = orderDAO.findById(orderId);
+                    if (!orders.isEmpty()) {
+                        Order order = orders.get(0);
+                        if (order.getCustomerId() == user.getUserId()) {
+                            req.setAttribute("order", order);
+                        }
+                    }
+                } catch (NumberFormatException | SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            req.getRequestDispatcher("/WEB-INF/jsp/customer/order-success.jsp").forward(req, resp);
+            return;
+        }
+
+        if ("payment".equals(action)) {
+            String orderIdStr = req.getParameter("orderId");
+            if (orderIdStr != null) {
+                try {
+                    int orderId = Integer.parseInt(orderIdStr);
+                    List<Order> orders = orderDAO.findById(orderId);
+                    if (!orders.isEmpty()) {
+                        Order order = orders.get(0);
+                        if (order.getCustomerId() == user.getUserId() && "CK".equals(order.getPaymentMethod())) {
+                            req.setAttribute("order", order);
+                            String bankId = "MB";
+                            String accountNo = "0999999999";
+                            String accountName = "CONG TY METAFRUIT PREMIUM";
+                            String description = "MF" + orderId;
+                            String amountFormatted = order.getFinalAmount().setScale(0, java.math.RoundingMode.HALF_UP).toString();
+                            String qrUrl = "https://img.vietqr.io/image/" + bankId + "-" + accountNo + "-compact2.png"
+                                    + "?amount=" + amountFormatted
+                                    + "&addInfo=" + java.net.URLEncoder.encode(description, "UTF-8")
+                                    + "&accountName=" + java.net.URLEncoder.encode(accountName, "UTF-8");
+                            req.setAttribute("qrUrl", qrUrl);
+                            req.setAttribute("bankId", bankId);
+                            req.setAttribute("accountNo", accountNo);
+                            req.setAttribute("accountName", accountName);
+                            req.setAttribute("description", description);
+                            req.setAttribute("amountFormatted", amountFormatted);
+                            
+                            req.getRequestDispatcher("/WEB-INF/jsp/customer/order-payment.jsp").forward(req, resp);
+                            return;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            resp.sendRedirect(req.getContextPath() + "/home");
+            return;
+        }
+
+        if ("status".equals(action)) {
+            String orderIdStr = req.getParameter("orderId");
+            resp.setContentType("application/json");
+            resp.setCharacterEncoding("UTF-8");
+            if (orderIdStr != null) {
+                try {
+                    int orderId = Integer.parseInt(orderIdStr);
+                    List<Order> orders = orderDAO.findById(orderId);
+                    if (!orders.isEmpty()) {
+                        Order order = orders.get(0);
+                        if (order.getCustomerId() == user.getUserId()) {
+                            resp.getWriter().write("{\"status\":\"" + order.getStatus() + "\"}");
+                            return;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            resp.getWriter().write("{\"status\":\"UNKNOWN\"}");
             return;
         }
 
