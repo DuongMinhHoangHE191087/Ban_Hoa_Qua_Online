@@ -234,4 +234,54 @@ public class OrderDAO extends BaseDAO {
         }
         return o;
     }
+
+    /**
+     * Lưu chi tiết sản phẩm đơn hàng (Order Item) trong cùng 1 Connection (Transaction).
+     */
+    public void saveOrderItem(com.fruitmkt.model.entity.OrderItem item, Connection conn) throws SQLException {
+        String sql = "INSERT INTO order_items (order_id, variant_id, product_name_snapshot, variant_label_snapshot, quantity, unit_price, subtotal) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, item.getOrderId());
+            if (item.getVariantId() != null) {
+                ps.setInt(2, item.getVariantId());
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
+            ps.setString(3, item.getProductNameSnapshot());
+            ps.setString(4, item.getVariantLabelSnapshot());
+            ps.setInt(5, item.getQuantity());
+            ps.setBigDecimal(6, item.getUnitPrice());
+            ps.setBigDecimal(7, item.getSubtotal());
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Lấy toàn bộ danh sách mặt hàng thuộc về 1 đơn hàng.
+     */
+    public List<com.fruitmkt.model.entity.OrderItem> findOrderItems(int orderId) throws SQLException {
+        List<com.fruitmkt.model.entity.OrderItem> list = new ArrayList<>();
+        String sql = "SELECT * FROM order_items WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    com.fruitmkt.model.entity.OrderItem item = new com.fruitmkt.model.entity.OrderItem();
+                    item.setOrderItemId(rs.getInt("order_item_id"));
+                    item.setOrderId(rs.getInt("order_id"));
+                    int variantId = rs.getInt("variant_id");
+                    item.setVariantId(rs.wasNull() ? null : variantId);
+                    item.setProductNameSnapshot(rs.getString("product_name_snapshot"));
+                    item.setVariantLabelSnapshot(rs.getString("variant_label_snapshot"));
+                    item.setQuantity(rs.getInt("quantity"));
+                    item.setUnitPrice(rs.getBigDecimal("unit_price"));
+                    item.setSubtotal(rs.getBigDecimal("subtotal"));
+                    list.add(item);
+                }
+            }
+        }
+        return list;
+    }
 }

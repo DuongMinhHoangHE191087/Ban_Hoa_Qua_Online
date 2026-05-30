@@ -77,6 +77,9 @@ CREATE TABLE products (
     view_count INT NOT NULL DEFAULT 0,
     rating DECIMAL(3,2) NOT NULL DEFAULT 0,
     sold_quantity INT NOT NULL DEFAULT 0,
+    label_type NVARCHAR(20) NULL CHECK (label_type IN ('Organic','Imported')),
+    season_start INT NULL,
+    season_end INT NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
@@ -99,11 +102,19 @@ CREATE TABLE product_variants (
     variant_label NVARCHAR(100) NOT NULL,
     price DECIMAL(12,2) NOT NULL,
     stock_quantity INT NOT NULL DEFAULT 0,
-   
+    weight_grams INT NULL,
+    discount_price DECIMAL(12,2) NULL,
+    packaging_option NVARCHAR(50) NULL CHECK (packaging_option IN ('Gift Box','Foam Tray')),
     is_active BIT NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
+
+-- Unique index for product weight variants to prevent duplicate weight per active product
+CREATE UNIQUE INDEX UQ_product_variants_product_weight
+ON product_variants(product_id, weight_grams)
+WHERE is_active = 1 AND weight_grams IS NOT NULL;
+
 
 -- 9. inventory_logs [cite: 65]
 CREATE TABLE inventory_logs (

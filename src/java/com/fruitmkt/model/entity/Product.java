@@ -21,6 +21,9 @@ public class Product {
     private int viewCount;
     private java.math.BigDecimal rating;
     private int soldQuantity;
+    private String labelType;
+    private Integer seasonStart;
+    private Integer seasonEnd;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
@@ -67,6 +70,15 @@ public class Product {
 
     public int getSoldQuantity() { return soldQuantity; }
     public void setSoldQuantity(int soldQuantity) { this.soldQuantity = soldQuantity; }
+
+    public String getLabelType() { return labelType; }
+    public void setLabelType(String labelType) { this.labelType = labelType; }
+
+    public Integer getSeasonStart() { return seasonStart; }
+    public void setSeasonStart(Integer seasonStart) { this.seasonStart = seasonStart; }
+
+    public Integer getSeasonEnd() { return seasonEnd; }
+    public void setSeasonEnd(Integer seasonEnd) { this.seasonEnd = seasonEnd; }
 
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -35,29 +35,106 @@ public class ProductListServlet extends HttpServlet {
 
         req.setCharacterEncoding("UTF-8");
 
-        int page       = parseIntParam(req, "page", 1);
+        int page = parseIntParam(req, "page", 1);
         String keyword = req.getParameter("keyword");
-        Integer categoryId = parseIntegerParam(req, "categoryId");
+        
+        // Parse multi categories
+        List<Integer> categoryIds = new java.util.ArrayList<>();
+        String[] rawCatIds = req.getParameterValues("categoryIds");
+        if (rawCatIds != null) {
+            for (String val : rawCatIds) {
+                try {
+                    categoryIds.add(Integer.parseInt(val.trim()));
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        // Support fallback single categoryId
+        String rawCatId = req.getParameter("categoryId");
+        if (rawCatId != null && !rawCatId.trim().isEmpty() && categoryIds.isEmpty()) {
+            try {
+                categoryIds.add(Integer.parseInt(rawCatId.trim()));
+            } catch (NumberFormatException ignored) {}
+        }
+
         BigDecimal minPrice = parseDecimalParam(req, "minPrice");
         BigDecimal maxPrice = parseDecimalParam(req, "maxPrice");
+        
+        // Parse rating filter
+        Double rating = null;
+        String rawRating = req.getParameter("rating");
+        if (rawRating != null && !rawRating.trim().isEmpty()) {
+            try {
+                rating = Double.parseDouble(rawRating.trim());
+            } catch (NumberFormatException ignored) {}
+        }
+
+        // Parse stock filter
+        Boolean inStockOnly = null;
+        String rawStock = req.getParameter("inStockOnly");
+        if (rawStock != null && !rawStock.trim().isEmpty()) {
+            inStockOnly = Boolean.parseBoolean(rawStock.trim());
+        }
+
+        String sortBy = req.getParameter("sortBy");
 
         List<Category> categories = Collections.emptyList();
         PagedResultDTO pagedResult = null;
+        List<Product> bestSellers = Collections.emptyList();
+        List<Product> recentlyViewed = Collections.emptyList();
 
         try {
             categories  = categoryDAO.findAllActive();
-            pagedResult = productService.getProductList(page, keyword, categoryId, minPrice, maxPrice);
-        } catch (SQLException e) {
+            pagedResult = productService.getProductListAdvanced(page, keyword, categoryIds, minPrice, maxPrice, rating, inStockOnly, sortBy);
+            bestSellers = productService.getBestSellers();
+            
+            // II.23: Load recently viewed products from cookies
+            Cookie[] cookies = req.getCookies();
+            List<Integer> recentlyViewedIds = new java.util.ArrayList<>();
+            if (cookies != null) {
+                for (Cookie c : cookies) {
+                    if ("recently_viewed_ids".equals(c.getName())) {
+                        String val = java.net.URLDecoder.decode(c.getValue(), "UTF-8");
+                        if (val != null && !val.trim().isEmpty()) {
+                            String[] split = val.split(",");
+                            // load up to 10 products
+                            for (int i = split.length - 1; i >= 0 && recentlyViewedIds.size() < 10; i--) {
+                                try {
+                                    int id = Integer.parseInt(split[i].trim());
+                                    if (!recentlyViewedIds.contains(id)) {
+                                        recentlyViewedIds.add(id);
+                                    }
+                                } catch (NumberFormatException ignored) {}
+                            }
+                        }
+                    }
+                }
+            }
+            if (!recentlyViewedIds.isEmpty()) {
+                recentlyViewed = productService.getRecentlyViewed(recentlyViewedIds);
+            }
+        } catch (Exception e) {
             req.getServletContext().log("ProductListServlet DB error: " + e.getMessage(), e);
             req.setAttribute("errorMsg", "Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.");
         }
 
+        // Check if Ajax request
+        boolean isAjax = "true".equals(req.getParameter("ajax")) || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+        if (isAjax) {
+            com.fruitmkt.util.JsonUtil.writeJson(resp, pagedResult);
+            return;
+        }
+
         req.setAttribute("categories",   categories);
         req.setAttribute("pagedResult",  pagedResult);
+        req.setAttribute("bestSellers",  bestSellers);
+        req.setAttribute("recentlyViewed", recentlyViewed);
         req.setAttribute("keyword",      keyword);
-        req.setAttribute("categoryId",   categoryId);
+        req.setAttribute("categoryIds",   categoryIds);
         req.setAttribute("minPrice",     minPrice);
         req.setAttribute("maxPrice",     maxPrice);
+        req.setAttribute("rating",       rating);
+        req.setAttribute("inStockOnly",  inStockOnly);
+        req.setAttribute("sortBy",       sortBy);
 
         req.getRequestDispatcher("/WEB-INF/jsp/guest/product-list.jsp").forward(req, resp);
     }

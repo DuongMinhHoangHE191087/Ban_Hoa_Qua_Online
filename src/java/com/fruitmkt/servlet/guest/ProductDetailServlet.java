@@ -1,13 +1,17 @@
 package com.fruitmkt.servlet.guest;
 
 import com.fruitmkt.config.AppConfig;
-import com.fruitmkt.util.SessionUtil;
+import com.fruitmkt.model.entity.Product;
+import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.service.ProductService;
+import com.fruitmkt.dao.ProductVariantDAO;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * ProductDetailServlet — Controller cho chức năng: Chi tiết sản phẩm và variant
@@ -16,34 +20,43 @@ import java.io.IOException;
  * GET : Chi tiết sản phẩm và variant
  * POST: -
  *
- * QUY TẮC SERVLET:
- *   1. Không viết SQL ở đây — gọi Service
- *   2. Sau POST thành công dùng PRG pattern (sendRedirect)
- *   3. Lưu flash message vào session trước redirect
- *   4. Forward đến /WEB-INF/jsp/guest/... (không để truy cập trực tiếp)
- *   5. Kiểm tra quyền bằng SessionUtil trước khi xử lý
- *
  * @author fruitmkt-team
  */
 @WebServlet("/products/detail")
 public class ProductDetailServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final ProductService productService = new ProductService();
+    private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/guest/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: ProductDetailServlet");
-    }
+        
+        req.setCharacterEncoding("UTF-8");
+        
+        String rawId = req.getParameter("id");
+        if (rawId == null || rawId.trim().isEmpty()) {
+            resp.sendRedirect(req.getContextPath() + "/products");
+            return;
+        }
 
+        try {
+            int productId = Integer.parseInt(rawId.trim());
+            Product product = productService.getProductDetail(productId);
+            List<ProductVariant> variants = productVariantDAO.findByProduct(productId);
+            List<Product> recommendations = productService.getRecommendations(productId, product.getCategoryId(), product.getOwnerId());
+
+            req.setAttribute("product", product);
+            req.setAttribute("variants", variants);
+            req.setAttribute("recommendations", recommendations);
+            
+            req.getRequestDispatcher("/WEB-INF/jsp/guest/product-detail.jsp").forward(req, resp);
+        } catch (NumberFormatException e) {
+            resp.sendRedirect(req.getContextPath() + "/products");
+        } catch (SQLException e) {
+            req.getServletContext().log("ProductDetailServlet DB error: " + e.getMessage(), e);
+            req.setAttribute("errorMsg", "Không thể tải chi tiết sản phẩm. Vui lòng thử lại sau.");
+            req.getRequestDispatcher("/WEB-INF/jsp/guest/product-list.jsp").forward(req, resp);
+        }
+    }
 }

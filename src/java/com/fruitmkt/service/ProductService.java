@@ -32,17 +32,76 @@ public class ProductService {
      * @param minPrice   Giá tối thiểu (nullable).
      * @param maxPrice   Giá tối đa (nullable).
      */
+    private final com.fruitmkt.dao.ProductVariantDAO productVariantDAO = new com.fruitmkt.dao.ProductVariantDAO();
+
+    /**
+     * Lấy danh sách sản phẩm có filter + phân trang (bản cũ).
+     */
     public PagedResultDTO getProductList(int page, String keyword, Integer categoryId,
                                           BigDecimal minPrice, BigDecimal maxPrice) throws SQLException {
+        return getProductListAdvanced(page, keyword, categoryId != null ? List.of(categoryId) : null, minPrice, maxPrice, null, null, null);
+    }
+
+    /**
+     * Lấy danh sách sản phẩm có bộ lọc nâng cao + phân trang (II.16 - II.20).
+     */
+    public PagedResultDTO getProductListAdvanced(int page, String keyword, List<Integer> categoryIds,
+                                                  BigDecimal minPrice, BigDecimal maxPrice,
+                                                  Double rating, Boolean inStockOnly, String sortBy) throws SQLException {
         if (page < 1) page = 1;
 
+        // II.17: Gracefully handle minPrice > maxPrice by swapping them
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            BigDecimal temp = minPrice;
+            minPrice = maxPrice;
+            maxPrice = temp;
+        }
+
         int pageSize = AppConfig.PAGE_SIZE_PRODUCTS;
-        int total = productDAO.countSearch(keyword, categoryId, minPrice, maxPrice);
+        int total = productDAO.countSearchAdvanced(keyword, categoryIds, minPrice, maxPrice, rating, inStockOnly);
         int totalPages = Math.max(1, (int) Math.ceil((double) total / pageSize));
         if (page > totalPages) page = totalPages;
 
-        List<Product> items = productDAO.search(keyword, categoryId, minPrice, maxPrice, page, pageSize);
+        List<Product> items = productDAO.searchAdvanced(keyword, categoryIds, minPrice, maxPrice, rating, inStockOnly, sortBy, page, pageSize);
         return new PagedResultDTO(items, page, totalPages, total, pageSize);
+    }
+
+    /**
+     * Lấy danh sách sản phẩm gợi ý (II.21).
+     */
+    public List<Product> getRecommendations(int productId, int categoryId, int ownerId) throws SQLException {
+        return productDAO.findRecommendations(productId, categoryId, ownerId, 4);
+    }
+
+    /**
+     * Lấy danh sách 5 sản phẩm bán chạy nhất (II.22).
+     */
+    public List<Product> getBestSellers() throws SQLException {
+        return productDAO.findBestSellers(5);
+    }
+
+    /**
+     * Lấy danh sách sản phẩm đã xem gần đây (II.23).
+     */
+    public List<Product> getRecentlyViewed(List<Integer> productIds) throws SQLException {
+        return productDAO.findRecentlyViewed(productIds);
+    }
+
+    /**
+     * Lấy danh sách biến thể sắp hết hàng của cửa hàng (II.12).
+     */
+    public List<com.fruitmkt.model.entity.ProductVariant> getLowStockAlerts(int ownerId) throws SQLException {
+        return productVariantDAO.findLowStock(ownerId);
+    }
+
+    /**
+     * Nhập thêm hàng cho biến thể (II.13).
+     */
+    public void restock(int variantId, int quantity, int userId) throws SQLException {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Số lượng nhập kho phải lớn hơn 0.");
+        }
+        productVariantDAO.restockVariant(variantId, quantity, userId);
     }
 
     /**

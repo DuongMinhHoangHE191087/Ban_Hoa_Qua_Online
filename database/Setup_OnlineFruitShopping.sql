@@ -108,6 +108,9 @@ BEGIN
         view_count INT NOT NULL CONSTRAINT DF_products_view_count DEFAULT 0,
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
         sold_quantity INT NOT NULL CONSTRAINT DF_products_sold_quantity DEFAULT 0,
+        label_type NVARCHAR(20) NULL CONSTRAINT CK_products_label_type CHECK (label_type IN ('Organic', 'Imported')),
+        season_start INT NULL,
+        season_end INT NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_products_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_products_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_products_users FOREIGN KEY (owner_id) REFERENCES dbo.users(user_id),
@@ -139,11 +142,18 @@ BEGIN
         variant_label NVARCHAR(100) NOT NULL,
         price DECIMAL(12,2) NOT NULL,
         stock_quantity INT NOT NULL CONSTRAINT DF_product_variants_stock_quantity DEFAULT 0,
+        weight_grams INT NULL,
+        discount_price DECIMAL(12,2) NULL,
+        packaging_option NVARCHAR(50) NULL CONSTRAINT CK_product_variants_packaging CHECK (packaging_option IN ('Gift Box', 'Foam Tray')),
         is_active BIT NOT NULL CONSTRAINT DF_product_variants_is_active DEFAULT 1,
         created_at DATETIME NOT NULL CONSTRAINT DF_product_variants_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_product_variants_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_product_variants_products FOREIGN KEY (product_id) REFERENCES dbo.products(product_id) ON DELETE CASCADE
     );
+    
+    EXEC('CREATE UNIQUE INDEX UQ_product_variants_product_weight
+          ON dbo.product_variants(product_id, weight_grams)
+          WHERE is_active = 1 AND weight_grams IS NOT NULL');
 END
 GO
 
