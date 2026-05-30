@@ -153,7 +153,7 @@
                 fetch('${pageContext.request.contextPath}/admin/users/status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'userId=' + userId + '&status=' + newStatus
+                    body: 'userId=' + userId + '&status=' + newStatus + '&_csrf=${sessionScope._csrfToken}'
                 })
                 .then(response => response.json())
                 .then(data => {
