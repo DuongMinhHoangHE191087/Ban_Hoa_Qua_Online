@@ -10,9 +10,9 @@ Danh sách các task được giao cho Duong. Chúng ta sẽ ưu tiên xử lý 
     - [x] Implement UI in `user-list.jsp` with dynamic table and AJAX buttons
     - [x] Write HTML Report `01_Demo_User_Management_Report.html`
 
-## Phase 2: Admin Operations
-- [ ] **Approve Shop Owner Accounts (Admin)**
-- [ ] **Approve/Reject Reviews (Admin)**
+## Phase 2: Admin Operations - HOÀN THÀNH
+- [x] **Approve Shop Owner Accounts (Admin)**
+- [x] **Approve/Reject Reviews (Admin)**
 
 ## Phase 3: Order & Delivery (Non-Admin)
 - [ ] **Estimated Delivery Time (Delivery/Customer/Shop Owner)**

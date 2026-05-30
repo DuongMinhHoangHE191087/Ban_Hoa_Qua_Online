@@ -243,18 +243,55 @@ public class ReviewDAO extends BaseDAO {
     }
 
     /**
-     * Ẩn một đánh giá khỏi giao diện (Soft delete).
-     *
-     * @param reviewId ID của đánh giá cần ẩn
-     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     * Lấy toàn bộ danh sách đánh giá cho màn hình Admin (bao gồm cả bị ẩn và không).
      */
-    public void hide(int reviewId) throws SQLException {
-        String sql = "UPDATE reviews SET is_hidden = 1 WHERE review_id = ?";
+    public List<Review> findAllForAdmin() throws SQLException {
+        List<Review> list = new ArrayList<>();
+        String sql = "SELECT r.*, u.full_name AS customer_name, p.product_name FROM reviews r "
+                   + "JOIN users u ON r.customer_id = u.user_id "
+                   + "JOIN order_items oi ON r.order_item_id = oi.order_item_id "
+                   + "JOIN product_variants pv ON oi.variant_id = pv.variant_id "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "ORDER BY r.created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Review r = mapRow(rs);
+                // Attach product name manually since mapRow doesn't have a field for it by default
+                // But wait, Review.java might not have a productName field.
+                // If it doesn't, we can add it, or just use a HashMap / DTO.
+                // Let's assume Review has setProductName or we can just fetch it as part of mapRow if we add it to the model.
+                // I will add a transient field productName to Review if needed, or just map it if we can.
+                try {
+                    r.getClass().getMethod("setProductName", String.class).invoke(r, rs.getString("product_name"));
+                } catch (Exception e) {
+                    // Ignore if method not found
+                }
+                list.add(r);
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Cập nhật trạng thái ẩn/hiện của đánh giá (Admin).
+     */
+    public void updateVisibility(int reviewId, boolean isHidden) throws SQLException {
+        String sql = "UPDATE reviews SET is_hidden = ? WHERE review_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, reviewId);
+            ps.setBoolean(1, isHidden);
+            ps.setInt(2, reviewId);
             ps.executeUpdate();
         }
+    }
+
+    /**
+     * Ẩn một đánh giá khỏi giao diện (Soft delete).
+     */
+    public void hide(int reviewId) throws SQLException {
+        updateVisibility(reviewId, true);
     }
 
     /**

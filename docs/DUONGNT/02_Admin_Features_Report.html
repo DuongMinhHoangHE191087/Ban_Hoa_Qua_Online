@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo Công việc: Admin Features (Phase 1 & 2)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; background-color: #f9fafb; }
+        .container { background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 30px; }
+        h1 { color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px; }
+        h2 { color: #047857; margin-top: 30px; }
+        .phase-badge { display: inline-block; background-color: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 9999px; font-size: 14px; font-weight: bold; margin-bottom: 20px; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        .code { font-family: monospace; background-color: #f3f4f6; padding: 2px 6px; border-radius: 4px; color: #ef4444; }
+        .success { color: #059669; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+        th { background-color: #f9fafb; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Báo cáo Cập nhật: Admin Features</h1>
+        <div class="phase-badge">Phase 1 & 2 - Hoàn Thành</div>
+        
+        <p>Thành viên thực hiện: <strong>Duong (DUONGNTHE191504)</strong></p>
+        <p>Báo cáo này tổng hợp các tính năng dành cho Quản trị viên (Admin) đã được phát triển trong dự án Bán Hoa Quả Online.</p>
+
+        <h2>1. Phase 1: Quản lý Người dùng (User Management)</h2>
+        <p>Chức năng xem danh sách và khóa/mở khóa tài khoản khách hàng, chủ shop.</p>
+        <ul>
+            <li><strong>Database & DAO:</strong> Cập nhật hàm <span class="code">findAll()</span> và <span class="code">updateUserStatus()</span> trong <span class="code">UserDAO.java</span>.</li>
+            <li><strong>Service:</strong> Khởi tạo <span class="code">UserService.java</span> để chứa logic nghiệp vụ.</li>
+            <li><strong>API & Servlet:</strong>
+                <ul>
+                    <li>Tạo <span class="code">AdminUserServlet.java</span> (Ánh xạ: <span class="code">/admin/users</span>) để hiển thị giao diện.</li>
+                    <li>Tạo <span class="code">AdminUserStatusAPI.java</span> (Ánh xạ: <span class="code">/admin/users/status</span>) xử lý AJAX POST khóa/mở khóa tài khoản.</li>
+                </ul>
+            </li>
+            <li><strong>Giao diện (JSP):</strong>
+                <ul>
+                    <li>Tạo <span class="code">admin-sidebar.jsp</span> làm thanh điều hướng dùng chung cho Admin.</li>
+                    <li>Tạo <span class="code">user-list.jsp</span>: Hiển thị danh sách, tìm kiếm trực tiếp (Client-side), và gọi AJAX kèm Token CSRF.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>2. Phase 2: Phê duyệt Cửa hàng (Shop Approvals)</h2>
+        <p>Chức năng giúp Admin duyệt hoặc từ chối các yêu cầu mở cửa hàng của người dùng.</p>
+        <ul>
+            <li><strong>Database & DAO:</strong> Đã có sẵn các hàm trong <span class="code">ShopProfileDAO.java</span>.</li>
+            <li><strong>Service:</strong> Tạo mới <span class="code">ShopService.java</span> để gọi DAO lấy danh sách chờ duyệt.</li>
+            <li><strong>API & Servlet:</strong>
+                <ul>
+                    <li>Cập nhật <span class="code">ShopApprovalServlet.java</span> (<span class="code">/admin/shops</span>) để lấy dữ liệu.</li>
+                    <li>Tạo <span class="code">ShopApprovalAPI.java</span> (<span class="code">/admin/shops/approve</span>) để xử lý Approve/Reject qua AJAX.</li>
+                </ul>
+            </li>
+            <li><strong>Giao diện (JSP):</strong>
+                <ul>
+                    <li>Tạo <span class="code">shop-approvals.jsp</span>: Hiển thị danh sách yêu cầu. Nút <strong>Duyệt</strong> (cấp quyền ngay) và <strong>Từ chối</strong> (hiển thị Popup nhập lý do từ chối).</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>3. Phase 2: Kiểm duyệt Đánh giá (Review Moderation)</h2>
+        <p>Chức năng ẩn/hiện các đánh giá sản phẩm nhằm kiểm soát spam hoặc nội dung không phù hợp.</p>
+        <ul>
+            <li><strong>Database & DAO:</strong>
+                <ul>
+                    <li>Thêm trường <span class="code">productName</span> vào model <span class="code">Review.java</span>.</li>
+                    <li>Cập nhật <span class="code">ReviewDAO.java</span>: Thêm hàm <span class="code">findAllForAdmin()</span> JOIN 4 bảng để lấy tên sản phẩm & người dùng, và hàm <span class="code">updateVisibility()</span>.</li>
+                </ul>
+            </li>
+            <li><strong>Service:</strong> Cập nhật <span class="code">ReviewService.java</span> để kết nối DAO mới.</li>
+            <li><strong>API & Servlet:</strong>
+                <ul>
+                    <li>Tạo <span class="code">AdminReviewServlet.java</span> (<span class="code">/admin/reviews</span>) lấy dữ liệu.</li>
+                    <li>Tạo <span class="code">AdminReviewAPI.java</span> (<span class="code">/admin/reviews/visibility</span>) để xử lý bật/tắt (Toggle) qua AJAX.</li>
+                </ul>
+            </li>
+            <li><strong>Giao diện (JSP):</strong>
+                <ul>
+                    <li>Tạo <span class="code">review-management.jsp</span>: Bảng đánh giá chi tiết với công tắc (Toggle Switch) trực quan để Ẩn / Hiện.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>4. Khắc phục sự cố (Hotfixes)</h2>
+        <table>
+            <tr>
+                <th>Lỗi gặp phải</th>
+                <th>Nguyên nhân</th>
+                <th>Cách khắc phục</th>
+            </tr>
+            <tr>
+                <td>Lỗi HTTP 500 trên trang chủ</td>
+                <td>Thiếu khai báo thư viện <span class="code">fn</span> JSTL trong <span class="code">home.jsp</span></td>
+                <td>Thêm khai báo <span class="code">&lt;%@ taglib prefix="fn" ... %&gt;</span></td>
+            </tr>
+            <tr>
+                <td>Lỗi UnsupportedOperationException ở Dashboard</td>
+                <td><span class="code">AdminDashboardServlet</span> chưa code thân hàm doGet</td>
+                <td>Chuyển hướng an toàn (forward) về <span class="code">dashboard.jsp</span></td>
+            </tr>
+            <tr>
+                <td>AJAX báo "Lỗi kết nối mạng"</td>
+                <td>Bị <span class="code">CsrfFilter</span> chặn (403) do thiếu Token</td>
+                <td>Gắn <span class="code">_csrf=${sessionScope._csrfToken}</span> vào Request Body</td>
+            </tr>
+        </table>
+        
+        <p style="margin-top: 30px; text-align: center; color: #6b7280; font-size: 14px;">
+            Tất cả thay đổi đã được tự động Commit & Push lên nhánh <strong>DUONGNTHE191504</strong> trên GitHub.
+        </p>
+    </div>
+</body>
+</html>
