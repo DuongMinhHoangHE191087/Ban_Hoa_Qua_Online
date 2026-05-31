@@ -3,6 +3,7 @@
 -- GO
 -- USE OnlineFruitShopping;
 -- GO
+drop database OnlineFruitShopping
 
 -- 1. users [cite: 36]
 CREATE TABLE users (
@@ -73,7 +74,7 @@ CREATE TABLE products (
     harvest_date DATE NULL,
     shelf_life_days INT NULL,
     storage_instruction NVARCHAR(300) NULL,
-    status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE')),
+    status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','DELETE')), --thêm delete( mới chỉ hiện và ẩn)
     view_count INT NOT NULL DEFAULT 0,
     rating DECIMAL(3,2) NOT NULL DEFAULT 0,
     sold_quantity INT NOT NULL DEFAULT 0,
