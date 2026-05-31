@@ -41,26 +41,31 @@ public class AuthService {
     }
 
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Đăng ký tài khoản khách hàng (không có thông tin shop)
      */
     public User register(com.fruitmkt.model.entity.User user) throws SQLException, Exception {
-        return register(user, null, null);
+        return register(user, null, null, null, null);
     }
 
+    /**
+     * Đăng ký tài khoản (có thông tin shop cơ bản, không có danh mục/doc)
+     */
     public User register(com.fruitmkt.model.entity.User user, String shopName, String shopAddress) throws SQLException, Exception {
-        // Validate input
-        if (user.getFullName() == null || user.getFullName().trim().isEmpty()) {
-            throw new Exception("Họ và tên không được để trống!");
-        }
-        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-            throw new Exception("Email không được để trống!");
-        }
-        if (user.getPasswordHash() == null || user.getPasswordHash().trim().isEmpty()) {
-            throw new Exception("Mật khẩu không được để trống!");
-        }
-        if (!ValidationUtil.isValidPhone(user.getPhone())) {
-            throw new Exception("Số điện thoại không hợp lệ!");
-        }
+        return register(user, shopName, shopAddress, null, null);
+    }
+
+    /**
+     * Đăng ký tài khoản đầy đủ — hỗ trợ cả CUSTOMER và SHOP_OWNER.
+     * @param preferredCategoriesJson JSON array category_id dự kiến KD: "[1,3,5]" hoặc null
+     * @param docPathsJson            JSON array đường dẫn file tài liệu hoặc null
+     */
+    public User register(com.fruitmkt.model.entity.User user, String shopName, String shopAddress,
+                         String preferredCategoriesJson, String docPathsJson) throws SQLException, Exception {
+        // Validate input bằng ValidationUtil
+        user.setFullName(ValidationUtil.requireNotBlank(user.getFullName(), "Họ và tên"));
+        user.setEmail(ValidationUtil.requireValidEmail(user.getEmail(), "Email"));
+        user.setPasswordHash(ValidationUtil.requireValidPassword(user.getPasswordHash(), "Mật khẩu"));
+        user.setPhone(ValidationUtil.requireValidPhone(user.getPhone(), "Số điện thoại"));
 
         User existingUser = userDAO.findByEmail(user.getEmail());
         if (existingUser != null) {
@@ -73,7 +78,7 @@ public class AuthService {
         }
 
         // Băm mật khẩu để bảo mật trước khi đưa xuống DAO
-        String hashedPass = HashUtil.hashPassword(user.getPasswordHash()); 
+        String hashedPass = HashUtil.hashPassword(user.getPasswordHash());
 
         // Hàm save hoặc insert của DAO
         int insertedId = userDAO.saveNewCustomer(user.getFullName(), user.getEmail(), hashedPass, user.getPhone(), user.getRole(), AppConfig.ACCOUNT_STATUS_INACTIVE, false);
@@ -97,13 +102,14 @@ public class AuthService {
                 profile.setApprovalStatus("PENDING");
                 profile.setDeliveryAddress(shopAddress != null ? shopAddress : user.getUserAddress());
                 profile.setRating(java.math.BigDecimal.ZERO);
+                profile.setPreferredCategories(preferredCategoriesJson);
+                profile.setDocPaths(docPathsJson);
 
                 com.fruitmkt.dao.ShopProfileDAO shopProfileDAO = new com.fruitmkt.dao.ShopProfileDAO();
                 shopProfileDAO.save(profile);
             }
 
-            // Lấy lại user vừa tạo để Set vào session
-            return createdUser; 
+            return createdUser;
         }
         throw new Exception("Lỗi hệ thống khi tạo tài khoản.");
     }

@@ -66,6 +66,66 @@ public final class FileUploadUtil {
         }
     }
 
+    /**
+     * Lưu tài liệu xác minh shop (PDF, JPG, PNG, DOCX) theo userId.
+     * Thư mục: {webapp}/uploads/shop-docs/{userId}/
+     * Giới hạn kích thước: AppConfig.MAX_SHOP_DOC_SIZE_BYTES (25MB)
+     *
+     * @param part      Part từ multipart request
+     * @param uploadDir Đường dẫn thực của webapp root (getServletContext().getRealPath(""))
+     * @param userId    ID người dùng — tạo subfolder riêng biệt
+     * @return Đường dẫn relative để lưu DB (ví dụ: 'uploads/shop-docs/42/uuid.pdf')
+     */
+    public static String saveShopDoc(Part part, String uploadDir, int userId) throws IOException {
+        if (part == null || part.getSize() == 0) {
+            return null;
+        }
+
+        String originalFilename = part.getSubmittedFileName();
+        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+            return null;
+        }
+
+        // Validate kích thước file (25MB)
+        if (part.getSize() > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
+            throw new IOException("File '" + sanitizeFilename(originalFilename)
+                    + "' vượt quá giới hạn 25MB.");
+        }
+
+        // Validate extension
+        if (!isAllowedDoc(originalFilename)) {
+            throw new IOException("Định dạng file '" + sanitizeFilename(originalFilename)
+                    + "' không được phép. Chỉ chấp nhận: PDF, JPG, PNG, DOCX.");
+        }
+
+        // Tạo thư mục uploads/shop-docs/{userId}/ nếu chưa tồn tại
+        File dir = new File(uploadDir, AppConfig.UPLOAD_SHOP_DOCS_DIR + File.separator + userId);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        // Đổi tên file thành UUID để chống ghi đè và path traversal
+        String extension = getExtension(originalFilename);
+        String newFilename = UUID.randomUUID().toString() + "." + extension;
+
+        Path filePath = Paths.get(dir.getAbsolutePath(), newFilename);
+        Files.copy(part.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+        return AppConfig.UPLOAD_SHOP_DOCS_DIR + "/" + userId + "/" + newFilename;
+    }
+
+    /** Kiểm tra extension có nằm trong whitelist tài liệu shop không */
+    public static boolean isAllowedDoc(String filename) {
+        if (filename == null) return false;
+        String ext = getExtension(filename).toLowerCase();
+        for (String allowed : AppConfig.ALLOWED_DOC_EXTS) {
+            if (allowed.equals(ext)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Kiểm tra extension có nằm trong whitelist cấu hình ở AppConfig không */
     public static boolean isAllowedImage(String filename) {
         if (filename == null) return false;
@@ -77,7 +137,16 @@ public final class FileUploadUtil {
         }
         return false;
     }
-    
+
+    /**
+     * Làm sạch tên file để log an toàn (tránh log injection).
+     * Chỉ giữ lại ký tự alphanumeric, dấu chấm, gạch ngang, gạch dưới.
+     */
+    private static String sanitizeFilename(String filename) {
+        if (filename == null) return "unknown";
+        return filename.replaceAll("[^a-zA-Z0-9._\\-]", "_");
+    }
+
     /** Lấy phần đuôi mở rộng của tên file (vd: jpg, png) */
     private static String getExtension(String filename) {
         int lastDotIndex = filename.lastIndexOf('.');

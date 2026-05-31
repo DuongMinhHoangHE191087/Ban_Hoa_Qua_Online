@@ -47,6 +47,8 @@ CREATE TABLE shop_owner_profiles (
     approved_at DATETIME NULL,
     delivery_address NVARCHAR(500) NULL,
     rating DECIMAL(3,2) NOT NULL DEFAULT 0,
+    preferred_categories NVARCHAR(500) NULL,
+    doc_paths NVARCHAR(MAX) NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
