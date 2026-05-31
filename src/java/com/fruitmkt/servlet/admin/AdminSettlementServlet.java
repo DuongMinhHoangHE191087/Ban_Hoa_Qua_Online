@@ -25,7 +25,7 @@ import java.io.IOException;
  *
  * @author fruitmkt-team
  */
-@WebServlet("/admin/settlement")
+@WebServlet("/admin/settlements")
 public class AdminSettlementServlet extends HttpServlet {
 
     // TODO: Inject service — thêm service cần dùng ở đây
