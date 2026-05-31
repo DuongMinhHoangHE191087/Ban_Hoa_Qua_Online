@@ -1,26 +1,40 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Coming Soon - Admin Dashboard" />
-</jsp:include>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính năng sắp ra mắt - Admin MetaFruit</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp" />
 
-<div class="admin-layout">
-    <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp" />
-
-    <main class="admin-main">
-        <header class="admin-header">
-            <h1>Tính năng đang phát triển</h1>
-        </header>
-        
-        <div class="admin-content">
-            <div class="admin-panel text-center py-20">
-                <i class="fa-solid fa-person-digging text-6xl text-gray-300 mb-6"></i>
-                <h2 class="text-2xl font-bold text-gray-800 mb-3">Phase 4: Coming Soon</h2>
-                <p class="text-gray-500 max-w-md mx-auto">
-                    Tính năng này thuộc về Phase 4 của dự án và hiện đang trong quá trình xây dựng. Vui lòng quay lại sau!
-                </p>
+        <!-- Main Content -->
+        <main class="admin-main">
+            <header class="admin-header">
+                <h1>Tính năng đang phát triển</h1>
+            </header>
+            
+            <div class="admin-content">
+                <div class="admin-panel" style="text-align: center; padding: 60px 20px;">
+                    <i class="fa-solid fa-person-digging" style="font-size: 4rem; color: #d1d5db; margin-bottom: 24px;"></i>
+                    <h2 style="font-size: 1.5rem; font-weight: bold; color: var(--color-text); margin-bottom: 12px;">Phase 4: Coming Soon</h2>
+                    <p style="color: var(--color-text-light); max-width: 400px; margin: 0 auto;">
+                        Tính năng này thuộc về Phase 4 của dự án và hiện đang trong quá trình xây dựng. Vui lòng quay lại sau!
+                    </p>
+                </div>
             </div>
-        </div>
-    </main>
-</div>
-
-<jsp:include page="/WEB-INF/jsp/common/footer.jsp" />
+        </main>
+    </div>
+</body>
+</html>
