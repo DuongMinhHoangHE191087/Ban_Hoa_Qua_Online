@@ -247,7 +247,7 @@ public class ReviewDAO extends BaseDAO {
      */
     public List<Review> findAllForAdmin() throws SQLException {
         List<Review> list = new ArrayList<>();
-        String sql = "SELECT r.*, u.full_name AS customer_name, p.product_name FROM reviews r "
+        String sql = "SELECT r.*, u.full_name AS customer_name, p.name AS product_name FROM reviews r "
                    + "JOIN users u ON r.customer_id = u.user_id "
                    + "JOIN order_items oi ON r.order_item_id = oi.order_item_id "
                    + "JOIN product_variants pv ON oi.variant_id = pv.variant_id "
@@ -264,9 +264,9 @@ public class ReviewDAO extends BaseDAO {
                 // Let's assume Review has setProductName or we can just fetch it as part of mapRow if we add it to the model.
                 // I will add a transient field productName to Review if needed, or just map it if we can.
                 try {
-                    r.getClass().getMethod("setProductName", String.class).invoke(r, rs.getString("product_name"));
-                } catch (Exception e) {
-                    // Ignore if method not found
+                    r.setProductName(rs.getString("product_name"));
+                } catch (SQLException e) {
+                    r.setProductName("Sản phẩm ẩn danh");
                 }
                 list.add(r);
             }
