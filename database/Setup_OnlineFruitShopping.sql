@@ -718,7 +718,7 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.users ON;
     INSERT INTO dbo.users (user_id, full_name, email, password_hash, phone, role, status, user_address, is_email_verified, email_verification_code_hash, email_verification_expires_at, email_verification_resend_at, email_verification_sent_at, failed_login_count, locked_until, created_at, updated_at)
     VALUES
-        (1, N'Admin System', N'admin@fruitshop.local', N'hash_admin_demo', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
+        (1, N'Admin System', N'admin@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
         (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'hash_delivery_demo', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
         (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'hash_owner1_demo', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
         (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'hash_owner2_demo', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),

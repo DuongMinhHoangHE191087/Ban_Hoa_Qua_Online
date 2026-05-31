@@ -25,7 +25,7 @@ import java.io.IOException;
  *
  * @author fruitmkt-team
  */
-@WebServlet("/admin/users")
+@WebServlet("/admin/user-manage")
 public class UserManageServlet extends HttpServlet {
 
     // TODO: Inject service — thêm service cần dùng ở đây
