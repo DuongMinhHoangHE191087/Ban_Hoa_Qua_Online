@@ -34,8 +34,8 @@ public class OrderServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
-        if (user == null || user.getRoleId() != 2) {
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || !"CUSTOMER".equals(user.getRole())) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -62,8 +62,8 @@ public class OrderServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
-        if (user == null || user.getRoleId() != 2) {
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || !"CUSTOMER".equals(user.getRole())) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
@@ -81,14 +81,14 @@ public class OrderServlet extends HttpServlet {
         try {
             if ("confirmDelivery".equals(action)) {
                 orderService.customerConfirmDelivery(orderId, user.getUserId());
-                SessionUtil.setFlashMessage(req, "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
+                SessionUtil.setFlashMessage(req.getSession(), "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
             } else if ("cancel".equals(action)) {
                 String reason = req.getParameter("reason");
                 orderService.cancelOrder(orderId, user.getUserId(), reason);
-                SessionUtil.setFlashMessage(req, "Bạn đã hủy đơn hàng thành công!", "success");
+                SessionUtil.setFlashMessage(req.getSession(), "Bạn đã hủy đơn hàng thành công!", "success");
             }
         } catch (Exception e) {
-            SessionUtil.setFlashMessage(req, "Lỗi: " + e.getMessage(), "error");
+            SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
         }
         
         resp.sendRedirect(req.getContextPath() + "/orders");

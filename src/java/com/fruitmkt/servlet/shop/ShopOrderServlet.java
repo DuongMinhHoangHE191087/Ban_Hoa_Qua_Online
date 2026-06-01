@@ -35,8 +35,8 @@ public class ShopOrderServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
-        if (user == null || user.getRoleId() != 3) {
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || !"SHOP_OWNER".equals(user.getRole())) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ chủ shop mới được truy cập!");
             return;
         }
@@ -64,8 +64,8 @@ public class ShopOrderServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
-        if (user == null || user.getRoleId() != 3) {
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || !"SHOP_OWNER".equals(user.getRole())) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
@@ -83,11 +83,11 @@ public class ShopOrderServlet extends HttpServlet {
         try {
             if ("approve".equals(action)) {
                 orderService.confirmOrder(orderId, user.getUserId());
-                SessionUtil.setFlashMessage(req, "Đã duyệt đơn hàng thành công!", "success");
+                SessionUtil.setFlashMessage(req.getSession(), "Đã duyệt đơn hàng thành công!", "success");
             } else if ("reject".equals(action)) {
                 String reason = req.getParameter("reason");
                 orderService.cancelOrder(orderId, user.getUserId(), reason);
-                SessionUtil.setFlashMessage(req, "Đã hủy đơn hàng và hoàn lại tồn kho!", "success");
+                SessionUtil.setFlashMessage(req.getSession(), "Đã hủy đơn hàng và hoàn lại tồn kho!", "success");
             } else if ("dispatch".equals(action)) {
                 String estimateStr = req.getParameter("estimatedDeliveryTime");
                 orderService.dispatchOrder(orderId, user.getUserId());
@@ -96,7 +96,7 @@ public class ShopOrderServlet extends HttpServlet {
                 com.fruitmkt.model.entity.Delivery delivery = new com.fruitmkt.model.entity.Delivery();
                 delivery.setOrderId(orderId);
                 // default delivery status
-                delivery.setDeliveryStatus("ASSIGNED");
+                delivery.setStatus("ASSIGNED");
                 
                 if (estimateStr != null && !estimateStr.trim().isEmpty()) {
                     // Expect format: yyyy-MM-dd'T'HH:mm
@@ -105,10 +105,10 @@ public class ShopOrderServlet extends HttpServlet {
                 // Call delivery service to save
                 deliveryService.assignShipper(orderId, -1, delivery.getEstimatedDeliveryTime()); // dummy assign
                 
-                SessionUtil.setFlashMessage(req, "Đã giao đơn hàng cho vận chuyển!", "success");
+                SessionUtil.setFlashMessage(req.getSession(), "Đã giao đơn hàng cho vận chuyển!", "success");
             }
         } catch (Exception e) {
-            SessionUtil.setFlashMessage(req, "Lỗi: " + e.getMessage(), "error");
+            SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
         }
         
         resp.sendRedirect(req.getContextPath() + "/shop/orders");
