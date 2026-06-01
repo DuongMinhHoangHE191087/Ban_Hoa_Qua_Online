@@ -83,7 +83,7 @@ public class OrderService {
         }
 
         // 2. Begin Transaction
-        Connection conn = BaseDAO.getConnection();
+        Connection conn = BaseDAO.newConnection();
         conn.setAutoCommit(false);
 
         try {
@@ -274,7 +274,7 @@ public class OrderService {
         // Count total orders
         int total = 0;
         String sql = "SELECT COUNT(*) FROM orders WHERE customer_id = ?";
-        try (Connection conn = BaseDAO.getConnection();
+        try (Connection conn = BaseDAO.newConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, customerId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -315,7 +315,7 @@ public class OrderService {
         List<OrderItem> items = orderDAO.findOrderItems(orderId);
 
         // Begin transaction
-        Connection conn = BaseDAO.getConnection();
+        Connection conn = BaseDAO.newConnection();
         conn.setAutoCommit(false);
 
         try {
@@ -392,7 +392,7 @@ public class OrderService {
         if (status != null && !status.trim().isEmpty()) {
             sql.append("AND status = ? ");
         }
-        try (Connection conn = BaseDAO.getConnection();
+        try (Connection conn = BaseDAO.newConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             ps.setInt(1, ownerId);
             if (status != null && !status.trim().isEmpty()) {

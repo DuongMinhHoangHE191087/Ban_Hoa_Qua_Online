@@ -246,28 +246,33 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Build grid items dynamically
                 let html = "";
                 data.items.forEach(p => {
+                    const badgeColor = p.labelType === 'Organic' ? '#16a34a' : '#2563eb';
                     const badgeHtml = p.labelType ? `
                         <span style="position: absolute; top: 12px; left: 12px; z-index: 10; padding: 4px 10px; border-radius: 20px; color: white; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
-                                     background-color: ${p.labelType === 'Organic' ? '#16a34a' : '#2563eb'};">
-                            ${p.labelType}
+                                     background-color: ` + badgeColor + `;">
+                            ` + escapeHtml(p.labelType) + `
                         </span>
                     ` : '';
 
+                    const ctxPath = '${pageContext.request.contextPath}';
+                    const starsFull = '★'.repeat(Math.round(p.rating || 0));
+                    const starsEmpty = '☆'.repeat(5 - Math.round(p.rating || 0));
+
                     html += `
                         <div class="product-card" style="background: white; border-radius: 12px; border: 1px solid #f3f4f6; overflow: hidden; position: relative; transition: all 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.015); display: flex; flex-direction: column;">
-                            ${badgeHtml}
-                            <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
+                            ` + badgeHtml + `
+                            <a href="` + ctxPath + `/products/detail?id=` + p.productId + `" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
                                 <div style="height: 180px; background-color: #f9fafb; display: flex; align-items: center; justify-content: center; position: relative;">
-                                    <img src="${pageContext.request.contextPath}/assets/img/logo-leaf.png" alt="Fruit" style="max-height: 100px; max-width: 100px; object-fit: contain;" />
+                                    <img src="` + ctxPath + `/assets/img/logo-leaf.png" alt="Fruit" style="max-height: 100px; max-width: 100px; object-fit: contain;" />
                                 </div>
                                 <div style="padding: 15px; display: flex; flex-direction: column; flex-grow: 1;">
                                     <h3 style="font-size: 15px; font-weight: 700; color: #1f2937; margin: 0 0 8px 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 38px;">
-                                        ${escapeHtml(p.name)}
+                                        ` + escapeHtml(p.name) + `
                                     </h3>
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
                                         <div>
                                             <div style="color: #4b5563; font-size: 11px;">Đánh giá</div>
-                                            <div style="color: #eab308; font-size: 11px;">${'★'.repeat(Math.round(p.rating || 0))}${ '☆'.repeat(5 - Math.round(p.rating || 0)) }</div>
+                                            <div style="color: #eab308; font-size: 11px;">` + starsFull + starsEmpty + `</div>
                                         </div>
                                         <span style="background-color: #f0fdf4; color: #166534; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;">
                                             Xem chi tiết
@@ -286,7 +291,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     paginationHtml = `<div class="pagination" style="display: flex; gap: 8px; justify-content: center; align-items: center; list-style: none; padding: 0;">`;
                     for (let i = 1; i <= data.totalPages; i++) {
                         const activeStyle = data.currentPage === i ? `background-color: #14532d; color: white; border-color: #14532d;` : `background-color: white; color: #374151; border-color: #d1d5db;`;
-                        paginationHtml += `<a href="${filterForm.action}?page=${i}&${searchParams.toString()}" style="padding: 6px 12px; border: 1px solid; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; ${activeStyle}">${i}</a>`;
+                        paginationHtml += `<a href="` + filterForm.action + `?page=` + i + `&` + searchParams.toString() + `" style="padding: 6px 12px; border: 1px solid; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; ` + activeStyle + `">` + i + `</a>`;
                     }
                     paginationHtml += `</div>`;
                 }

@@ -46,6 +46,14 @@ public abstract class BaseDAO {
     }
 
     /**
+     * Cung cấp kết nối cho tầng Service khi cần quản lý transaction thủ công.
+     * Caller phải tự đóng Connection trong try-with-resources hoặc finally.
+     */
+    public static Connection newConnection() throws SQLException {
+        return DriverManager.getConnection(AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD);
+    }
+
+    /**
      * Lấy kết nối trực tiếp từ cấu hình database.
      * Kết nối phải được đóng bởi caller trong try-with-resources.
      */

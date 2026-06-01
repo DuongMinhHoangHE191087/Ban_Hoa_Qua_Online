@@ -4,6 +4,7 @@ import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.CategoryDAO;
 import com.fruitmkt.model.dto.PagedResultDTO;
 import com.fruitmkt.model.entity.Category;
+import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.service.ProductService;
 
 import jakarta.servlet.ServletException;
