@@ -18,49 +18,75 @@ import java.util.*;
  */
 public class DeliveryDAO extends BaseDAO {
 
-    /**
-     * TODO: Implement — findById(int id)
-     */
-    public List<Delivery> findById(int id) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findById(int id)");
+    public List<Delivery> findByStaffId(int staffId) throws SQLException {
+        List<Delivery> list = new ArrayList<>();
+        String sql = "SELECT * FROM deliveries WHERE staff_id = ? ORDER BY created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, staffId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
     }
 
-    /**
-     * TODO: Implement — findByOrder(int orderId)
-     */
-    public List<Delivery> findByOrder(int orderId) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findByOrder(int orderId)");
+    public void updateStatusAndProof(int deliveryId, String status, String failureReason, String proofImageUrl) throws SQLException {
+        String sql = "UPDATE deliveries SET status = ?, failure_reason = ?, proof_image_url = ?, updated_at = GETDATE() ";
+        if ("PICKED_UP".equals(status)) {
+            sql += ", picked_up_at = GETDATE() ";
+        } else if ("DELIVERED".equals(status)) {
+            sql += ", delivered_at = GETDATE() ";
+        }
+        sql += "WHERE delivery_id = ?";
+        
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setString(2, failureReason);
+            ps.setString(3, proofImageUrl);
+            ps.setInt(4, deliveryId);
+            ps.executeUpdate();
+        }
     }
 
-    /**
-     * TODO: Implement — findByStaff(int staffId, String status)
-     */
-    public List<Delivery> findByStaff(int staffId, String status) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findByStaff(int staffId, String status)");
+    public void updateEstimatedTime(int deliveryId, java.time.LocalDateTime estimatedTime) throws SQLException {
+        String sql = "UPDATE deliveries SET estimated_delivery_time = ?, updated_at = GETDATE() WHERE delivery_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setTimestamp(1, estimatedTime != null ? Timestamp.valueOf(estimatedTime) : null);
+            ps.setInt(2, deliveryId);
+            ps.executeUpdate();
+        }
     }
 
-    /**
-     * TODO: Implement — save(Delivery delivery)
-     */
-    public int save(Delivery delivery) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: save(Delivery delivery)");
-    }
-
-    /**
-     * TODO: Implement — updateStatus(int deliveryId, String status, String failureReason)
-     */
-    public void updateStatus(int deliveryId, String status, String failureReason) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: updateStatus(int deliveryId, String status, String failureReason)");
-    }
-
-    /** Ánh xạ ResultSet -> Delivery — gọi trong mọi query SELECT */
     private Delivery mapRow(ResultSet rs) throws SQLException {
-        // TODO: rs.getInt(), rs.getString()... theo Schema.sql
-        throw new UnsupportedOperationException("mapRow not implemented");
+        Delivery d = new Delivery();
+        d.setDeliveryId(rs.getInt("delivery_id"));
+        d.setOrderId(rs.getInt("order_id"));
+        d.setStaffId(rs.getObject("staff_id") != null ? rs.getInt("staff_id") : null);
+        d.setStatus(rs.getString("status"));
+        
+        Timestamp pickedUpAt = rs.getTimestamp("picked_up_at");
+        if (pickedUpAt != null) d.setPickedUpAt(pickedUpAt.toLocalDateTime());
+        
+        Timestamp deliveredAt = rs.getTimestamp("delivered_at");
+        if (deliveredAt != null) d.setDeliveredAt(deliveredAt.toLocalDateTime());
+        
+        d.setFailureReason(rs.getString("failure_reason"));
+        d.setProofImageUrl(rs.getString("proof_image_url"));
+        
+        Timestamp estTime = rs.getTimestamp("estimated_delivery_time");
+        if (estTime != null) d.setEstimatedDeliveryTime(estTime.toLocalDateTime());
+        
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null) d.setCreatedAt(createdAt.toLocalDateTime());
+        
+        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        if (updatedAt != null) d.setUpdatedAt(updatedAt.toLocalDateTime());
+        
+        return d;
     }
 }

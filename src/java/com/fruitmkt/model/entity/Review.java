@@ -17,8 +17,12 @@ public class Review {
 
     private String reviewImageUrl;
     private String customerName;
+    private String productName;
 
     public Review() {}
+
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
 
     public int getReviewId() { return reviewId; }
     public void setReviewId(int reviewId) { this.reviewId = reviewId; }
