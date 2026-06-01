@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tổng quan - Admin MetaFruit</title>
+    <title>Tính năng sắp ra mắt - Admin MetaFruit</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome -->
@@ -17,19 +17,21 @@
 <body>
     <div class="admin-layout">
         <!-- Sidebar -->
-        <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
-            <jsp:param name="activeMenu" value="dashboard"/>
-        </jsp:include>
+        <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp" />
 
         <!-- Main Content -->
         <main class="admin-main">
             <header class="admin-header">
-                <h1>Tổng quan hệ thống</h1>
+                <h1>Tính năng đang phát triển</h1>
             </header>
             
             <div class="admin-content">
-                <div class="admin-panel">
-                    <p class="placeholder-notice">Dashboard thống kê chưa được implement.</p>
+                <div class="admin-panel" style="text-align: center; padding: 60px 20px;">
+                    <i class="fa-solid fa-person-digging" style="font-size: 4rem; color: #d1d5db; margin-bottom: 24px;"></i>
+                    <h2 style="font-size: 1.5rem; font-weight: bold; color: var(--color-text); margin-bottom: 12px;">Phase 4: Coming Soon</h2>
+                    <p style="color: var(--color-text-light); max-width: 400px; margin: 0 auto;">
+                        Tính năng này thuộc về Phase 4 của dự án và hiện đang trong quá trình xây dựng. Vui lòng quay lại sau!
+                    </p>
                 </div>
             </div>
         </main>

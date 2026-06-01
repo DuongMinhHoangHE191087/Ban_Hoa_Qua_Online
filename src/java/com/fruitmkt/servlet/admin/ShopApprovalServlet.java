@@ -1,5 +1,4 @@
 package com.fruitmkt.servlet.admin;
-
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.ShopProfileDAO;
 import com.fruitmkt.dao.UserDAO;
@@ -8,18 +7,14 @@ import com.fruitmkt.model.entity.ShopProfile;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.EmailService;
 import com.fruitmkt.util.SessionUtil;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-
-/**
+/* 
  * ShopApprovalServlet — Admin duyệt / từ chối đơn đăng ký shop.
- *
- * URL: /admin/shops
  * GET : Hiển thị danh sách shop đang chờ duyệt (PENDING) và lịch sử
  * POST: Approve hoặc Reject shop — [BUGFIX] khi APPROVE đổi users.role = 'SHOP_OWNER'
  *
