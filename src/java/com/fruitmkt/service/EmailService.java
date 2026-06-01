@@ -54,6 +54,36 @@ public class EmailService {
         return sendHtml(toEmail, subject, html);
     }
 
+    /**
+     * Gửi email xác nhận đã nhận đơn đăng ký mở shop.
+     */
+    public boolean sendShopApplicationReceivedEmail(String toEmail, String ownerName, String shopName)
+            throws SQLException {
+        String subject = "[" + AppConfig.APP_NAME + "] Đã nhận đơn đăng ký mở gian hàng " + shopName;
+        String html = templateService.buildShopApplicationReceivedEmail(ownerName, shopName);
+        return sendHtml(toEmail, subject, html);
+    }
+
+    /**
+     * Gửi email thông báo đơn đăng ký mở shop đã được duyệt.
+     */
+    public boolean sendShopApprovedEmail(String toEmail, String ownerName, String shopName)
+            throws SQLException {
+        String subject = "[" + AppConfig.APP_NAME + "] Chúc mừng! Gian hàng " + shopName + " đã được duyệt";
+        String html = templateService.buildShopApprovedEmail(ownerName, shopName);
+        return sendHtml(toEmail, subject, html);
+    }
+
+    /**
+     * Gửi email thông báo đơn đăng ký mở shop bị từ chối.
+     */
+    public boolean sendShopRejectedEmail(String toEmail, String ownerName, String shopName, String reason)
+            throws SQLException {
+        String subject = "[" + AppConfig.APP_NAME + "] Thông báo về đơn đăng ký mở gian hàng " + shopName;
+        String html = templateService.buildShopRejectedEmail(ownerName, shopName, reason);
+        return sendHtml(toEmail, subject, html);
+    }
+
     // ── Core transport ────────────────────────────────────────────────────
 
     /**
