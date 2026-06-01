@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Tổng Hợp: Phase 1 đến Phase 3</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; background-color: #f8fafc; }
+        h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        h2 { color: #334155; margin-top: 30px; border-left: 5px solid #3b82f6; padding-left: 10px; }
+        .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 10px; }
+        .badge.admin { background-color: #fee2e2; color: #991b1b; }
+        .badge.shipper { background-color: #dbeafe; color: #1e40af; }
+        .badge.db { background-color: #dcfce7; color: #166534; }
+        ul { list-style-type: none; padding-left: 0; }
+        li { margin-bottom: 10px; padding: 10px; background: #f1f5f9; border-radius: 6px; }
+        code { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1>📋 Báo Cáo Tổng Hợp Các Chức Năng (Phase 1 - Phase 3)</h1>
+    <p><strong>Người thực hiện:</strong> DUONGNT</p>
+    <p><strong>Dự án:</strong> Ban_Hoa_Qua_Online</p>
+    
+    <div class="card">
+        <h2>Phase 1: Quản lý người dùng (Admin)</h2>
+        <p>Tập trung vào việc xây dựng khung giao diện chuẩn cho Admin (Admin Layout) và chức năng quản lý tài khoản người dùng.</p>
+        <ul>
+            <li><span class="badge admin">ADMIN</span> <strong>Xây dựng Layout Admin:</strong> Tạo hệ thống giao diện <code>admin-layout</code>, <code>admin-sidebar</code> đồng bộ với <code>main.css</code>.</li>
+            <li><span class="badge admin">ADMIN</span> <strong>Quản lý Người Dùng:</strong> Hiển thị danh sách tất cả các người dùng trong hệ thống với các thông tin chi tiết (Họ tên, Email, SĐT, Vai trò).</li>
+            <li><span class="badge admin">ADMIN</span> <strong>Khóa / Mở khóa Tài Khoản (AJAX):</strong> Quản trị viên có thể thao tác Khóa (LOCKED) hoặc Mở khóa (ACTIVE) người dùng vi phạm ngay trên giao diện bảng mà không cần tải lại trang. Các tài khoản cấp ADMIN được bảo vệ không thể bị khóa.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Phase 2: Vận hành hệ thống (Admin)</h2>
+        <p>Bổ sung các nghiệp vụ phê duyệt nội dung và đối tác để đảm bảo chất lượng hệ thống.</p>
+        <ul>
+            <li><span class="badge admin">ADMIN</span> <strong>Phê Duyệt Cửa Hàng (Shop Approvals):</strong> Hiển thị danh sách các yêu cầu mở gian hàng. Admin có thể xem xét, chọn <strong>Duyệt</strong> để kích hoạt gian hàng, hoặc <strong>Từ chối</strong> kèm theo lý do cụ thể (giấy tờ không hợp lệ, mô tả thiếu...).</li>
+            <li><span class="badge admin">ADMIN</span> <strong>Kiểm Duyệt Đánh Giá (Review Management):</strong> Quản lý toàn bộ đánh giá (Review) sản phẩm từ phía khách hàng. Admin có quyền <strong>Ẩn/Hiện</strong> các bình luận spam hoặc có ngôn từ không phù hợp thông qua nút Toggle dạng công tắc (AJAX).</li>
+            <li><span class="badge admin">ADMIN</span> <strong>Giao diện Coming Soon:</strong> Xử lý lỗi 404/500 cho các chức năng chưa phát triển (Phase 4) như Đối soát thanh toán bằng trang thông báo "Coming Soon" chuyên nghiệp. Xử lý triệt để lỗi mất CSS/Layout trong quá trình fix bug.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Phase 3: Giao hàng (Order & Delivery)</h2>
+        <p>Phát triển phân hệ riêng biệt dành cho nhân viên giao hàng (Shipper) và cập nhật cơ sở dữ liệu.</p>
+        <ul>
+            <li><span class="badge db">DATABASE</span> <strong>Cấu trúc dữ liệu Giao Hàng:</strong> Bổ sung thêm các trường <code>shipping_fee</code>, <code>estimated_delivery_time</code>, <code>actual_delivery_time</code>, <code>proof_image_url</code>, <code>rejection_reason</code> vào bảng <code>deliveries</code> để lưu vết quá trình giao nhận chi tiết.</li>
+            <li><span class="badge shipper">SHIPPER</span> <strong>Dashboard Giao Hàng:</strong> Trang tổng quan dành riêng cho tài khoản Shipper. Hiển thị danh sách các đơn hàng được phân công giao dựa trên <code>shipper_id</code>.</li>
+            <li><span class="badge shipper">SHIPPER</span> <strong>Cập Nhật Trạng Thái Giao Hàng:</strong> 
+                Cho phép Shipper thay đổi trạng thái đơn hàng theo luồng chuẩn: <br>
+                <code>Mới nhận</code> ➔ <code>Đã lấy hàng</code> ➔ <code>Bắt đầu đi giao</code> ➔ <code>Thành công / Thất bại</code>.<br>
+                Mọi thao tác đều dùng AJAX mượt mà.
+            </li>
+            <li><span class="badge shipper">SHIPPER</span> <strong>Bằng chứng giao hàng:</strong> Nếu giao Thành Công, hệ thống sẽ yêu cầu Shipper nhập URL ảnh bằng chứng. Nếu Thất Bại, yêu cầu nhập Lý do thất bại (ví dụ: Khách không nghe máy).</li>
+        </ul>
+    </div>
+
+    <p style="text-align: center; color: #64748b; margin-top: 40px;">
+        <em>Tài liệu được tự động tạo sau khi hoàn tất Phase 3. Code đã sẵn sàng để Pull Request.</em>
+    </p>
+
+</body>
+</html>

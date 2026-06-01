@@ -140,4 +140,18 @@ public class ReviewService {
         }
         return !reviewDAO.existsByCustomerAndItem(customerId, orderItemId);
     }
+
+    /**
+     * Lấy toàn bộ danh sách đánh giá cho admin.
+     */
+    public List<Review> getAllReviewsForAdmin() throws SQLException {
+        return reviewDAO.findAllForAdmin();
+    }
+
+    /**
+     * Cập nhật trạng thái ẩn/hiện của đánh giá.
+     */
+    public void updateReviewVisibility(int reviewId, boolean isHidden) throws SQLException {
+        reviewDAO.updateVisibility(reviewId, isHidden);
+    }
 }

@@ -21,7 +21,7 @@ import java.sql.SQLException;
  * THỨ TỰ CHẠY: 4
  * @author fruitmkt-team
  */
-@WebFilter(urlPatterns = {"/customer/*", "/shop/*", "/delivery/*", "/admin/*"})
+@WebFilter(urlPatterns = {"/customer/*", "/shop/*", "/delivery/*", "/admin/*", "/checkout", "/cart"})
 public class AuthFilter implements Filter {
 
     private final UserDAO userDAO = new UserDAO();

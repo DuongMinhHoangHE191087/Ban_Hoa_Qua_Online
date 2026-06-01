@@ -192,6 +192,52 @@ public class OrderDAO extends BaseDAO {
         }
     }
 
+    /**
+     * Hoàn trả lại số lượng tồn kho cho các sản phẩm trong đơn hàng.
+     */
+    public void restoreInventoryStock(int orderId) throws SQLException {
+        String sql = "UPDATE pv "
+                   + "SET pv.stock_quantity = pv.stock_quantity + oi.quantity "
+                   + "FROM product_variants pv "
+                   + "JOIN order_items oi ON pv.variant_id = oi.variant_id "
+                   + "WHERE oi.order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Lấy owner_id của sản phẩm chứa variant được chỉ định.
+     * Dùng khi tạo đơn hàng để xác định chủ shop.
+     *
+     * @param productId ID sản phẩm (đã được lấy từ ProductVariant)
+     * @return owner_id, hoặc -1 nếu không tìm thấy
+     */
+    public int getOwnerIdByProductId(int productId) throws SQLException {
+        String sql = "SELECT owner_id FROM products WHERE product_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("owner_id");
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Mở kết nối DB để dùng trong transaction ngoài DAO (ví dụ: CheckoutServlet).
+     * Caller phải tự đóng connection trong try-finally.
+     */
+    public Connection openConnection() throws SQLException {
+        return getConnection();
+    }
+
+
     /** Ánh xạ ResultSet -> Order — gọi trong mọi query SELECT */
     private Order mapRow(ResultSet rs) throws SQLException {
         Order o = new Order();

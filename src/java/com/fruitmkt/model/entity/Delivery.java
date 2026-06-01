@@ -16,6 +16,8 @@ public class Delivery {
     private String failureReason;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
+    private String proofImageUrl;
+    private java.time.LocalDateTime estimatedDeliveryTime;
 
     public Delivery() {}
 
@@ -45,5 +47,11 @@ public class Delivery {
 
     public java.time.LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getProofImageUrl() { return proofImageUrl; }
+    public void setProofImageUrl(String proofImageUrl) { this.proofImageUrl = proofImageUrl; }
+
+    public java.time.LocalDateTime getEstimatedDeliveryTime() { return estimatedDeliveryTime; }
+    public void setEstimatedDeliveryTime(java.time.LocalDateTime estimatedDeliveryTime) { this.estimatedDeliveryTime = estimatedDeliveryTime; }
 
 }

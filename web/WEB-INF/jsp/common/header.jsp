@@ -28,6 +28,13 @@
 
     <!-- Core CSS -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    
+    <!-- Global application state injected for AJAX cart operations -->
+    <script>
+        window.isLoggedIn = ${not empty sessionScope.currentUser ? 'true' : 'false'};
+        window.contextPath = '${pageContext.request.contextPath}';
+        window.csrfToken = '${sessionScope._csrfToken}';
+    </script>
 </head>
 <body>
     <%-- Navbar --%>

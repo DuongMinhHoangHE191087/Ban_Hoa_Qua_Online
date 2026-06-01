@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Progress Report - MetaFruit Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #111827;
+            --bg-glass: rgba(17, 24, 39, 0.7);
+            --border-glass: rgba(255, 255, 255, 0.06);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-green: #10b981;
+            --accent-green-glow: rgba(16, 185, 129, 0.15);
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --gradient-accent: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            --font-title: 'Outfit', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--gradient-accent);
+        }
+
+        .header-left h1 {
+            font-family: var(--font-title);
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(120deg, #ffffff 30%, #a7f3d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-left p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-left p span.badge {
+            background: var(--accent-green-glow);
+            color: var(--accent-green);
+            padding: 0.2rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .header-right .week-tag {
+            font-family: var(--font-title);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 0.5rem 1.2rem;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-right .dev-name {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .stat-card .label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-card .value {
+            font-family: var(--font-title);
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .stat-card .desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-card.accented .value {
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Progress Section */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-family: var(--font-title);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border-glass);
+            padding-bottom: 0.75rem;
+        }
+
+        .card-title span.icon {
+            font-size: 1.7rem;
+        }
+
+        /* Custom Progress Table */
+        .status-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .status-table th, .status-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .status-table th {
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        .status-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .status-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-status.completed {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-status.doing {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .badge-status.todo {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        /* Detail List */
+        .detail-item {
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .detail-item::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            top: 0.2rem;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-green-glow);
+            color: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: bold;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .detail-item.doing::before {
+            content: '→';
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+            border-color: rgba(59, 130, 246, 0.3);
+            font-size: 0.8rem;
+        }
+
+        .detail-item.todo::before {
+            content: '•';
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--accent-yellow);
+            border-color: rgba(245, 158, 11, 0.3);
+            font-size: 1.2rem;
+            line-height: 10px;
+        }
+
+        .detail-item h4 {
+            font-family: var(--font-title);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-item p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Issues / Risks */
+        .issue-card {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .issue-card h4 {
+            color: var(--accent-red);
+            font-family: var(--font-title);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .issue-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .issue-card .solution {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed rgba(239, 68, 68, 0.15);
+            color: var(--accent-green);
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 3rem 0;
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-glass);
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <h1>METAFRUIT REPORT</h1>
+                <p><span class="badge">Group 1</span> Báo cáo tiến độ tuần dự án bán quả trực tuyến</p>
+            </div>
+            <div class="header-right">
+                <div class="week-tag">Tuần kết thúc: 31-05-2026</div>
+                <div class="dev-name">Lập trình viên: Dương Minh Hoàng (HE191087)</div>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Tổng số chức năng</div>
+                <div class="value">103</div>
+                <div class="desc">Khớp chuẩn 100% tài liệu SRS</div>
+            </div>
+            <div class="stat-card accented">
+                <div class="label">Đã Hoàn Thành (Done)</div>
+                <div class="value">23</div>
+                <div class="desc">Xác thực, bảo mật & Giỏ hàng lai</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Đang làm (Doing)</div>
+                <div class="value">11</div>
+                <div class="desc">CRUD Sản phẩm, Checkout an toàn</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Dự kiến LOC đã code</div>
+                <div class="value">~2,400</div>
+                <div class="desc">Java, JSP & AJAX Javascript sạch</div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="grid-layout">
+            <!-- Left Column -->
+            <div class="main-content">
+                <!-- Status Report Table -->
+                <div class="card">
+                    <h2 class="card-title"><span class="icon">📊</span> Bảng Tiến Độ Tổng Hợp (Status Report)</h2>
+                    <table class="status-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nhiệm Vụ Dự Án</th>
+                                <th>Phụ Trách</th>
+                                <th>Trạng Thái</th>
+                                <th>Cập Nhật & Ghi Chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>Đặc tả yêu cầu phạm vi (SRS Scope)</td>
+                                <td>HaiPT</td>
+                                <td><span class="badge-status completed">Completed</span></td>
+                                <td>Hoàn tất định hình 103 chức năng.</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>Kịch bản đặc tả Use Case (1-50)</td>
+                                <td>HaiPT</td>
+                                <td><span class="badge-status completed">Completed</span></td>
+                                <td>Vẽ Use Case & chi tiết hoá luồng đi.</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>Cơ sở dữ liệu thật (Enriched SQL)</td>
+                                <td>Cả nhóm</td>
+                                <td><span class="badge-status completed">Completed</span></td>
+                                <td>Làm giàu database thật, loại mock ảnh.</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>Xác thực Dual-Token & Bảo mật HttpOnly</td>
+                                <td>HoangDM</td>
+                                <td><span class="badge-status completed">Completed</span></td>
+                                <td>Vá 100% lỗ hổng đánh cắp Token XSS.</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>Hệ thống giỏ hàng lai & AJAX</td>
+                                <td>HoangDM</td>
+                                <td><span class="badge-status completed">Completed</span></td>
+                                <td>Đồng bộ LocalStorage sang DB khi Login.</td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td>Tạo đơn hàng ACID & Checkout UI</td>
+                                <td>HoangDM / Quan</td>
+                                <td><span class="badge-status doing">Doing</span></td>
+                                <td>Chống gian lận giá, trừ kho đồng thời.</td>
+                            </tr>
+                            <tr>
+                                <td>7</td>
+                                <td>Quản lý sản phẩm Dashboard (CRUD)</td>
+                                <td>KhangCB</td>
+                                <td><span class="badge-status doing">Doing</span></td>
+                                <td>Shop Owner Dashboard và upload đa ảnh.</td>
+                            </tr>
+                            <tr>
+                                <td>8</td>
+                                <td>Kiểm duyệt nội dung & Danh mục CRUD</td>
+                                <td>Quan</td>
+                                <td><span class="badge-status doing">Doing</span></td>
+                                <td>Giao diện phê duyệt Shop và sản phẩm.</td>
+                            </tr>
+                            <tr>
+                                <td>9</td>
+                                <td>Tích hợp ngân hàng VietQR & Webhook SePay</td>
+                                <td>HoangDM</td>
+                                <td><span class="badge-status todo">To Do</span></td>
+                                <td>Sinh mã QR động ngân hàng tiếp nhận tiền.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Detailed Done Work -->
+                <div class="card">
+                    <h2 class="card-title"><span class="icon">⚡</span> Hoàn Thành Chi Tiết (Done Work Items)</h2>
+                    
+                    <div class="detail-item">
+                        <h4>Xác thực nâng cao với Google OAuth 2.0 & Email Verification OTP</h4>
+                        <p>Triển khai quy trình đăng ký tài khoản local an toàn với băm mật khẩu <b>BCrypt</b>, xác minh OTP qua hòm thư gửi JavaMail, kết hợp cổng đăng nhập Google an toàn.</p>
+                    </div>
+
+                    <div class="detail-item">
+                        <h4>Phiên làm việc Cookie bảo mật kép (Dual-Token Cookie Auth)</h4>
+                        <p>Xây dựng tiện ích mã hóa HMAC-SHA256, ghi nhận phiên hoạt động an toàn qua Access Token (15 phút) và Refresh Token (7 ngày) dạng HttpOnly Cookie bảo vệ tuyệt đối.</p>
+                    </div>
+
+                    <div class="detail-item">
+                        <h4>Phân quyền chuẩn doanh nghiệp (RBAC Matrix Filter)</h4>
+                        <p>Hiện thực bộ lọc <code>RoleFilter</code> và <code>AuthFilter</code> chặn đứng mọi khả năng truy cập trái phép vào tài nguyên dành riêng cho Admin, Shop Owner, Shipper.</p>
+                    </div>
+
+                    <div class="detail-item">
+                        <h4>Giỏ hàng Lai AJAX (Hybrid Cart System)</h4>
+                        <p>Giao diện tương tác mượt mà dưới 100ms bằng AJAX không tải lại trang. Tự động gộp giỏ hàng tạm LocalStorage vào Database cực kỳ chuẩn chỉ khi đăng nhập.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="sidebar">
+                <!-- Doing & Plan Card -->
+                <div class="card">
+                    <h2 class="card-title"><span class="icon">⚙️</span> Kế hoạch tiếp theo (Next Action Items)</h2>
+                    
+                    <div class="detail-item doing">
+                        <h4>Checkout & Trực quan hoá đơn hàng</h4>
+                        <p>Thiết kế giao diện checkout Glassmorphism cao cấp và thiết lập Jdbc Transaction ACID an toàn tuyệt đối chống gian lận giá tiền đơn hàng.</p>
+                    </div>
+
+                    <div class="detail-item doing">
+                        <h4>Dashboard sản phẩm cho Shop Owner</h4>
+                        <p>CRUD sản phẩm, upload đồng thời nhiều hình ảnh và quản trị danh mục chi tiết.</p>
+                    </div>
+
+                    <div class="detail-item todo">
+                        <h4>Tích hợp cổng VietQR & Webhook SePay</h4>
+                        <p>Tự động duyệt đơn hàng trực tuyến ngay khi có biến động tài khoản ngân hàng trong vòng 1 giây.</p>
+                    </div>
+
+                    <div class="detail-item todo">
+                        <h4>Đánh giá sản phẩm & Xếp hạng sao</h4>
+                        <p>Cho phép gửi kèm ảnh chụp quả thực tế và tự động tính điểm trung bình sản phẩm.</p>
+                    </div>
+                </div>
+
+                <!-- Issues & Risks Card -->
+                <div class="card">
+                    <h2 class="card-title"><span class="icon">🚨</span> Vấn đề & Giải pháp</h2>
+                    
+                    <div class="issue-card">
+                        <h4>Độ nghẽn tranh chấp kho khi Flash Sale</h4>
+                        <p>Khi hàng ngàn khách cùng mua một mã sản phẩm trong Flash Sale dễ gây khoá hàng đợi SQL Server.</p>
+                        <div class="solution">✓ Đề xuất: Tối ưu Transaction Isolation Level</div>
+                    </div>
+
+                    <div class="issue-card">
+                        <h4>Rủi ro rò rỉ secret trong code (API Keys)</h4>
+                        <p>Việc tích hợp Google Client ID và SMTP password dễ bị hardcode thẳng vào repo mã nguồn.</p>
+                        <div class="solution">✓ Đã giải quyết: Đưa vào biến môi trường hệ thống</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>© 2026 MetaFruit Development Team. Được tạo tự động khớp chuẩn quy trình SDLC chuyên nghiệp.</p>
+        </footer>
+    </div>
+</body>
+</html>
