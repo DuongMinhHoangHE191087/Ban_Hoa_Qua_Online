@@ -313,6 +313,69 @@ public class ProductDAO extends BaseDAO {
         }
     }
 
+    /**
+     * Tìm kiếm các sản phẩm tương tự cùng danh mục (Category) phục vụ hiển thị
+     * danh sách gợi ý ở trang chi tiết sản phẩm. Loại trừ sản phẩm hiện tại.
+     * Sắp xếp theo số lượng bán (sold_quantity DESC) và lượt xem (view_count DESC).
+     *
+     * @param productId   ID sản phẩm hiện tại cần loại trừ
+     * @param categoryId  ID danh mục của sản phẩm hiện tại
+     * @param limit       Số lượng sản phẩm tương tự tối đa cần lấy
+     * @return danh sách các sản phẩm tương tự
+     * @throws SQLException nếu xảy ra lỗi truy vấn cơ sở dữ liệu
+     */
+    public List<Product> findSimilarProducts(int productId, int categoryId, int limit) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT * FROM products "
+                   + "WHERE category_id = ? AND product_id != ? AND status = 'ACTIVE' "
+                   + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
+                   + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, categoryId);
+            ps.setInt(2, productId);
+            ps.setInt(3, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách sản phẩm ACTIVE của một shop owner cụ thể,
+     * loại trừ sản phẩm hiện tại đang xem, giới hạn số lượng.
+     * Phục vụ phần "Xem thêm từ cửa hàng này" trên trang chi tiết sản phẩm.
+     *
+     * @param ownerId          ID của chủ cửa hàng
+     * @param excludeProductId ID sản phẩm đang xem (loại trừ khỏi danh sách)
+     * @param limit            Số lượng sản phẩm tối đa cần lấy
+     * @return danh sách sản phẩm khác của shop
+     * @throws SQLException nếu xảy ra lỗi truy vấn
+     */
+    public List<Product> findByOwnerAndActiveStatus(int ownerId, int excludeProductId, int limit) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT * FROM products "
+                   + "WHERE owner_id = ? AND product_id != ? AND status = 'ACTIVE' "
+                   + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
+                   + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, excludeProductId);
+            ps.setInt(3, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+
     /** Ánh xạ ResultSet -> Product — gọi trong mọi query SELECT */
     private Product mapRow(ResultSet rs) throws SQLException {
         Product p = new Product();

@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -261,44 +261,51 @@
                         </div>
                     </div>
 
-                    <!-- Categories Selection -->
+                    <!-- Categories Selection — tải từ DB qua CategoryDAO -->
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-semibold text-primary">Danh mục sản phẩm mong muốn kinh doanh *</label>
-                        <div class="grid grid-cols-2 gap-3 mt-1">
-                            <label class="flex items-center p-3 rounded-lg border border-primary/10 bg-white/40 hover:bg-emerald-50 cursor-pointer transition-all duration-200">
-                                <input class="rounded text-primary focus:ring-primary h-4.5 w-4.5 border-outline/30 bg-white" name="categories" value="citrus" type="checkbox">
-                                <span class="ml-2.5 text-xs font-medium text-on-surface">Cam, Quýt, Bưởi nội địa</span>
-                            </label>
-                            <label class="flex items-center p-3 rounded-lg border border-primary/10 bg-white/40 hover:bg-emerald-50 cursor-pointer transition-all duration-200">
-                                <input class="rounded text-primary focus:ring-primary h-4.5 w-4.5 border-outline/30 bg-white" name="categories" value="tropical" type="checkbox">
-                                <span class="ml-2.5 text-xs font-medium text-on-surface">Trái cây vùng nhiệt đới</span>
-                            </label>
-                            <label class="flex items-center p-3 rounded-lg border border-primary/10 bg-white/40 hover:bg-emerald-50 cursor-pointer transition-all duration-200">
-                                <input class="rounded text-primary focus:ring-primary h-4.5 w-4.5 border-outline/30 bg-white" name="categories" value="berries" type="checkbox">
-                                <span class="ml-2.5 text-xs font-medium text-on-surface">Quả mọng & Trái cây nhập</span>
-                            </label>
-                            <label class="flex items-center p-3 rounded-lg border border-primary/10 bg-white/40 hover:bg-emerald-50 cursor-pointer transition-all duration-200">
-                                <input class="rounded text-primary focus:ring-primary h-4.5 w-4.5 border-outline/30 bg-white" name="categories" value="dry" type="checkbox">
-                                <span class="ml-2.5 text-xs font-medium text-on-surface">Rau củ quả sấy, đóng hộp</span>
-                            </label>
+                        <label class="text-xs font-semibold text-primary">Danh mục sản phẩm dự kiến kinh doanh *</label>
+                        <p class="text-[10px] text-outline">Có thể chọn nhiều danh mục</p>
+                        <div class="grid grid-cols-2 gap-2 mt-1" id="categoryGrid">
+                            <c:choose>
+                                <c:when test="${not empty categories}">
+                                    <c:forEach var="cat" items="${categories}">
+                                        <label class="flex items-center p-3 rounded-lg border border-primary/10 bg-white/40 hover:bg-emerald-50 cursor-pointer transition-all duration-200">
+                                            <input class="rounded text-primary focus:ring-primary border-outline/30 bg-white" 
+                                                   name="categoryIds" 
+                                                   value="<c:out value="${cat.categoryId}"/>" 
+                                                   type="checkbox">
+                                            <span class="ml-2.5 text-xs font-medium text-on-surface"><c:out value="${cat.name}"/></span>
+                                        </label>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <p class="col-span-2 text-xs text-outline italic">Không tải được danh mục. Vui lòng thử lại.</p>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
                     </div>
+
 
                     <!-- File Upload for Business Documents -->
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-semibold text-primary">Tải lên tài liệu xác minh (GPKD, Chứng nhận ATTP...) *</label>
+                        <p class="text-[10px] text-outline">Tối đa 10 tài liệu • Mỗi file ≤ 25MB • Định dạng: PDF, JPG, PNG, DOCX</p>
                         <div class="border-2 border-dashed border-primary/20 rounded-lg p-5 text-center bg-white/20 hover:bg-emerald-50/50 transition-colors cursor-pointer group relative" id="dropzone">
-                            <input class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" id="businessDocs" name="businessDocs" type="file" multiple onchange="handleFileSelect(this)">
+                            <input class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                                   id="businessDocs" name="businessDocs" type="file" 
+                                   multiple 
+                                   accept=".pdf,.jpg,.jpeg,.png,.docx"
+                                   onchange="handleFileSelect(this)">
                             <div class="flex flex-col items-center gap-2 pointer-events-none">
                                 <span class="material-symbols-outlined text-[36px] text-primary/60 group-hover:text-primary transition-colors">cloud_upload</span>
                                 <p class="text-xs font-medium text-on-surface-variant" id="uploadLabel">
-                                    Kéo và thả tài liệu vào đây hoặc <span class="text-primary font-bold">chọn tệp từ thiết bị</span>
-                                </p>
-                                <p class="text-[10px] text-outline">
-                                    Hỗ trợ định dạng: PDF, JPG, PNG (Tối đa 5MB)
+                                    Kéo thả tài liệu vào đây hoặc <span class="text-primary font-bold">chọn tệp từ thiết bị</span>
                                 </p>
                             </div>
                         </div>
+                        <!-- File list preview -->
+                        <ul id="fileList" class="mt-2 space-y-1 hidden"></ul>
+                        <p id="fileError" class="text-xs text-red-600 hidden"></p>
                     </div>
                 </div>
 
@@ -359,52 +366,42 @@
 
     <!-- Interactive Client Script -->
     <script>
+        const MAX_DOC_COUNT = 10;
+        const MAX_DOC_SIZE_MB = 25;
+        const MAX_DOC_SIZE_BYTES = MAX_DOC_SIZE_MB * 1024 * 1024;
+        const ALLOWED_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'docx'];
+
         /**
-         * Switches the registration forms between Customer and Shop Owner
-         * @param {string} tabType - 'CUSTOMER' or 'SHOP_OWNER'
+         * Chuyển giữa tab Đăng ký khách hàng / Chủ cửa hàng
+         * @param {string} tabType - 'CUSTOMER' hoặc 'SHOP_OWNER'
          */
         function switchTab(tabType) {
             const hiddenInput = document.getElementById('accountType');
             const tabCustomer = document.getElementById('tabCustomer');
             const tabShop = document.getElementById('tabShop');
             const shopFields = document.getElementById('shopFields');
-            
-            // Get inputs inside shopFields
-            const shopInputs = shopFields.querySelectorAll('input');
+            const shopInputs = shopFields.querySelectorAll('input[required-for-shop]');
 
             hiddenInput.value = tabType;
 
             if (tabType === 'CUSTOMER') {
-                // Style tabs
                 tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
                 tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
-                
-                // Hide Advanced Fields
                 shopFields.classList.add('hidden');
-                
-                // Remove required flags for hidden fields
-                shopInputs.forEach(input => {
-                    input.removeAttribute('required');
-                });
+                // Xóa required khi ẩn
+                document.getElementById('storeName') && document.getElementById('storeName').removeAttribute('required');
+                document.getElementById('address') && document.getElementById('address').removeAttribute('required');
             } else {
-                // Style tabs
                 tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
                 tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
-                
-                // Show Advanced Fields
                 shopFields.classList.remove('hidden');
-                
-                // Add required flags for validation
-                document.getElementById('storeName').setAttribute('required', 'required');
-                document.getElementById('businessEmail').setAttribute('required', 'required');
-                document.getElementById('address').setAttribute('required', 'required');
+                document.getElementById('storeName') && document.getElementById('storeName').setAttribute('required', 'required');
+                document.getElementById('address') && document.getElementById('address').setAttribute('required', 'required');
             }
         }
 
         /**
-         * Toggle Password Fields visibility
-         * @param {string} inputId
-         * @param {HTMLButtonElement} btn
+         * Toggle ẩn/hiện mật khẩu
          */
         function togglePasswordVisibility(inputId, btn) {
             const input = document.getElementById(inputId);
@@ -419,20 +416,62 @@
         }
 
         /**
-         * Handles drag and drop or manual file selection visual feedbacks
-         * @param {HTMLInputElement} input
+         * Xử lý chọn file — validate số lượng, kích thước, định dạng phía client
          */
         function handleFileSelect(input) {
-            const label = document.getElementById('uploadLabel');
-            const fileCount = input.files.length;
-            if (fileCount > 0) {
-                label.innerHTML = `Đã chọn <span class="text-primary font-bold">${fileCount} tệp</span> tài liệu`;
+            const fileListEl = document.getElementById('fileList');
+            const fileErrorEl = document.getElementById('fileError');
+            const uploadLabel = document.getElementById('uploadLabel');
+            const files = Array.from(input.files);
+
+            // Reset trạng thái
+            fileListEl.innerHTML = '';
+            fileListEl.classList.add('hidden');
+            fileErrorEl.classList.add('hidden');
+            fileErrorEl.textContent = '';
+
+            let errors = [];
+
+            // Kiểm tra số lượng file
+            if (files.length > MAX_DOC_COUNT) {
+                errors.push(`Chỉ được chọn tối đa ${MAX_DOC_COUNT} tài liệu.`);
+            }
+
+            const validFiles = files.slice(0, MAX_DOC_COUNT);
+
+            validFiles.forEach((file, idx) => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-2 text-xs py-1 px-2 bg-white/50 rounded-lg border border-outline/20';
+
+                if (!ALLOWED_EXTS.includes(ext)) {
+                    errors.push(`File "${file.name}" không được hỗ trợ. Chỉ chấp nhận PDF, JPG, PNG, DOCX.`);
+                    li.classList.add('border-red-300', 'bg-red-50/50');
+                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} — Sai định dạng</span>`;
+                } else if (file.size > MAX_DOC_SIZE_BYTES) {
+                    errors.push(`File "${file.name}" vượt quá 25MB.`);
+                    li.classList.add('border-red-300', 'bg-red-50/50');
+                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} — Quá 25MB (${(file.size/1024/1024).toFixed(1)}MB)</span>`;
+                } else {
+                    li.innerHTML = `<span class="material-symbols-outlined text-primary text-[16px]">description</span><span class="text-on-surface">${file.name}</span><span class="ml-auto text-outline">${(file.size/1024/1024).toFixed(1)}MB</span>`;
+                }
+                fileListEl.appendChild(li);
+            });
+
+            if (validFiles.length > 0) {
+                fileListEl.classList.remove('hidden');
+                uploadLabel.innerHTML = `Đã chọn <span class="text-primary font-bold">${validFiles.length} tệp</span> tài liệu`;
             } else {
-                label.innerHTML = `Kéo và thả tài liệu vào đây hoặc <span class="text-primary font-bold">chọn tệp từ thiết bị</span>`;
+                uploadLabel.innerHTML = `Kéo thả tài liệu vào đây hoặc <span class="text-primary font-bold">chọn tệp từ thiết bị</span>`;
+            }
+
+            if (errors.length > 0) {
+                fileErrorEl.textContent = errors[0]; // Hiện lỗi đầu tiên
+                fileErrorEl.classList.remove('hidden');
             }
         }
 
-        // Auto restore correct tab on DOM content load
+        // Khôi phục tab đúng khi load lại trang
         document.addEventListener('DOMContentLoaded', () => {
             const currentType = document.getElementById('accountType').value;
             switchTab(currentType);

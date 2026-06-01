@@ -74,7 +74,7 @@ public class ProductVariantDAO extends BaseDAO {
      * Lưu một biến thể sản phẩm mới vào cơ sở dữ liệu.
      */
     public int save(ProductVariant variant) throws SQLException {
-        String sql = "INSERT INTO product_variants (product_id, sku, variant_label, price, stock_quantity, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO product_variants (product_id, sku, variant_label, price, stock_quantity, weight_kg, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, variant.getProductId());
@@ -82,7 +82,8 @@ public class ProductVariantDAO extends BaseDAO {
             ps.setString(3, variant.getVariantLabel());
             ps.setBigDecimal(4, variant.getPrice());
             ps.setInt(5, variant.getStockQuantity());
-            ps.setBoolean(6, variant.getIsActive());
+            ps.setBigDecimal(6, variant.getWeightKg() != null ? variant.getWeightKg() : new java.math.BigDecimal("1.0"));
+            ps.setBoolean(7, variant.getIsActive());
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -97,15 +98,16 @@ public class ProductVariantDAO extends BaseDAO {
      * Cập nhật thông tin của biến thể sản phẩm.
      */
     public void update(ProductVariant variant) throws SQLException {
-        String sql = "UPDATE product_variants SET sku = ?, variant_label = ?, price = ?, stock_quantity = ?, is_active = ?, updated_at = GETDATE() WHERE variant_id = ?";
+        String sql = "UPDATE product_variants SET sku = ?, variant_label = ?, price = ?, stock_quantity = ?, weight_kg = ?, is_active = ?, updated_at = GETDATE() WHERE variant_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, variant.getSku());
             ps.setString(2, variant.getVariantLabel());
             ps.setBigDecimal(3, variant.getPrice());
             ps.setInt(4, variant.getStockQuantity());
-            ps.setBoolean(5, variant.getIsActive());
-            ps.setInt(6, variant.getVariantId());
+            ps.setBigDecimal(5, variant.getWeightKg() != null ? variant.getWeightKg() : new java.math.BigDecimal("1.0"));
+            ps.setBoolean(6, variant.getIsActive());
+            ps.setInt(7, variant.getVariantId());
             ps.executeUpdate();
         }
     }
@@ -135,6 +137,23 @@ public class ProductVariantDAO extends BaseDAO {
         }
     }
 
+    /**
+     * Lấy số lượng tồn kho hiện tại của một biến thể sản phẩm.
+     */
+    public int getStockQuantity(int variantId) throws SQLException {
+        String sql = "SELECT stock_quantity FROM product_variants WHERE variant_id = ? AND is_active = 1";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("stock_quantity");
+                }
+            }
+        }
+        return 0;
+    }
+
     /** Ánh xạ ResultSet -> ProductVariant */
     private ProductVariant mapRow(ResultSet rs) throws SQLException {
         ProductVariant pv = new ProductVariant();
@@ -145,6 +164,7 @@ public class ProductVariantDAO extends BaseDAO {
         pv.setPrice(rs.getBigDecimal("price"));
         pv.setStockQuantity(rs.getInt("stock_quantity"));
         pv.setIsActive(rs.getBoolean("is_active"));
+        pv.setWeightKg(rs.getBigDecimal("weight_kg"));
         
         Timestamp createdAtVal = rs.getTimestamp("created_at");
         if (createdAtVal != null) {

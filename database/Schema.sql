@@ -47,6 +47,8 @@ CREATE TABLE shop_owner_profiles (
     approved_at DATETIME NULL,
     delivery_address NVARCHAR(500) NULL,
     rating DECIMAL(3,2) NOT NULL DEFAULT 0,
+    preferred_categories NVARCHAR(500) NULL,
+    doc_paths NVARCHAR(MAX) NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
@@ -99,6 +101,7 @@ CREATE TABLE product_variants (
     variant_label NVARCHAR(100) NOT NULL,
     price DECIMAL(12,2) NOT NULL,
     stock_quantity INT NOT NULL DEFAULT 0,
+    weight_kg DECIMAL(6,3) NOT NULL DEFAULT 1.000 CHECK (weight_kg > 0.000),
    
     is_active BIT NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
@@ -307,6 +310,7 @@ CREATE TABLE reviews (
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     review_text NVARCHAR(1000) NULL,
+    review_image_url NVARCHAR(500) NULL,
     is_hidden BIT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     CONSTRAINT UQ_review_customer_item UNIQUE (customer_id, order_item_id)

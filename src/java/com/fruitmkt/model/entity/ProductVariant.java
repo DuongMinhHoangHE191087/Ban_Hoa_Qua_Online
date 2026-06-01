@@ -14,6 +14,7 @@ public class ProductVariant {
     private java.math.BigDecimal price;
     private int stockQuantity;
     private boolean isActive;
+    private java.math.BigDecimal weightKg;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
@@ -39,6 +40,9 @@ public class ProductVariant {
 
     public boolean getIsActive() { return isActive; }
     public void setIsActive(boolean isActive) { this.isActive = isActive; }
+
+    public java.math.BigDecimal getWeightKg() { return weightKg; }
+    public void setWeightKg(java.math.BigDecimal weightKg) { this.weightKg = weightKg; }
 
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }

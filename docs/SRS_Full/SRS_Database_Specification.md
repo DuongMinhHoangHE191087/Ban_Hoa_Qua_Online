@@ -13,36 +13,129 @@
 
 Below is the software architectural diagram representing the system's structural layout, sub-systems, components, and communication flows. It adheres to the classic layered (multi-tier) architectural pattern for enterprise Java web applications, ensuring a clean separation of concerns.
 
-![Software Architecture Diagram](file:///C:/Users/Admin/.gemini/antigravity-ide/brain/78e07daf-ef98-45c1-8c11-41094e6f254a/system_architecture_diagram_1779294951731.png)
+![Software Architecture Diagram](file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/docs/SRS_Full/software_architecture_diagram.png)
 
-#### Explanation of Diagram Components
+#### 1.1.1 Structural Architecture Flowchart (Mermaid.js)
 
-1. **Web Browser (Client Layer)**:
-   * **Role**: The frontend client where users (Customers, Shop Owners, Delivery Staff, Admins) interact with the application.
-   * **Communication**: Initiates operations by dispatching **HTTP Requests** (GET, POST) and renders the corresponding **HTTP Responses** containing processed HTML/CSS/JS.
+The following interactive sequence-and-layered diagram illustrates how client requests cross system layers, pass through filters, trigger handlers, fetch data from services and DAOs, and retrieve values from the relational database:
 
-2. **System Architecture (Application Server Layer)**:
-   * **Presentation Logic Layer (Servlet: Controller)**:
-     * **Role**: Acts as the traffic controller (MVC Controller). It intercepts incoming HTTP Requests, parses parameters, performs basic input validation, and delegates business requests to the Service Layer.
-     * **Example**: `ProductController`, `OrderController`, `UserController`.
-   * **User Interface (UI: JSP + JSTL)**:
-     * **Role**: The view engine (MVC View) that dynamically renders graphical interfaces using HTML, CSS, JavaScript, and Java Standard Tag Library (JSTL) based on data models supplied by the Controller.
-     * **Example**: `/web/WEB-INF/jsp/product/list.jsp`, `/web/WEB-INF/jsp/order/checkout.jsp`.
-   * **Service Layer (Java: Business Services)**:
-     * **Role**: The core brain of the application (Business Logic Layer). It implements strict business rules, handles transactions, manages calculations, and coordinates multiple Data Access Objects (DAOs) under unified operations.
-     * **Example**: `ProductService`, `OrderService`, `UserService`.
-   * **Data Access Layer (JDBC: DAO)**:
-     * **Role**: The persistence coordinator. It communicates directly with the database using JDBC (Java Database Connectivity) via SQL queries, preparing statements, executing commands, and parsing SQL result sets into Java Objects.
-     * **Example**: `ProductDAO`, `OrderDAO`, `UserDAO`.
-   * **Model Classes (Java Beans/POJOs)**:
-     * **Role**: Domain Models representing physical database entities in Java memory. They transfer data between layers.
-     * **Example**: `Product`, `Order`, `User`.
-   * **Common Classes (Java Utilities & Helpers)**:
-     * **Role**: General reusable utilities shared across all layers. Includes database connection pool managers (`DBContext`), custom filters (`AuthFilter`), cryptographic helpers (`HashUtility`), and constant enums.
-     * **Example**: `DBContext`, `BaseService`, `SecurityFilter`.
+```mermaid
+graph TB
+    %% Class definitions for high-end styling
+    classDef client fill:#E8F0FE,stroke:#1A73E8,stroke-width:2px,color:#1A73E8;
+    classDef filter fill:#FFF0F6,stroke:#D500F9,stroke-width:2px,color:#D500F9;
+    classDef controller fill:#FFF4E5,stroke:#FF6D00,stroke-width:2px,color:#FF6D00;
+    classDef view fill:#EAF6EC,stroke:#2E7D32,stroke-width:2px,color:#2E7D32;
+    classDef service fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px,color:#7B1FA2;
+    classDef dao fill:#E0F7FA,stroke:#00838F,stroke-width:2px,color:#00838F;
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#37474F;
+    classDef common fill:#F5F5F5,stroke:#616161,stroke-width:1px,color:#616161,stroke-dasharray: 5 5;
 
-3. **SQL Server (Database Layer)**:
-   * **Role**: The persistent relational database system. It stores the application state, guarantees ACID transactions, and enforces data integrity constraints (Primary Keys, Foreign Keys, Unique constraints, Check conditions).
+    %% Subgraphs representing structural layers
+    subgraph ClientLayer ["Client Layer (User Interface)"]
+        Browser["🖥️ Web Browser<br>(Customers, Shop Owners, Delivery, Admin)"]:::client
+        CSS_JS["🎨 Styles & Scripts<br>(Vanilla CSS, component JS)"]:::client
+    end
+
+    subgraph AppServer ["Application Server (Tomcat Servlet Container)"]
+        subgraph InterceptorTier ["Security & Filtering (Servlet Filters)"]
+            Filters["🛡️ Filters<br>(AuthFilter, CsrfFilter, RoleFilter,<br>EncodingFilter, SessionRestoreFilter)"]:::filter
+        end
+
+        subgraph PresentationTier ["Presentation Layer (MVC Architecture)"]
+            Controllers["🎮 Servlets / Controllers<br>(guest.*, auth.*, customer.*,<br>shop.*, admin.*, delivery.*, api.*)"]:::controller
+            Views["📄 View Engine (JSP & Custom Tags)<br>(/web/WEB-INF/jsp/, JSTL,<br>OrderStatusTag, PermissionTag)"]:::view
+        end
+
+        subgraph BusinessTier ["Business Logic Layer"]
+            Services["🧠 Business Services<br>(AuthService, ProductService, OrderService,<br>CartService, PaymentService, SettlementService)"]:::service
+        end
+
+        subgraph PersistenceTier ["Persistence Layer (JDBC DAOs)"]
+            DAOs["💾 Data Access Objects<br>(BaseDAO, UserDAO, ProductDAO,<br>OrderDAO, CartDAO, PaymentDAO)"]:::dao
+            DBConfig["🔌 Database Configurations<br>(AppConfig & DriverManager)"]:::dao
+        end
+    end
+
+    subgraph DBLayer ["Database Layer (Relational Storage)"]
+        SQLServer[("🗄️ SQL Server Database<br>(24 Tables, ACID, Foreign Keys,<br>Indexes & Constraints)")]:::db
+    end
+
+    subgraph CrossCutting ["Cross-Cutting Entities & Utilities"]
+        Models["📦 Models & DTOs<br>(Entities: Product, Order, User<br>DTOs: OrderSummaryDTO, CheckoutDTO)"]:::common
+        Utils["🛠️ Common Utilities<br>(ValidationUtil, TokenUtil,<br>HashUtil, SessionUtil, DateUtil)"]:::common
+    end
+
+    %% Communication flows
+    Browser -->|HTTP Request| Filters
+    Filters -->|Forward Request| Controllers
+    Controllers -->|Process / Bind Data| Views
+    Views -->|HTTP Response (HTML/CSS/JS)| Browser
+    CSS_JS -.-> Browser
+    
+    Controllers -->|Invoke Business Logic| Services
+    Services -->|Retrieve / Save Data| DAOs
+    DAOs -->|Get Connection via DriverManager| DBConfig
+    DBConfig -->|Parameterized SQL Queries| SQLServer
+    
+    %% Dependency Relationships
+    Services -.-> Models
+    DAOs -.-> Models
+    Controllers -.-> Models
+    Controllers -.-> Utils
+    Services -.-> Utils
+    Filters -.-> Utils
+```
+
+#### 1.1.2 Detailed Architecture Layer Specifications
+
+1. **Client Layer (Web Browser)**:
+   * **Role**: The entry point of user interaction where Customers, Shop Owners, Delivery Staff, and Admins operate the application.
+   * **Components**:
+     * Renders standard HTML5, custom-designed CSS layouts, and component-specific dynamic scripting (e.g., `web/assets/js/components/chat.js` for chat windows).
+     * Dispatches **HTTP Requests** (GET/POST) and consumes **HTTP Responses** containing server-side computed interfaces.
+
+2. **Application Server Layer (Tomcat Servlet Container)**:
+   * **Security & Filtering (Servlet Interceptors)**:
+     * **Role**: Intercepts, inspects, and filters all incoming HTTP requests before reaching controllers to ensure system security, role validation, and encoding uniformity.
+     * **Core Filters (`com.fruitmkt.filter.*`)**:
+       * `AuthFilter`: Enforces authentication checks across protected directories.
+       * `RoleFilter`: Restricts access to sensitive views based on the user's role (`CUSTOMER`, `SHOP_OWNER`, `DELIVERY`, `ADMIN`).
+       * `CsrfFilter`: Protects mutable forms against Cross-Site Request Forgery.
+       * `EncodingFilter`: Enforces global UTF-8 encoding.
+       * `SessionRestoreFilter` & `LoggingFilter`: Rescues persistent states and logs audit metrics.
+   * **Presentation Layer (MVC - Controller / Servlet)**:
+     * **Role**: Receives filtered HTTP requests, parses and validates fields (via `ValidationUtil`), binds parameters, delegates complex operations to the Service Layer, and forwards execution to the JSP view engine.
+     * **Core Packages (`com.fruitmkt.servlet.*`)**:
+       * `auth.*`: Servlets handling registration, login, OAuth, and password recovery (`LoginServlet`, `RegisterServlet`, `GoogleLoginServlet`).
+       * `customer.*` / `guest.*`: Client workflows (`HomeServlet`, `ProductListServlet`, `CartServlet`, `CheckoutServlet`, `OrderServlet`).
+       * `shop.*` / `admin.*`: Dashboards and managerial controls (`ShopDashboardServlet`, `ProductManageServlet`, `AdminDashboardServlet`).
+       * `delivery.*`: Logistics updates for delivery drivers (`DeliveryServlet`).
+       * `api.*`: Asynchronous JSON services & bank transfer webhooks (`PaymentWebhookServlet`).
+   * **View Engine Layer (MVC - View / JSP)**:
+     * **Role**: Formulates and renders final client-side markup dynamically using data objects pushed from servlets.
+     * **Core Components (`web/WEB-INF/jsp/` & `com.fruitmkt.tag.*`)**:
+       * Modular, secure JSPs kept hidden behind `WEB-INF` to prevent direct unauthenticated access.
+       * Reuse of shared fragments inside `/jsp/common/` (headers, sidebars, alerts).
+       * Custom JSTL Formatter taglibs like `CurrencyFormatTag`, `OrderStatusTag`, `PaginationTag`, `PermissionTag`, and `StarRatingTag`.
+   * **Business Logic Layer (Services)**:
+     * **Role**: The processing hub of business criteria, logic orchestration, and operations sequence. Enforces integrity constraints (e.g. validating warehouse availability and coupon stackability).
+     * **Core Services (`com.fruitmkt.service.*`)**:
+       * `AuthService`, `ProductService`, `OrderService`, `CartService`, `PaymentService`, `SettlementService`, `InventoryService`, `NotificationService`.
+   * **Data Access Layer (JDBC Persistence / DAO)**:
+     * **Role**: Performs atomic operations on relational tables using low-level JDBC connections. Encapsulates all SQL commands and parameter bindings.
+     * **Core Persistence (`com.fruitmkt.dao.*`)**:
+       * `BaseDAO`: Abstract parent providing secure SQL connection retrieval via `DriverManager` using standard credentials, and centralizing driver registrations.
+       * Entity-specific DAOs: `UserDAO`, `ProductDAO`, `OrderDAO`, `CartDAO`, `PaymentDAO`, `SettlementDAO`, `InventoryDAO`.
+   * **Cross-Cutting Utilities & Models**:
+     * **Role**: Reusable structures and static helper functions utilized across all application boundaries.
+     * **Entities (`com.fruitmkt.model.entity.*`)**: Clean POJO classes mapping exactly to database tables (e.g. `User`, `Product`, `Order`, `Delivery`, `Promotion`).
+     * **DTOs (`com.fruitmkt.model.dto.*`)**: Data transfer objects grouping aggregate fields for customized dashboard displays (e.g. `CartSummaryDTO`, `OrderSummaryDTO`, `CheckoutDTO`).
+     * **Utils (`com.fruitmkt.util.*`)**: Reusable tools (`TokenUtil`, `HashUtil` for BCrypt password hashing, `SessionUtil`, `JsonUtil`, `DateUtil`).
+
+3. **Database Layer (SQL Server Relational Storage)**:
+   * **Role**: Reliable relational storage engine containing the physical database schema composed of 24 fully-normalized tables (mapped from `users` through `notifications`). Enforces referential integrity (Foreign Key constraints), locks stock concurrently during checkouts, and handles audit history records.
+
 
 ---
 

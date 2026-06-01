@@ -103,11 +103,19 @@ public class UserDAO extends BaseDAO {
 }
 
     /**
-     * TODO: Implement — findAll()
+     * Retrieve all users.
      */
     public List<User> findAll() throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findAll()");
+        List<User> list = new ArrayList<>();
+        String sql = "SELECT * FROM users ORDER BY user_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        }
+        return list;
     }
 
     /**
@@ -146,11 +154,31 @@ public class UserDAO extends BaseDAO {
     }
 
     /**
-     * TODO: Implement — update(User user)
+     * Cập nhật thông tin cơ bản của User
      */
     public void update(User user) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: update(User user)");
+        String sql = "UPDATE users SET full_name = ?, phone = ?, user_address = ?, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, user.getFullName());
+            stmt.setString(2, user.getPhone());
+            stmt.setString(3, user.getUserAddress());
+            stmt.setInt(4, user.getUserId());
+            stmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Cập nhật trạng thái của User (Khóa/Mở khóa)
+     */
+    public boolean updateUserStatus(int userId, String status) throws SQLException {
+        String sql = "UPDATE users SET status = ?, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            stmt.setInt(2, userId);
+            return stmt.executeUpdate() > 0;
+        }
     }
 
     /**

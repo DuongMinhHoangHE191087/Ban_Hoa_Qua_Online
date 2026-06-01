@@ -65,12 +65,21 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         // Upload File
         // ------------------------------------------------------------------
-        /** Kích thước tối đa 1 file upload: 5 MB */
+        /** Kích thước tối đa 1 file upload ảnh sản phẩm: 5 MB */
         public static final long MAX_UPLOAD_SIZE_BYTES = 5L * 1024 * 1024;
         /** Thư mục upload relative với webapp root — tạo bằng FileUploadUtil */
         public static final String UPLOAD_DIR = "uploads";
         /** Các đuôi file ảnh được phép */
         public static final String[] ALLOWED_IMAGE_EXTS = { "jpg", "jpeg", "png", "webp" };
+
+        /** Kích thước tối đa 1 tài liệu xác minh shop: 25 MB */
+        public static final long MAX_SHOP_DOC_SIZE_BYTES = 25L * 1024 * 1024;
+        /** Số tài liệu tối đa upload trong 1 lần đăng ký shop */
+        public static final int MAX_SHOP_DOC_COUNT = 10;
+        /** Các đuôi file tài liệu được phép upload khi đăng ký shop */
+        public static final String[] ALLOWED_DOC_EXTS = { "pdf", "jpg", "jpeg", "png", "docx" };
+        /** Thư mục con lưu tài liệu xác minh shop, relative với webapp root */
+        public static final String UPLOAD_SHOP_DOCS_DIR = "uploads/shop-docs";
 
         // ------------------------------------------------------------------
         // Session Keys — dùng thống nhất trong toàn bộ code
