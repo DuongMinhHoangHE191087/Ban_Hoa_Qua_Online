@@ -100,6 +100,97 @@ public class EmailTemplateService {
                 footerHtml);
     }
 
+    /**
+     * Template email xác nhận đã nhận đơn đăng ký shop.
+     * Gửi ngay sau khi người dùng nộp đơn thành công.
+     */
+    public String buildShopApplicationReceivedEmail(String ownerName, String shopName) {
+        String mainHtml = "<div style='background:#f0f8f3;border:1px solid #c8e2d0;border-radius:14px;"
+                + "padding:16px 20px;margin:16px 0;'>"
+                + "<p style='margin:0 0 8px;font-size:13px;color:#607166;'>Tên cửa hàng đăng ký</p>"
+                + "<p style='margin:0;font-size:18px;font-weight:800;color:#14532d;'>"
+                + escapeHtml(shopName) + "</p>"
+                + "<p style='margin:12px 0 0;font-size:13px;color:#1f2937;'>"
+                + "Trạng thái: <strong style='color:#92400e;'>⏳ Đang chờ xét duyệt</strong></p>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#607166;margin:12px 0 0;'>"
+                + "Thời gian xét duyệt thông thường là <strong>1-3 ngày làm việc</strong>. "
+                + "Chúng tôi sẽ thông báo kết quả qua email này.</p>";
+
+        String footerHtml = "Nếu bạn không thực hiện đăng ký này, hãy liên hệ bộ phận hỗ trợ."
+                + "<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "Đã nhận đơn đăng ký gian hàng",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(ownerName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Chúng tôi đã nhận được đơn đăng ký mở gian hàng của bạn. "
+                + "Đội ngũ kiểm duyệt sẽ xem xét thông tin và tài liệu bạn cung cấp.</p>",
+                mainHtml,
+                "Xem trạng thái đơn",
+                AppConfig.APP_BASE_URL + "/customer/shop-apply",
+                footerHtml);
+    }
+
+    /**
+     * Template email thông báo shop đã được APPROVE.
+     * Gửi khi Admin duyệt thành công.
+     */
+    public String buildShopApprovedEmail(String ownerName, String shopName) {
+        String mainHtml = "<div style='background:#f0f8f3;border:2px solid #14532d;border-radius:14px;"
+                + "padding:18px 22px;margin:16px 0;text-align:center;'>"
+                + "<div style='font-size:36px;margin-bottom:8px;'>🎉</div>"
+                + "<p style='margin:0 0 6px;font-size:15px;font-weight:800;color:#14532d;'>"
+                + escapeHtml(shopName) + "</p>"
+                + "<p style='margin:0;font-size:13px;color:#065f46;font-weight:700;'>"
+                + "✅ ĐÃ ĐƯỢC PHÊ DUYỆT</p>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#1f2937;margin:12px 0;'>"
+                + "Bạn có thể <strong>đăng nhập lại</strong> và bắt đầu quản lý gian hàng ngay hôm nay. "
+                + "Chào mừng bạn trở thành đối tác chính thức của " + escapeHtml(AppConfig.APP_NAME) + "!</p>";
+
+        String footerHtml = "Cảm ơn bạn đã lựa chọn " + escapeHtml(AppConfig.APP_NAME) + " làm nền tảng kinh doanh."
+                + "<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "🎉 Chúc mừng! Gian hàng đã được duyệt",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(ownerName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Sau khi xem xét, chúng tôi vui mừng thông báo đơn đăng ký "
+                + "mở gian hàng của bạn đã được <strong style='color:#14532d;'>PHÊ DUYỆT</strong>.</p>",
+                mainHtml,
+                "Vào Dashboard bán hàng",
+                AppConfig.APP_BASE_URL + "/shop/dashboard",
+                footerHtml);
+    }
+
+    /**
+     * Template email thông báo đơn đăng ký shop bị REJECT.
+     * Gửi khi Admin từ chối đơn.
+     */
+    public String buildShopRejectedEmail(String ownerName, String shopName, String rejectionReason) {
+        String mainHtml = "<div style='background:#fff5f5;border:1px solid #fca5a5;border-radius:14px;"
+                + "padding:16px 20px;margin:16px 0;'>"
+                + "<p style='margin:0 0 8px;font-size:13px;color:#991b1b;font-weight:700;'>Lý do từ chối:</p>"
+                + "<p style='margin:0;font-size:14px;color:#1f2937;'>"
+                + escapeHtml(rejectionReason) + "</p>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#607166;margin:12px 0;'>"
+                + "Bạn có thể cập nhật thông tin và nộp lại đơn đăng ký. "
+                + "Nếu cần hỗ trợ, hãy liên hệ chúng tôi qua email hỗ trợ bên dưới.</p>";
+
+        String footerHtml = "Chúng tôi mong được hỗ trợ bạn trong tương lai."
+                + "<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "Thông báo về đơn đăng ký gian hàng",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(ownerName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Rất tiếc, đơn đăng ký mở gian hàng <strong>"
+                + escapeHtml(shopName) + "</strong> của bạn chưa đáp ứng điều kiện phê duyệt lần này.</p>",
+                mainHtml,
+                "Nộp lại đơn đăng ký",
+                AppConfig.APP_BASE_URL + "/customer/shop-apply",
+                footerHtml);
+    }
+
     // ── Core layout builder (dùng nội bộ) ─────────────────────────────────
 
     /**

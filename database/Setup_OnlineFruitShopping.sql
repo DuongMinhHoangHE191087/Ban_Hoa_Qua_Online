@@ -72,6 +72,8 @@ BEGIN
         approved_at DATETIME NULL,
         delivery_address NVARCHAR(500) NULL,
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_shop_owner_profiles_rating DEFAULT 0,
+        preferred_categories NVARCHAR(500) NULL,
+        doc_paths NVARCHAR(MAX) NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_shop_owner_profiles_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id)
@@ -730,7 +732,11 @@ BEGIN TRY
         (12, N'Trần Thị Mai', N'maitt@gmail.com', N'hash', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
         (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'hash', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
         (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'hash', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bà Trưng', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'hash', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
+        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'hash', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$Lz/F.3YxJd6U14p5I2g0iO6y1QG2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$R.Oa3f4eM3lVjDlyUoW9cO4G2.Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$U.Oa3f4eM3lVjDlyUoW9cO4G2.Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -743,11 +749,12 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.user_sessions OFF;
 
     SET IDENTITY_INSERT dbo.shop_owner_profiles ON;
-    INSERT INTO dbo.shop_owner_profiles (profile_id, user_id, shop_name, shop_description, approval_status, rejection_reason, approved_at, delivery_address, rating, created_at, updated_at)
+    INSERT INTO dbo.shop_owner_profiles (profile_id, user_id, shop_name, shop_description, approval_status, rejection_reason, approved_at, delivery_address, rating, preferred_categories, doc_paths, created_at, updated_at)
     VALUES
-        (1, 3, N'An Phu Orchard', N'Premium citrus and banana supplier', N'APPROVED', NULL, '2026-05-02T10:00:00', N'12 Le Loi, District 1, HCMC', 4.88, '2026-05-02T10:00:00', '2026-05-16T08:00:00'),
-        (2, 4, N'Mekong Fresh Farm', N'Mango, berries, and grapes specialist', N'APPROVED', NULL, '2026-05-03T10:00:00', N'88 Nguyen Trai, District 5, HCMC', 4.76, '2026-05-03T10:00:00', '2026-05-16T08:00:00'),
-        (3, 7, N'Klever Premium Fruits', N'Imported fruits, gift boxes, and seasonal premium selections', N'APPROVED', NULL, '2026-05-04T10:00:00', N'52 Vo Thi Sau, District 3, HCMC', 4.91, '2026-05-04T10:00:00', '2026-05-16T08:00:00');
+        (1, 3, N'An Phu Orchard', N'Premium citrus and banana supplier', N'APPROVED', NULL, '2026-05-02T10:00:00', N'12 Le Loi, District 1, HCMC', 4.88, N'[1,2,3]', N'["uploads/shop-docs/3/doc1.pdf"]', '2026-05-02T10:00:00', '2026-05-16T08:00:00'),
+        (2, 4, N'Mekong Fresh Farm', N'Mango, berries, and grapes specialist', N'APPROVED', NULL, '2026-05-03T10:00:00', N'88 Nguyen Trai, District 5, HCMC', 4.76, N'[2,3,6]', N'["uploads/shop-docs/4/doc1.pdf"]', '2026-05-03T10:00:00', '2026-05-16T08:00:00'),
+        (3, 7, N'Klever Premium Fruits', N'Imported fruits, gift boxes, and seasonal premium selections', N'APPROVED', NULL, '2026-05-04T10:00:00', N'52 Vo Thi Sau, District 3, HCMC', 4.91, N'[4,10]', N'["uploads/shop-docs/7/doc1.pdf"]', '2026-05-04T10:00:00', '2026-05-16T08:00:00'),
+        (4, 21, N'MetaFruit Test Shop', N'Cửa hàng hoa quả tươi sạch phục vụ kiểm thử', N'APPROVED', NULL, GETDATE(), N'100 Láng Hạ, Hà Nội', 5.00, N'[1,2,5]', N'["uploads/shop-docs/21/doc1.pdf"]', GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.shop_owner_profiles OFF;
 
     SET IDENTITY_INSERT dbo.categories ON;
@@ -899,7 +906,9 @@ BEGIN TRY
     INSERT INTO dbo.cart (cart_id, customer_id, created_at, updated_at)
     VALUES
         (1, 5, '2026-05-15T08:10:00', '2026-05-16T08:00:00'),
-        (2, 6, '2026-05-15T09:10:00', '2026-05-16T08:00:00');
+        (2, 6, '2026-05-15T09:10:00', '2026-05-16T08:00:00'),
+        (3, 21, GETDATE(), GETDATE()),
+        (4, 23, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.cart OFF;
 
     SET IDENTITY_INSERT dbo.cart_items ON;
