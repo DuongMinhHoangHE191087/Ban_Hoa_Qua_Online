@@ -193,6 +193,22 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
+     * Hoàn trả lại số lượng tồn kho cho các sản phẩm trong đơn hàng.
+     */
+    public void restoreInventoryStock(int orderId) throws SQLException {
+        String sql = "UPDATE pv "
+                   + "SET pv.stock_quantity = pv.stock_quantity + oi.quantity "
+                   + "FROM product_variants pv "
+                   + "JOIN order_items oi ON pv.variant_id = oi.variant_id "
+                   + "WHERE oi.order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
      * Lấy owner_id của sản phẩm chứa variant được chỉ định.
      * Dùng khi tạo đơn hàng để xác định chủ shop.
      *

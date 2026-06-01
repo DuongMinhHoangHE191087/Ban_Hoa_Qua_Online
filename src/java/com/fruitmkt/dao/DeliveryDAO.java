@@ -62,6 +62,22 @@ public class DeliveryDAO extends BaseDAO {
         }
     }
 
+    public void assignShipper(int orderId, int staffId, java.time.LocalDateTime estimatedTime) throws SQLException {
+        String sql = "INSERT INTO deliveries (order_id, staff_id, status, estimated_delivery_time, created_at, updated_at) "
+                   + "VALUES (?, ?, 'ASSIGNED', ?, GETDATE(), GETDATE())";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            if (staffId > 0) {
+                ps.setInt(2, staffId);
+            } else {
+                ps.setNull(2, Types.INTEGER); // Chờ phân công
+            }
+            ps.setTimestamp(3, estimatedTime != null ? Timestamp.valueOf(estimatedTime) : null);
+            ps.executeUpdate();
+        }
+    }
+
     private Delivery mapRow(ResultSet rs) throws SQLException {
         Delivery d = new Delivery();
         d.setDeliveryId(rs.getInt("delivery_id"));
