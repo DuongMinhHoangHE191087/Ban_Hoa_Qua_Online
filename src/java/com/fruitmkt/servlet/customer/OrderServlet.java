@@ -28,38 +28,70 @@ import java.io.IOException;
 @WebServlet("/orders")
 public class OrderServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final OrderService orderService = new OrderService();
+    private final com.fruitmkt.dao.OrderDAO orderDAO = new com.fruitmkt.dao.OrderDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/customer/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: OrderServlet");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
+        if (user == null || user.getRoleId() != 2) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        String pageStr = req.getParameter("page");
+        int page = 1;
+        if (pageStr != null && !pageStr.trim().isEmpty()) {
+            try {
+                page = Integer.parseInt(pageStr);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        try {
+            int pageSize = 10;
+            java.util.List<com.fruitmkt.model.entity.Order> list = orderDAO.findByCustomer(user.getUserId(), page, pageSize);
+            req.setAttribute("orders", list);
+            req.setAttribute("currentPage", page);
+            req.getRequestDispatcher("/WEB-INF/jsp/customer/orders.jsp").forward(req, resp);
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Đọc params / JSON body
-        //        2. Validate input
-        //        3. Gọi service
-        //        4. Set flash message
-        //        5. Redirect (PRG pattern)
-        //
-        // Ví dụ:
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Thành công!");
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
-        // resp.sendRedirect(req.getContextPath() + "/..");
-        throw new UnsupportedOperationException("doPost not implemented: OrderServlet");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
+        if (user == null || user.getRoleId() != 2) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        String action = req.getParameter("action");
+        String orderIdStr = req.getParameter("orderId");
+        int orderId;
+        try {
+            orderId = Integer.parseInt(orderIdStr);
+        } catch (Exception e) {
+            resp.sendRedirect(req.getContextPath() + "/orders");
+            return;
+        }
+
+        try {
+            if ("confirmDelivery".equals(action)) {
+                orderService.customerConfirmDelivery(orderId, user.getUserId());
+                SessionUtil.setFlashMessage(req, "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
+            } else if ("cancel".equals(action)) {
+                String reason = req.getParameter("reason");
+                orderService.cancelOrder(orderId, user.getUserId(), reason);
+                SessionUtil.setFlashMessage(req, "Bạn đã hủy đơn hàng thành công!", "success");
+            }
+        } catch (Exception e) {
+            SessionUtil.setFlashMessage(req, "Lỗi: " + e.getMessage(), "error");
+        }
+        
+        resp.sendRedirect(req.getContextPath() + "/orders");
     }
 
 }

@@ -44,4 +44,8 @@ public class DeliveryService {
     public void updateEstimatedTime(int deliveryId, LocalDateTime estimatedTime) throws SQLException {
         deliveryDAO.updateEstimatedTime(deliveryId, estimatedTime);
     }
+
+    public void assignShipper(int orderId, int staffId, LocalDateTime estimatedTime) throws SQLException {
+        deliveryDAO.assignShipper(orderId, staffId, estimatedTime);
+    }
 }

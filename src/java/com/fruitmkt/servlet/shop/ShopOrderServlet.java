@@ -29,38 +29,89 @@ import java.io.IOException;
 @WebServlet("/shop/orders")
 public class ShopOrderServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final OrderService orderService = new OrderService();
+    private final DeliveryService deliveryService = new DeliveryService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/shop/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: ShopOrderServlet");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
+        if (user == null || user.getRoleId() != 3) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ chủ shop mới được truy cập!");
+            return;
+        }
+
+        String status = req.getParameter("status");
+        String pageStr = req.getParameter("page");
+        int page = 1;
+        if (pageStr != null && !pageStr.trim().isEmpty()) {
+            try {
+                page = Integer.parseInt(pageStr);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        try {
+            com.fruitmkt.model.dto.PagedResultDTO dto = orderService.shopOrders(user.getUserId(), status, page);
+            req.setAttribute("orders", dto.getItems());
+            req.setAttribute("currentPage", page);
+            req.setAttribute("status", status);
+            req.getRequestDispatcher("/WEB-INF/jsp/shop/orders.jsp").forward(req, resp);
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Đọc params / JSON body
-        //        2. Validate input
-        //        3. Gọi service
-        //        4. Set flash message
-        //        5. Redirect (PRG pattern)
-        //
-        // Ví dụ:
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Thành công!");
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
-        // resp.sendRedirect(req.getContextPath() + "/..");
-        throw new UnsupportedOperationException("doPost not implemented: ShopOrderServlet");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req);
+        if (user == null || user.getRoleId() != 3) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        String action = req.getParameter("action");
+        String orderIdStr = req.getParameter("orderId");
+        int orderId;
+        try {
+            orderId = Integer.parseInt(orderIdStr);
+        } catch (Exception e) {
+            resp.sendRedirect(req.getContextPath() + "/shop/orders");
+            return;
+        }
+
+        try {
+            if ("approve".equals(action)) {
+                orderService.confirmOrder(orderId, user.getUserId());
+                SessionUtil.setFlashMessage(req, "Đã duyệt đơn hàng thành công!", "success");
+            } else if ("reject".equals(action)) {
+                String reason = req.getParameter("reason");
+                orderService.cancelOrder(orderId, user.getUserId(), reason);
+                SessionUtil.setFlashMessage(req, "Đã hủy đơn hàng và hoàn lại tồn kho!", "success");
+            } else if ("dispatch".equals(action)) {
+                String estimateStr = req.getParameter("estimatedDeliveryTime");
+                orderService.dispatchOrder(orderId, user.getUserId());
+                
+                // Add to deliveries table (assign to a default shipper for now or leave unassigned)
+                com.fruitmkt.model.entity.Delivery delivery = new com.fruitmkt.model.entity.Delivery();
+                delivery.setOrderId(orderId);
+                // default delivery status
+                delivery.setDeliveryStatus("ASSIGNED");
+                
+                if (estimateStr != null && !estimateStr.trim().isEmpty()) {
+                    // Expect format: yyyy-MM-dd'T'HH:mm
+                    delivery.setEstimatedDeliveryTime(java.time.LocalDateTime.parse(estimateStr));
+                }
+                // Call delivery service to save
+                deliveryService.assignShipper(orderId, -1, delivery.getEstimatedDeliveryTime()); // dummy assign
+                
+                SessionUtil.setFlashMessage(req, "Đã giao đơn hàng cho vận chuyển!", "success");
+            }
+        } catch (Exception e) {
+            SessionUtil.setFlashMessage(req, "Lỗi: " + e.getMessage(), "error");
+        }
+        
+        resp.sendRedirect(req.getContextPath() + "/shop/orders");
     }
 
 }
