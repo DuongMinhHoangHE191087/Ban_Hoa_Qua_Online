@@ -142,6 +142,7 @@ BEGIN
         variant_label NVARCHAR(100) NOT NULL,
         price DECIMAL(12,2) NOT NULL,
         stock_quantity INT NOT NULL CONSTRAINT DF_product_variants_stock_quantity DEFAULT 0,
+        weight_kg DECIMAL(6,3) NOT NULL CONSTRAINT DF_product_variants_weight_kg DEFAULT 1.000 CHECK (weight_kg > 0.000),
         is_active BIT NOT NULL CONSTRAINT DF_product_variants_is_active DEFAULT 1,
         created_at DATETIME NOT NULL CONSTRAINT DF_product_variants_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_product_variants_updated_at DEFAULT GETDATE(),
