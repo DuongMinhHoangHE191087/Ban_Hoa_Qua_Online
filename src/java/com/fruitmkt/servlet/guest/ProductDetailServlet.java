@@ -80,7 +80,7 @@ public class ProductDetailServlet extends HttpServlet {
         try {
             // 2. Đọc thông tin chi tiết sản phẩm (Đồng thời tự động tăng lượt xem)
             Product product = productService.getProductDetail(productId);
-            if (product == null) {
+            if (product == null || !"ACTIVE".equals(product.getStatus())) {
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Sản phẩm yêu cầu không tồn tại hoặc đã bị ẩn.");
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "warning");
                 resp.sendRedirect(req.getContextPath() + "/home");

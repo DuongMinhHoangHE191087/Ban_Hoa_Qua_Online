@@ -3,6 +3,7 @@
 -- GO
 -- USE OnlineFruitShopping;
 -- GO
+drop database OnlineFruitShopping
 
 -- 1. users [cite: 36]
 CREATE TABLE users (
