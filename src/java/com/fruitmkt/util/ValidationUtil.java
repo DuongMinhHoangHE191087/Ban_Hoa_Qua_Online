@@ -54,6 +54,21 @@ public final class ValidationUtil {
         return PHONE_PATTERN.matcher(phone.trim()).matches();
     }
 
+    /**
+     * Chuẩn hóa số điện thoại về định dạng bắt đầu bằng '0' duy nhất, loại bỏ ký tự không phải số.
+     * Ví dụ: "+84 987 654 321" -> "0987654321", "0987-654-321" -> "0987654321"
+     */
+    public static String normalizePhone(String phone) {
+        if (phone == null) return null;
+        String clean = phone.trim().replaceAll("[^0-9+]", "");
+        if (clean.startsWith("+84")) {
+            clean = "0" + clean.substring(3);
+        } else if (clean.startsWith("84") && clean.length() > 9) {
+            clean = "0" + clean.substring(2);
+        }
+        return clean;
+    }
+
     /** Kiểm tra mật khẩu đủ mạnh (8–64 ký tự) */
     public static boolean isValidPassword(String pwd) {
         return isValidPassword(pwd, PASSWORD_MIN_LEN, PASSWORD_MAX_LEN);
@@ -186,7 +201,8 @@ public final class ValidationUtil {
 
     /** Yêu cầu số điện thoại VN hợp lệ */
     public static String requireValidPhone(String phone, String fieldLabel) throws Exception {
-        String v = requireNotBlank(phone, fieldLabel);
+        String normalized = normalizePhone(phone);
+        String v = requireNotBlank(normalized, fieldLabel);
         if (!isValidPhone(v)) {
             throw new Exception(fieldLabel + " không đúng định dạng (10 số, đầu 03x/05x/07x/08x/09x)!");
         }

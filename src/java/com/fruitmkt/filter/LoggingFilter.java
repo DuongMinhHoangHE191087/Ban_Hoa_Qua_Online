@@ -13,7 +13,6 @@ import java.util.logging.Logger;
  * THỨ TỰ CHẠY: 2
  * @author fruitmkt-team
  */
-@WebFilter("/*")
 public class LoggingFilter implements Filter {
 
     private static final Logger LOG = Logger.getLogger(LoggingFilter.class.getName());

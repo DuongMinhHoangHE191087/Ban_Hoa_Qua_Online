@@ -91,7 +91,7 @@ public class ShopApplyServlet extends HttpServlet {
         // Kiểm tra CSRF
         String sessionCsrf = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
         String reqCsrf = req.getParameter("_csrf");
-        if (sessionCsrf != null && !sessionCsrf.equals(reqCsrf)) {
+        if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
             forwardWithError(req, resp, currentUser, "CSRF token không hợp lệ. Vui lòng thử lại.");
             return;
         }

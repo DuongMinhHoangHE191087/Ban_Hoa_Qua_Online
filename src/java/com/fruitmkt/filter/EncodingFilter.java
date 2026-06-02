@@ -9,7 +9,6 @@ import java.io.IOException;
  * THỨ TỰ CHẠY: 1 (đầu tiên trong chain)
  * @author fruitmkt-team
  */
-@WebFilter("/*")
 public class EncodingFilter implements Filter {
 
     @Override
