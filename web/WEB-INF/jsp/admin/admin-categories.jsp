@@ -57,7 +57,7 @@
             </header>
             
             <div class="admin-content">
-                <jsp:include page="/WEB-INF/jsp/common/flash-message.jsp" />
+                <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
                 
                 <div class="admin-panel">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
@@ -90,21 +90,21 @@
                                                 <td>${c.slug}</td>
                                                 <td>${c.displayOrder}</td>
                                                 <td>
-                                                    <span class="category-status-badge ${c.isActive ? 'status-ACTIVE' : 'status-INACTIVE'}">
-                                                        ${c.isActive ? 'Hiện' : 'Ẩn'}
+                                                    <span class="category-status-badge ${c.getIsActive() ? 'status-ACTIVE' : 'status-INACTIVE'}">
+                                                        ${c.getIsActive() ? 'Hiện' : 'Ẩn'}
                                                     </span>
                                                 </td>
                                                 <td>
                                                     <div class="table-actions">
-                                                        <button class="btn btn-sm btn-secondary" onclick="openEditModal(${c.categoryId}, '${c.name}', '${c.slug}', ${c.displayOrder}, ${c.isActive})">
+                                                        <button class="btn btn-sm btn-secondary" onclick="openEditModal(${c.categoryId}, '${c.name}', '${c.slug}', ${c.displayOrder}, ${c.getIsActive()})">
                                                             <i class="fa-solid fa-pen"></i> Sửa
                                                         </button>
                                                         
                                                         <form method="post" action="${pageContext.request.contextPath}/admin/categories" style="display:inline;">
                                                             <input type="hidden" name="action" value="toggle">
                                                             <input type="hidden" name="categoryId" value="${c.categoryId}">
-                                                            <button type="submit" class="btn btn-sm ${c.isActive ? 'btn-danger' : 'btn-success'}">
-                                                                <i class="fa-solid ${c.isActive ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                                                            <button type="submit" class="btn btn-sm ${c.getIsActive() ? 'btn-danger' : 'btn-success'}">
+                                                                <i class="fa-solid ${c.getIsActive() ? 'fa-eye-slash' : 'fa-eye'}"></i>
                                                             </button>
                                                         </form>
                                                         

@@ -75,7 +75,7 @@
     <jsp:include page="/WEB-INF/jsp/common/header.jsp" />
 
     <main class="container" style="min-height: 60vh;">
-        <jsp:include page="/WEB-INF/jsp/common/flash-message.jsp" />
+        <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
         
         <div class="review-container">
             <h1 style="font-size: 1.5rem; margin-bottom: 20px;">Đánh giá Sản phẩm</h1>

@@ -61,7 +61,7 @@ public class ShopApprovalServlet extends HttpServlet {
             req.setAttribute("errorMsg", "Không thể tải danh sách. Vui lòng thử lại.");
         }
 
-        req.getRequestDispatcher("/WEB-INF/jsp/admin/shop-approval.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/jsp/admin/shop-approvals.jsp").forward(req, resp);
     }
 
     @Override
