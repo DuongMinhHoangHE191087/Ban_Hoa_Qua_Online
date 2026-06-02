@@ -1,0 +1,3 @@
+-- Phase 3: Update check constraint for status
+ALTER TABLE orders DROP CONSTRAINT CK_orders_status;
+ALTER TABLE orders ADD CONSTRAINT CK_orders_status CHECK (status IN ('PENDING_PAYMENT','CONFIRMED','PREPARING','APPROVED','DISPATCHED','DELIVERED','CANCELLED','PAYMENT_FAILED','EXPIRED'));

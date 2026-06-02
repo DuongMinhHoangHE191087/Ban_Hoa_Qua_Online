@@ -15,6 +15,8 @@ import java.sql.SQLException;
  */
 public class OrderService {
 
+    private final com.fruitmkt.dao.OrderDAO orderDAO = new com.fruitmkt.dao.OrderDAO();
+
     /**
      * TODO: Implement — xem SRS / use case tương ứng
      */
@@ -27,8 +29,9 @@ public class OrderService {
      * TODO: Implement — xem SRS / use case tương ứng
      */
     public com.fruitmkt.model.entity.Order getOrderDetail(int orderId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: getOrderDetail(int orderId)");
+        java.util.List<com.fruitmkt.model.entity.Order> list = orderDAO.findById(orderId);
+        if (list.isEmpty()) return null;
+        return list.get(0);
     }
 
     /**
@@ -40,27 +43,75 @@ public class OrderService {
     }
 
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Cập nhật đơn hàng thành APPROVED (Duyệt đơn)
      */
     public void confirmOrder(int orderId, int ownerId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: confirmOrder(int orderId, int ownerId)");
+        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
+        if (order == null || order.getOwnerId() != ownerId) {
+            throw new RuntimeException("Đơn hàng không hợp lệ hoặc bạn không có quyền duyệt!");
+        }
+        if (!"PENDING_PAYMENT".equals(order.getStatus()) && !"CONFIRMED".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể duyệt đơn hàng ở trạng thái PENDING hoặc CONFIRMED");
+        }
+        orderDAO.updateStatus(orderId, "APPROVED");
     }
 
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Hủy đơn hàng và hoàn trả tồn kho.
      */
     public void cancelOrder(int orderId, int cancelledBy, String reason) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: cancelOrder(int orderId, int cancelledBy, String reason)");
+        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
+        if (order == null) {
+            throw new RuntimeException("Đơn hàng không tồn tại!");
+        }
+        if ("DELIVERED".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
+            throw new RuntimeException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm!");
+        }
+        
+        // Cập nhật DB trạng thái CANCELLED
+        orderDAO.cancel(orderId, cancelledBy, reason);
+        // Hoàn trả tồn kho
+        orderDAO.restoreInventoryStock(orderId);
     }
 
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Lấy danh sách đơn hàng cho Shop
      */
     public com.fruitmkt.model.dto.PagedResultDTO shopOrders(int ownerId, String status, int page) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: shopOrders(int ownerId, String status, int page)");
+        int pageSize = 10;
+        java.util.List<com.fruitmkt.model.entity.Order> list = orderDAO.findByOwner(ownerId, status, page, pageSize);
+        // Chưa đếm tổng số trang, tạm trả về list
+        com.fruitmkt.model.dto.PagedResultDTO dto = new com.fruitmkt.model.dto.PagedResultDTO();
+        dto.setItems(list);
+        dto.setCurrentPage(page);
+        return dto;
     }
 
+    /**
+     * Chuyển trạng thái sang DISPATCHED và có thể gọi DeliveryService để tạo bản ghi phân công.
+     */
+    public void dispatchOrder(int orderId, int ownerId) throws SQLException {
+        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
+        if (order == null || order.getOwnerId() != ownerId) {
+            throw new RuntimeException("Đơn hàng không hợp lệ!");
+        }
+        if (!"APPROVED".equals(order.getStatus()) && !"PREPARING".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
+        }
+        orderDAO.updateStatus(orderId, "DISPATCHED");
+    }
+
+    /**
+     * Khách hàng xác nhận đã nhận hàng
+     */
+    public void customerConfirmDelivery(int orderId, int customerId) throws SQLException {
+        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
+        if (order == null || order.getCustomerId() != customerId) {
+            throw new RuntimeException("Đơn hàng không hợp lệ!");
+        }
+        if (!"DISPATCHED".equals(order.getStatus()) && !"SHIPPED".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể xác nhận nhận hàng đối với đơn đang giao!");
+        }
+        orderDAO.updateStatus(orderId, "DELIVERED");
+    }
 }
