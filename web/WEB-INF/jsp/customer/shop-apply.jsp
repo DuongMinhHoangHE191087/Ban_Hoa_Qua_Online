@@ -320,7 +320,7 @@
             let errors = [];
 
             if (files.length > MAX_DOC) {
-                errors.push(`Chỉ được chọn tối đa ${MAX_DOC} tài liệu.`);
+                errors.push(`Chỉ được chọn tối đa ${'${'}MAX_DOC} tài liệu.`);
             }
 
             files.slice(0, MAX_DOC).forEach(file => {
@@ -328,20 +328,20 @@
                 const li = document.createElement('li');
                 li.className = 'flex items-center gap-2 text-xs py-1.5 px-3 bg-white/60 rounded-lg border border-outline/20';
                 if (!ALLOWED.includes(ext)) {
-                    errors.push(`"${file.name}" — sai định dạng.`);
-                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} — Không hỗ trợ</span>`;
+                    errors.push(`"${'${'}file.name}" — sai định dạng.`);
+                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${'${'}file.name} — Không hỗ trợ</span>`;
                 } else if (file.size > MAX_SIZE) {
-                    errors.push(`"${file.name}" — vượt quá 25MB.`);
-                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} — ${(file.size/1024/1024).toFixed(1)}MB (quá 25MB)</span>`;
+                    errors.push(`"${'${'}file.name}" — vượt quá 25MB.`);
+                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${'${'}file.name} — ${'${'}(file.size/1024/1024).toFixed(1)}MB (quá 25MB)</span>`;
                 } else {
-                    li.innerHTML = `<span class="material-symbols-outlined text-primary text-[16px]">description</span><span>${file.name}</span><span class="ml-auto text-outline">${(file.size/1024/1024).toFixed(1)}MB</span>`;
+                    li.innerHTML = `<span class="material-symbols-outlined text-primary text-[16px]">description</span><span>${'${'}file.name}</span><span class="ml-auto text-outline">${'${'}(file.size/1024/1024).toFixed(1)}MB</span>`;
                 }
                 listEl.appendChild(li);
             });
 
             if (files.length > 0) {
                 listEl.classList.remove('hidden');
-                label.innerHTML = `Đã chọn <span class="text-primary font-bold">${Math.min(files.length, MAX_DOC)} tệp</span>`;
+                label.innerHTML = `Đã chọn <span class="text-primary font-bold">${'${'}Math.min(files.length, MAX_DOC)} tệp</span>`;
             }
             if (errors.length > 0) {
                 errorEl.textContent = errors[0];

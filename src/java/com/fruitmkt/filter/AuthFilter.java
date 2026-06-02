@@ -5,7 +5,6 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.TokenUtil;
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -21,7 +20,6 @@ import java.sql.SQLException;
  * THỨ TỰ CHẠY: 4
  * @author fruitmkt-team
  */
-@WebFilter(urlPatterns = {"/customer/*", "/shop/*", "/delivery/*", "/admin/*", "/checkout", "/cart"})
 public class AuthFilter implements Filter {
 
     private final UserDAO userDAO = new UserDAO();

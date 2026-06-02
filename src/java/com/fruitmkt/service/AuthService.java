@@ -83,33 +83,29 @@ public class AuthService {
         // Hàm save hoặc insert của DAO
         int insertedId = userDAO.saveNewCustomer(user.getFullName(), user.getEmail(), hashedPass, user.getPhone(), user.getRole(), AppConfig.ACCOUNT_STATUS_INACTIVE, false);
         if (insertedId > 0) {
-            User createdUser = userDAO.findByEmail(user.getEmail());
-            if (createdUser == null) {
-                throw new Exception("Không thể tải lại thông tin tài khoản vừa tạo.");
+            try {
+                User createdUser = userDAO.findByEmail(user.getEmail());
+                if (createdUser == null) {
+                    throw new Exception("Không thể tải lại thông tin tài khoản vừa tạo.");
+                }
+
+                issueVerificationCode(createdUser);
+
+                // Tự động khởi tạo giỏ hàng hoặc profile cửa hàng dựa trên vai trò
+                if ("CUSTOMER".equals(user.getRole())) {
+                    com.fruitmkt.dao.CartDAO cartDAO = new com.fruitmkt.dao.CartDAO();
+                    cartDAO.createForCustomer(insertedId);
+                }
+
+                return createdUser;
+            } catch (Exception ex) {
+                try {
+                    userDAO.deleteUser(insertedId);
+                } catch (SQLException sqle) {
+                    // Bỏ qua lỗi xóa phụ để ném ra lỗi chính ban đầu
+                }
+                throw ex;
             }
-
-            issueVerificationCode(createdUser);
-
-            // Tự động khởi tạo giỏ hàng hoặc profile cửa hàng dựa trên vai trò
-            if ("CUSTOMER".equals(user.getRole())) {
-                com.fruitmkt.dao.CartDAO cartDAO = new com.fruitmkt.dao.CartDAO();
-                cartDAO.createForCustomer(insertedId);
-            } else if ("SHOP_OWNER".equals(user.getRole())) {
-                com.fruitmkt.model.entity.ShopProfile profile = new com.fruitmkt.model.entity.ShopProfile();
-                profile.setUserId(insertedId);
-                profile.setShopName(shopName != null && !shopName.trim().isEmpty() ? shopName : "Cửa hàng của " + user.getFullName());
-                profile.setShopDescription("Chào mừng tới cửa hàng của chúng tôi!");
-                profile.setApprovalStatus("PENDING");
-                profile.setDeliveryAddress(shopAddress != null ? shopAddress : user.getUserAddress());
-                profile.setRating(java.math.BigDecimal.ZERO);
-                profile.setPreferredCategories(preferredCategoriesJson);
-                profile.setDocPaths(docPathsJson);
-
-                com.fruitmkt.dao.ShopProfileDAO shopProfileDAO = new com.fruitmkt.dao.ShopProfileDAO();
-                shopProfileDAO.save(profile);
-            }
-
-            return createdUser;
         }
         throw new Exception("Lỗi hệ thống khi tạo tài khoản.");
     }

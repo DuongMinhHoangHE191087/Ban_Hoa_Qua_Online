@@ -18,6 +18,7 @@ public class ShopProfile {
     private java.math.BigDecimal rating;
     private String preferredCategories; // JSON array category_id: "[1,3,5]"
     private String docPaths;            // JSON array đượng dẫn tài liệu: ["uploads/shop-docs/1/uuid.pdf"]
+    private String businessEmail;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
@@ -61,5 +62,8 @@ public class ShopProfile {
 
     public java.time.LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getBusinessEmail() { return businessEmail; }
+    public void setBusinessEmail(String businessEmail) { this.businessEmail = businessEmail; }
 
 }

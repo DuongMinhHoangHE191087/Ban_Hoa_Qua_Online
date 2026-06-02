@@ -2,7 +2,6 @@ package com.fruitmkt.filter;
 
 import com.fruitmkt.config.AppConfig;
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.UUID;
@@ -19,7 +18,6 @@ import java.util.UUID;
  * THỨ TỰ CHẠY: 3
  * @author fruitmkt-team
  */
-@WebFilter("/*")
 public class CsrfFilter implements Filter {
 
     @Override

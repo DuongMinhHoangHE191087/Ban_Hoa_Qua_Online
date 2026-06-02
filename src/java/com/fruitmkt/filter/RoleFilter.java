@@ -4,7 +4,6 @@ import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 
@@ -20,7 +19,6 @@ import java.io.IOException;
  * THỨ TỰ CHẠY: 5
  * @author fruitmkt-team
  */
-@WebFilter(urlPatterns = {"/admin/*", "/shop/*", "/delivery/*", "/customer/*", "/checkout", "/cart"})
 public class RoleFilter implements Filter {
 
     @Override
@@ -45,7 +43,26 @@ public class RoleFilter implements Filter {
         if (uri.equals(ctx + "/admin") || uri.startsWith(ctx + "/admin/")) {
             allowed = AppConfig.ROLE_ADMIN.equals(user.getRole());
         } else if (uri.equals(ctx + "/shop") || uri.startsWith(ctx + "/shop/")) {
-            allowed = AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
+            if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
+                if (uri.equals(ctx + "/shop/status") || uri.startsWith(ctx + "/shop/status")) {
+                    allowed = true;
+                } else {
+                    try {
+                        com.fruitmkt.dao.ShopProfileDAO shopProfileDAO = new com.fruitmkt.dao.ShopProfileDAO();
+                        java.util.List<com.fruitmkt.model.entity.ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
+                        if (!profiles.isEmpty() && "APPROVED".equals(profiles.get(0).getApprovalStatus())) {
+                            allowed = true;
+                        } else {
+                            resp.sendRedirect(ctx + "/shop/status");
+                            return;
+                        }
+                    } catch (Exception e) {
+                        allowed = false;
+                    }
+                }
+            } else {
+                allowed = false;
+            }
         } else if (uri.equals(ctx + "/delivery") || uri.startsWith(ctx + "/delivery/")) {
             allowed = AppConfig.ROLE_DELIVERY.equals(user.getRole());
         } else if (uri.equals(ctx + "/customer") || uri.startsWith(ctx + "/customer/")) {

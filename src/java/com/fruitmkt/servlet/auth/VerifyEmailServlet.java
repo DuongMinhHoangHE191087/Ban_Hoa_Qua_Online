@@ -58,7 +58,32 @@ public class VerifyEmailServlet extends HttpServlet {
             String code = req.getParameter("code");
             User activatedUser = authService.verifyEmailCode(email, code);
             SessionUtil.flashSuccess(req.getSession(), "Xác minh email thành công. Tài khoản đã được kích hoạt.");
+            
             if (session != null) {
+                com.fruitmkt.model.entity.ShopProfile pendingShopProfile = (com.fruitmkt.model.entity.ShopProfile) session.getAttribute("pendingShopProfile");
+                if (pendingShopProfile != null) {
+                    try {
+                        com.fruitmkt.dao.ShopProfileDAO shopProfileDAO = new com.fruitmkt.dao.ShopProfileDAO();
+                        shopProfileDAO.save(pendingShopProfile);
+
+                        // Gửi email xác nhận đăng ký gian hàng thành công khi tài khoản đã active
+                        final String finalStoreName = pendingShopProfile.getShopName();
+                        final String finalEmail = activatedUser.getEmail();
+                        final String finalFullName = activatedUser.getFullName();
+                        new Thread(() -> {
+                            try {
+                                com.fruitmkt.service.EmailService emailService = new com.fruitmkt.service.EmailService();
+                                emailService.sendShopApplicationReceivedEmail(finalEmail, finalFullName, finalStoreName);
+                            } catch (Exception ex) {
+                                getServletContext().log("Không thể gửi email nhận đơn đăng ký shop cho " + finalEmail, ex);
+                            }
+                        }).start();
+                    } catch (Exception ex) {
+                        getServletContext().log("Loi khi luu ShopProfile sau khi xac minh email: " + ex.getMessage(), ex);
+                    } finally {
+                        session.removeAttribute("pendingShopProfile");
+                    }
+                }
                 session.removeAttribute(AppConfig.SESSION_VERIFY_EMAIL);
             }
             resp.sendRedirect(req.getContextPath() + "/auth/login");

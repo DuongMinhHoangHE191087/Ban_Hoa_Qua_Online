@@ -5,7 +5,6 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.TokenUtil;
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -18,7 +17,6 @@ import java.sql.SQLException;
  * THỨ TỰ CHẠY: 2 (sau EncodingFilter và trước CsrfFilter / AuthFilter)
  * @author fruitmkt-team
  */
-@WebFilter("/*")
 public class SessionRestoreFilter implements Filter {
 
     private final UserDAO userDAO = new UserDAO();

@@ -42,7 +42,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findAll(int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM products ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT * FROM products WHERE status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, offset);
@@ -124,7 +124,7 @@ public class ProductDAO extends BaseDAO {
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE 1=1 ");
+        sql.append("WHERE p.status = 'ACTIVE' ");
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -166,14 +166,14 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
-     * Đếm tổng số sản phẩm khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
+     * Đếm tổng số sản phẩm ACTIVE khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
      */
     public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE 1=1 ");
+        sql.append("WHERE p.status = 'ACTIVE' ");
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {

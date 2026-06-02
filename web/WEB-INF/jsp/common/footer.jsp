@@ -29,6 +29,7 @@
                     <li><a href="${pageContext.request.contextPath}/home?category=import"><i class="fa-solid fa-chevron-right"></i> Trái cây nhập khẩu</a></li>
                     <li><a href="${pageContext.request.contextPath}/home?category=local"><i class="fa-solid fa-chevron-right"></i> Đặc sản Việt Nam</a></li>
                     <li><a href="${pageContext.request.contextPath}/home?tag=flashsale"><i class="fa-solid fa-chevron-right"></i> Khuyến mãi Hot</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/register?accountType=SHOP_OWNER"><i class="fa-solid fa-chevron-right"></i> Đăng ký mở cửa hàng</a></li>
                 </ul>
             </div>
 

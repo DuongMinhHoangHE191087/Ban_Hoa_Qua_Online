@@ -182,6 +182,19 @@ public class UserDAO extends BaseDAO {
     }
 
     /**
+     * Cập nhật vai trò (Role) của User (ví dụ: nâng cấp CUSTOMER thành SHOP_OWNER)
+     */
+    public void updateRole(int userId, String role) throws SQLException {
+        String sql = "UPDATE users SET role = ?, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, role);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
+    }
+
+    /**
      * TODO: Implement — updatePassword(int userId, String newHash)
      */
     public void updatePassword(int userId, String newHash) throws SQLException {
@@ -363,6 +376,18 @@ public class UserDAO extends BaseDAO {
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, token);
+            stmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Xóa người dùng bằng ID (sử dụng khi đăng ký lỗi để đồng bộ).
+     */
+    public void deleteUser(int userId) throws SQLException {
+        String sql = "DELETE FROM users WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
             stmt.executeUpdate();
         }
     }

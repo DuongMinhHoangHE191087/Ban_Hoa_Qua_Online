@@ -18,6 +18,36 @@ import java.util.*;
  */
 public class ShopProfileDAO extends BaseDAO {
 
+    private static boolean schemaChecked = false;
+
+    public ShopProfileDAO() {
+        checkSchemaOnce();
+    }
+
+    private synchronized void checkSchemaOnce() {
+        if (schemaChecked) return;
+        try (Connection conn = getConnection()) {
+            boolean columnExists = false;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 business_email FROM shop_owner_profiles")) {
+                columnExists = true;
+            } catch (SQLException e) {
+                // Column does not exist
+            }
+            if (!columnExists) {
+                String sql = "ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL UNIQUE";
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate(sql);
+                    System.out.println("[DB Migrator] Success: Added business_email column to shop_owner_profiles.");
+                }
+            }
+            schemaChecked = true;
+        } catch (SQLException e) {
+            System.err.println("[DB Migrator] Error checking/adding business_email column: " + e.getMessage());
+            schemaChecked = true;
+        }
+    }
+
     /**
      * Tìm shop profile theo ID người dùng.
      */
@@ -91,8 +121,8 @@ public class ShopProfileDAO extends BaseDAO {
     public int save(ShopProfile profile) throws SQLException {
         String sql = "INSERT INTO shop_owner_profiles "
                    + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
-                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, profile.getUserId());
@@ -105,6 +135,7 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setBigDecimal(8, profile.getRating() != null ? profile.getRating() : java.math.BigDecimal.ZERO);
             ps.setString(9, profile.getPreferredCategories());
             ps.setString(10, profile.getDocPaths());
+            ps.setString(11, profile.getBusinessEmail());
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -124,7 +155,7 @@ public class ShopProfileDAO extends BaseDAO {
     public void update(ShopProfile profile) throws SQLException {
         String sql = "UPDATE shop_owner_profiles SET shop_name = ?, shop_description = ?, approval_status = ?, "
                    + "rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, "
-                   + "preferred_categories = ?, doc_paths = ?, updated_at = GETDATE() WHERE profile_id = ?";
+                   + "preferred_categories = ?, doc_paths = ?, business_email = ?, updated_at = GETDATE() WHERE profile_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, profile.getShopName());
@@ -136,7 +167,8 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setBigDecimal(7, profile.getRating());
             ps.setString(8, profile.getPreferredCategories());
             ps.setString(9, profile.getDocPaths());
-            ps.setInt(10, profile.getProfileId());
+            ps.setString(10, profile.getBusinessEmail());
+            ps.setInt(11, profile.getProfileId());
             ps.executeUpdate();
         }
     }
@@ -206,6 +238,7 @@ public class ShopProfileDAO extends BaseDAO {
         p.setRating(rs.getBigDecimal("rating"));
         p.setPreferredCategories(rs.getString("preferred_categories"));
         p.setDocPaths(rs.getString("doc_paths"));
+        p.setBusinessEmail(rs.getString("business_email"));
         
         Timestamp createdAtTs = rs.getTimestamp("created_at");
         if (createdAtTs != null) {
@@ -217,5 +250,25 @@ public class ShopProfileDAO extends BaseDAO {
             p.setUpdatedAt(updatedAtTs.toLocalDateTime());
         }
         return p;
+    }
+
+    /**
+     * Kiểm tra xem email doanh nghiệp đã được sử dụng hay chưa.
+     */
+    public boolean isBusinessEmailExists(String businessEmail) throws SQLException {
+        if (businessEmail == null || businessEmail.trim().isEmpty()) {
+            return false;
+        }
+        String sql = "SELECT COUNT(*) FROM shop_owner_profiles WHERE business_email = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, businessEmail.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 }
