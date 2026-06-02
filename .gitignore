@@ -3,5 +3,7 @@
 /.gemini
 /.github
 /.continue
-/build/web
+/build
+/dist
+/out
 /nbproject/private
