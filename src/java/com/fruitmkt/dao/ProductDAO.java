@@ -18,6 +18,39 @@ import java.util.*;
  */
 public class ProductDAO extends BaseDAO {
 
+    public ProductDAO() {
+        super();
+        ensureDeletedStatusAllowed();
+    }
+
+    private void ensureDeletedStatusAllowed() {
+        String sqlCheck = "SELECT COUNT(*) FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('products') AND definition LIKE '%DELETED%'";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            boolean hasDeleted = false;
+            try (ResultSet rs = stmt.executeQuery(sqlCheck)) {
+                if (rs.next()) {
+                    hasDeleted = rs.getInt(1) > 0;
+                }
+            }
+            if (!hasDeleted) {
+                String sqlFindName = "SELECT name FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('products') AND definition LIKE '%status%'";
+                String constraintName = null;
+                try (ResultSet rs = stmt.executeQuery(sqlFindName)) {
+                    if (rs.next()) {
+                        constraintName = rs.getString(1);
+                    }
+                }
+                if (constraintName != null) {
+                    stmt.execute("ALTER TABLE products DROP CONSTRAINT " + constraintName);
+                }
+                stmt.execute("ALTER TABLE products ADD CONSTRAINT CK_products_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED'))");
+            }
+        } catch (SQLException e) {
+            System.err.println("Warning: Cannot alter products.status check constraint: " + e.getMessage());
+        }
+    }
+
     /**
      * Tìm sản phẩm theo ID.
      */
@@ -61,7 +94,7 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> findByOwner(int ownerId) throws SQLException {
         List<Product> list = new ArrayList<>();
-        String sql = "SELECT * FROM products WHERE owner_id = ? ORDER BY product_id DESC";
+        String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' ORDER BY product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
@@ -80,7 +113,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findByCategory(int categoryId, int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM products WHERE category_id = ? ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT * FROM products WHERE category_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, categoryId);
