@@ -125,11 +125,13 @@ public class RegisterServlet extends HttpServlet {
         String password = req.getParameter("password");
         String confirmPassword = req.getParameter("confirmPassword");
 
+        User newUser = null;
         try {
             // 3. XSS Sanitization - Làm sạch toàn bộ đầu vào văn bản để chống XSS Injection
             fullName = sanitizeInput(fullName);
             email = sanitizeInput(email);
             phone = sanitizeInput(phone);
+            phone = com.fruitmkt.util.ValidationUtil.normalizePhone(phone);
 
             // 4. Validate phía Servlet bằng ValidationUtil
             fullName = com.fruitmkt.util.ValidationUtil.requireNotBlank(fullName, "Họ và tên");
@@ -210,7 +212,7 @@ public class RegisterServlet extends HttpServlet {
             }
 
             // 7. Xử lý Đăng Ký Tài khoản & Shop cơ sở qua Service (docPathsJson ban đầu để null để đồng bộ an toàn)
-            User newUser = authService.register(user, storeName, address, preferredCategoriesJson, null);
+            newUser = authService.register(user, storeName, address, preferredCategoriesJson, null);
 
             // 8. Thực hiện Upload thực tế trực tiếp dưới thư mục lưu trữ phân lập theo userId chính xác và lưu nháp ShopProfile vào session
             if ("SHOP_OWNER".equals(role)) {
@@ -251,6 +253,15 @@ public class RegisterServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/verify");
 
         } catch (Exception e) {
+            // Rollback: Xóa user vừa tạo nếu có lỗi ở bước sau (như upload file hoặc tạo profile shop)
+            if (newUser != null) {
+                try {
+                    com.fruitmkt.dao.UserDAO userDAO = new com.fruitmkt.dao.UserDAO();
+                    userDAO.deleteUser(newUser.getUserId());
+                } catch (Exception rollbackEx) {
+                    getServletContext().log("Rollback user failed: " + rollbackEx.getMessage(), rollbackEx);
+                }
+            }
             getServletContext().log("RegisterServlet error: " + e.getMessage(), e);
             forwardWithError(req, resp, e.getMessage());
         }

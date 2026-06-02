@@ -69,12 +69,12 @@ public class AuthService {
 
         User existingUser = userDAO.findByEmail(user.getEmail());
         if (existingUser != null) {
-            throw new Exception("Tài khoản hoặc số điện thoại đã được đăng ký, vui lòng đăng nhập!");
+            throw new Exception("Địa chỉ email đã được đăng ký bởi tài khoản khác, vui lòng đăng nhập!");
         }
 
         User existingPhoneUser = userDAO.findByPhone(user.getPhone());
         if (existingPhoneUser != null) {
-            throw new Exception("Tài khoản hoặc số điện thoại đã được đăng ký, vui lòng đăng nhập!");
+            throw new Exception("Số điện thoại đã được đăng ký bởi tài khoản khác, vui lòng đăng nhập!");
         }
 
         // Băm mật khẩu để bảo mật trước khi đưa xuống DAO
@@ -114,12 +114,16 @@ public class AuthService {
      * TODO: Implement — xem SRS / use case tương ứng
      */
     public com.fruitmkt.model.entity.User login(String identifier, String password) throws SQLException, Exception {
-        // TODO: Validate input → gọi DAO → business rule → return result
         if (!ValidationUtil.notBlank(identifier)) {
             throw new Exception("Email hoặc số điện thoại không được để trống.");
         }
 
-        User user = userDAO.findByLoginIdentifier(identifier.trim());
+        String cleanIdentifier = identifier.trim();
+        if (cleanIdentifier.matches("^(0|\\+84|84)\\d+$") || cleanIdentifier.matches("^\\d+$")) {
+            cleanIdentifier = ValidationUtil.normalizePhone(cleanIdentifier);
+        }
+
+        User user = userDAO.findByLoginIdentifier(cleanIdentifier);
         if (user == null) {
             throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
         }

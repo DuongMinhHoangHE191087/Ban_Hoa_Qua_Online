@@ -13,6 +13,7 @@ $env:CATALINA_HOME = $CATALINA_HOME
 $env:CATALINA_BASE = $CATALINA_BASE
 $env:PATH = "$JAVA_HOME\bin;" + $env:PATH
 
+$hasError = $false
 try {
     Write-Host "===================================================" -ForegroundColor Green
     Write-Host "[1/5] Kiem tra va dung may chu Tomcat..." -ForegroundColor Green
@@ -100,12 +101,21 @@ try {
 
     # Compile
     $classpath = "web/WEB-INF/lib/*;$CATALINA_HOME/lib/*"
-    $javacArgs = @("-encoding", "UTF-8", "-cp", $classpath, "-d", $classesDir, "@$sourcesPath")
+    $logFile = "compile_errors.log"
+    if (Test-Path $logFile) { Remove-Item $logFile -Force }
+
     Write-Host "Dang chay javac de bien dich..." -ForegroundColor Yellow
-    $processInfo = Start-Process -FilePath "javac" -ArgumentList $javacArgs -NoNewWindow -Wait -PassThru
-    if ($processInfo.ExitCode -ne 0) {
-        throw "Bien dich Java that bai! Vui long kiem tra lai ma nguon."
+    $javacCmd = "javac -encoding UTF-8 -cp `"$classpath`" -d `"$classesDir`" @`"$sourcesPath`" > `"$logFile`" 2>&1"
+    cmd.exe /c $javacCmd
+
+    if ($LASTEXITCODE -ne 0) {
+        $compileErrors = Get-Content $logFile -Raw -ErrorAction SilentlyContinue
+        Write-Host "=================== COMPILE ERRORS ===================" -ForegroundColor Red
+        Write-Host $compileErrors -ForegroundColor Red
+        Write-Host "======================================================" -ForegroundColor Red
+        throw "Bien dich Java that bai! Xem chi tiet tai file: $logFile"
     }
+    if (Test-Path $logFile) { Remove-Item $logFile -Force }
     Write-Host "Bien dich thanh cong!" -ForegroundColor Cyan
 
     Write-Host "===================================================" -ForegroundColor Green
@@ -168,12 +178,22 @@ try {
                 # Resolve paths absolutely to avoid context reference issues
                 $libPath = (Get-Item "web/WEB-INF/lib/*").FullName -join ";"
                 $classpath = "web/WEB-INF/lib/*;C:\Users\Admin\Downloads\apache-tomcat-10.1.55-windows-x64\apache-tomcat-10.1.55/lib/*"
-                $javacArgs = @("-encoding", "UTF-8", "-cp", $classpath, "-d", "build/web/WEB-INF/classes", "@sources.txt")
-                $processInfo = Start-Process -FilePath "javac" -ArgumentList $javacArgs -NoNewWindow -Wait -PassThru
-                if ($processInfo.ExitCode -eq 0) {
+                
+                $logFile = "compile_errors.log"
+                if (Test-Path $logFile) { Remove-Item $logFile -Force }
+
+                $javacCmd = "javac -encoding UTF-8 -cp `"$classpath`" -d `"build/web/WEB-INF/classes`" @sources.txt > `"$logFile`" 2>&1"
+                cmd.exe /c $javacCmd
+
+                if ($LASTEXITCODE -eq 0) {
+                    if (Test-Path $logFile) { Remove-Item $logFile -Force }
                     Write-Host "Bien dich lai thanh cong! Tomcat se tu dong reload classes." -ForegroundColor Green
                 } else {
-                    Write-Host "Bien dich loi! Vui long kiem tra lai ma nguon." -ForegroundColor Red
+                    $compileErrors = Get-Content $logFile -Raw -ErrorAction SilentlyContinue
+                    Write-Host "=================== COMPILE ERRORS ===================" -ForegroundColor Red
+                    Write-Host $compileErrors -ForegroundColor Red
+                    Write-Host "======================================================" -ForegroundColor Red
+                    Write-Host "Bien dich loi! Chi tiet loi ghi vao file: $logFile" -ForegroundColor Red
                 }
             } catch {
                 Write-Host "Loi compile: $_" -ForegroundColor Red
@@ -219,6 +239,7 @@ try {
     Write-Host "LUU Y: DA CO LOI XAY RA TRONG QUA TRINH THUC THI!" -ForegroundColor Red
     Write-Host "Chi tiet loi: $_" -ForegroundColor Red
     Write-Host "===================================================" -ForegroundColor Red
+    $hasError = $true
 } finally {
     Write-Host ""
     Write-Host "Dang dung may chu Tomcat..." -ForegroundColor Yellow
@@ -238,4 +259,9 @@ try {
         }
     }
     Write-Host "Da dung Tomcat thanh cong!" -ForegroundColor Cyan
+
+    if ($hasError) {
+        Write-Host "`nChuong trinh bi dung do co loi. Vui long kiem tra log o tren." -ForegroundColor Red
+        Read-Host "Nhan Enter de thoat..."
+    }
 }
