@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Báo cáo Phân tích Lỗi và Nâng cấp Hệ thống</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 40px; background-color: #f8fafc; color: #1e293b; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        h1 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; font-size: 28px; }
+        h2 { color: #1e3a8a; margin-top: 30px; font-size: 20px; border-left: 4px solid #3b82f6; padding-left: 10px; }
+        h3 { color: #334155; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; }
+        th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
+        th { background-color: #f1f5f9; color: #0f172a; }
+        .success { color: #16a34a; font-weight: bold; }
+        .warning { color: #ea580c; font-weight: bold; }
+        code { background-color: #f1f5f9; padding: 3px 6px; border-radius: 4px; font-family: Consolas, monospace; font-size: 14px; }
+        pre { background: #1e293b; color: #f8fafc; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: Consolas, monospace; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+        .badge-fixed { background-color: #dcfce7; color: #15803d; }
+        .badge-info { background-color: #dbeafe; color: #1d4ed8; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Báo cáo Phân tích Lỗi & Nâng cấp Hệ thống</h1>
+    <p><em>Ngày thực hiện: 03/06/2026 | Người thực hiện: Antigravity Orchestrator</em></p>
+
+    <h2>1. Phân tích lỗi 404 các hình ảnh (Unsplash Images)</h2>
+    <p><strong>Triệu chứng:</strong> Trình duyệt trả về lỗi <code>404 Not Found</code> khi tải các hình ảnh từ Unsplash, ví dụ URL: <br>
+    <code>https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80</code></p>
+    
+    <p><strong>Nguyên nhân:</strong></p>
+    <ul>
+        <li>Mã định danh ảnh <code>photo-1607344645866-009c320c5ab8</code> đã bị gỡ bỏ hoặc hết hạn trên máy chủ của Unsplash (tồn tại trong dữ liệu seed của dưa hấu và xoài).</li>
+        <li>Không có lỗi cú pháp hoặc tiền tố đường dẫn local trong mã nguồn servlet đối với các ảnh tuyệt đối (đã có kiểm tra <code>startsWith("http")</code>).</li>
+    </ul>
+
+    <p><strong>Giải pháp đã thực hiện:</strong></p>
+    <ul>
+        <li>Thay thế các ảnh watermelon bị hỏng bằng ảnh hoạt động: <code>photo-1587049352846-4a222e784d38</code>.</li>
+        <li>Thay thế các ảnh mango bị hỏng bằng ảnh hoạt động: <code>photo-1553279768-865429fa0078</code>.</li>
+        <li>Đã cập nhật trực tiếp dữ liệu trong cơ sở dữ liệu và file seed <code>Setup_OnlineFruitShopping.sql</code>.</li>
+    </ul>
+
+    <h2>2. Bổ sung cơ chế Schema Migration tự động & Đồng bộ Phase 3</h2>
+    <p><strong>Vấn đề:</strong> Khi chạy file seed trên cơ sở dữ liệu đã tồn tại các bảng như <code>shop_owner_profiles</code>, <code>orders</code>, hoặc <code>deliveries</code>, cấu trúc bảng cũ sẽ bị bỏ qua và không nhận được các cập nhật cấu trúc mới (các thay đổi từ Phase 3).</p>
+    <p><strong>Giải pháp:</strong></p>
+    <ul>
+        <li>Đồng bộ hóa hoàn toàn tệp <code>Schema.sql</code> và <code>Setup_OnlineFruitShopping.sql</code> để chứa đầy đủ các cột mới (<code>proof_image_url</code>, <code>estimated_delivery_time</code>) và giá trị kiểm tra mới (<code>'APPROVED'</code> trong <code>orders.status</code>).</li>
+        <li>Bổ sung 3 đoạn mã Schema Migration tự động vào <code>Setup_OnlineFruitShopping.sql</code> để tự động nâng cấp nếu cơ sở dữ liệu đã tồn tại trước đó:</li>
+    </ul>
+    
+    <pre>-- 1. Migration: Thêm business_email và index cho shop_owner_profiles
+IF OBJECT_ID(N'dbo.shop_owner_profiles', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'business_email')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD business_email NVARCHAR(255) NULL;
+        EXEC('SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON dbo.shop_owner_profiles(business_email) WHERE business_email IS NOT NULL;');
+    END
+END
+GO
+
+-- 2. Migration: Cập nhật ràng buộc CHECK constraint cho trạng thái đơn hàng (orders) để chứa 'APPROVED'
+IF OBJECT_ID(N'dbo.orders', N'U') IS NOT NULL
+BEGIN
+    DECLARE @ConstraintName NVARCHAR(255);
+    SELECT @ConstraintName = cc.name
+    FROM sys.check_constraints cc
+    JOIN sys.columns c ON cc.parent_column_id = c.column_id AND cc.parent_object_id = c.object_id
+    WHERE cc.parent_object_id = OBJECT_ID(N'dbo.orders') AND c.name = N'status';
+
+    IF @ConstraintName IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE dbo.orders DROP CONSTRAINT ' + @ConstraintName);
+    END
+    ALTER TABLE dbo.orders ADD CONSTRAINT CK_orders_status CHECK (status IN ('PENDING_PAYMENT', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED', 'DELIVERED', 'CANCELLED', 'PAYMENT_FAILED', 'EXPIRED'));
+END
+GO
+
+-- 3. Migration: Thêm estimated_delivery_time và proof_image_url vào deliveries
+IF OBJECT_ID(N'dbo.deliveries', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.deliveries') AND name = N'proof_image_url')
+    BEGIN
+        ALTER TABLE dbo.deliveries ADD proof_image_url NVARCHAR(500) NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.deliveries') AND name = N'estimated_delivery_time')
+    BEGIN
+        ALTER TABLE dbo.deliveries ADD estimated_delivery_time DATETIME NULL;
+    END
+END
+GO</pre>
+
+    <h2>3. Thống kê & Nâng cấp Mật khẩu tài khoản Seed (Hashpass)</h2>
+    <p>Tất cả các tài khoản mặc định đều được mã hóa bằng chuẩn an toàn <strong>BCrypt</strong> với Cost Factor = 10. Mật khẩu gốc chưa mã hóa là <code>123456</code>.</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tên người dùng</th>
+                <th>Email tài khoản</th>
+                <th>Mật khẩu gốc</th>
+                <th>Vai trò (Role)</th>
+                <th>Trạng thái hoạt động</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Admin System</td>
+                <td><code>admin@fruitshop.local</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">ADMIN</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Delivery Nguyen</td>
+                <td><code>delivery@fruitshop.local</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">DELIVERY</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>An Phu Orchard Owner</td>
+                <td><code>owner1@fruitshop.local</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">SHOP_OWNER</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>Mekong Fresh Owner</td>
+                <td><code>owner2@fruitshop.local</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">SHOP_OWNER</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Tran Minh Customer</td>
+                <td><code>customer1@fruitshop.local</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">CUSTOMER</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>Le Thu Customer</td>
+                <td><code>customer2@fruitshop.local</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">CUSTOMER</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>Klever Premium Owner</td>
+                <td><code>owner3@fruitshop.local</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">SHOP_OWNER</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>20</td>
+                <td>Test Admin</td>
+                <td><code>admin@metafruit.vn</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">ADMIN</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>21</td>
+                <td>Test Shop Owner</td>
+                <td><code>shop@metafruit.vn</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">SHOP_OWNER</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>22</td>
+                <td>Test Delivery</td>
+                <td><code>delivery@metafruit.vn</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">DELIVERY</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+            <tr>
+                <td>23</td>
+                <td>Test Customer</td>
+                <td><code>customer@metafruit.vn</code></td>
+                <td><code>123456</code></td>
+                <td><span class="badge badge-info">CUSTOMER</span></td>
+                <td class="success">ACTIVE</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>4. Kiểm tra đối soát và đồng bộ Schema toàn diện</h2>
+    <p>Chúng tôi đã thực hiện đối soát tất cả các trường (fields), kiểu dữ liệu (data types), khóa ngoại (foreign keys) và ràng buộc kiểm tra (check constraints) giữa hai tệp tin: <code>Schema.sql</code> (khởi tạo cấu trúc sạch) và <code>Setup_OnlineFruitShopping.sql</code> (khởi tạo dữ liệu và cấu trúc kèm migration):</p>
+    <ul>
+        <li><span class="success">ĐỒNG BỘ:</span> Cả hai tệp đã khớp nhau 100% về mặt cấu trúc cho toàn bộ 17 bảng dữ liệu.</li>
+        <li><span class="success">ĐỒNG BỘ:</span> Cột <code>business_email</code> và index đi kèm đã được thêm vào định nghĩa bảng <code>shop_owner_profiles</code> trong <code>Schema.sql</code>.</li>
+        <li>Các tệp tin SQL tạm thời và dư thừa như <code>Phase3_Alter_Deliveries.sql</code> và <code>Phase3_Order_Approval.sql</code> đã được dọn dẹp sạch sẽ khỏi thư mục <code>database/</code> để tránh xung đột mã nguồn.</li>
+    </ul>
+</div>
+</body>
+</html>
