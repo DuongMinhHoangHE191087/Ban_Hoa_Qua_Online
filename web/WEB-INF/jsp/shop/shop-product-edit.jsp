@@ -338,7 +338,8 @@
         fetch('${pageContext.request.contextPath}/shop/product-status', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-Token': '${sessionScope._csrfToken}'
             },
             body: params
         })
