@@ -388,6 +388,25 @@ public class UserDAO extends BaseDAO {
      * Xóa người dùng bằng ID (sử dụng khi đăng ký lỗi để đồng bộ).
      */
     public void deleteUser(int userId) throws SQLException {
+        // Kiểm tra xem user có đơn hàng nào không
+        String sqlCheck = "SELECT COUNT(*) FROM orders WHERE customer_id = ? OR owner_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(sqlCheck)) {
+            checkStmt.setInt(1, userId);
+            checkStmt.setInt(2, userId);
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    // Nếu có đơn hàng, không xóa cứng mà chuyển trạng thái thành SUSPENDED
+                    String sqlUpdate = "UPDATE users SET status = 'SUSPENDED', updated_at = GETDATE() WHERE user_id = ?";
+                    try (PreparedStatement updateStmt = conn.prepareStatement(sqlUpdate)) {
+                        updateStmt.setInt(1, userId);
+                        updateStmt.executeUpdate();
+                    }
+                    throw new SQLException("Không thể xóa cứng người dùng vì đã có đơn hàng trong hệ thống. Trạng thái tài khoản đã được chuyển sang SUSPENDED.");
+                }
+            }
+        }
+
         String sql = "DELETE FROM users WHERE user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
