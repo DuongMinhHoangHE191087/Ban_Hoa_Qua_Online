@@ -18,6 +18,46 @@ import java.util.*;
  */
 public class ShopProfileDAO extends BaseDAO {
 
+    private static boolean schemaChecked = false;
+
+    public ShopProfileDAO() {
+        checkSchemaOnce();
+    }
+
+    private synchronized void checkSchemaOnce() {
+        if (schemaChecked) return;
+        try (Connection conn = getConnection()) {
+            boolean columnExists = false;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 business_email FROM shop_owner_profiles")) {
+                columnExists = true;
+            } catch (SQLException e) {
+                // Column does not exist
+            }
+            if (!columnExists) {
+                // Add column without unique constraint to avoid duplicate NULL error
+                String sqlAdd = "ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL";
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate(sqlAdd);
+                    System.out.println("[DB Migrator] Success: Added business_email column to shop_owner_profiles.");
+                }
+                
+                // Create filtered unique index to allow multiple nulls but unique non-null emails
+                String sqlIndex = "SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON shop_owner_profiles(business_email) WHERE business_email IS NOT NULL";
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate(sqlIndex);
+                    System.out.println("[DB Migrator] Success: Created filtered unique index on business_email.");
+                } catch (SQLException ex) {
+                    System.err.println("[DB Migrator] Warning creating index: " + ex.getMessage());
+                }
+            }
+            schemaChecked = true;
+        } catch (SQLException e) {
+            System.err.println("[DB Migrator] Error checking/adding business_email column: " + e.getMessage());
+            schemaChecked = true;
+        }
+    }
+
     /**
      * Tìm shop profile theo ID người dùng.
      */
@@ -37,13 +77,30 @@ public class ShopProfileDAO extends BaseDAO {
     }
 
     /**
+     * Tìm shop profile theo ID profile.
+     */
+    public ShopProfile findById(int profileId) throws SQLException {
+        String sql = "SELECT * FROM shop_owner_profiles WHERE profile_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, profileId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Lấy tất cả shop profile theo trạng thái duyệt.
      */
     public List<ShopProfile> findAll(String approvalStatus) throws SQLException {
         List<ShopProfile> list = new ArrayList<>();
-        String sql = (approvalStatus == null) 
-            ? "SELECT * FROM shop_owner_profiles" 
-            : "SELECT * FROM shop_owner_profiles WHERE approval_status = ?";
+        String sql = (approvalStatus == null)
+            ? "SELECT * FROM shop_owner_profiles ORDER BY created_at DESC"
+            : "SELECT * FROM shop_owner_profiles WHERE approval_status = ? ORDER BY created_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             if (approvalStatus != null) {
@@ -58,12 +115,24 @@ public class ShopProfileDAO extends BaseDAO {
         return list;
     }
 
+    /** Lấy toàn bộ shop profiles (không lọc) */
+    public List<ShopProfile> findAll() throws SQLException {
+        return findAll(null);
+    }
+
+    /** Lọc theo approvalStatus — alias ngắn hơn cho admin code */
+    public List<ShopProfile> findByApprovalStatus(String status) throws SQLException {
+        return findAll(status);
+    }
+
     /**
      * Lưu mới một shop profile và trả về ID tự sinh.
      */
     public int save(ShopProfile profile) throws SQLException {
-        String sql = "INSERT INTO shop_owner_profiles (user_id, shop_name, shop_description, approval_status, rejection_reason, approved_at, delivery_address, rating, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO shop_owner_profiles "
+                   + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
+                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, profile.getUserId());
@@ -74,6 +143,9 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setTimestamp(6, profile.getApprovedAt() != null ? Timestamp.valueOf(profile.getApprovedAt()) : null);
             ps.setString(7, profile.getDeliveryAddress());
             ps.setBigDecimal(8, profile.getRating() != null ? profile.getRating() : java.math.BigDecimal.ZERO);
+            ps.setString(9, profile.getPreferredCategories());
+            ps.setString(10, profile.getDocPaths());
+            ps.setString(11, profile.getBusinessEmail());
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -91,7 +163,9 @@ public class ShopProfileDAO extends BaseDAO {
      * Cập nhật thông tin shop profile.
      */
     public void update(ShopProfile profile) throws SQLException {
-        String sql = "UPDATE shop_owner_profiles SET shop_name = ?, shop_description = ?, approval_status = ?, rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, updated_at = GETDATE() WHERE profile_id = ?";
+        String sql = "UPDATE shop_owner_profiles SET shop_name = ?, shop_description = ?, approval_status = ?, "
+                   + "rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, "
+                   + "preferred_categories = ?, doc_paths = ?, business_email = ?, updated_at = GETDATE() WHERE profile_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, profile.getShopName());
@@ -101,22 +175,57 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setTimestamp(5, profile.getApprovedAt() != null ? Timestamp.valueOf(profile.getApprovedAt()) : null);
             ps.setString(6, profile.getDeliveryAddress());
             ps.setBigDecimal(7, profile.getRating());
-            ps.setInt(8, profile.getProfileId());
+            ps.setString(8, profile.getPreferredCategories());
+            ps.setString(9, profile.getDocPaths());
+            ps.setString(10, profile.getBusinessEmail());
+            ps.setInt(11, profile.getProfileId());
             ps.executeUpdate();
         }
     }
 
     /**
      * Duyệt hoặc từ chối phê duyệt shop.
+     * [BUGFIX] Khi APPROVED: cập nhật đồng thời users.role = 'SHOP_OWNER'.
+     * Dùng hai UPDATE riêng vì MSSQL không hỗ trợ UPDATE multi-table.
+     * Nếu update thứ 2 thất bại sẽ throw lên để Service rollback logic.
      */
-    public void updateApprovalStatus(int profileId, String status, String rejectionReason) throws SQLException {
-        String sql = "UPDATE shop_owner_profiles SET approval_status = ?, rejection_reason = ?, approved_at = ?, updated_at = GETDATE() WHERE profile_id = ?";
+    public void updateApprovalStatus(int profileId, int userId, String status, String rejectionReason) throws SQLException {
+        // Bước 1: Cập nhật trạng thái duyệt trên shop_owner_profiles
+        String sqlProfile = "UPDATE shop_owner_profiles "
+                + "SET approval_status = ?, rejection_reason = ?, approved_at = ?, updated_at = GETDATE() "
+                + "WHERE profile_id = ?";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sqlProfile)) {
             ps.setString(1, status);
             ps.setString(2, rejectionReason);
             ps.setTimestamp(3, "APPROVED".equals(status) ? new Timestamp(System.currentTimeMillis()) : null);
             ps.setInt(4, profileId);
+            ps.executeUpdate();
+        }
+
+        // Bước 2: Nếu APPROVED → đổi role user thành SHOP_OWNER
+        if ("APPROVED".equals(status) && userId > 0) {
+            String sqlUser = "UPDATE users SET role = 'SHOP_OWNER', updated_at = GETDATE() WHERE user_id = ?";
+            try (Connection conn = getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sqlUser)) {
+                ps.setInt(1, userId);
+                int rows = ps.executeUpdate();
+                if (rows == 0) {
+                    throw new SQLException("[CRITICAL] Cập nhật role SHOP_OWNER thất bại cho user_id=" + userId);
+                }
+            }
+        }
+    }
+
+    /**
+     * Cập nhật đường dẫn tài liệu upload sau khi đăng ký.
+     */
+    public void updateDocPaths(int profileId, String jsonDocPaths) throws SQLException {
+        String sql = "UPDATE shop_owner_profiles SET doc_paths = ?, updated_at = GETDATE() WHERE profile_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, jsonDocPaths);
+            ps.setInt(2, profileId);
             ps.executeUpdate();
         }
     }
@@ -137,6 +246,9 @@ public class ShopProfileDAO extends BaseDAO {
         }
         p.setDeliveryAddress(rs.getString("delivery_address"));
         p.setRating(rs.getBigDecimal("rating"));
+        p.setPreferredCategories(rs.getString("preferred_categories"));
+        p.setDocPaths(rs.getString("doc_paths"));
+        p.setBusinessEmail(rs.getString("business_email"));
         
         Timestamp createdAtTs = rs.getTimestamp("created_at");
         if (createdAtTs != null) {
@@ -148,5 +260,25 @@ public class ShopProfileDAO extends BaseDAO {
             p.setUpdatedAt(updatedAtTs.toLocalDateTime());
         }
         return p;
+    }
+
+    /**
+     * Kiểm tra xem email doanh nghiệp đã được sử dụng hay chưa.
+     */
+    public boolean isBusinessEmailExists(String businessEmail) throws SQLException {
+        if (businessEmail == null || businessEmail.trim().isEmpty()) {
+            return false;
+        }
+        String sql = "SELECT COUNT(*) FROM shop_owner_profiles WHERE business_email = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, businessEmail.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 }

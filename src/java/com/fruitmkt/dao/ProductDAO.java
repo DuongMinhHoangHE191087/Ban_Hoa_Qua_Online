@@ -18,6 +18,39 @@ import java.util.*;
  */
 public class ProductDAO extends BaseDAO {
 
+    public ProductDAO() {
+        super();
+        ensureDeletedStatusAllowed();
+    }
+
+    private void ensureDeletedStatusAllowed() {
+        String sqlCheck = "SELECT COUNT(*) FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('products') AND definition LIKE '%DELETED%'";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            boolean hasDeleted = false;
+            try (ResultSet rs = stmt.executeQuery(sqlCheck)) {
+                if (rs.next()) {
+                    hasDeleted = rs.getInt(1) > 0;
+                }
+            }
+            if (!hasDeleted) {
+                String sqlFindName = "SELECT name FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('products') AND definition LIKE '%status%'";
+                String constraintName = null;
+                try (ResultSet rs = stmt.executeQuery(sqlFindName)) {
+                    if (rs.next()) {
+                        constraintName = rs.getString(1);
+                    }
+                }
+                if (constraintName != null) {
+                    stmt.execute("ALTER TABLE products DROP CONSTRAINT " + constraintName);
+                }
+                stmt.execute("ALTER TABLE products ADD CONSTRAINT CK_products_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED'))");
+            }
+        } catch (SQLException e) {
+            System.err.println("Warning: Cannot alter products.status check constraint: " + e.getMessage());
+        }
+    }
+
     /**
      * Tìm sản phẩm theo ID.
      */
@@ -42,7 +75,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findAll(int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM products ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT * FROM products WHERE status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, offset);
@@ -61,7 +94,7 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> findByOwner(int ownerId) throws SQLException {
         List<Product> list = new ArrayList<>();
-        String sql = "SELECT * FROM products WHERE owner_id = ? ORDER BY product_id DESC";
+        String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' ORDER BY product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
@@ -80,7 +113,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findByCategory(int categoryId, int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM products WHERE category_id = ? ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT * FROM products WHERE category_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, categoryId);
@@ -124,8 +157,8 @@ public class ProductDAO extends BaseDAO {
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE 1=1 ");
-        
+        sql.append("WHERE p.status = 'ACTIVE' ");
+
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
@@ -145,12 +178,12 @@ public class ProductDAO extends BaseDAO {
             sql.append("AND pv.price <= ? ");
             params.add(maxPrice);
         }
-        
+
         sql.append("ORDER BY p.product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
         int offset = (page - 1) * pageSize;
         params.add(offset);
         params.add(pageSize);
-        
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
@@ -166,15 +199,15 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
-     * Đếm tổng số sản phẩm khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
+     * Đếm tổng số sản phẩm ACTIVE khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
      */
     public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE 1=1 ");
-        
+        sql.append("WHERE p.status = 'ACTIVE' ");
+
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
@@ -194,7 +227,7 @@ public class ProductDAO extends BaseDAO {
             sql.append("AND pv.price <= ? ");
             params.add(maxPrice);
         }
-        
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
@@ -223,38 +256,38 @@ public class ProductDAO extends BaseDAO {
             ps.setString(4, product.getDescription());
             ps.setString(5, product.getOriginCountry());
             ps.setString(6, product.getOriginRegion());
-            
+
             if (product.getHarvestDate() != null) {
                 ps.setDate(7, java.sql.Date.valueOf(product.getHarvestDate()));
             } else {
                 ps.setNull(7, Types.DATE);
             }
-            
+
             if (product.getShelfLifeDays() != null) {
                 ps.setInt(8, product.getShelfLifeDays());
             } else {
                 ps.setNull(8, Types.INTEGER);
             }
-            
+
             ps.setString(9, product.getStorageInstruction());
             ps.setString(10, product.getStatus() != null ? product.getStatus() : "ACTIVE");
             ps.setInt(11, product.getViewCount());
             ps.setBigDecimal(12, product.getRating() != null ? product.getRating() : java.math.BigDecimal.ZERO);
             ps.setInt(13, product.getSoldQuantity());
             ps.setString(14, product.getLabelType());
-            
+
             if (product.getSeasonStart() != null) {
                 ps.setInt(15, product.getSeasonStart());
             } else {
                 ps.setNull(15, Types.INTEGER);
             }
-            
+
             if (product.getSeasonEnd() != null) {
                 ps.setInt(16, product.getSeasonEnd());
             } else {
                 ps.setNull(16, Types.INTEGER);
             }
-            
+
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -278,38 +311,38 @@ public class ProductDAO extends BaseDAO {
             ps.setString(4, product.getDescription());
             ps.setString(5, product.getOriginCountry());
             ps.setString(6, product.getOriginRegion());
-            
+
             if (product.getHarvestDate() != null) {
                 ps.setDate(7, java.sql.Date.valueOf(product.getHarvestDate()));
             } else {
                 ps.setNull(7, Types.DATE);
             }
-            
+
             if (product.getShelfLifeDays() != null) {
                 ps.setInt(8, product.getShelfLifeDays());
             } else {
                 ps.setNull(8, Types.INTEGER);
             }
-            
+
             ps.setString(9, product.getStorageInstruction());
             ps.setString(10, product.getStatus());
             ps.setInt(11, product.getViewCount());
             ps.setBigDecimal(12, product.getRating());
             ps.setInt(13, product.getSoldQuantity());
             ps.setString(14, product.getLabelType());
-            
+
             if (product.getSeasonStart() != null) {
                 ps.setInt(15, product.getSeasonStart());
             } else {
                 ps.setNull(15, Types.INTEGER);
             }
-            
+
             if (product.getSeasonEnd() != null) {
                 ps.setInt(16, product.getSeasonEnd());
             } else {
                 ps.setNull(16, Types.INTEGER);
             }
-            
+
             ps.setInt(17, product.getProductId());
             ps.executeUpdate();
         }
@@ -341,17 +374,27 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
-     * Lấy danh sách sản phẩm gợi ý (cùng category, cùng shop/owner, loại trừ sản phẩm hiện tại) giới hạn limit (II.21).
+     * Tìm kiếm các sản phẩm tương tự cùng danh mục (Category) phục vụ hiển thị
+     * danh sách gợi ý ở trang chi tiết sản phẩm. Loại trừ sản phẩm hiện tại.
+     * Sắp xếp theo số lượng bán (sold_quantity DESC) và lượt xem (view_count DESC).
+     *
+     * @param productId   ID sản phẩm hiện tại cần loại trừ
+     * @param categoryId  ID danh mục của sản phẩm hiện tại
+     * @param limit       Số lượng sản phẩm tương tự tối đa cần lấy
+     * @return danh sách các sản phẩm tương tự
+     * @throws SQLException nếu xảy ra lỗi truy vấn cơ sở dữ liệu
      */
-    public List<Product> findRecommendations(int productId, int categoryId, int ownerId, int limit) throws SQLException {
+    public List<Product> findSimilarProducts(int productId, int categoryId, int limit) throws SQLException {
         List<Product> list = new ArrayList<>();
-        String sql = "SELECT * FROM products WHERE category_id = ? AND owner_id = ? AND product_id <> ? AND status = 'ACTIVE' ORDER BY sold_quantity DESC, rating DESC OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT * FROM products "
+                   + "WHERE category_id = ? AND product_id != ? AND status = 'ACTIVE' "
+                   + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
+                   + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, categoryId);
-            ps.setInt(2, ownerId);
-            ps.setInt(3, productId);
-            ps.setInt(4, limit);
+            ps.setInt(2, productId);
+            ps.setInt(3, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -362,7 +405,42 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
-     * Lấy danh sách 5 sản phẩm bán chạy nhất đã giao hàng (II.22).
+     * Lấy danh sách sản phẩm ACTIVE của một shop owner cụ thể,
+     * loại trừ sản phẩm hiện tại đang xem, giới hạn số lượng.
+     * Phục vụ phần "Xem thêm từ cửa hàng này" trên trang chi tiết sản phẩm.
+     *
+     * @param ownerId          ID của chủ cửa hàng
+     * @param excludeProductId ID sản phẩm đang xem (loại trừ khỏi danh sách)
+     * @param limit            Số lượng sản phẩm tối đa cần lấy
+     * @return danh sách sản phẩm khác của shop
+     * @throws SQLException nếu xảy ra lỗi truy vấn
+     */
+    public List<Product> findByOwnerAndActiveStatus(int ownerId, int excludeProductId, int limit) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT * FROM products "
+                   + "WHERE owner_id = ? AND product_id != ? AND status = 'ACTIVE' "
+                   + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
+                   + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, excludeProductId);
+            ps.setInt(3, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách 5 sản phẩm bán chạy nhất đã giao hàng.
+     *
+     * @param limit số lượng sản phẩm tối đa cần lấy
+     * @return danh sách sản phẩm bán chạy nhất
+     * @throws SQLException nếu xảy ra lỗi truy vấn
      */
     public List<Product> findBestSellers(int limit) throws SQLException {
         List<Product> list = new ArrayList<>();
@@ -386,7 +464,11 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
-     * Lấy chi tiết sản phẩm theo danh sách các mã ID (hỗ trợ Recently Viewed cookie - II.23).
+     * Lấy chi tiết sản phẩm theo danh sách các mã ID (hỗ trợ Recently Viewed cookie).
+     *
+     * @param productIds danh sách ID sản phẩm cần lấy
+     * @return danh sách sản phẩm theo đúng thứ tự ID đầu vào
+     * @throws SQLException nếu xảy ra lỗi truy vấn
      */
     public List<Product> findRecentlyViewed(List<Integer> productIds) throws SQLException {
         List<Product> list = new ArrayList<>();
@@ -398,7 +480,7 @@ public class ProductDAO extends BaseDAO {
             sql.append(i == 0 ? "?" : ",?");
         }
         sql.append(")");
-        
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < productIds.size(); i++) {
@@ -422,25 +504,38 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
-     * Bộ lọc tìm kiếm nâng cao (II.16, II.17, II.18, II.19, II.20)
+     * Bộ lọc tìm kiếm nâng cao với hỗ trợ đa danh mục, khoảng giá, đánh giá,
+     * tình trạng tồn kho và sắp xếp linh hoạt.
+     *
+     * @param keyword      từ khóa tìm kiếm (tên hoặc mô tả)
+     * @param categoryIds  danh sách ID danh mục lọc
+     * @param minPrice     giá tối thiểu
+     * @param maxPrice     giá tối đa
+     * @param rating       đánh giá tối thiểu
+     * @param inStockOnly  chỉ lấy sản phẩm còn hàng
+     * @param sortBy       tiêu chí sắp xếp: price_asc, price_desc, rating, newest
+     * @param page         trang hiện tại
+     * @param pageSize     số sản phẩm mỗi trang
+     * @return danh sách sản phẩm phù hợp
+     * @throws SQLException nếu xảy ra lỗi truy vấn
      */
     public List<Product> searchAdvanced(String keyword, List<Integer> categoryIds, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, Double rating, Boolean inStockOnly, String sortBy, int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT DISTINCT p.* FROM products p ");
-        
+
         // Always join variants if we need variant properties for filters or order
         sql.append("LEFT JOIN product_variants pv ON p.product_id = pv.product_id AND pv.is_active = 1 ");
         sql.append("WHERE p.status = 'ACTIVE' ");
-        
+
         List<Object> params = new ArrayList<>();
-        
+
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
             String k = "%" + keyword.trim() + "%";
             params.add(k);
             params.add(k);
         }
-        
+
         if (categoryIds != null && !categoryIds.isEmpty()) {
             sql.append("AND p.category_id IN (");
             for (int i = 0; i < categoryIds.size(); i++) {
@@ -449,26 +544,26 @@ public class ProductDAO extends BaseDAO {
             }
             sql.append(") ");
         }
-        
+
         if (minPrice != null) {
             sql.append("AND COALESCE(pv.discount_price, pv.price) >= ? ");
             params.add(minPrice);
         }
-        
+
         if (maxPrice != null) {
             sql.append("AND COALESCE(pv.discount_price, pv.price) <= ? ");
             params.add(maxPrice);
         }
-        
+
         if (rating != null) {
             sql.append("AND p.rating >= ? ");
             params.add(rating);
         }
-        
+
         if (inStockOnly != null && inStockOnly) {
             sql.append("AND EXISTS (SELECT 1 FROM product_variants WHERE product_id = p.product_id AND stock_quantity > 0 AND is_active = 1) ");
         }
-        
+
         // Sorting using scalar dependent subqueries to avoid SELECT DISTINCT issues in SQL Server
         if ("price_asc".equals(sortBy)) {
             sql.append("ORDER BY (SELECT MIN(COALESCE(pv2.discount_price, pv2.price)) FROM product_variants pv2 WHERE pv2.product_id = p.product_id AND pv2.is_active = 1) ASC ");
@@ -480,12 +575,12 @@ public class ProductDAO extends BaseDAO {
             // default or "newest"
             sql.append("ORDER BY p.product_id DESC ");
         }
-        
+
         sql.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
         int offset = (page - 1) * pageSize;
         params.add(offset);
         params.add(pageSize);
-        
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
@@ -502,21 +597,30 @@ public class ProductDAO extends BaseDAO {
 
     /**
      * Đếm tổng số sản phẩm khớp bộ lọc nâng cao để phân trang.
+     *
+     * @param keyword     từ khóa tìm kiếm
+     * @param categoryIds danh sách ID danh mục lọc
+     * @param minPrice    giá tối thiểu
+     * @param maxPrice    giá tối đa
+     * @param rating      đánh giá tối thiểu
+     * @param inStockOnly chỉ đếm sản phẩm còn hàng
+     * @return tổng số sản phẩm khớp
+     * @throws SQLException nếu xảy ra lỗi truy vấn
      */
     public int countSearchAdvanced(String keyword, List<Integer> categoryIds, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, Double rating, Boolean inStockOnly) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
         sql.append("LEFT JOIN product_variants pv ON p.product_id = pv.product_id AND pv.is_active = 1 ");
         sql.append("WHERE p.status = 'ACTIVE' ");
-        
+
         List<Object> params = new ArrayList<>();
-        
+
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
             String k = "%" + keyword.trim() + "%";
             params.add(k);
             params.add(k);
         }
-        
+
         if (categoryIds != null && !categoryIds.isEmpty()) {
             sql.append("AND p.category_id IN (");
             for (int i = 0; i < categoryIds.size(); i++) {
@@ -525,26 +629,26 @@ public class ProductDAO extends BaseDAO {
             }
             sql.append(") ");
         }
-        
+
         if (minPrice != null) {
             sql.append("AND COALESCE(pv.discount_price, pv.price) >= ? ");
             params.add(minPrice);
         }
-        
+
         if (maxPrice != null) {
             sql.append("AND COALESCE(pv.discount_price, pv.price) <= ? ");
             params.add(maxPrice);
         }
-        
+
         if (rating != null) {
             sql.append("AND p.rating >= ? ");
             params.add(rating);
         }
-        
+
         if (inStockOnly != null && inStockOnly) {
             sql.append("AND EXISTS (SELECT 1 FROM product_variants WHERE product_id = p.product_id AND stock_quantity > 0 AND is_active = 1) ");
         }
-        
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
@@ -569,39 +673,39 @@ public class ProductDAO extends BaseDAO {
         p.setDescription(rs.getString("description"));
         p.setOriginCountry(rs.getString("origin_country"));
         p.setOriginRegion(rs.getString("origin_region"));
-        
+
         java.sql.Date harvestDateVal = rs.getDate("harvest_date");
         if (harvestDateVal != null) {
             p.setHarvestDate(harvestDateVal.toLocalDate());
         }
-        
+
         int shelfLife = rs.getInt("shelf_life_days");
         p.setShelfLifeDays(rs.wasNull() ? null : shelfLife);
-        
+
         p.setStorageInstruction(rs.getString("storage_instruction"));
         p.setStatus(rs.getString("status"));
         p.setViewCount(rs.getInt("view_count"));
         p.setRating(rs.getBigDecimal("rating"));
         p.setSoldQuantity(rs.getInt("sold_quantity"));
-        
+
         p.setLabelType(rs.getString("label_type"));
-        
+
         int sStart = rs.getInt("season_start");
         p.setSeasonStart(rs.wasNull() ? null : sStart);
-        
+
         int sEnd = rs.getInt("season_end");
         p.setSeasonEnd(rs.wasNull() ? null : sEnd);
-        
+
         Timestamp createdAtVal = rs.getTimestamp("created_at");
         if (createdAtVal != null) {
             p.setCreatedAt(createdAtVal.toLocalDateTime());
         }
-        
+
         Timestamp updatedAtVal = rs.getTimestamp("updated_at");
         if (updatedAtVal != null) {
             p.setUpdatedAt(updatedAtVal.toLocalDateTime());
         }
-        
+
         return p;
     }
 }

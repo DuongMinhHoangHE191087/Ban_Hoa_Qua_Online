@@ -34,14 +34,31 @@ public class CsrfFilter implements Filter {
             session.setAttribute(AppConfig.SESSION_CSRF_TOKEN, UUID.randomUUID().toString());
         }
 
-        // Chỉ kiểm tra POST (bỏ qua GET, webhook /api/* và /auth/* trong lúc phát triển)
+        // Chỉ kiểm tra POST (bỏ qua GET, webhook /api/* và /auth/* trong lúc phát triển, và cả /cart)
         if ("POST".equalsIgnoreCase(req.getMethod()) 
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/api/")
-                && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")) {
+                && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")
+                && !req.getRequestURI().startsWith(req.getContextPath() + "/cart")) {
             String sessionToken = (String) session.getAttribute(AppConfig.SESSION_CSRF_TOKEN);
             String requestToken = req.getParameter("_csrf");
+            if (requestToken == null || requestToken.trim().isEmpty()) {
+                requestToken = req.getHeader("X-CSRF-Token");
+            }
+            if (requestToken == null || requestToken.trim().isEmpty()) {
+                requestToken = req.getHeader("X-XSRF-TOKEN");
+            }
             if (sessionToken == null || !sessionToken.equals(requestToken)) {
-                resp.sendError(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ.");
+                boolean isAjax = "XMLHttpRequest".equals(req.getHeader("X-Requested-With"))
+                        || "json".equals(req.getParameter("format"))
+                        || (req.getHeader("Accept") != null && req.getHeader("Accept").contains("application/json"));
+                
+                if (isAjax) {
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    resp.setContentType("application/json;charset=UTF-8");
+                    resp.getWriter().write("{\"success\":false,\"error\":\"CSRF token không hợp lệ.\"}");
+                } else {
+                    resp.sendError(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ.");
+                }
                 return;
             }
         }

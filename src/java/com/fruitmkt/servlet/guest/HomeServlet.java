@@ -44,6 +44,7 @@ public class HomeServlet extends HttpServlet {
             throws ServletException, IOException {
 
         req.setCharacterEncoding("UTF-8");
+        resp.setContentType("text/html;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
 
         // 1. Lọc tham số tìm kiếm & danh mục từ Request
@@ -106,10 +107,11 @@ public class HomeServlet extends HttpServlet {
                 }
                 
                 if (imagePath == null) {
-                    imagePath = "/assets/images/placeholder.png";
-                }
-                
-                if (imagePath.startsWith("/assets/")) {
+                    imagePath = req.getContextPath() + "/assets/img/placeholder.png";
+                } else if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
+                    if (!imagePath.startsWith("/")) {
+                        imagePath = "/" + imagePath;
+                    }
                     imagePath = req.getContextPath() + imagePath;
                 }
 
@@ -193,10 +195,11 @@ public class HomeServlet extends HttpServlet {
                 }
                 
                 if (imagePath == null) {
-                    imagePath = "/assets/images/placeholder.png";
-                }
-                
-                if (imagePath.startsWith("/assets/")) {
+                    imagePath = req.getContextPath() + "/assets/img/placeholder.png";
+                } else if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
+                    if (!imagePath.startsWith("/")) {
+                        imagePath = "/" + imagePath;
+                    }
                     imagePath = req.getContextPath() + imagePath;
                 }
 

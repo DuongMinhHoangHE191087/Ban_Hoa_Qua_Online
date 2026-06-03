@@ -16,6 +16,12 @@
 // ── 1. Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     Alert.autoHide();
+    
+    // Tự động đồng bộ gộp giỏ hàng vãng lai lên database ngay sau khi load trang đăng nhập thành công
+    if (window.isLoggedIn === true) {
+        CartSync.syncToServer(window.contextPath || '');
+    }
+    
     GuestCart.updateBadge();
     console.log('[FruitMkt] JS initialized');
 });
@@ -92,7 +98,18 @@ const GuestCart = {
     /** Cập nhật số badge trên navbar */
     updateBadge() {
         const badge = document.getElementById('cart-badge');
-        if (badge) badge.textContent = this.getCount();
+        if (badge) {
+            const isLoggedIn = window.isLoggedIn === true;
+            const key = isLoggedIn ? 'userCart' : 'guestCart';
+            let count = 0;
+            try {
+                const items = JSON.parse(localStorage.getItem(key)) || [];
+                count = items.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0);
+            } catch (e) {
+                count = 0;
+            }
+            badge.textContent = count;
+        }
     }
 };
 
@@ -115,6 +132,7 @@ const CartSync = {
         if (items.length === 0) return;
 
         try {
+            console.log('[CartSync] Initiating global guest cart sync to server...');
             const resp = await fetch(`${contextPath}/api/cart/sync`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -123,9 +141,29 @@ const CartSync = {
             if (resp.ok) {
                 GuestCart.clear();
                 console.log('[CartSync] Guest cart synced successfully.');
+
+                // Lấy summary giỏ hàng thành viên mới nhất từ database để update Navbar badge
+                const summaryResp = await fetch(`${contextPath}/cart?action=sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: `guestCart=[]&_csrf=${window.csrfToken || ''}`
+                });
+                const contentType = summaryResp.headers.get("content-type");
+                if (summaryResp.ok && contentType && contentType.indexOf("application/json") !== -1) {
+                    const summaryData = await summaryResp.json();
+                    if (summaryData.success && summaryData.cartSummary) {
+                        localStorage.setItem('userCart', JSON.stringify(summaryData.cartSummary.items || []));
+                        GuestCart.updateBadge();
+                    }
+                } else {
+                    console.warn('[CartSync] Failed to get valid JSON cart summary or response failed', summaryResp.status);
+                }
             }
         } catch (err) {
-            console.warn('[CartSync] Sync failed:', err);
+            console.warn('[CartSync] Global sync failed:', err);
         }
     }
 };
@@ -151,6 +189,14 @@ const ApiClient = {
             },
             body: JSON.stringify(body)
         });
+        const contentType = resp.headers.get("content-type");
+        if (!resp.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const errData = await resp.json();
+                throw new Error(errData.message || errData.error || `Lỗi hệ thống (Mã: ${resp.status})`);
+            }
+            throw new Error(`Lỗi hệ thống (Mã: ${resp.status})`);
+        }
         return resp.json();
     }
 };
@@ -166,3 +212,179 @@ const CurrencyFmt = {
 // Xem js/components/chat.js
 // Endpoint: ws://host/ctx/chat-ws?sessionId=xxx
 // Tạo ChatWebSocketServlet.java trong package servlet.api
+
+
+// ── 8. Unified AJAX Add-to-Cart Helper (Global) ──────────────────────────────
+/**
+ * Thêm sản phẩm vào giỏ hàng qua AJAX (Dùng chung cho cả Home, Detail, List...)
+ * Tự động gộp / cập nhật Local Storage userCart hoặc guestCart tương ứng.
+ */
+window.addCartItem = async function(variantId, quantity, name, price, imagePath, stockQuantity, productId) {
+    const isLoggedIn = window.isLoggedIn === true;
+    const contextPath = window.contextPath || '';
+    
+    // 1. Optimistic Update of Local Storage & Badge
+    let rollbackItems = null;
+    try {
+        if (isLoggedIn) {
+            let items = JSON.parse(localStorage.getItem('userCart')) || [];
+            rollbackItems = JSON.stringify(items);
+            const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+            if (idx >= 0) {
+                items[idx].quantity += parseInt(quantity);
+            } else {
+                items.push({
+                    cartItemId: -1, // Temporary negative ID to prevent duplication key conflicts
+                    variantId: parseInt(variantId),
+                    productName: name.split(' - ')[0],
+                    variantLabel: name.split(' - ')[1] || 'Mặc định',
+                    price: parseFloat(price),
+                    weightKg: 1.0,
+                    quantity: parseInt(quantity),
+                    imagePath: imagePath || 'assets/img/placeholder.png',
+                    stockQuantity: parseInt(stockQuantity) || 99,
+                    productId: parseInt(productId) || null
+                });
+            }
+            localStorage.setItem('userCart', JSON.stringify(items));
+        } else {
+            let items = JSON.parse(localStorage.getItem('guestCart')) || [];
+            rollbackItems = JSON.stringify(items);
+            const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+            if (idx >= 0) {
+                items[idx].quantity += parseInt(quantity);
+            } else {
+                items.push({
+                    variantId: parseInt(variantId),
+                    name: name,
+                    price: parseFloat(price),
+                    quantity: parseInt(quantity),
+                    imagePath: imagePath || 'assets/img/placeholder.png',
+                    stockQuantity: parseInt(stockQuantity) || 99,
+                    productId: parseInt(productId) || null
+                });
+            }
+            localStorage.setItem('guestCart', JSON.stringify(items));
+        }
+
+        // Update badge and card quantities immediately
+        if (typeof GuestCart !== 'undefined') {
+            GuestCart.updateBadge();
+        } else {
+            const badge = document.getElementById('cart-badge');
+            if (badge) {
+                const key = isLoggedIn ? 'userCart' : 'guestCart';
+                const items = JSON.parse(localStorage.getItem(key)) || [];
+                badge.textContent = items.reduce((sum, i) => sum + i.quantity, 0);
+            }
+        }
+        if (window.updateCardAddedQuantities) {
+            window.updateCardAddedQuantities();
+        }
+
+        // Show toast immediately (0ms latency UI feedback)
+        showCartSuccessToast(name, quantity);
+
+    } catch (e) {
+        console.warn('[Cart] Error performing optimistic UI update:', e);
+    }
+
+    // 2. Perform Backend Request Asynchronously in the Background
+    fetch(`${contextPath}/cart?action=add`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `variantId=${variantId}&quantity=${quantity}&_csrf=${window.csrfToken || ''}`
+    })
+    .then(response => {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.error || `Lỗi hệ thống (Mã: ${response.status})`);
+                });
+            }
+            throw new Error(`Lỗi hệ thống (Mã: ${response.status})`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!data.success) {
+            throw new Error(data.error || 'Có lỗi xảy ra khi thêm vào giỏ hàng.');
+        }
+        
+        // Sync with backend final structure (e.g. database-assigned cartItemId)
+        if (isLoggedIn && data.cartSummary && data.cartSummary.items) {
+            const mappedItems = data.cartSummary.items.map(item => ({
+                cartItemId: item.cartItemId,
+                variantId: item.variantId,
+                productName: item.productName,
+                variantLabel: item.variantLabel,
+                price: item.price,
+                weightKg: item.weightKg || 1.0,
+                quantity: item.quantity,
+                imagePath: item.imagePath,
+                stockQuantity: item.stockQuantity,
+                productId: item.productId
+            }));
+            localStorage.setItem('userCart', JSON.stringify(mappedItems));
+            if (window.updateCardAddedQuantities) {
+                window.updateCardAddedQuantities();
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Error syncing add cart with server:', err);
+        // Rollback local storage on error
+        if (rollbackItems) {
+            if (isLoggedIn) {
+                localStorage.setItem('userCart', rollbackItems);
+            } else {
+                localStorage.setItem('guestCart', rollbackItems);
+            }
+            if (typeof GuestCart !== 'undefined') {
+                GuestCart.updateBadge();
+            } else {
+                const badge = document.getElementById('cart-badge');
+                if (badge) {
+                    const key = isLoggedIn ? 'userCart' : 'guestCart';
+                    const items = JSON.parse(localStorage.getItem(key)) || [];
+                    badge.textContent = items.reduce((sum, i) => sum + i.quantity, 0);
+                }
+            }
+            if (window.updateCardAddedQuantities) {
+                window.updateCardAddedQuantities();
+            }
+        }
+        alert(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
+    });
+
+    return true; // Return true immediately to unblock frontend execution without delay
+};
+
+function showCartSuccessToast(productName, quantity) {
+    let toast = document.getElementById('cart-added-toast');
+    if (!toast) {
+        const toastHtml = `
+            <div id="cart-added-toast" class="premium-toast font-sans">
+                <span class="premium-toast-icon"><i class="fa-solid fa-circle-check"></i></span>
+                <div>
+                    <strong style="display: block; font-weight: 700;">Thành công!</strong>
+                    <span class="text-xs" id="toast-message">Đã thêm sản phẩm vào giỏ hàng.</span>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', toastHtml);
+        toast = document.getElementById('cart-added-toast');
+    }
+    
+    const msgEl = document.getElementById('toast-message');
+    if (msgEl) {
+        msgEl.innerHTML = `Đã thêm <strong>${quantity}</strong> x <strong>${productName}</strong> vào giỏ hàng.`;
+    }
+    
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+}

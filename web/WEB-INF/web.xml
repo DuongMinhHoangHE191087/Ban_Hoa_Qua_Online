@@ -59,21 +59,134 @@
     -->
 
     <!--
-    NOTE: Các Servlet và Filter đều dùng Annotation (@WebServlet, @WebFilter)
-    nên KHÔNG cần khai báo thêm <servlet> và <filter> ở đây.
-
-    Nếu muốn kiểm soát thứ tự filter, dùng <filter> + <filter-mapping> bên dưới
-    thay vì @WebFilter annotation.
-
-    Thứ tự filter khuyến nghị:
-      1. EncodingFilter  → url-pattern /*
-      2. LoggingFilter   → url-pattern /*
-      3. CsrfFilter      → url-pattern /*
-      4. AuthFilter      → url-pattern /customer/*, /shop/*, /delivery/*, /admin/*
-      5. RoleFilter      → url-pattern /admin/*, /shop/*, /delivery/*
-
-    Khi dùng annotation @WebFilter, thứ tự KHÔNG được đảm bảo.
-    Nếu cần đảm bảo thứ tự, dùng web.xml filter mapping.
+    ================================================================
+    FILTER DEFINITIONS & ORDERING (Đảm bảo thứ tự thực thi)
+    ================================================================
     -->
+    <filter>
+        <filter-name>EncodingFilter</filter-name>
+        <filter-class>com.fruitmkt.filter.EncodingFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>LoggingFilter</filter-name>
+        <filter-class>com.fruitmkt.filter.LoggingFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>SessionRestoreFilter</filter-name>
+        <filter-class>com.fruitmkt.filter.SessionRestoreFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>CsrfFilter</filter-name>
+        <filter-class>com.fruitmkt.filter.CsrfFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>AuthFilter</filter-name>
+        <filter-class>com.fruitmkt.filter.AuthFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>RoleFilter</filter-name>
+        <filter-class>com.fruitmkt.filter.RoleFilter</filter-class>
+    </filter>
 
+    <!-- MAPPING FILTERS THEO THỨ TỰ THỰC THI (Rất quan trọng) -->
+    <filter-mapping>
+        <filter-name>EncodingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>LoggingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>SessionRestoreFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>CsrfFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/customer/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/shop/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/delivery/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/checkout</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/orders</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/notifications</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/reviews</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/returns</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/chat</url-pattern>
+    </filter-mapping>
+ 
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/customer/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/shop/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/delivery/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/checkout</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/orders</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/notifications</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/reviews</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/returns</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/chat</url-pattern>
+    </filter-mapping>
+
+<!-- Trigger reload -->
 </web-app>

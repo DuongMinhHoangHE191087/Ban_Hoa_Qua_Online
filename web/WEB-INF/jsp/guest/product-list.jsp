@@ -1,316 +1,353 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Sản Phẩm - MetaFruit"/></jsp:include>
 
-<div class="shop-container" style="max-width: 1200px; margin: 30px auto; padding: 0 15px; font-family: 'Plus Jakarta Sans', sans-serif; display: grid; grid-template-columns: 280px 1fr; gap: 30px;">
-    
-    <!-- SIDEBAR FILTERS (II.16 - II.20) -->
-    <aside style="background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(20, 83, 45, 0.08); height: fit-content;">
-        <h3 style="color: #14532d; font-size: 18px; font-weight: 700; margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid rgba(20, 83, 45, 0.08); padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-filter"></i> Bộ lọc tìm kiếm
-        </h3>
+<!-- Load header and inject Page Title -->
+<jsp:include page="/WEB-INF/jsp/common/header.jsp">
+    <jsp:param name="pageTitle" value="Danh sách sản phẩm - MetaFruit" />
+</jsp:include>
+
+<!-- Google Fonts Lexend & Material Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+<!-- Tailwind CSS Engine for consistent modern rich aesthetics -->
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#14532D", // Match MetaFruit theme precisely
+                    "primary-hover": "#166534",
+                    "primary-light": "#d1ffd8",
+                    "surface": "#eaffea",
+                    "on-surface": "#00210d",
+                    "on-surface-variant": "#44483b",
+                    "outline": "#75796a",
+                    "outline-variant": "#c5c8b7"
+                },
+                fontFamily: {
+                    sans: ["Lexend", "sans-serif"]
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    body {
+        font-family: 'Lexend', sans-serif;
+    }
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    .ambient-shadow {
+        box-shadow: 0 10px 40px rgba(20, 83, 45, 0.06);
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
+
+<script>
+    window.handleImageError = function (img) {
+        if (!img.dataset.errorStage) {
+            img.dataset.errorStage = "1";
+            img.src = "https://images.unsplash.com/photo-1610832958506-ee5633619144?w=600&auto=format&fit=crop&q=80";
+        } else if (img.dataset.errorStage === "1") {
+            img.dataset.errorStage = "2";
+            img.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMzAwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmNGZiZjciLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlMmY1ZWEiLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0icCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzRkNjYxYyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzMxNjk0YiIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYikiIHJ4PSIxNiIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjEyMCIgcj0iNDUiIGZpbGw9IiNkOWY5OWQiIG9wYWNpdHk9IjAuNiIvPjxwYXRoIGQ9Ik0yMDAsODVjMjUsMCA0MCwyNSAxNSw1MGMtMjUsMC00MC0yNS0xNS01MHoiIGZpbGw9InVybCgjcCkiLz48cGF0aCBkPSJNMjAwLDEwNWMtMTUsMC0yNSwxNS0xMCwzMGMxNSwwIDI1LTE1IDEwLTMweiIgZmlsbD0iIzg0Y2MxNiIvPjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMwMDIxMGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlZlcmRhbnQgTWFya2V0PC90ZXh0Pjx0ZXh0IHg9IjIwMCIgeT0iMjI1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI0MDAiIGZpbGw9IiM0NDQ4M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk7DtG5nIFPhuqNuIFPhuqFjaCBDYW8gQ2FwPC90ZXh0Pjwvc3ZnPg==";
+        }
+    };
+
+    function quickAddProduct(event, productId) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (window.quickAddProductGlobal) {
+            window.quickAddProductGlobal(productId);
+        } else {
+            // Fallback: Redirect to detail page
+            window.location.href = "${pageContext.request.contextPath}/products/detail?id=" + productId;
+        }
+    }
+</script>
+
+<div class="bg-gradient-to-br from-emerald-50/50 via-white to-emerald-100/40 min-h-screen pt-28 pb-20">
+    <div class="max-w-7xl mx-auto px-4 md:px-8">
         
-        <form id="filterForm" action="${pageContext.request.contextPath}/products" method="get">
-            
-            <!-- II.16: Categories Checkboxes -->
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 10px;">Danh mục trái cây</label>
-                <div style="max-height: 180px; overflow-y: auto; padding-right: 5px;">
-                    <c:forEach var="cat" items="${categories}">
-                        <label style="display: flex; align-items: center; cursor: pointer; color: #4b5563; font-size: 14px; margin-bottom: 8px; user-select: none;">
-                            <input type="checkbox" name="categoryIds" value="${cat.categoryId}" 
-                                   ${categoryIds != null && categoryIds.contains(cat.categoryId) ? 'checked' : ''}
-                                   style="margin-right: 10px; accent-color: #14532d; width: 16px; height: 16px;" />
-                            <c:out value="${cat.name}"/>
-                        </label>
-                    </c:forEach>
-                </div>
+        <!-- Page Title & Navigation Path -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[32px]">storefront</span>
+                    Sản Phẩm Của Chúng Tôi
+                </h1>
+                <p class="text-xs md:text-sm text-on-surface-variant font-light mt-1">
+                    Khám phá nguồn đặc sản sạch hữu cơ VietGAP chất lượng cao bảo vệ sức khỏe gia đình bạn.
+                </p>
             </div>
-
-            <!-- II.17: Price Range inputs -->
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 10px;">Khoảng giá (VNĐ)</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="minPriceInput" name="minPrice" placeholder="Từ" value="${minPrice}" min="0" step="5000"
-                           style="width: 100%; padding: 8px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 13px; text-align: center;" />
-                    <span style="color: #9ca3af;">-</span>
-                    <input type="number" id="maxPriceInput" name="maxPrice" placeholder="Đến" value="${maxPrice}" min="0" step="5000"
-                           style="width: 100%; padding: 8px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 13px; text-align: center;" />
-                </div>
-            </div>
-
-            <!-- II.18: Average Rating Star Select -->
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 10px;">Đánh giá chất lượng</label>
-                <select name="rating" style="width: 100%; padding: 10px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; color: #4b5563;">
-                    <option value="">Tất cả sao</option>
-                    <option value="4.0" ${rating == 4.0 ? 'selected' : ''}>4★ trở lên</option>
-                    <option value="3.0" ${rating == 3.0 ? 'selected' : ''}>3★ trở lên</option>
-                    <option value="2.0" ${rating == 2.0 ? 'selected' : ''}>2★ trở lên</option>
-                </select>
-            </div>
-
-            <!-- II.19: Availability check -->
-            <div style="margin-bottom: 25px;">
-                <label style="display: flex; align-items: center; cursor: pointer; color: #374151; font-weight: 600; font-size: 14px; user-select: none;">
-                    <input type="checkbox" name="inStockOnly" value="true" ${inStockOnly ? 'checked' : ''}
-                           style="margin-right: 10px; accent-color: #14532d; width: 16px; height: 16px;" />
-                    Chỉ hiện sản phẩm còn hàng
-                </label>
-            </div>
-
-            <!-- II.20: Sorting -->
-            <div style="margin-bottom: 25px;">
-                <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 10px;">Sắp xếp theo</label>
-                <select name="sortBy" style="width: 100%; padding: 10px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; color: #4b5563;">
-                    <option value="newest" ${'newest'.equals(sortBy) ? 'selected' : ''}>Mới nhất</option>
-                    <option value="price_asc" ${'price_asc'.equals(sortBy) ? 'selected' : ''}>Giá: Thấp đến Cao</option>
-                    <option value="price_desc" ${'price_desc'.equals(sortBy) ? 'selected' : ''}>Giá: Cao đến Thấp</option>
-                    <option value="rating" ${'rating'.equals(sortBy) ? 'selected' : ''}>Đánh giá cao nhất</option>
-                </select>
-            </div>
-
-            <button type="submit" style="width: 100%; background-color: #14532d; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 10px rgba(20,83,45,0.15); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#166534'" onmouseout="this.style.backgroundColor='#14532d'">
-                <i class="fa-solid fa-circle-check"></i> Áp dụng bộ lọc
-            </button>
-        </form>
-
-        <!-- II.22 Best Sellers Sidebar Block -->
-        <c:if test="${not empty bestSellers}">
-            <div style="margin-top: 35px; border-top: 2px solid rgba(20,83,45,0.08); padding-top: 20px;">
-                <h4 style="color: #14532d; font-size: 16px; font-weight: 700; margin-top: 0; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-fire" style="color: #ef4444;"></i> Bán Chạy Nhất (II.22)
-                </h4>
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <c:forEach var="bs" items="${bestSellers}">
-                        <a href="${pageContext.request.contextPath}/products/detail?id=${bs.productId}" style="display: flex; gap: 10px; text-decoration: none; color: inherit; align-items: center;">
-                            <img src="${pageContext.request.contextPath}/assets/img/logo-leaf.png" alt="fruit" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; background-color: #f0fdf4; border: 1px solid #dcfce7;" />
-                            <div>
-                                <h5 style="margin: 0; font-size: 13px; font-weight: 600; color: #1f2937; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;"><c:out value="${bs.name}"/></h5>
-                                <div style="display: flex; align-items: center; gap: 5px; margin-top: 3px;">
-                                    <span style="color: #ef4444; font-size: 12px; font-weight: 700;"><c:out value="${bs.soldQuantity}"/> đã bán</span>
-                                </div>
-                            </div>
-                        </a>
-                    </c:forEach>
-                </div>
-            </div>
-        </c:if>
-    </aside>
-
-    <!-- PRODUCT DISPLAY GRID AREA -->
-    <main>
-        <div style="background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(20, 83, 45, 0.08); margin-bottom: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <span style="color: #4b5563; font-size: 15px;">Tìm thấy <strong style="color: #14532d; font-size: 18px;" id="countBadge">${pagedResult.totalItems}</strong> sản phẩm</span>
-            </div>
-
-            <!-- GRID ROW -->
-            <div id="productGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;">
-                <c:forEach var="p" items="${pagedResult.items}">
-                    
-                    <div class="product-card" style="background: white; border-radius: 12px; border: 1px solid #f3f4f6; overflow: hidden; position: relative; transition: all 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.015); display: flex; flex-direction: column;">
-                        
-                        <!-- II.9 Badges badging overlay -->
-                        <c:if test="${not empty p.labelType}">
-                            <span style="position: absolute; top: 12px; left: 12px; z-index: 10; padding: 4px 10px; border-radius: 20px; color: white; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
-                                         background-color: ${'Organic'.equals(p.labelType) ? '#16a34a' : '#2563eb'};">
-                                <c:out value="${p.labelType}"/>
-                            </span>
-                        </c:if>
-
-                        <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
-                            <div style="height: 180px; background-color: #f9fafb; display: flex; align-items: center; justify-content: center; position: relative;">
-                                <img src="${pageContext.request.contextPath}/assets/img/logo-leaf.png" alt="Fruit" style="max-height: 100px; max-width: 100px; object-fit: contain;" />
-                            </div>
-                            
-                            <div style="padding: 15px; display: flex; flex-direction: column; flex-grow: 1;">
-                                <h3 style="font-size: 15px; font-weight: 700; color: #1f2937; margin: 0 0 8px 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 38px;">
-                                    <c:out value="${p.name}"/>
-                                </h3>
-                                
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
-                                    <div>
-                                        <div style="color: #4b5563; font-size: 11px;">Đánh giá</div>
-                                        <ft:stars rating="${p.rating}" />
-                                    </div>
-                                    <span style="background-color: #f0fdf4; color: #166534; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;">
-                                        Xem chi tiết
-                                    </span>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </c:forEach>
-            </div>
-
-            <!-- II.16: If no products found -->
-            <div id="noProductsAlert" style="display: ${empty pagedResult.items ? 'block' : 'none'}; text-align: center; padding: 40px 20px; color: #6b7280;">
-                <i class="fa-solid fa-basket-shopping" style="font-size: 48px; color: #d1d5db; margin-bottom: 15px;"></i>
-                <p style="font-size: 16px; margin: 0;">Không tìm thấy sản phẩm nào khớp với bộ lọc của bạn.</p>
-            </div>
-
-            <!-- PAGINATION BLOCK -->
-            <div id="paginationBlock" style="margin-top: 30px; border-top: 1px solid #f3f4f6; padding-top: 20px;">
-                <ft:pagination current="${pagedResult.currentPage}" total="${pagedResult.totalPages}" baseUrl="${pageContext.request.contextPath}/products" />
-            </div>
+            <nav class="flex items-center gap-2 text-xs font-semibold bg-white/70 px-4 py-2 rounded-full border border-white/50 shadow-sm w-fit">
+                <a href="${pageContext.request.contextPath}/" class="text-on-surface-variant hover:text-primary transition-colors">Trang chủ</a>
+                <span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
+                <span class="text-primary">Sản phẩm</span>
+            </nav>
         </div>
 
-        <!-- II.23 Recently Viewed Block -->
-        <c:if test="${not empty recentlyViewed}">
-            <div style="background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(20, 83, 45, 0.08);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1.5px solid rgba(20,83,45,0.08); padding-bottom: 10px;">
-                    <h3 style="color: #14532d; font-size: 18px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Trái Cây Bạn Đã Xem Gần Đây (II.23)
-                    </h3>
-                    <button id="clearRecentlyViewedBtn" style="background: none; border: none; color: #ef4444; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="clearRecentlyViewedCookie()">
-                        <i class="fa-solid fa-trash-can"></i> Xóa lịch sử
-                    </button>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px;">
-                    <c:forEach var="rv" items="${recentlyViewed}">
-                        <a href="${pageContext.request.contextPath}/products/detail?id=${rv.productId}" style="background: #f9fafb; border-radius: 10px; padding: 10px; border: 1px solid #f3f4f6; text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; transition: all 0.2s;">
-                            <div style="height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-                                <img src="${pageContext.request.contextPath}/assets/img/logo-leaf.png" alt="fruit" style="max-height: 60px;" />
-                            </div>
-                            <h5 style="margin: 0; font-size: 12px; font-weight: 700; color: #374151; text-align: center; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"><c:out value="${rv.name}"/></h5>
+        <div class="flex flex-col lg:flex-row gap-8 items-start">
+            
+            <!-- Left Sidebar Filter (Glassmorphism design) -->
+            <aside class="w-full lg:w-[280px] shrink-0 glass-panel rounded-3xl p-6 ambient-shadow bg-white/60">
+                <h2 class="font-bold text-base text-primary mb-6 flex items-center gap-2 pb-3 border-b border-primary/10">
+                    <span class="material-symbols-outlined text-[20px]">filter_alt</span>
+                    Bộ Lọc Tìm Kiếm
+                </h2>
+                
+                <form action="${pageContext.request.contextPath}/products" method="get" class="space-y-6">
+                    <!-- Keyword search field -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-primary" for="searchKeyword">Tìm kiếm từ khóa</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+                            <input type="text" id="searchKeyword" name="keyword" value="${fn:escapeXml(keyword)}"
+                                   placeholder="Tên sản phẩm..."
+                                   class="w-full pl-9 pr-4 py-2.5 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Category selector field -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-primary" for="catSelector">Danh mục sản phẩm</label>
+                        <select id="catSelector" name="categoryId"
+                                class="w-full px-4 py-2.5 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none">
+                            <option value="">Tất cả danh mục</option>
+                            <c:forEach var="cat" items="${categories}">
+                                <option value="${cat.categoryId}" ${cat.categoryId == categoryId ? 'selected' : ''}>
+                                    <c:out value="${cat.name}"/>
+                                </option>
+                            </c:forEach>
+                        </select>
+                    </div>
+
+                    <!-- Range of price field -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-primary">Khoảng giá (VNĐ)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" name="minPrice" placeholder="Giá tối thiểu" value="${minPrice}" min="0"
+                                   class="w-full px-3 py-2 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-xs outline-none">
+                            <input type="number" name="maxPrice" placeholder="Giá tối đa" value="${maxPrice}" min="0"
+                                   class="w-full px-3 py-2 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-xs outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Sắp xếp (Dành cho nâng cấp tính năng tương lai) -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-primary" for="sortSelector">Sắp xếp hiển thị</label>
+                        <select id="sortSelector" name="sort"
+                                class="w-full px-4 py-2.5 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none">
+                            <option value="newest">Sản phẩm mới nhất</option>
+                            <option value="best_seller">Bán chạy nhất</option>
+                            <option value="price_asc">Giá tăng dần</option>
+                            <option value="price_desc">Giá giảm dần</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4 flex flex-col gap-2">
+                        <button type="submit"
+                                class="w-full bg-primary hover:bg-primary-hover text-white text-xs font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer">
+                            <span class="material-symbols-outlined text-[16px]">done</span>
+                            Áp dụng bộ lọc
+                        </button>
+                        <a href="${pageContext.request.contextPath}/products"
+                           class="w-full border border-primary/20 bg-white/60 hover:bg-emerald-50 text-primary text-xs font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center">
+                            <span class="material-symbols-outlined text-[16px]">refresh</span>
+                            Đặt lại bộ lọc
                         </a>
-                    </c:forEach>
+                    </div>
+                </form>
+            </aside>
+
+            <!-- Right Results Area -->
+            <main class="flex-1 w-full">
+                <!-- Search Result Header Status -->
+                <div class="flex justify-between items-center mb-6 bg-white/60 border border-white/50 px-5 py-3 rounded-2xl shadow-sm glass-panel">
+                    <span class="text-xs md:text-sm font-medium text-on-surface-variant">
+                        Tìm thấy <strong class="text-primary font-bold">${not empty pagedResult ? pagedResult.totalItems : 0}</strong> sản phẩm
+                    </span>
+                    <c:if test="${not empty keyword or not empty categoryId or not empty minPrice or not empty maxPrice}">
+                        <span class="text-xs bg-emerald-100 text-primary px-3 py-1 rounded-full font-semibold">Đang lọc</span>
+                    </c:if>
                 </div>
-            </div>
-        </c:if>
-    </main>
-</div>
 
-<!-- AJAX AUTOMATIC LIVE UPDATES LOGIC script -->
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const filterForm = document.getElementById("filterForm");
-    
-    // Automatically trigger AJAX query on input changes
-    const inputs = filterForm.querySelectorAll("input[type='checkbox'], select, input[type='number']");
-    inputs.forEach(input => {
-        input.addEventListener("change", function() {
-            triggerFilterAjax();
-        });
-        
-        // Handle input debouncing for range values
-        if (input.type === 'number') {
-            input.addEventListener("input", debounce(function() {
-                triggerFilterAjax();
-            }, 500));
-        }
-    });
-
-    function debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-    }
-
-    function triggerFilterAjax() {
-        const formData = new FormData(filterForm);
-        const searchParams = new URLSearchParams(formData);
-        
-        // Add ajax token
-        searchParams.set("ajax", "true");
-        searchParams.set("page", "1"); // Reset to page 1
-
-        const url = filterForm.action + "?" + searchParams.toString();
-
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                const productGrid = document.getElementById("productGrid");
-                const countBadge = document.getElementById("countBadge");
-                const noProductsAlert = document.getElementById("noProductsAlert");
-                const paginationBlock = document.getElementById("paginationBlock");
-
-                // Update count badge
-                countBadge.textContent = data.totalItems;
-
-                if (!data.items || data.items.length === 0) {
-                    productGrid.style.display = "none";
-                    noProductsAlert.style.display = "block";
-                    paginationBlock.innerHTML = "";
-                    return;
-                }
-
-                noProductsAlert.style.display = "none";
-                productGrid.style.display = "grid";
-
-                // Build grid items dynamically
-                let html = "";
-                data.items.forEach(p => {
-                    const badgeColor = p.labelType === 'Organic' ? '#16a34a' : '#2563eb';
-                    const badgeHtml = p.labelType ? `
-                        <span style="position: absolute; top: 12px; left: 12px; z-index: 10; padding: 4px 10px; border-radius: 20px; color: white; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
-                                     background-color: ` + badgeColor + `;">
-                            ` + escapeHtml(p.labelType) + `
-                        </span>
-                    ` : '';
-
-                    const ctxPath = '${pageContext.request.contextPath}';
-                    const starsFull = '★'.repeat(Math.round(p.rating || 0));
-                    const starsEmpty = '☆'.repeat(5 - Math.round(p.rating || 0));
-
-                    html += `
-                        <div class="product-card" style="background: white; border-radius: 12px; border: 1px solid #f3f4f6; overflow: hidden; position: relative; transition: all 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.015); display: flex; flex-direction: column;">
-                            ` + badgeHtml + `
-                            <a href="` + ctxPath + `/products/detail?id=` + p.productId + `" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
-                                <div style="height: 180px; background-color: #f9fafb; display: flex; align-items: center; justify-content: center; position: relative;">
-                                    <img src="` + ctxPath + `/assets/img/logo-leaf.png" alt="Fruit" style="max-height: 100px; max-width: 100px; object-fit: contain;" />
-                                </div>
-                                <div style="padding: 15px; display: flex; flex-direction: column; flex-grow: 1;">
-                                    <h3 style="font-size: 15px; font-weight: 700; color: #1f2937; margin: 0 0 8px 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 38px;">
-                                        ` + escapeHtml(p.name) + `
-                                    </h3>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
-                                        <div>
-                                            <div style="color: #4b5563; font-size: 11px;">Đánh giá</div>
-                                            <div style="color: #eab308; font-size: 11px;">` + starsFull + starsEmpty + `</div>
-                                        </div>
-                                        <span style="background-color: #f0fdf4; color: #166534; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;">
-                                            Xem chi tiết
-                                        </span>
-                                    </div>
-                                </div>
+                <!-- Products Grid -->
+                <c:choose>
+                    <c:when test="${empty pagedResult or empty pagedResult.items}">
+                        <!-- Empty Fallback View -->
+                        <div class="glass-panel rounded-3xl p-16 text-center max-w-xl mx-auto ambient-shadow flex flex-col items-center gap-4 bg-white/60">
+                            <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce">sentiment_dissatisfied</span>
+                            <div>
+                                <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
+                                <p class="text-xs text-on-surface-variant font-light mt-1.5 leading-relaxed">
+                                    Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng thử lại với từ khóa khác hoặc xóa bớt tiêu chí lọc nhé.
+                                </p>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/products"
+                               class="btn bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-2 shadow-md">
+                                Xem tất cả sản phẩm
                             </a>
                         </div>
-                    `;
-                });
-                productGrid.innerHTML = html;
+                    </c:when>
+                    <c:otherwise>
+                        <!-- Grid layout -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                            <c:forEach var="p" items="${pagedResult.items}">
+                                <article data-product-id="${p.productId}"
+                                         class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
+                                    
+                                    <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}"
+                                       class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
+                                        <!-- Image Aspect Ratio block -->
+                                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                            <img src="${p.image}" alt="${fn:escapeXml(p.name)}"
+                                                 onerror="handleImageError(this)"
+                                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                            
+                                            <!-- Category tag standard badge -->
+                                            <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+                                                Nông sản sạch
+                                            </div>
+                                        </div>
 
-                // Build pagination block
-                let paginationHtml = "";
-                if (data.totalPages > 1) {
-                    paginationHtml = `<div class="pagination" style="display: flex; gap: 8px; justify-content: center; align-items: center; list-style: none; padding: 0;">`;
-                    for (let i = 1; i <= data.totalPages; i++) {
-                        const activeStyle = data.currentPage === i ? `background-color: #14532d; color: white; border-color: #14532d;` : `background-color: white; color: #374151; border-color: #d1d5db;`;
-                        paginationHtml += `<a href="` + filterForm.action + `?page=` + i + `&` + searchParams.toString() + `" style="padding: 6px 12px; border: 1px solid; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; ` + activeStyle + `">` + i + `</a>`;
-                    }
-                    paginationHtml += `</div>`;
-                }
-                paginationBlock.innerHTML = paginationHtml;
-            })
-            .catch(error => console.error("Error executing Ajax search:", error));
-    }
+                                        <!-- Content Block -->
+                                        <div class="px-1 mb-3">
+                                            <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+                                                <c:out value="${p.name}"/>
+                                            </h3>
+                                            <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
+                                                <c:out value="${p.description}"/>
+                                            </p>
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
-});
+                                            <!-- Ratings & Sold volume -->
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">
+                                                    <ft:stars rating="${p.rating}" showValue="true"/>
+                                                </div>
+                                                <span class="text-[10px] text-on-surface-variant font-medium">
+                                                    Đã bán ${p.soldQuantity}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </a>
 
-function clearRecentlyViewedCookie() {
-    // II.23 Test case: clearing the cookie must clear the recently viewed block
-    document.cookie = "recently_viewed_ids=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    location.reload();
-}
-</script>
+                                    <!-- Bottom Action (Price & Add to cart) -->
+                                    <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
+                                        <div class="flex flex-col">
+                                            <span class="text-base font-bold text-primary">
+                                                <ft:currency value="${p.price}"/>
+                                            </span>
+                                            <span class="text-[10px] text-on-surface-variant font-light">
+                                                / <c:out value="${p.unit}"/>
+                                            </span>
+                                        </div>
+
+                                        <button type="button" onclick="quickAddProduct(event, ${p.productId})"
+                                                class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
+                                                title="Thêm vào giỏ hàng">
+                                            <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+                                        </button>
+                                    </div>
+                                </article>
+                            </c:forEach>
+                        </div>
+
+                        <!-- Beautiful Pagination Controls -->
+                        <c:if test="${pagedResult.totalPages > 1}">
+                            <div class="flex justify-center items-center mt-12 gap-2">
+                                <!-- Prev Button -->
+                                <c:choose>
+                                    <c:when test="${pagedResult.currentPage > 1}">
+                                        <c:url var="prevUrl" value="/products">
+                                            <c:param name="page" value="${pagedResult.currentPage - 1}" />
+                                            <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
+                                            <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
+                                            <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
+                                            <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
+                                        </c:url>
+                                        <a href="${prevUrl}"
+                                           class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                                        </span>
+                                    </c:otherwise>
+                                </c:choose>
+
+                                <!-- Page Numbers -->
+                                <c:forEach var="pageNum" begin="1" end="${pagedResult.totalPages}">
+                                    <c:url var="pageUrl" value="/products">
+                                        <c:param name="page" value="${pageNum}" />
+                                        <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
+                                        <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
+                                        <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
+                                        <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
+                                    </c:url>
+                                    <c:choose>
+                                        <c:when test="${pagedResult.currentPage == pageNum}">
+                                            <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
+                                                ${pageNum}
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <a href="${pageUrl}"
+                                               class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                                ${pageNum}
+                                            </a>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </c:forEach>
+
+                                <!-- Next Button -->
+                                <c:choose>
+                                    <c:when test="${pagedResult.currentPage < pagedResult.totalPages}">
+                                        <c:url var="nextUrl" value="/products">
+                                            <c:param name="page" value="${pagedResult.currentPage + 1}" />
+                                            <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
+                                            <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
+                                            <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
+                                            <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
+                                        </c:url>
+                                        <a href="${nextUrl}"
+                                           class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                                        </span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                        </c:if>
+                    </c:otherwise>
+                </c:choose>
+            </main>
+        </div>
+    </div>
+</div>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp"/>

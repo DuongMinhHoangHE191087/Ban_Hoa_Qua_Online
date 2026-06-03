@@ -18,16 +18,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><c:out value="${param.pageTitle}"/> — MetaFruit Premium</title>
 
+    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- FontAwesome Icons -->
+    <!-- FontAwesome Icons & Material Symbols -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
     <!-- Core CSS -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    
+    <!-- Global application state injected for AJAX cart operations -->
+    <script>
+        window.isLoggedIn = ${not empty sessionScope.currentUser ? 'true' : 'false'};
+        window.contextPath = '${pageContext.request.contextPath}';
+        window.csrfToken = '${sessionScope._csrfToken}';
+    </script>
 </head>
 <body>
     <%-- Navbar --%>

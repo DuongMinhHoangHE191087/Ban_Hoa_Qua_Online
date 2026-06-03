@@ -185,6 +185,51 @@ public class PromotionDAO extends BaseDAO {
     }
 
     /**
+     * Lấy danh sách khuyến mãi (phạm vi ORDER) đang hoạt động của một shop owner cụ thể
+     * để hiển thị trên trang chi tiết sản phẩm (giống Shopee voucher shop).
+     */
+    public List<Promotion> findShopActivePromotions(int ownerId) throws SQLException {
+        List<Promotion> list = new ArrayList<>();
+        String sql = "SELECT * FROM promotions "
+                   + "WHERE created_by = ? AND scope = 'ORDER' AND discount_scope = 'SHOP' "
+                   + "AND is_active = 1 AND is_deleted = 0 "
+                   + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
+                   + "ORDER BY discount_value DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách khuyến mãi hệ thống toàn cục (phạm vi ALL)
+     * để hiển thị trên trang chi tiết sản phẩm (giống Shopee voucher sàn).
+     */
+    public List<Promotion> findActiveSystemPromotions() throws SQLException {
+        List<Promotion> list = new ArrayList<>();
+        String sql = "SELECT TOP 5 * FROM promotions "
+                   + "WHERE discount_scope = 'ALL' "
+                   + "AND is_active = 1 AND is_deleted = 0 "
+                   + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
+                   + "ORDER BY discount_value DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
      * Hủy kích hoạt một chương trình khuyến mãi.
      */
     public void deactivate(int promoId) throws SQLException {
@@ -192,6 +237,69 @@ public class PromotionDAO extends BaseDAO {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, promoId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Tìm mã giảm giá hợp lệ của SHOP (discount_scope='SHOP', scope='ORDER') theo code + ownerId.
+     * Đã kiểm tra: is_active, is_deleted, valid_from/until, min_order_value.
+     * Chưa kiểm tra: used_count < max_uses (thực hiện ở Service lớp trên).
+     */
+    public Promotion findValidShopCoupon(String code, int ownerId,
+                                         java.math.BigDecimal subtotal) throws SQLException {
+        String sql = "SELECT * FROM promotions "
+                   + "WHERE code = ? AND created_by = ? AND discount_scope = 'SHOP' AND scope = 'ORDER' "
+                   + "AND is_active = 1 AND is_deleted = 0 "
+                   + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
+                   + "AND min_order_value <= ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setInt(2, ownerId);
+            ps.setBigDecimal(3, subtotal);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapRow(rs);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Tìm mã giảm giá hợp lệ của SÀN (discount_scope='ALL', scope='ORDER') theo code.
+     */
+    public Promotion findValidSystemCoupon(String code,
+                                           java.math.BigDecimal subtotal) throws SQLException {
+        String sql = "SELECT * FROM promotions "
+                   + "WHERE code = ? AND discount_scope = 'ALL' AND scope = 'ORDER' "
+                   + "AND is_active = 1 AND is_deleted = 0 "
+                   + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
+                   + "AND min_order_value <= ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            ps.setBigDecimal(2, subtotal);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapRow(rs);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Ghi lại việc áp mã giảm giá cho đơn hàng vào bảng order_promotions.
+     * Gọi trong cùng transaction với INSERT orders (được truyền Connection từ outside).
+     */
+    public void saveOrderPromotion(Connection conn, int orderId, int promoId,
+                                   int customerId,
+                                   java.math.BigDecimal discountApplied) throws SQLException {
+        String sql = "INSERT INTO order_promotions (order_id, promo_id, customer_id, discount_applied, used_at) "
+                   + "VALUES (?, ?, ?, ?, GETDATE())";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            ps.setInt(2, promoId);
+            ps.setInt(3, customerId);
+            ps.setBigDecimal(4, discountApplied);
             ps.executeUpdate();
         }
     }

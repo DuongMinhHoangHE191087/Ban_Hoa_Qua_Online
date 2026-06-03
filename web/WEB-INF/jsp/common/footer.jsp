@@ -7,7 +7,7 @@
             <!-- Column 1: Brand & Organic Values -->
             <div class="footer__col footer__col-brand">
                 <a href="${pageContext.request.contextPath}/home" class="footer__logo">
-                    <span class="logo-icon"><i class="fa-solid fa-seedling"></i></span>
+                    <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" style="height: 38px; width: 38px; border-radius: 8px; object-fit: cover;">
                     <span class="logo-text">Meta<span class="text-highlight">Fruit</span></span>
                 </a>
                 <p class="footer__description">
@@ -29,6 +29,7 @@
                     <li><a href="${pageContext.request.contextPath}/home?category=import"><i class="fa-solid fa-chevron-right"></i> Trái cây nhập khẩu</a></li>
                     <li><a href="${pageContext.request.contextPath}/home?category=local"><i class="fa-solid fa-chevron-right"></i> Đặc sản Việt Nam</a></li>
                     <li><a href="${pageContext.request.contextPath}/home?tag=flashsale"><i class="fa-solid fa-chevron-right"></i> Khuyến mãi Hot</a></li>
+                    <li><a href="${pageContext.request.contextPath}/auth/register?accountType=SHOP_OWNER"><i class="fa-solid fa-chevron-right"></i> Đăng ký mở cửa hàng</a></li>
                 </ul>
             </div>
 

@@ -39,6 +39,9 @@ public class OrderService {
     private final CartDAO cartDAO = new CartDAO();
     private final ProductDAO productDAO = new ProductDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final com.fruitmkt.dao.SystemConfigDAO configDAO = new com.fruitmkt.dao.SystemConfigDAO();
+    private final com.fruitmkt.dao.PaymentDAO paymentDAO = new com.fruitmkt.dao.PaymentDAO();
+    private final com.fruitmkt.service.NotificationService notificationService = new com.fruitmkt.service.NotificationService();
 
     /**
      * Đặt hàng có giao dịch và khóa dòng (II.11 - II.13, II.8, II.10).
@@ -150,23 +153,15 @@ public class OrderService {
                     ps.executeUpdate();
                 }
 
-                // II.8: Packaging cost addition
-                BigDecimal baseUnitPrice = pv.getDiscountPrice() != null ? pv.getDiscountPrice() : pv.getPrice();
-                BigDecimal addOn = BigDecimal.ZERO;
-                if ("Gift Box".equals(pv.getPackagingOption())) {
-                    addOn = new BigDecimal("50000");
-                } else if ("Foam Tray".equals(pv.getPackagingOption())) {
-                    addOn = new BigDecimal("15000");
-                }
-
-                BigDecimal finalUnitPrice = baseUnitPrice.add(addOn);
+                // Use discount price if available, otherwise base price
+                BigDecimal finalUnitPrice = pv.getDiscountPrice() != null ? pv.getDiscountPrice() : pv.getPrice();
                 BigDecimal subtotal = finalUnitPrice.multiply(new BigDecimal(ci.getQuantity()));
                 totalAmount = totalAmount.add(subtotal);
 
                 OrderItem item = new OrderItem();
                 item.setVariantId(ci.getVariantId());
                 item.setProductNameSnapshot(p.getName());
-                item.setVariantLabelSnapshot(pv.getVariantLabel() + (pv.getPackagingOption() != null ? " (" + pv.getPackagingOption() + ")" : ""));
+                item.setVariantLabelSnapshot(pv.getVariantLabel());
                 item.setQuantity(ci.getQuantity());
                 item.setUnitPrice(finalUnitPrice);
                 item.setSubtotal(subtotal);
@@ -261,7 +256,7 @@ public class OrderService {
      * Lấy danh sách mặt hàng của đơn hàng.
      */
     public List<OrderItem> getOrderItems(int orderId) throws SQLException {
-        return orderDAO.findOrderItems(orderId);
+        return orderDAO.findItemsByOrderId(orderId);
     }
 
     /**
@@ -290,17 +285,17 @@ public class OrderService {
     }
 
     /**
-     * Xác nhận đơn hàng từ phía shop owner.
+     * Xác nhận đơn hàng từ phía shop owner (Duyệt đơn → APPROVED).
      */
     public void confirmOrder(int orderId, int ownerId) throws SQLException {
         Order order = getOrderDetail(orderId);
         if (order.getOwnerId() != ownerId) {
             throw new IllegalArgumentException("Bạn không có quyền thao tác trên đơn hàng của shop khác.");
         }
-        if (!"PENDING_PAYMENT".equals(order.getStatus())) {
-            throw new IllegalArgumentException("Không thể xác nhận đơn hàng ở trạng thái hiện tại.");
+        if (!"PENDING_PAYMENT".equals(order.getStatus()) && !"CONFIRMED".equals(order.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể duyệt đơn hàng ở trạng thái PENDING hoặc CONFIRMED.");
         }
-        orderDAO.updateStatus(orderId, "CONFIRMED");
+        orderDAO.updateStatus(orderId, "APPROVED");
     }
 
     /**
@@ -308,11 +303,29 @@ public class OrderService {
      */
     public void cancelOrder(int orderId, int cancelledBy, String reason) throws SQLException {
         Order order = getOrderDetail(orderId);
-        if ("CANCELLED".equals(order.getStatus())) {
-            throw new IllegalArgumentException("Đơn hàng đã được hủy trước đó.");
+        if ("DELIVERED".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
+            throw new IllegalArgumentException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm.");
         }
 
-        List<OrderItem> items = orderDAO.findOrderItems(orderId);
+        // Kiểm tra quyền hủy đơn hàng (Privilege Escalation Prevention)
+        com.fruitmkt.dao.UserDAO userDAO = new com.fruitmkt.dao.UserDAO();
+        com.fruitmkt.model.entity.User user = userDAO.findUserById(cancelledBy);
+        if (user != null) {
+            if (com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+                if (order.getCustomerId() != cancelledBy) {
+                    throw new IllegalArgumentException("Bạn không có quyền hủy đơn hàng này!");
+                }
+                if (!"PENDING_PAYMENT".equals(order.getStatus()) && !"CONFIRMED".equals(order.getStatus())) {
+                    throw new IllegalArgumentException("Cửa hàng đã duyệt hoặc đang giao đơn, không thể tự ý hủy!");
+                }
+            } else if (com.fruitmkt.config.AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
+                if (order.getOwnerId() != cancelledBy) {
+                    throw new IllegalArgumentException("Đơn hàng này không thuộc cửa hàng của bạn!");
+                }
+            }
+        }
+
+        List<OrderItem> items = orderDAO.findItemsByOrderId(orderId);
 
         // Begin transaction
         Connection conn = BaseDAO.newConnection();
@@ -408,5 +421,111 @@ public class OrderService {
 
         List<Order> items = orderDAO.findByOwner(ownerId, status, page, pageSize);
         return new PagedResultDTO(items, page, totalPages, total, pageSize);
+    }
+
+    /**
+     * Chuyển trạng thái sang DISPATCHED và có thể gọi DeliveryService để tạo bản ghi phân công.
+     */
+    public void dispatchOrder(int orderId, int ownerId) throws SQLException {
+        Order order = getOrderDetail(orderId);
+        if (order.getOwnerId() != ownerId) {
+            throw new IllegalArgumentException("Đơn hàng không hợp lệ!");
+        }
+        if (!"APPROVED".equals(order.getStatus()) && !"PREPARING".equals(order.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
+        }
+        orderDAO.updateStatus(orderId, "DISPATCHED");
+    }
+
+    /**
+     * Khách hàng xác nhận đã nhận hàng
+     */
+    public void customerConfirmDelivery(int orderId, int customerId) throws SQLException {
+        Order order = getOrderDetail(orderId);
+        if (order.getCustomerId() != customerId) {
+            throw new IllegalArgumentException("Đơn hàng không hợp lệ!");
+        }
+        // [FIX B5] "SHIPPED" không tồn tại trong schema — chỉ check DISPATCHED
+        if (!com.fruitmkt.config.AppConfig.ORDER_DISPATCHED.equals(order.getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể xác nhận nhận hàng đối với đơn đang giao (DISPATCHED)!");
+        }
+        orderDAO.updateStatus(orderId, "DELIVERED");
+    }
+
+    /**
+     * Tự động hủy các đơn hàng quá 30 phút mà cửa hàng không nhận (chấp nhận giao).
+     * Hoàn tiền cho khách nếu là đơn CK.
+     */
+    public void autoCancelUnacceptedOrders() throws SQLException {
+        String sql = "SELECT * FROM orders WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL AND shop_acceptance_deadline < GETDATE()";
+        try (java.sql.Connection conn = orderDAO.openConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int oid = rs.getInt("order_id");
+                    int custId = rs.getInt("customer_id");
+                    int ownId = rs.getInt("owner_id");
+                    String paymentMethod = rs.getString("payment_method");
+                    
+                    // 1. Hủy đơn hàng và hoàn trả tồn kho
+                    cancelOrder(oid, 1, "Quá 30 phút cửa hàng không nhận đơn. Hệ thống tự động hủy.");
+                    
+                    // 2. Nếu là đơn CK, hoàn tiền tự động (giả lập)
+                    if ("CK".equals(paymentMethod)) {
+                        orderDAO.updateRefundStatus(oid, "REFUNDED");
+                        // Cập nhật trạng thái payment transaction tương ứng
+                        var txList = paymentDAO.findByOrder(oid);
+                        if (!txList.isEmpty()) {
+                            paymentDAO.updateStatus(txList.get(0).getTransactionId(), "refunded", "SYSTEM_TIMEOUT_REFUND", "Cửa hàng không nhận đơn");
+                        }
+                    }
+                    
+                    // 3. Gửi thông báo cho khách hàng
+                    try {
+                        notificationService.send(custId, "ORDER_UPDATE", "Đơn hàng tự động hủy", 
+                            "Rất tiếc, cửa hàng đã không nhận chuẩn bị đơn hàng #" + oid + " của bạn trong vòng 30 phút. " +
+                            ("CK".equals(paymentMethod) ? "Tiền đã được hoàn trả tự động vào tài khoản của bạn. " : "") +
+                            "Vui lòng đặt lại đơn hàng khác.", "/customer/orders");
+                    } catch (Exception e) {
+                        System.err.println("Failed to notify customer of auto cancellation: " + e.getMessage());
+                    }
+                    
+                    // 4. Gửi thông báo cho chủ shop
+                    try {
+                        notificationService.send(ownId, "ORDER_UPDATE", "Hủy đơn hàng do quá hạn nhận", 
+                            "Đơn hàng #" + oid + " đã bị hệ thống tự động hủy và hoàn tiền vì bạn không bấm nhận đơn trong vòng 30 phút.", "/shop/orders");
+                    } catch (Exception e) {
+                        System.err.println("Failed to notify shop owner of auto cancellation: " + e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Tự động xác nhận hoàn thành đơn hàng đã giao (DELIVERED) sau freeze_days ngày nếu khách không khiếu nại.
+     */
+    public void autoConfirmDeliveredOrders() throws SQLException {
+        int freezeDays = configDAO.getInt("freeze_days", 3);
+        String sql = "SELECT o.order_id, o.owner_id, o.final_amount FROM orders o "
+                   + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
+                   + "WHERE o.status = 'DELIVERED' "
+                   + "AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
+                   + "AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
+        try (java.sql.Connection conn = orderDAO.openConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, -freezeDays);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int oid = rs.getInt("order_id");
+                    System.out.println("[OrderService] Auto-confirming settlement eligibility for order #" + oid + " after " + freezeDays + " freeze days.");
+                    String updateSql = "UPDATE orders SET updated_at = GETDATE() WHERE order_id = ?";
+                    try (java.sql.PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
+                        psUpdate.setInt(1, oid);
+                        psUpdate.executeUpdate();
+                    }
+                }
+            }
+        }
     }
 }

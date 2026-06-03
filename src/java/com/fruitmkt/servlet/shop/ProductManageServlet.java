@@ -3,10 +3,12 @@ package com.fruitmkt.servlet.shop;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.Category;
 import com.fruitmkt.model.entity.Product;
+import com.fruitmkt.model.entity.ProductImage;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.ProductService;
 import com.fruitmkt.dao.ProductDAO;
+import com.fruitmkt.dao.ProductImageDAO;
 import com.fruitmkt.dao.CategoryDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
 import com.fruitmkt.util.SessionUtil;
@@ -16,15 +18,18 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * ProductManageServlet — Controller cho chức năng: Danh sách sản phẩm của shop, CRUD
+ * ProductManageServlet — Controller hiển thị danh sách sản phẩm của shop
  *
  * URL: /shop/products
  * GET : Danh sách sản phẩm của shop, CRUD
@@ -39,6 +44,7 @@ public class ProductManageServlet extends HttpServlet {
     private final ProductDAO productDAO = new ProductDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final ProductImageDAO productImageDAO = new ProductImageDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -84,8 +90,65 @@ public class ProductManageServlet extends HttpServlet {
                 SessionUtil.flashSuccess(session, "Cập nhật trạng thái sản phẩm thành công!");
                 resp.sendRedirect(req.getContextPath() + "/shop/products");
             } else {
-                // List view
-                List<Product> products = productDAO.findByOwner(user.getUserId());
+                // List view — build Map-based data matching product-list.jsp expectations
+                List<Product> rawProducts = productDAO.findByOwner(user.getUserId());
+                List<Map<String, Object>> products = new ArrayList<>();
+
+                // Category name lookup
+                List<Category> categories = categoryDAO.findAll();
+                Map<Integer, String> categoryMap = new HashMap<>();
+                for (Category c : categories) {
+                    categoryMap.put(c.getCategoryId(), c.getName());
+                }
+
+                for (Product p : rawProducts) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("productId", p.getProductId());
+                    map.put("name", p.getName());
+                    map.put("originCountry", p.getOriginCountry());
+                    map.put("originRegion", p.getOriginRegion());
+                    map.put("harvestDate", p.getFormattedHarvestDate());
+                    map.put("shelfLifeDays", p.getShelfLifeDays());
+                    map.put("status", p.getStatus());
+                    map.put("viewCount", p.getViewCount());
+                    map.put("rating", p.getRating());
+                    map.put("soldQuantity", p.getSoldQuantity());
+                    map.put("categoryName", categoryMap.getOrDefault(p.getCategoryId(), "Không xác định"));
+
+                    // Primary image
+                    ProductImage primaryImg = productImageDAO.findPrimary(p.getProductId());
+                    String imagePath = null;
+                    if (primaryImg != null && primaryImg.getFilePath() != null && !primaryImg.getFilePath().trim().isEmpty()) {
+                        imagePath = primaryImg.getFilePath().trim().replace('\\', '/');
+                    }
+                    if (imagePath == null) {
+                        imagePath = req.getContextPath() + "/assets/img/placeholder.png";
+                    } else if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
+                        if (!imagePath.startsWith("/")) {
+                            imagePath = "/" + imagePath;
+                        }
+                        imagePath = req.getContextPath() + imagePath;
+                    }
+                    map.put("image", imagePath);
+
+                    // Representative variant for price, stock, unit label
+                    List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
+                    BigDecimal price = BigDecimal.ZERO;
+                    int stock = 0;
+                    String unit = "Chưa có";
+                    if (variants != null && !variants.isEmpty()) {
+                        ProductVariant v = variants.get(0);
+                        price = v.getPrice();
+                        stock = v.getStockQuantity();
+                        unit = v.getVariantLabel();
+                    }
+                    map.put("price", price);
+                    map.put("stock", stock);
+                    map.put("unit", unit);
+
+                    products.add(map);
+                }
+
                 req.setAttribute("products", products);
                 req.getRequestDispatcher("/WEB-INF/jsp/shop/product-list.jsp").forward(req, resp);
             }
@@ -145,7 +208,6 @@ public class ProductManageServlet extends HttpServlet {
             String[] prices = req.getParameterValues("prices[]");
             String[] discountPrices = req.getParameterValues("discountPrices[]");
             String[] stocks = req.getParameterValues("stocks[]");
-            String[] packagingOptions = req.getParameterValues("packagingOptions[]");
 
             if (weights == null || weights.length == 0) {
                 throw new IllegalArgumentException("Phải khai báo ít nhất một biến thể khối lượng cho sản phẩm.");
@@ -187,10 +249,8 @@ public class ProductManageServlet extends HttpServlet {
                     throw new IllegalArgumentException("Số lượng tồn kho không được âm.");
                 }
 
-                String packaging = (packagingOptions != null && packagingOptions.length > i && packagingOptions[i] != null && !packagingOptions[i].trim().isEmpty()) ? packagingOptions[i].trim() : null;
-                if (packaging != null && !"Gift Box".equals(packaging) && !"Foam Tray".equals(packaging)) {
-                    throw new IllegalArgumentException("Tùy chọn đóng gói không hợp lệ.");
-                }
+                // Convert grams (form input) to kg (DB column: weight_kg DECIMAL(6,3))
+                BigDecimal weightKg = new BigDecimal(weightGrams).divide(new BigDecimal("1000"), 3, RoundingMode.HALF_UP);
 
                 ProductVariant v = new ProductVariant();
                 v.setVariantLabel(weightGrams + "g");
@@ -198,8 +258,7 @@ public class ProductManageServlet extends HttpServlet {
                 v.setPrice(price);
                 v.setDiscountPrice(discountPrice);
                 v.setStockQuantity(stock);
-                v.setWeightGrams(weightGrams);
-                v.setPackagingOption(packaging);
+                v.setWeightKg(weightKg);
                 v.setIsActive(true);
 
                 variants.add(v);

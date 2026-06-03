@@ -13,9 +13,8 @@ public class ProductVariant {
     private String variantLabel;
     private java.math.BigDecimal price;
     private int stockQuantity;
-    private Integer weightGrams;
     private java.math.BigDecimal discountPrice;
-    private String packagingOption;
+    private java.math.BigDecimal weightKg;
     private boolean isActive;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
@@ -40,14 +39,11 @@ public class ProductVariant {
     public int getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
 
-    public Integer getWeightGrams() { return weightGrams; }
-    public void setWeightGrams(Integer weightGrams) { this.weightGrams = weightGrams; }
-
     public java.math.BigDecimal getDiscountPrice() { return discountPrice; }
     public void setDiscountPrice(java.math.BigDecimal discountPrice) { this.discountPrice = discountPrice; }
 
-    public String getPackagingOption() { return packagingOption; }
-    public void setPackagingOption(String packagingOption) { this.packagingOption = packagingOption; }
+    public java.math.BigDecimal getWeightKg() { return weightKg; }
+    public void setWeightKg(java.math.BigDecimal weightKg) { this.weightKg = weightKg; }
 
     public boolean getIsActive() { return isActive; }
     public void setIsActive(boolean isActive) { this.isActive = isActive; }

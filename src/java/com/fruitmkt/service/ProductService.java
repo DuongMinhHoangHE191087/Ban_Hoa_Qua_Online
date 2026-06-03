@@ -69,8 +69,8 @@ public class ProductService {
     /**
      * Lấy danh sách sản phẩm gợi ý (II.21).
      */
-    public List<Product> getRecommendations(int productId, int categoryId, int ownerId) throws SQLException {
-        return productDAO.findRecommendations(productId, categoryId, ownerId, 4);
+    public List<Product> getSimilarProducts(int productId, int categoryId, int ownerId) throws SQLException {
+        return productDAO.findSimilarProducts(productId, categoryId, ownerId);
     }
 
     /**
