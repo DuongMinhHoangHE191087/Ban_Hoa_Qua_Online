@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quy Trình Nghiệp Vụ Nhập Hàng & Giải Thích Chi Tiết Mã Nguồn</title>
+    <style>
+        :root {
+            --bg-color: #f4fbf7;
+            --text-color: #00210d;
+            --primary: #4D661C;
+            --primary-dark: #364E03;
+            --primary-light: #d9f99d;
+            --surface: #ffffff;
+            --border-color: #e2ece7;
+            --code-bg: #1e1e1e;
+            --code-color: #d4d4d4;
+            --comment-color: #6a9955;
+            --keyword-color: #569cd6;
+            --string-color: #ce9178;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0; padding: 25px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(77, 102, 28, 0.08);
+            border: 1px solid var(--border-color);
+        }
+        h1, h2, h3 { color: var(--primary-dark); font-weight: 700; }
+        h1 { border-bottom: 2px solid var(--primary); padding-bottom: 10px; font-size: 1.8rem; }
+        h2 { font-size: 1.4rem; margin-top: 35px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
+        
+        /* Table of Contents & Explanations */
+        .card {
+            background-color: #fafdfb;
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            border-left-width: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+            font-size: 0.925rem;
+        }
+        th {
+            background-color: rgba(77, 102, 28, 0.05);
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+        tr:hover td {
+            background-color: #f7faf8;
+        }
+        code {
+            background-color: #eef5f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+        .code-block {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            background: var(--code-bg);
+            color: var(--code-color);
+            padding: 18px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+        .flow-step { font-weight: 700; color: var(--primary); }
+        .highlight-line {
+            background-color: #2d2d2d;
+            display: inline-block;
+            width: 100%;
+        }
+        .kw { color: var(--keyword-color); }
+        .str { color: var(--string-color); }
+        .cmt { color: var(--comment-color); font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Quy Trình Nhập Hàng & Giải Thích Chi Tiết Mã Nguồn (Line-by-Line Code Review)</h1>
+        <p><strong>Lập trình viên:</strong> Phạm Thanh Hải (HaiPT)</p>
+        <p>Tài liệu này giải thích chi tiết từng lớp đối tượng (Class) tham gia vào quy trình **Restock Management** (Nhập hàng). Dưới đây là mô tả chi tiết từng dòng code cốt lõi, lý do lựa chọn cú pháp và lợi ích bảo mật/vận hành thu được.</p>
+
+        <!-- Classes Overview Table -->
+        <div class="card">
+            <h2>1. Tổng Quan Lớp Đối Tượng Liên Quan</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tên Lớp (Class Name)</th>
+                        <th>Tầng (Layer)</th>
+                        <th>Trách Nhiệm Chính (Core Responsibility)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ReplenishmentLog.java</code></td>
+                        <td>Entity Model</td>
+                        <td>Ánh xạ cấu trúc bảng <code>replenishment_logs</code> trong CSDL và chứa các thuộc tính bổ trợ hiển thị.</td>
+                    </tr>
+                    <tr>
+                        <td><code>ReplenishmentLogDAO.java</code></td>
+                        <td>DAO (Data Access)</td>
+                        <td>Cô lập và trực tiếp thực thi các câu lệnh SQL INSERT và SELECT lên cơ sở dữ liệu.</td>
+                    </tr>
+                    <tr>
+                        <td><code>ReplenishmentService.java</code></td>
+                        <td>Service (Business)</td>
+                        <td>Quản lý nghiệp vụ kiểm tra logic và chịu trách nhiệm điều phối Giao dịch CSDL (JDBC Transaction).</td>
+                    </tr>
+                    <tr>
+                        <td><code>InventoryServlet.java</code></td>
+                        <td>Controller (Servlet)</td>
+                        <td>Xác thực quyền hạn Shop Owner, chống ID-harvesting, trích xuất dữ liệu và điều hướng PRG.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Class 1: ReplenishmentLog -->
+        <h2>2. Lớp ReplenishmentLog.java (Entity Model)</h2>
+        <div class="card">
+            <p>Mã nguồn định nghĩa các thuộc tính ánh xạ cơ bản và thuộc tính hiển thị liên kết:</p>
+            <div class="code-block">
+                <span class="kw">public class</span> ReplenishmentLog {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> logId;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> variantId;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> replenishedBy;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> quantity;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String supplierDetails;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> LocalDate replenishmentDate;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> LocalDateTime createdAt;<br>
+                <br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt">// Helper fields for UI display (not mapped in database tables)</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String productName;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String variantLabel;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String replenishedByName;<br>
+                }
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Đoạn Mã / Thuộc tính</th>
+                        <th>Ý nghĩa & Lý do thực hiện</th>
+                        <th>Lợi ích thu được</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>private int variantId;</code></td>
+                        <td>Ánh xạ khóa ngoại <code>variant_id</code>. Nhập kho sẽ nhắm thẳng tới biến thể sản phẩm cụ thể.</td>
+                        <td>Cho phép kiểm soát tồn kho ở mức độ chi tiết nhất (ví dụ: quả táo đỏ loại 1kg, 2kg có tồn kho riêng).</td>
+                    </tr>
+                    <tr>
+                        <td><code>private String supplierDetails;</code></td>
+                        <td>Lưu thông tin nhà cung cấp của lô hàng (cho phép NULL).</td>
+                        <td>Hỗ trợ việc truy vết nguồn gốc xuất xứ trái cây khi có sự cố chất lượng.</td>
+                    </tr>
+                    <tr>
+                        <td><code>private String productName;</code><br><code>private String variantLabel;</code></td>
+                        <td>Các thuộc tính bổ trợ (helper fields) không ghi vào CSDL nhưng được SELECT kèm qua câu lệnh JOIN.</td>
+                        <td><strong>Tránh vấn đề N+1 query:</strong> JSP chỉ cần đọc trực tiếp thông tin tên sản phẩm từ đối tượng Log, không cần gọi query lẻ sang bảng Product/Variant để lấy tên hiển thị.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Class 2: ReplenishmentLogDAO -->
+        <h2>3. Lớp ReplenishmentLogDAO.java (Data Access Object)</h2>
+        <div class="card">
+            <p>Trực tiếp tương tác với dữ liệu. Dưới đây là giải thích chi tiết các phương thức nghiệp vụ:</p>
+            
+            <h3>Hàm <code>openConnection()</code></h3>
+            <div class="code-block">
+                <span class="kw">public</span> Connection openConnection() <span class="kw">throws</span> SQLException {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> getConnection();<br>
+                }
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dòng mã</th>
+                        <th>Ý nghĩa & Lý do thực hiện</th>
+                        <th>Lợi ích thu được</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>public Connection openConnection()</code></td>
+                        <td>Expose phương thức <code>getConnection()</code> kế thừa từ lớp cha <code>BaseDAO</code> (vốn là protected) thành public.</td>
+                        <td>Cho phép lớp <strong>Service</strong> chủ động lấy Connection để tự quản lý vòng đời Transaction (Commit/Rollback), trong khi Servlet hay các tầng khác vẫn không can thiệp trực tiếp vào kết nối gốc.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Hàm <code>save(Connection conn, ReplenishmentLog log)</code></h3>
+            <div class="code-block">
+                String sql = <span class="str">"INSERT INTO replenishment_logs (variant_id, replenished_by, quantity, supplier_details, replenishment_date, created_at) VALUES (?, ?, ?, ?, ?, GETDATE())"</span>;<br>
+                <span class="kw">try</span> (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(1, log.getVariantId());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(2, log.getReplenishedBy());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(3, log.getQuantity());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (log.getSupplierDetails() != <span class="kw">null</span>) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setString(4, log.getSupplierDetails());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;} <span class="kw">else</span> {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setNull(4, Types.NVARCHAR);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setDate(5, Date.valueOf(log.getReplenishmentDate()));<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.executeUpdate();<br>
+                }
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dòng mã</th>
+                        <th>Ý nghĩa & Lý do thực hiện</th>
+                        <th>Lợi ích thu được</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>Connection conn</code> (tham số truyền vào)</td>
+                        <td>Nhận đối tượng <code>Connection</code> đang chạy dở của Transaction được mở ra từ tầng Service.</td>
+                        <td>Đảm bảo câu lệnh SQL INSERT này chạy chung một kết nối vật lý với câu lệnh UPDATE tồn kho, phục vụ mục đích commit/rollback đồng bộ.</td>
+                    </tr>
+                    <tr>
+                        <td><code>Statement.RETURN_GENERATED_KEYS</code></td>
+                        <td>Yêu cầu CSDL trả về các cột khóa tự tăng (Identity) vừa mới được sinh ra.</td>
+                        <td>Giúp lấy được <code>log_id</code> tự sinh ngay sau khi insert, phục vụ mục đích audit log hoặc hiển thị ngay lập tức lên UI mà không cần SELECT lại.</td>
+                    </tr>
+                    <tr>
+                        <td><code>ps.setNull(4, Types.NVARCHAR);</code></td>
+                        <td>Xử lý trường hợp chuỗi thông tin nhà cung cấp bị trống (Optional input).</td>
+                        <td><strong>Tránh lỗi NullPointerException:</strong> Hệ thống thiết lập chính xác kiểu dữ liệu NULL trên SQL Server mà không làm crash ứng dụng Java.</td>
+                    </tr>
+                    <tr>
+                        <td><code>Date.valueOf(log.getReplenishmentDate())</code></td>
+                        <td>Chuyển đổi kiểu dữ liệu <code>java.time.LocalDate</code> thành kiểu <code>java.sql.Date</code>.</td>
+                        <td>Đảm bảo tương thích kiểu dữ liệu ngày tháng giữa code Java hiện đại và các driver JDBC của SQL Server.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Class 3: ReplenishmentService -->
+        <h2>4. Lớp ReplenishmentService.java (Service Layer - Transaction Orchestrator)</h2>
+        <div class="card">
+            <p>Tầng quản lý nghiệp vụ và thực thi giao dịch. Đảm bảo tính nguyên tử (Atomicity):</p>
+            <div class="code-block">
+                <span class="kw">try</span> (Connection conn = replenishmentLogDAO.openConnection()) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;conn.setAutoCommit(<span class="kw">false</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">try</span> {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;replenishmentLogDAO.save(conn, log);<br>
+                <br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String updateStockSql = <span class="str">"UPDATE product_variants SET stock_quantity = stock_quantity + ?, updated_at = GETDATE() WHERE variant_id = ?"</span>;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">try</span> (PreparedStatement ps = conn.prepareStatement(updateStockSql)) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(1, quantity);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(2, variantId);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> affectedRows = ps.executeUpdate();<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (affectedRows == 0) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">throw new</span> SQLException(<span class="str">"Variant not found!"</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.commit();<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;} <span class="kw">catch</span> (Exception e) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.rollback();<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">throw</span> e;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;} <span class="kw">finally</span> {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.setAutoCommit(<span class="kw">true</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                }
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dòng mã</th>
+                        <th>Ý nghĩa & Lý do thực hiện</th>
+                        <th>Lợi ích thu được</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>try (Connection conn = ...)</code></td>
+                        <td>Sử dụng cú pháp <strong>try-with-resources</strong> để khai báo và khởi tạo kết nối Database.</td>
+                        <td><strong>Chống rò rỉ kết nối (Connection Leak):</strong> Java sẽ tự động đóng kết nối (gọi <code>conn.close()</code>) trong mọi trường hợp (dù code chạy thành công hay xảy ra ngoại lệ), bảo vệ tài nguyên Server.</td>
+                    </tr>
+                    <tr>
+                        <td><code>conn.setAutoCommit(false);</code></td>
+                        <td>Tắt chế độ tự động xác nhận câu lệnh của JDBC.</td>
+                        <td>Đánh dấu điểm bắt đầu của một <strong>Database Transaction</strong>. Mọi câu lệnh SQL chạy sau dòng này sẽ chỉ nằm ở trạng thái chờ xác nhận.</td>
+                    </tr>
+                    <tr>
+                        <td><code>if (affectedRows == 0) { throw new SQLException(...) }</code></td>
+                        <td>Nếu câu lệnh UPDATE tồn kho không tác động đến dòng nào (do sai ID hoặc đã bị xóa mềm).</td>
+                        <td>Chủ động phát ra lỗi để kích hoạt luồng Rollback ngay lập tức, ngăn ngừa dữ liệu rác (log ghi nhận nhập kho thành công nhưng thực tế kho không đổi).</td>
+                    </tr>
+                    <tr>
+                        <td><code>conn.commit();</code></td>
+                        <td>Đồng ý lưu tất cả thay đổi (cả phiếu Log và số lượng cập nhật) vào ổ đĩa.</td>
+                        <td>Đảm bảo tính nhất quán (Consistency) của dữ liệu: cả hai tác vụ cùng hoàn thành.</td>
+                    </tr>
+                    <tr>
+                        <td><code>conn.rollback();</code></td>
+                        <td>Hủy bỏ toàn bộ các câu lệnh đã chạy từ lúc đặt <code>setAutoCommit(false)</code>.</td>
+                        <td>Hoàn trả cơ sở dữ liệu về trạng thái an toàn trước khi xảy ra lỗi. Không để xảy ra tình trạng mất mát dữ liệu hoặc log mồ côi.</td>
+                    </tr>
+                    <tr>
+                        <td><code>conn.setAutoCommit(true);</code></td>
+                        <td>Bật lại chế độ autocommit trước khi trả Connection về pool của Server (Tomcat).</td>
+                        <td>Trả kết nối về trạng thái mặc định an toàn để các luồng xử lý khác (ở các Servlet khác) tái sử dụng kết nối không bị ảnh hưởng lỗi logic transaction.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Class 4: InventoryServlet -->
+        <h2>5. Lớp InventoryServlet.java (Controller / Security Guard)</h2>
+        <div class="card">
+            <p>Nơi tiếp nhận Request, thực thi các biện pháp phòng vệ và điều hướng dữ liệu:</p>
+            
+            <h3>Luồng xử lý GET (doGet)</h3>
+            <div class="code-block">
+                User currentUser = SessionUtil.getCurrentUser(session);<br>
+                <span class="kw">if</span> (currentUser == <span class="kw">null</span> || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;resp.sendRedirect(req.getContextPath() + <span class="str">"/auth/login"</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span>;<br>
+                }
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dòng mã</th>
+                        <th>Ý nghĩa & Lý do thực hiện</th>
+                        <th>Lợi ích thu được</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>!AppConfig.ROLE_SHOP_OWNER.equals(...)</code></td>
+                        <td>Phân quyền ở mức Servlet. Kiểm tra vai trò của tài khoản trong session.</td>
+                        <td><strong>Bảo mật tài nguyên hệ thống:</strong> Ngăn chặn khách hàng (CUSTOMER) hay tài xế (DELIVERY) cố tình đoán URL nhập kho để tự tiện tăng số lượng hàng hóa.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Luồng xử lý POST (doPost - Chống giả mạo)</h3>
+            <div class="code-block">
+                ProductVariant pv = productVariantDAO.findById(variantId);<br>
+                List&lt;Product&gt; products = productDAO.findById(pv.getProductId());<br>
+                <span class="kw">if</span> (products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;SessionUtil.flashError(session, <span class="str">"Bạn không có quyền nhập kho cho sản phẩm này."</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;resp.sendRedirect(req.getContextPath() + <span class="str">"/shop/inventory"</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span>;<br>
+                }
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dòng mã</th>
+                        <th>Ý nghĩa & Lý do thực hiện</th>
+                        <th>Lợi ích thu được</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>products.get(0).getOwnerId() != currentUser.getUserId()</code></td>
+                        <td><strong>Security Ownership Check (IDOR Prevention):</strong> Truy vết từ Biến thể ➔ Sản phẩm ➔ Lấy ID chủ shop của sản phẩm đó và so sánh với ID người dùng hiện tại.</td>
+                        <td>Ngăn chặn việc tin tặc dùng Inspect Element để đổi giá trị <code>variantId</code> trong thẻ <code>&lt;select&gt;</code> thành ID sản phẩm của shop khác để thực hiện nhập hàng khống.</td>
+                    </tr>
+                    <tr>
+                        <td><code>resp.sendRedirect(...)</code></td>
+                        <td>Sau khi xử lý thành công hoặc thất bại, gửi tín hiệu chuyển hướng về trình duyệt.</td>
+                        <td><strong>PRG (Post-Redirect-Get) Pattern:</strong> Giải quyết triệt để lỗi người dùng nhấn F5/Refresh trang làm gửi lại Form nhập kho nhiều lần (dẫn tới bị cộng dồn số lượng ảo liên tiếp).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
