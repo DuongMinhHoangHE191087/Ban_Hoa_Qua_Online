@@ -211,8 +211,8 @@ public class PaymentService {
 
         // Cập nhật payment → completed
         paymentDAO.updateStatus(tx.getTransactionId(), "completed", sepayTxId, jsonPayload);
-        // Cập nhật order → CONFIRMED
-        orderDAO.updateStatus(tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
+        // [MODIFIED] Admin must manually approve the payment for it to be confirmed (order remains PENDING_PAYMENT)
+        // orderDAO.updateStatus(tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
         // Ghi dedup
         paymentDAO.insertDedup(sepayTxId, code, "processed");
         System.out.println("[Webhook] Thanh toán thành công orderId=" + tx.getOrderId()
