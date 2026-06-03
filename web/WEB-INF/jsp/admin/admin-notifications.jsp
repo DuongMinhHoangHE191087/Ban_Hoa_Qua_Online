@@ -6,34 +6,98 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Gửi Thông báo - Admin MetaFruit</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Gửi Thông báo – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary:      '#4d661c',
+                        'primary-dk': '#364e03',
+                        'primary-lt': '#f0f7e6',
+                        surface:      '#ffffff',
+                        'surface-2':  '#f8fafc',
+                        border:       '#e2ece7',
+                        'txt':        '#0f172a',
+                        'txt-2':      '#475569',
+                        'txt-3':      '#94a3b8',
+                    },
+                    fontFamily: {
+                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
+                    },
+                    boxShadow: {
+                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
+        .glass-card {
+            background:#fff;
+            border:1px solid #e2ece7;
+            border-radius:1rem;
+            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
+        }
+        tbody tr { transition:background .12s; }
+        tbody tr:hover td { background:#f8fafc; }
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234d661c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 12px 8px;
+            padding-right: 2.25rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="admin-layout">
-        <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
-            <jsp:param name="activeMenu" value="notifications"/>
-        </jsp:include>
+<div class="admin-layout">
+    <%-- Sidebar --%>
+    <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
+        <jsp:param name="activeMenu" value="notifications"/>
+    </jsp:include>
 
-        <main class="admin-main">
-            <header class="admin-header">
-                <h1>Gửi Thông báo Khuyến mãi / Hệ thống</h1>
-            </header>
-            
-            <div class="admin-content">
-                <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
+    <%-- Main --%>
+    <main class="admin-main p-6 md:p-8 overflow-y-auto">
 
-                <!-- Form Gửi thông báo -->
-                <div class="admin-panel" style="margin-bottom: var(--space-6);">
-                    <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--space-4);">Soạn Thông báo mới</h2>
+        <%-- Page header --%>
+        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+            <div>
+                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Gửi Thông Báo Hệ Thống</h1>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Soạn và gửi thông báo truyền thông, bảo trì, khuyến mãi hàng loạt.</p>
+            </div>
+            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                <i class="fa-solid fa-bullhorn text-amber-500"></i>
+                <span class="text-xs font-bold uppercase tracking-wider">Mạng Quảng Bá</span>
+            </div>
+        </div>
+
+        <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
+
+        <%-- Two Columns Layout --%>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <%-- Form Column --%>
+            <div class="xl:col-span-1">
+                <div class="glass-card p-6">
+                    <h3 class="font-black text-txt text-base mb-4 border-b border-border pb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-primary"></i> Soạn Thông Báo
+                    </h3>
                     
-                    <form action="${pageContext.request.contextPath}/admin/notifications" method="post" style="max-width: 600px;">
-                        <div class="form-group">
-                            <label class="form-label" for="target">Gửi tới Nhóm đối tượng <span class="text-danger">*</span></label>
-                            <select id="target" name="target" class="form-select" required>
+                    <form action="${pageContext.request.contextPath}/admin/notifications" method="POST" 
+                          onsubmit="return confirmSend(event)">
+                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                        
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Gửi tới Nhóm đối tượng <span class="text-red-500">*</span></label>
+                            <select id="target" name="target" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm bg-white transition-all cursor-pointer" required>
                                 <option value="ALL">Tất cả Người dùng</option>
                                 <option value="CUSTOMER">Chỉ Khách hàng (CUSTOMER)</option>
                                 <option value="SHOP_OWNER">Chỉ Cửa hàng (SHOP_OWNER)</option>
@@ -41,52 +105,68 @@
                             </select>
                         </div>
                         
-                        <div class="form-group">
-                            <label class="form-label" for="title">Tiêu đề thông báo <span class="text-danger">*</span></label>
-                            <input type="text" id="title" name="title" class="form-control" required placeholder="Nhập tiêu đề (VD: Giảm giá 50% toàn bộ trái cây!)">
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Tiêu đề thông báo <span class="text-red-500">*</span></label>
+                            <input type="text" id="title" name="title" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all" 
+                                   required placeholder="Nhập tiêu đề ngắn gọn...">
                         </div>
                         
-                        <div class="form-group">
-                            <label class="form-label" for="message">Nội dung chi tiết <span class="text-danger">*</span></label>
-                            <textarea id="message" name="message" class="form-control" rows="4" required placeholder="Nội dung khuyến mãi, thông báo bảo trì, ..."></textarea>
+                        <div class="mb-6">
+                            <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Nội dung chi tiết <span class="text-red-500">*</span></label>
+                            <textarea id="message" name="message" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm resize-none transition-all" 
+                                      rows="5" required placeholder="Nhập nội dung thông báo đầy đủ..."></textarea>
                         </div>
                         
-                        <div class="form-actions" style="margin-top: var(--space-4);">
-                            <button type="submit" class="btn btn-primary" onclick="return confirm('Bạn có chắc muốn gửi thông báo này tới nhóm đã chọn? Hành động này không thể hoàn tác.');">
-                                <i class="fa-solid fa-paper-plane"></i> Gửi Thông Báo Hàng Loạt
-                            </button>
-                        </div>
+                        <button type="submit" class="w-full py-3 bg-primary hover:bg-primary-dk text-white font-bold rounded-xl text-xs tracking-wider uppercase transition-all shadow-md active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Gửi thông báo
+                        </button>
                     </form>
                 </div>
+            </div>
 
-                <!-- Lịch sử Thông báo -->
-                <div class="admin-panel">
-                    <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--space-4);">Lịch sử các Thông báo Hệ thống</h2>
-                    
-                    <div class="table-container">
-                        <table>
+            <%-- History Column --%>
+            <div class="xl:col-span-2">
+                <div class="glass-card overflow-hidden">
+                    <div class="px-6 py-4 border-b border-border bg-slate-50/50 flex items-center justify-between">
+                        <h3 class="font-bold text-txt text-sm"><i class="fa-solid fa-history text-primary mr-1"></i> Lịch Sử Gửi</h3>
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-primary-lt border border-[#d9f99d] text-primary text-xs font-bold">
+                            ${notificationList.size()} bản ghi
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
                             <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Thời gian gửi</th>
-                                    <th>Tiêu đề</th>
-                                    <th>Nội dung</th>
-                                    <th>Người nhận (ID)</th>
+                                <tr class="bg-surface-2 border-b border-border text-txt-2 text-xs uppercase tracking-wider">
+                                    <th class="px-6 py-3.5 font-bold">ID</th>
+                                    <th class="px-6 py-3.5 font-bold">Thời gian gửi</th>
+                                    <th class="px-6 py-3.5 font-bold">Tiêu đề</th>
+                                    <th class="px-6 py-3.5 font-bold">Nội dung</th>
+                                    <th class="px-6 py-3.5 font-bold">Người nhận</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="divide-y divide-[#f1f5f9]">
                                 <c:choose>
                                     <c:when test="${empty notificationList}">
-                                        <tr><td colspan="5" class="text-center text-muted">Chưa có thông báo hệ thống nào được gửi.</td></tr>
+                                        <tr>
+                                            <td colspan="5" class="px-6 py-12 text-center text-txt-3">
+                                                <i class="fa-solid fa-inbox text-3xl mb-2 block text-slate-300"></i>
+                                                Chưa có thông báo hệ thống nào được gửi.
+                                            </td>
+                                        </tr>
                                     </c:when>
                                     <c:otherwise>
                                         <c:forEach var="n" items="${notificationList}">
                                             <tr>
-                                                <td>#${n.notificationId}</td>
-                                                <td><fmt:formatDate value="${n.createdAtAsDate}" pattern="dd/MM/yyyy HH:mm"/></td>
-                                                <td><strong>${n.title}</strong></td>
-                                                <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${n.message}">${n.message}</td>
-                                                <td>User #${n.userId}</td>
+                                                <td class="px-6 py-4 font-mono font-bold text-primary">#${n.notificationId}</td>
+                                                <td class="px-6 py-4 text-xs text-txt-2 whitespace-nowrap">
+                                                    <fmt:formatDate value="${n.createdAtAsDate}" pattern="dd/MM/yyyy HH:mm"/>
+                                                </td>
+                                                <td class="px-6 py-4 font-semibold text-txt">${n.title}</td>
+                                                <td class="px-6 py-4 text-txt-2 text-xs max-w-[250px] truncate" title="${n.message}">
+                                                    ${n.message}
+                                                </td>
+                                                <td class="px-6 py-4 text-xs font-mono text-txt-2 bg-[#f8fafc]/40">User #${n.userId}</td>
                                             </tr>
                                         </c:forEach>
                                     </c:otherwise>
@@ -95,9 +175,30 @@
                         </table>
                     </div>
                 </div>
-                
             </div>
-        </main>
-    </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    function confirmSend(event) {
+        event.preventDefault();
+        const targetSelect = document.getElementById('target');
+        const targetText = targetSelect.options[targetSelect.selectedIndex].text;
+        
+        Swal.fire({
+            title: 'Gửi thông báo?',
+            html: 'Hành động này sẽ gửi thông báo hàng loạt tới: <b class="text-primary">' + targetText + '</b>.<br><small class="text-txt-3">Bạn chắc chắn muốn tiếp tục?</small>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4d661c',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Đúng, gửi ngay',
+            cancelButtonText: 'Hủy'
+        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        return false;
+    }
+</script>
 </body>
 </html>

@@ -6,169 +6,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tổng quan - Admin MetaFruit</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome -->
+    <title>Tổng quan – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <!-- Core CSS -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary:      '#4d661c',
+                        'primary-dk': '#364e03',
+                        'primary-lt': '#f0f7e6',
+                        surface:      '#ffffff',
+                        'surface-2':  '#f8fafc',
+                        border:       '#e2ece7',
+                        'txt':        '#0f172a',
+                        'txt-2':      '#475569',
+                        'txt-3':      '#94a3b8',
+                    },
+                    fontFamily: {
+                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
+                    },
+                    boxShadow: {
+                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: var(--space-4);
-            margin-bottom: var(--space-6);
-        }
-        
-        .stat-card {
-            background: var(--color-surface);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            align-items: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border-left: 5px solid var(--color-primary);
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-md);
-        }
-        
-        .stat-card.blue { border-left-color: #3b82f6; }
-        .stat-card.green { border-left-color: #10b981; }
-        .stat-card.red { border-left-color: #ef4444; }
-        .stat-card.orange { border-left-color: #f59e0b; }
-
-        .stat-icon {
-            font-size: 2.5rem;
-            margin-right: var(--space-4);
-        }
-        
-        .stat-card.blue .stat-icon { color: #3b82f6; }
-        .stat-card.green .stat-icon { color: #10b981; }
-        .stat-card.red .stat-icon { color: #ef4444; }
-        .stat-card.orange .stat-icon { color: #f59e0b; }
-
-        .stat-content h3 {
-            margin: 0;
-            font-size: var(--font-size-sm);
-            color: var(--color-text-light);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .stat-content .stat-value {
-            margin: var(--space-1) 0 0 0;
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--color-text);
-        }
-        
-        .dashboard-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: var(--space-4);
-        }
-        
-        .action-card {
-            background: var(--color-surface);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
-            box-shadow: var(--shadow-sm);
-            text-align: center;
-        }
-        
-        .action-card i {
-            font-size: 3rem;
-            color: var(--color-primary);
-            margin-bottom: var(--space-3);
-        }
-        
-        .action-card h3 {
-            margin-bottom: var(--space-2);
-        }
-        
-        .action-card p {
-            color: var(--color-text-light);
-            margin-bottom: var(--space-4);
-            font-size: 0.9rem;
+        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
+        .glass-card {
+            background:#fff;
+            border:1px solid #e2ece7;
+            border-radius:1rem;
+            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
         }
     </style>
 </head>
 <body>
-    <div class="admin-layout">
-        <!-- Sidebar -->
-        <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
-            <jsp:param name="activeMenu" value="dashboard"/>
-        </jsp:include>
+<div class="admin-layout">
+    <%-- Sidebar --%>
+    <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
+        <jsp:param name="activeMenu" value="dashboard"/>
+    </jsp:include>
 
-        <!-- Main Content -->
-        <main class="admin-main">
-            <header class="admin-header">
-                <h1>Tổng quan hệ thống</h1>
-            </header>
-            
-            <div class="admin-content">
-                <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
+    <%-- Main --%>
+    <main class="admin-main p-6 md:p-8 overflow-y-auto">
 
-                <!-- Thống kê KPI -->
-                <div class="dashboard-grid">
-                    <div class="stat-card blue">
-                        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
-                        <div class="stat-content">
-                            <h3>Tổng người dùng</h3>
-                            <div class="stat-value">${totalUsers != null ? totalUsers : 0}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card green">
-                        <div class="stat-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-                        <div class="stat-content">
-                            <h3>Tổng đơn hàng</h3>
-                            <div class="stat-value">${totalOrders != null ? totalOrders : 0}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card red">
-                        <div class="stat-icon"><i class="fa-solid fa-rotate-left"></i></div>
-                        <div class="stat-content">
-                            <h3>Yêu cầu Đổi trả (Chờ duyệt)</h3>
-                            <div class="stat-value">${pendingRefunds != null ? pendingRefunds : 0}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card orange">
-                        <div class="stat-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                        <div class="stat-content">
-                            <h3>Đối soát cần thanh toán</h3>
-                            <div class="stat-value">${unpaidSettlements != null ? unpaidSettlements : 0}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Liên kết nhanh -->
-                <h2 style="margin-bottom: var(--space-4);">Truy cập nhanh</h2>
-                <div class="dashboard-actions">
-                    <div class="action-card">
-                        <i class="fa-solid fa-user-shield"></i>
-                        <h3>Quản lý Người dùng</h3>
-                        <p>Tìm kiếm, vô hiệu hóa, và quản lý tất cả các tài khoản trên hệ thống.</p>
-                        <a href="${pageContext.request.contextPath}/admin/users" class="btn btn-secondary">Truy cập</a>
-                    </div>
-                    
-                    <div class="action-card">
-                        <i class="fa-solid fa-bullhorn"></i>
-                        <h3>Gửi thông báo</h3>
-                        <p>Gửi thông báo khuyến mãi, bảo trì hệ thống tới các nhóm người dùng.</p>
-                        <a href="${pageContext.request.contextPath}/admin/notifications" class="btn btn-secondary">Truy cập</a>
-                    </div>
-                </div>
-
+        <%-- Page header --%>
+        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+            <div>
+                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Tổng Quan Hệ Thống</h1>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Xem nhanh các chỉ số vận hành quan trọng và các thao tác nhanh.</p>
             </div>
-        </main>
-    </div>
+            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                <i class="fa-solid fa-leaf text-[#84cc16]"></i>
+                <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
+            </div>
+        </div>
+
+        <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
+
+        <%-- KPI Cards Grid --%>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <%-- Total Users --%>
+            <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-1 transition-all duration-200 cursor-default">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-inner">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-txt-3 uppercase tracking-wider">Tổng người dùng</span>
+                    <h3 class="text-2xl font-black text-txt mt-0.5">${totalUsers != null ? totalUsers : 0}</h3>
+                </div>
+            </div>
+
+            <%-- Total Orders --%>
+            <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-1 transition-all duration-200 cursor-default">
+                <div class="w-12 h-12 rounded-2xl bg-primary-lt text-primary flex items-center justify-center text-xl shadow-inner">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-txt-3 uppercase tracking-wider">Tổng đơn hàng</span>
+                    <h3 class="text-2xl font-black text-txt mt-0.5">${totalOrders != null ? totalOrders : 0}</h3>
+                </div>
+            </div>
+
+            <%-- Refund Requests Pending --%>
+            <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-1 transition-all duration-200 cursor-default">
+                <div class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-xl shadow-inner">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-txt-3 uppercase tracking-wider">Đổi trả chờ duyệt</span>
+                    <h3 class="text-2xl font-black text-txt mt-0.5">${pendingRefunds != null ? pendingRefunds : 0}</h3>
+                </div>
+            </div>
+
+            <%-- Unpaid Settlements --%>
+            <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-1 transition-all duration-200 cursor-default">
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-inner">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-txt-3 uppercase tracking-wider">Đối soát cần TT</span>
+                    <h3 class="text-2xl font-black text-txt mt-0.5">${unpaidSettlements != null ? unpaidSettlements : 0}</h3>
+                </div>
+            </div>
+        </div>
+
+        <%-- Quick Access Section --%>
+        <h2 class="text-base md:text-lg font-extrabold text-txt mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-amber-500"></i> Truy cập nhanh
+        </h2>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <%-- User management --%>
+            <div class="glass-card p-6 flex flex-col items-center text-center justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-200">
+                <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-4 shadow-sm">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h3 class="text-base font-bold text-txt mb-2">Quản lý Người dùng</h3>
+                <p class="text-xs text-txt-2 mb-6">Tra cứu, xem thông tin chi tiết, phân quyền, và khoá/mở khoá tài khoản thành viên.</p>
+                <a href="${pageContext.request.contextPath}/admin/users" 
+                   class="w-full py-2.5 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer">
+                    Truy cập ngay
+                </a>
+            </div>
+
+            <%-- Order Monitoring --%>
+            <div class="glass-card p-6 flex flex-col items-center text-center justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-200">
+                <div class="w-14 h-14 rounded-2xl bg-primary-lt text-primary flex items-center justify-center text-2xl mb-4 shadow-sm">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <h3 class="text-base font-bold text-txt mb-2">Giám sát Đơn hàng</h3>
+                <p class="text-xs text-txt-2 mb-6">Kiểm duyệt giao dịch chuyển khoản VietQR, đối soát COD và theo dõi hành trình đơn.</p>
+                <a href="${pageContext.request.contextPath}/admin/orders" 
+                   class="w-full py-2.5 bg-primary-lt text-primary hover:bg-primary hover:text-white rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer">
+                    Truy cập ngay
+                </a>
+            </div>
+
+            <%-- Send Notifications --%>
+            <div class="glass-card p-6 flex flex-col items-center text-center justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-200">
+                <div class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl mb-4 shadow-sm">
+                    <i class="fa-solid fa-bullhorn"></i>
+                </div>
+                <h3 class="text-base font-bold text-txt mb-2">Gửi Thông báo</h3>
+                <p class="text-xs text-txt-2 mb-6">Soạn và gửi thông báo khuyến mãi, bảo trì hệ thống tới các nhóm đối tượng người dùng.</p>
+                <a href="${pageContext.request.contextPath}/admin/notifications" 
+                   class="w-full py-2.5 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer">
+                    Truy cập ngay
+                </a>
+            </div>
+        </div>
+
+    </main>
+</div>
 </body>
 </html>

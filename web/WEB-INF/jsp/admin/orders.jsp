@@ -56,12 +56,16 @@
 
         <!-- Main Content -->
         <main class="flex-1 p-6 md:p-8 overflow-y-auto">
-            <header class="mb-8 pb-4 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-text-primary">Giám Sát Đơn Hàng</h1>
-                    <p class="text-text-secondary text-sm mt-1">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Giám Sát Đơn Hàng</h1>
+                    <p class="text-[#475569] text-xs md:text-sm mt-1">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
                 </div>
-            </header>
+                <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                    <i class="fa-solid fa-leaf text-[#84cc16]"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
+                </div>
+            </div>
 
             <!-- Flash Message (PRG pattern support) -->
             <c:if test="${not empty sessionScope.flashMsg}">
@@ -78,44 +82,6 @@
                 <c:remove var="flashType" scope="session"/>
             </c:if>
 
-            <!-- Filter Suggestions & Developer Guide Panel -->
-            <div class="bg-emerald-50/60 border border-emerald-200/50 rounded-2xl p-5 mb-8 text-sm">
-                <h4 class="font-bold text-primary flex items-center gap-2 mb-2">
-                    <span class="material-symbols-outlined text-lg">tips_and_updates</span>
-                    Hướng dẫn mở rộng bộ lọc đơn hàng (Developer Filter Expansion Guide)
-                </h4>
-                <p class="text-text-secondary text-xs mb-3 leading-relaxed">
-                    Bạn có thể tự thêm các bộ lọc mới (ví dụ: <code>minAmount</code>, <code>dateRange</code>) bằng cách mở rộng 3 tầng dữ liệu dưới đây:
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-[11px] leading-relaxed">
-                    <div class="bg-white/80 p-3.5 rounded-xl border border-emerald-100 shadow-sm">
-                        <span class="font-bold text-primary block mb-1">1. DAO (OrderDAO.java)</span>
-                        <span class="text-text-secondary text-[10px]">Thêm điều kiện vào câu SQL:</span>
-                        <pre class="bg-slate-900 text-slate-100 p-2 rounded text-[10px] overflow-x-auto mt-1">
-if (minAmount != null) {
-    sql.append("AND o.final_amount >= ? ");
-    params.add(minAmount);
-}</pre>
-                    </div>
-                    <div class="bg-white/80 p-3.5 rounded-xl border border-emerald-100 shadow-sm">
-                        <span class="font-bold text-blue-700 block mb-1">2. Servlet Layer</span>
-                        <span class="text-text-secondary text-[10px]">Đọc tham số gửi từ request:</span>
-                        <pre class="bg-slate-900 text-slate-100 p-2 rounded text-[10px] overflow-x-auto mt-1">
-String minAmtStr = req.getParameter("minAmount");
-BigDecimal minAmount = minAmtStr != null ? 
-    new BigDecimal(minAmtStr) : null;</pre>
-                    </div>
-                    <div class="bg-white/80 p-3.5 rounded-xl border border-emerald-100 shadow-sm">
-                        <span class="font-bold text-purple-700 block mb-1">3. New JSP Input Field</span>
-                        <span class="text-text-secondary text-[10px]">Thêm thẻ input vào form lọc:</span>
-                        <pre class="bg-slate-900 text-slate-100 p-2 rounded text-[10px] overflow-x-auto mt-1">
-&lt;input type="number" 
-    name="minAmount" 
-    value="${param.minAmount}" 
-    placeholder="Nhập giá bán..." /&gt;</pre>
-                    </div>
-                </div>
-            </div>
 
             <!-- Section 1: Đơn hàng chuyển khoản cần xác nhận thanh toán -->
             <div class="premium-glass-card rounded-[1.5rem] p-6 mb-8 border-l-4 border-l-amber-500">
