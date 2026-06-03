@@ -217,7 +217,7 @@ public class ProductVariantDAO extends BaseDAO {
     /**
      * Nhập thêm hàng (Restock) và ghi log lịch sử (II.13).
      */
-    public void restockVariant(int variantId, int quantity, int userId) throws SQLException {
+    public void restockVariant(int variantId, int quantity, int userId, String note) throws SQLException {
         String updateSql = "UPDATE product_variants SET stock_quantity = stock_quantity + ?, updated_at = GETDATE() WHERE variant_id = ?";
         String logSql = "INSERT INTO inventory_logs (variant_id, changed_by, change_type, quantity_delta, quantity_after, note, changed_at) "
                       + "VALUES (?, ?, 'MANUAL_ADJUST', ?, (SELECT stock_quantity FROM product_variants WHERE variant_id = ?), ?, GETDATE())";
@@ -227,14 +227,18 @@ public class ProductVariantDAO extends BaseDAO {
                 try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
                     psUpdate.setInt(1, quantity);
                     psUpdate.setInt(2, variantId);
-                    psUpdate.executeUpdate();
+                    int rows = psUpdate.executeUpdate();
+                    if (rows == 0) {
+                        conn.rollback();
+                        throw new SQLException("Biến thể ID " + variantId + " không tồn tại hoặc đã bị vô hiệu hóa.");
+                    }
                 }
                 try (PreparedStatement psLog = conn.prepareStatement(logSql)) {
                     psLog.setInt(1, variantId);
                     psLog.setInt(2, userId);
                     psLog.setInt(3, quantity);
                     psLog.setInt(4, variantId);
-                    psLog.setString(5, "Manual restock of " + quantity + " units.");
+                    psLog.setString(5, note);
                     psLog.executeUpdate();
                 }
                 conn.commit();
@@ -243,6 +247,13 @@ public class ProductVariantDAO extends BaseDAO {
                 throw e;
             }
         }
+    }
+
+    /**
+     * Nhập thêm hàng (Restock) — backward-compatible overload (II.13).
+     */
+    public void restockVariant(int variantId, int quantity, int userId) throws SQLException {
+        restockVariant(variantId, quantity, userId, "Manual restock of " + quantity + " units.");
     }
 
     /** Ánh xạ ResultSet -> ProductVariant */

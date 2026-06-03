@@ -733,7 +733,8 @@ BEGIN TRY
         (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'hash_owner2_demo', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
         (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'hash_customer1_demo', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
         (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'hash_customer2_demo', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
-        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'hash_owner3_demo', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00');
+        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'$2a$12$/86y.5.1K8c.qqOzV5bIsutKHyhvVOba32nOcbvUSvMbF3vCPkrfO', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
+        (8, N'Dev Shop Owner', N'devowner@fruitshop.local', N'$2a$12$/86y.5.1K8c.qqOzV5bIsutKHyhvVOba32nOcbvUSvMbF3vCPkrfO', N'0911999888', N'SHOP_OWNER', N'ACTIVE', N'99 Dev Street, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:35:00', '2026-05-01T09:35:00');
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -750,7 +751,8 @@ BEGIN TRY
     VALUES
         (1, 3, N'An Phu Orchard', N'Premium citrus and banana supplier', N'APPROVED', NULL, '2026-05-02T10:00:00', N'12 Le Loi, District 1, HCMC', 4.88, '2026-05-02T10:00:00', '2026-05-16T08:00:00'),
         (2, 4, N'Mekong Fresh Farm', N'Mango, berries, and grapes specialist', N'APPROVED', NULL, '2026-05-03T10:00:00', N'88 Nguyen Trai, District 5, HCMC', 4.76, '2026-05-03T10:00:00', '2026-05-16T08:00:00'),
-        (3, 7, N'Klever Premium Fruits', N'Imported fruits, gift boxes, and seasonal premium selections', N'APPROVED', NULL, '2026-05-04T10:00:00', N'52 Vo Thi Sau, District 3, HCMC', 4.91, '2026-05-04T10:00:00', '2026-05-16T08:00:00');
+        (3, 7, N'Klever Premium Fruits', N'Imported fruits, gift boxes, and seasonal premium selections', N'APPROVED', NULL, '2026-05-04T10:00:00', N'52 Vo Thi Sau, District 3, HCMC', 4.91, '2026-05-04T10:00:00', '2026-05-16T08:00:00'),
+        (4, 8, N'Dev Test Shop', N'Dev account for testing purposes', N'APPROVED', NULL, '2026-05-01T09:35:00', N'99 Dev Street, District 1, HCMC', 0.00, '2026-05-01T09:35:00', '2026-05-01T09:35:00');
     SET IDENTITY_INSERT dbo.shop_owner_profiles OFF;
 
     SET IDENTITY_INSERT dbo.categories ON;

@@ -82,7 +82,39 @@ public class InventoryServlet extends HttpServlet {
                 throw new IllegalArgumentException("Số lượng nhập kho phải lớn hơn 0.");
             }
 
-            productService.restock(variantId, quantity, user.getUserId());
+            // Security: verify the variant belongs to this shop owner
+            ProductVariant target = productVariantDAO.findById(variantId);
+            if (target == null) {
+                throw new IllegalArgumentException("Biến thể không tồn tại hoặc đã bị vô hiệu hóa.");
+            }
+            // Check parent product ownership via the variants query already loaded for this owner
+            boolean ownsVariant = false;
+            try {
+                List<ProductVariant> ownedVariants = productVariantDAO.findByOwner(user.getUserId());
+                for (ProductVariant ov : ownedVariants) {
+                    if (ov.getVariantId() == variantId) {
+                        ownsVariant = true;
+                        break;
+                    }
+                }
+            } catch (SQLException ex) {
+                req.getServletContext().log("Ownership check error: " + ex.getMessage(), ex);
+            }
+            if (!ownsVariant) {
+                throw new IllegalArgumentException("Bạn không có quyền nhập kho cho biến thể này.");
+            }
+
+            String note = req.getParameter("note");
+            if (note == null || note.trim().isEmpty()) {
+                note = "Manual restock of " + quantity + " units.";
+            } else {
+                note = note.trim();
+                if (note.length() > 300) {
+                    note = note.substring(0, 300);
+                }
+            }
+
+            productService.restock(variantId, quantity, user.getUserId(), note);
             SessionUtil.flashSuccess(session, "Cập nhật số lượng tồn kho thành công!");
             
         } catch (NumberFormatException e) {

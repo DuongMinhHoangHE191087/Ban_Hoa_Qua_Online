@@ -97,11 +97,18 @@ public class ProductService {
     /**
      * Nhập thêm hàng cho biến thể (II.13).
      */
-    public void restock(int variantId, int quantity, int userId) throws SQLException {
+    public void restock(int variantId, int quantity, int userId, String note) throws SQLException {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Số lượng nhập kho phải lớn hơn 0.");
         }
-        productVariantDAO.restockVariant(variantId, quantity, userId);
+        productVariantDAO.restockVariant(variantId, quantity, userId, note);
+    }
+
+    /**
+     * Nhập thêm hàng cho biến thể (II.13) — backward-compatible overload.
+     */
+    public void restock(int variantId, int quantity, int userId) throws SQLException {
+        restock(variantId, quantity, userId, "Manual restock of " + quantity + " units.");
     }
 
     /**

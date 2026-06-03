@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quản Lý Kho Hàng - MetaFruit"/></jsp:include>
 
@@ -52,10 +53,16 @@
                     </select>
                 </div>
 
-                <div style="margin-bottom: 20px;">
+                <div style="margin-bottom: 15px;">
                     <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 13px;">Số lượng nhập kho</label>
                     <input type="number" id="quantityInput" name="quantity" required min="1" placeholder="Ví dụ: 50"
                            style="width: 100%; padding: 10px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;" />
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 13px;">Ghi chú (tùy chọn)</label>
+                    <textarea name="note" rows="2" maxlength="300" placeholder="Ví dụ: Nhập hàng mùa hè mới"
+                              style="width: 100%; padding: 10px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box; resize: vertical; font-family: inherit;"></textarea>
                 </div>
 
                 <button type="submit" style="width: 100%; background-color: #14532d; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(20,83,45,0.12);" onmouseover="this.style.backgroundColor='#166534'" onmouseout="this.style.backgroundColor='#14532d'">
@@ -108,6 +115,12 @@
                         </c:forEach>
                     </tbody>
                 </table>
+                <c:if test="${empty variants}">
+                    <div style="text-align: center; padding: 30px; color: #9ca3af; font-weight: 500;">
+                        <i class="fa-solid fa-box-open" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                        Chưa có biến thể sản phẩm nào. Hãy tạo sản phẩm đầu tiên!
+                    </div>
+                </c:if>
             </div>
         </div>
 
@@ -150,11 +163,17 @@
                             </td>
                             <td style="padding: 12px 15px; font-weight: 700;"><c:out value="${log.quantityAfter}"/> quả</td>
                             <td style="padding: 12px 15px; color: #4b5563;"><c:out value="${log.note}"/></td>
-                            <td style="padding: 12px 15px; color: #6b7280;">${log.changedAt}</td>
+                            <td style="padding: 12px 15px; color: #6b7280;"><c:if test="${log.changedAt != null}"><fmt:parseDate value="${log.changedAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both" /><fmt:formatDate value="${parsedDate}" pattern="dd/MM/yyyy HH:mm" /></c:if></td>
                         </tr>
                     </c:forEach>
                 </tbody>
             </table>
+            <c:if test="${empty logs}">
+                <div style="text-align: center; padding: 30px; color: #9ca3af; font-weight: 500;">
+                    <i class="fa-solid fa-clipboard-list" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                    Chưa có lịch sử biến động kho nào.
+                </div>
+            </c:if>
         </div>
     </div>
 
