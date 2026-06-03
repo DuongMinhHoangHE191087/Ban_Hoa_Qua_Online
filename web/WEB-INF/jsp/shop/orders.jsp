@@ -126,7 +126,7 @@
                                     <td>#${order.orderId}</td>
                                     <td>Khách ID: ${order.customerId}</td>
                                     <td>${order.createdAt}</td>
-                                    <td class="text-danger fw-bold"><ft:formatCurrency value="${order.finalAmount}" /></td>
+                                    <td class="text-danger fw-bold"><ft:currency value="${order.finalAmount}" /></td>
                                     <td>${order.paymentMethod}</td>
                                     <td>
                                         <c:choose>
@@ -143,16 +143,17 @@
                                     <td>
                                         <c:if test="${order.status == 'CONFIRMED' || order.status == 'PENDING_PAYMENT'}">
                                             <form action="${pageContext.request.contextPath}/shop/orders" method="POST" style="display:inline;">
+                                                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                 <input type="hidden" name="action" value="approve">
                                                 <input type="hidden" name="orderId" value="${order.orderId}">
                                                 <button type="submit" class="btn btn-primary btn-sm">Duyệt</button>
                                             </form>
                                         </c:if>
                                         <c:if test="${order.status == 'APPROVED' || order.status == 'PREPARING'}">
-                                            <button type="button" class="btn btn-success btn-sm" onclick="openDispatchModal(${order.orderId})">Giao hàng</button>
+                                            <button type="button" class="btn btn-success btn-sm" onclick="openDispatchModal('${order.orderId}')">Giao hàng</button>
                                         </c:if>
                                         <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED' && order.status != 'DISPATCHED'}">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal(${order.orderId})">Hủy</button>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal('${order.orderId}')">Hủy</button>
                                         </c:if>
                                     </td>
                                 </tr>
@@ -177,6 +178,7 @@
                 <button class="close-btn" onclick="closeModal('rejectModal')">&times;</button>
             </div>
             <form action="${pageContext.request.contextPath}/shop/orders" method="POST">
+                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 <input type="hidden" name="action" value="reject">
                 <input type="hidden" name="orderId" id="rejectOrderId">
                 <div class="form-group">
@@ -199,6 +201,7 @@
                 <button class="close-btn" onclick="closeModal('dispatchModal')">&times;</button>
             </div>
             <form action="${pageContext.request.contextPath}/shop/orders" method="POST">
+                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 <input type="hidden" name="action" value="dispatch">
                 <input type="hidden" name="orderId" id="dispatchOrderId">
                 <div class="form-group">

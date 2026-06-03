@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft"  uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 <script>
     tailwind.config = {
         theme: {
@@ -201,7 +201,7 @@
                                                     <input type="checkbox" id="toggle-status-${item.productId}" 
                                                            class="sr-only peer" 
                                                            ${item.status == 'ACTIVE' ? 'checked' : ''} 
-                                                           onchange="toggleSaleStatus(${item.productId}, this)">
+                                                           onchange="toggleSaleStatus('${item.productId}', this)">
                                                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                                 </label>
                                             </div>
@@ -217,7 +217,9 @@
                                                     <span class="material-symbols-outlined text-[18px]">edit</span>
                                                 </a>
                                                 <!-- Delete button -->
-                                                <button onclick="confirmSoftDelete(${item.productId}, '<c:out value="${item.name}"/>')" 
+                                                <button data-product-id="${item.productId}" 
+                                                        data-product-name="<c:out value='${item.name}'/>"
+                                                        onclick="confirmSoftDelete(this)" 
                                                         class="w-9 h-9 rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer" 
                                                         title="Xóa mềm">
                                                     <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -236,8 +238,28 @@
     </div>
 </div>
 
+<!-- Hidden inputs to safely pass server variables to JS without IDE syntax errors -->
+<input type="hidden" id="js-ctx" value="${pageContext.request.contextPath}">
+<input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
+
 <!-- AJAX Callouts & SweetAlert style modal -->
 <script>
+    const CTX = document.getElementById('js-ctx').value;
+    const CSRF = document.getElementById('js-csrf').value;
+
+    function handleJSONResponse(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                });
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+        }
+        return response.json();
+    }
+
     /**
      * AJAX Toggle switch for sales display status
      */
@@ -252,21 +274,23 @@
         params.append('action', 'toggle');
         params.append('productId', productId);
         params.append('status', newStatus);
+        params.append('_csrf', window.csrfToken || CSRF);
 
-        fetch('${pageContext.request.contextPath}/shop/product-status', {
+        fetch(CTX + '/shop/product-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRF-Token': '${sessionScope._csrfToken}'
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
         })
-        .then(response => response.json())
+        .then(handleJSONResponse)
         .then(data => {
             checkbox.disabled = false;
             if (data.success) {
                 // Show dynamic mini toast style alert on header if needed
-                console.log(`Product ${productId} toggled to ${newStatus} successfully.`);
+                console.log('Product ' + productId + ' toggled to ' + newStatus + ' successfully.');
             } else {
                 checkbox.checked = !isChecked; // Rollback check state
                 alert("Lỗi: " + (data.message || "Không thể cập nhật trạng thái."));
@@ -276,15 +300,17 @@
             checkbox.disabled = false;
             checkbox.checked = !isChecked; // Rollback
             console.error(err);
-            alert("Lỗi kết nối máy chủ khi cập nhật trạng thái.");
+            alert(err.message || "Lỗi kết nối máy chủ khi cập nhật trạng thái.");
         });
     }
 
     /**
      * Show custom modal to confirm soft delete
      */
-    function confirmSoftDelete(productId, productName) {
-        const confirmation = confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${productName}"?\nLưu ý: Sản phẩm sẽ bị ẩn khỏi gian hàng nhưng các đơn hàng cũ vẫn hiển thị bình thường.`);
+    function confirmSoftDelete(button) {
+        const productId = button.getAttribute('data-product-id');
+        const productName = button.getAttribute('data-product-name');
+        const confirmation = confirm('Bạn có chắc chắn muốn xóa sản phẩm "' + productName + '"?\nLưu ý: Sản phẩm sẽ bị ẩn khỏi gian hàng nhưng các đơn hàng cũ vẫn hiển thị bình thường.');
         if (confirmation) {
             executeSoftDelete(productId);
         }
@@ -294,22 +320,24 @@
      * AJAX Soft Delete
      */
     function executeSoftDelete(productId) {
-        const row = document.getElementById(`product-row-${productId}`);
+        const row = document.getElementById('product-row-' + productId);
         if (!row) return;
 
         const params = new URLSearchParams();
         params.append('action', 'delete');
         params.append('productId', productId);
+        params.append('_csrf', window.csrfToken || CSRF);
 
-        fetch('${pageContext.request.contextPath}/shop/product-status', {
+        fetch(CTX + '/shop/product-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRF-Token': '${sessionScope._csrfToken}'
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
         })
-        .then(response => response.json())
+        .then(handleJSONResponse)
         .then(data => {
             if (data.success) {
                 // Fade out row beautifully with micro-animations
@@ -328,7 +356,7 @@
         })
         .catch(err => {
             console.error(err);
-            alert("Lỗi kết nối máy chủ khi thực hiện xóa.");
+            alert(err.message || "Lỗi kết nối máy chủ khi thực hiện xóa.");
         });
     }
 </script>

@@ -91,7 +91,7 @@ public class ShopApplyServlet extends HttpServlet {
         // Kiểm tra CSRF
         String sessionCsrf = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
         String reqCsrf = req.getParameter("_csrf");
-        if (sessionCsrf != null && !sessionCsrf.equals(reqCsrf)) {
+        if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
             forwardWithError(req, resp, currentUser, "CSRF token không hợp lệ. Vui lòng thử lại.");
             return;
         }
@@ -224,7 +224,7 @@ public class ShopApplyServlet extends HttpServlet {
             if (part.getSize() == 0) continue;
 
             // Sử dụng ValidationUtil để check kích thước, extension
-            String docError = com.fruitmkt.util.ValidationUtil.validateShopDoc(part);
+            String docError = com.fruitmkt.util.ValidationUtil.validateShopDoc(part.getSubmittedFileName(), part.getSize());
             if (docError != null) {
                 throw new Exception(docError);
             }

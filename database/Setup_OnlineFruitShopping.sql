@@ -73,10 +73,24 @@ BEGIN
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_shop_owner_profiles_rating DEFAULT 0,
         preferred_categories NVARCHAR(500) NULL,
         doc_paths NVARCHAR(MAX) NULL,
+        business_email NVARCHAR(255) NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_shop_owner_profiles_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id)
     );
+    
+    EXEC('SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON dbo.shop_owner_profiles(business_email) WHERE business_email IS NOT NULL;');
+END
+GO
+
+-- Migration: Add business_email column and its filtered unique index if they do not exist
+IF OBJECT_ID(N'dbo.shop_owner_profiles', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'business_email')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD business_email NVARCHAR(255) NULL;
+        EXEC('SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON dbo.shop_owner_profiles(business_email) WHERE business_email IS NOT NULL;');
+    END
 END
 GO
 
@@ -140,6 +154,7 @@ BEGIN
         variant_label NVARCHAR(100) NOT NULL,
         price DECIMAL(12,2) NOT NULL,
         stock_quantity INT NOT NULL CONSTRAINT DF_product_variants_stock_quantity DEFAULT 0,
+        weight_kg DECIMAL(6,3) NOT NULL CONSTRAINT DF_product_variants_weight_kg DEFAULT 1.000 CHECK (weight_kg > 0.000),
         is_active BIT NOT NULL CONSTRAINT DF_product_variants_is_active DEFAULT 1,
         created_at DATETIME NOT NULL CONSTRAINT DF_product_variants_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_product_variants_updated_at DEFAULT GETDATE(),
@@ -232,7 +247,7 @@ BEGIN
         cancelled_at DATETIME NULL,
         cancelled_by INT NULL,
         cancellation_reason NVARCHAR(500) NULL,
-        status NVARCHAR(25) NOT NULL CONSTRAINT DF_orders_status DEFAULT 'PENDING_PAYMENT' CONSTRAINT CK_orders_status CHECK (status IN ('PENDING_PAYMENT', 'CONFIRMED', 'PREPARING', 'DISPATCHED', 'DELIVERED', 'CANCELLED', 'PAYMENT_FAILED', 'EXPIRED')),
+        status NVARCHAR(25) NOT NULL CONSTRAINT DF_orders_status DEFAULT 'PENDING_PAYMENT' CONSTRAINT CK_orders_status CHECK (status IN ('PENDING_PAYMENT', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED', 'DELIVERED', 'CANCELLED', 'PAYMENT_FAILED', 'EXPIRED')),
         total_amount DECIMAL(14,2) NOT NULL,
         delivery_fee DECIMAL(10,2) NOT NULL CONSTRAINT DF_orders_delivery_fee DEFAULT 0,
         discount_amount DECIMAL(12,2) NOT NULL CONSTRAINT DF_orders_discount_amount DEFAULT 0,
@@ -242,12 +257,33 @@ BEGIN
         final_amount DECIMAL(14,2) NOT NULL,
         payment_method NVARCHAR(20) NOT NULL CONSTRAINT CK_orders_payment_method  CHECK (payment_method IN ('CK', 'COD')),
         refund_status NVARCHAR(20) NOT NULL CONSTRAINT DF_orders_refund_status DEFAULT 'NONE' CONSTRAINT CK_orders_refund_status CHECK (refund_status IN ('NONE', 'PENDING', 'APPROVED', 'REJECTED', 'PROCESSING', 'REFUNDED', 'FAILED')),
+        shop_acceptance_deadline DATETIME NULL,
+        shop_accepted_at DATETIME NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_orders_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_orders_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_orders_customer FOREIGN KEY (customer_id) REFERENCES dbo.users(user_id),
         CONSTRAINT FK_orders_owner FOREIGN KEY (owner_id) REFERENCES dbo.users(user_id),
         CONSTRAINT FK_orders_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES dbo.users(user_id)
     );
+END
+GO
+
+-- Migration: Update check constraint for orders status to include 'APPROVED'
+IF OBJECT_ID(N'dbo.orders', N'U') IS NOT NULL
+BEGIN
+    -- Drop check constraint on status column dynamically (handles both custom named and system named constraints)
+    DECLARE @ConstraintName NVARCHAR(255);
+    SELECT @ConstraintName = cc.name
+    FROM sys.check_constraints cc
+    JOIN sys.columns c ON cc.parent_column_id = c.column_id AND cc.parent_object_id = c.object_id
+    WHERE cc.parent_object_id = OBJECT_ID(N'dbo.orders') AND c.name = N'status';
+
+    IF @ConstraintName IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE dbo.orders DROP CONSTRAINT ' + @ConstraintName);
+    END
+    
+    ALTER TABLE dbo.orders ADD CONSTRAINT CK_orders_status CHECK (status IN ('PENDING_PAYMENT', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED', 'DELIVERED', 'CANCELLED', 'PAYMENT_FAILED', 'EXPIRED'));
 END
 GO
 
@@ -401,11 +437,27 @@ BEGIN
         picked_up_at DATETIME NULL,
         delivered_at DATETIME NULL,
         failure_reason NVARCHAR(300) NULL,
+        proof_image_url NVARCHAR(500) NULL,
+        estimated_delivery_time DATETIME NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_deliveries_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_deliveries_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_deliveries_order FOREIGN KEY (order_id) REFERENCES dbo.orders(order_id),
         CONSTRAINT FK_deliveries_staff FOREIGN KEY (staff_id) REFERENCES dbo.users(user_id)
     );
+END
+GO
+
+-- Migration: Add estimated_delivery_time and proof_image_url to deliveries if they do not exist
+IF OBJECT_ID(N'dbo.deliveries', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.deliveries') AND name = N'proof_image_url')
+    BEGIN
+        ALTER TABLE dbo.deliveries ADD proof_image_url NVARCHAR(500) NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.deliveries') AND name = N'estimated_delivery_time')
+    BEGIN
+        ALTER TABLE dbo.deliveries ADD estimated_delivery_time DATETIME NULL;
+    END
 END
 GO
 
@@ -471,6 +523,34 @@ BEGIN
         created_at DATETIME NOT NULL CONSTRAINT DF_notifications_created_at DEFAULT GETDATE(),
         CONSTRAINT FK_notifications_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id) ON DELETE CASCADE
     );
+END
+GO
+
+IF OBJECT_ID(N'dbo.system_config', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.system_config (
+        config_key      NVARCHAR(100) NOT NULL CONSTRAINT PK_system_config PRIMARY KEY,
+        config_value    NVARCHAR(500) NOT NULL,
+        description     NVARCHAR(500) NULL,
+        data_type       NVARCHAR(20)  NOT NULL CONSTRAINT DF_system_config_data_type DEFAULT 'STRING'
+                        CONSTRAINT CK_system_config_data_type CHECK (data_type IN ('STRING','INT','DECIMAL','BOOLEAN')),
+        effective_date  DATETIME NULL,
+        previous_value  NVARCHAR(500) NULL,
+        changed_by      INT NULL,
+        changed_at      DATETIME NOT NULL CONSTRAINT DF_system_config_changed_at DEFAULT GETDATE(),
+        updated_at      DATETIME NOT NULL CONSTRAINT DF_system_config_updated_at DEFAULT GETDATE(),
+        CONSTRAINT FK_system_config_users FOREIGN KEY (changed_by) REFERENCES dbo.users(user_id)
+    );
+
+    -- Seed giá trị mặc định
+    INSERT INTO dbo.system_config (config_key, config_value, description, data_type)
+    VALUES
+        ('platform_fee_rate',       '0.05', N'Tỷ lệ phí nền tảng (Platform Fee Rate). Mặc định 0.05 (5%).', 'DECIMAL'),
+        ('settlement_freeze_days',  '15',   N'Số ngày đóng băng tiền quyết toán của shop.', 'INT'),
+        ('shop_accept_timeout_min', '30',   N'Thời gian tối đa (phút) để shop chấp nhận đơn hàng trước khi tự hủy.', 'INT'),
+        ('return_request_max_hours','24',   N'Thời gian tối đa (giờ) để khách hàng gửi return request sau DELIVERED.', 'INT');
+
+    PRINT 'Created system_config table and seeded defaults.';
 END
 GO
 
@@ -713,6 +793,9 @@ GO
 -- Seed data
 -- =========================================================
 
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+
 BEGIN TRY
     BEGIN TRAN;
 
@@ -720,22 +803,25 @@ BEGIN TRY
     INSERT INTO dbo.users (user_id, full_name, email, password_hash, phone, role, status, user_address, is_email_verified, email_verification_code_hash, email_verification_expires_at, email_verification_resend_at, email_verification_sent_at, failed_login_count, locked_until, created_at, updated_at)
     VALUES
         (1, N'Admin System', N'admin@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
-        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'hash_delivery_demo', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
-        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'hash_owner1_demo', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
-        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'hash_owner2_demo', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
-        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'hash_customer1_demo', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
-        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'hash_customer2_demo', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
-        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'hash_owner3_demo', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
-        (10, N'Nguyễn Văn Hùng', N'hungnv@gmail.com', N'hash', N'0912345601', N'CUSTOMER', N'ACTIVE', N'12 Phố Cổ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (11, N'Phạm Minh Tuấn', N'tuanpm@gmail.com', N'hash', N'0912345602', N'CUSTOMER', N'ACTIVE', N'85 Xuân Thủy, Cầu Giấy', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (12, N'Trần Thị Mai', N'maitt@gmail.com', N'hash', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'hash', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'hash', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bà Trưng', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'hash', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$Lz/F.3YxJd6U14p5I2g0iO6y1QG2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$R.Oa3f4eM3lVjDlyUoW9cO4G2.Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$U.Oa3f4eM3lVjDlyUoW9cO4G2.Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
+        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
+        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
+        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
+        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
+        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
+        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
+        (10, N'Nguyễn Văn Hùng', N'hungnv@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345601', N'CUSTOMER', N'ACTIVE', N'12 Phố Cổ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (11, N'Phạm Minh Tuấn', N'tuanpm@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345602', N'CUSTOMER', N'ACTIVE', N'85 Xuân Thủy, Cầu Giấy', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (12, N'Trần Thị Mai', N'maitt@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bà Trưng', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (8, N'Lê Minh Tuấn', N'customer3@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000008', N'CUSTOMER', N'ACTIVE', N'18 Nguyễn Du, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (9, N'Nguyễn Thị Lan', N'customer4@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000009', N'CUSTOMER', N'ACTIVE', N'45 Lê Lợi, Bến Nghé, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -806,30 +892,30 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.product_images ON;
     INSERT INTO dbo.product_images (image_id, product_id, file_path, display_order, is_primary, uploaded_at)
     VALUES
-        (1, 1, N'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (2, 2, N'https://images.unsplash.com/photo-1557800636-894a64c1696f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (3, 3, N'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (4, 4, N'https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (5, 5, N'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (6, 5, N'https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (7, 6, N'https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (8, 6, N'https://images.unsplash.com/photo-1571772996211-2f02c9727629?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (9, 7, N'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (10, 8, N'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (11, 9, N'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (12, 10, N'https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (13, 11, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (14, 11, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (15, 12, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (16, 12, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (17, 13, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (18, 14, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (19, 15, N'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (20, 15, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
+        (1, 1, N'assets/images/cam_sanh.png', 1, 1, GETDATE()),
+        (2, 2, N'assets/images/buoi_da_xanh.png', 1, 1, GETDATE()),
+        (3, 3, N'assets/images/chuoi_laba.png', 1, 1, GETDATE()),
+        (4, 4, N'assets/images/xoai_cat.png', 1, 1, GETDATE()),
+        (5, 5, N'assets/images/dau_tay.png', 1, 1, GETDATE()),
+        (6, 5, N'assets/images/dau_tay.png', 2, 0, GETDATE()),
+        (7, 6, N'assets/images/dua_luoi.png', 1, 1, GETDATE()),
+        (8, 6, N'assets/images/dua_luoi.png', 2, 0, GETDATE()),
+        (9, 7, N'assets/images/dua_hau_vuong.png', 1, 1, GETDATE()),
+        (10, 8, N'assets/images/cherry_do.png', 1, 1, GETDATE()),
+        (11, 9, N'assets/images/cherry_my.png', 1, 1, GETDATE()),
+        (12, 10, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        (13, 11, N'assets/images/hop_qua_tet.png', 1, 1, GETDATE()),
+        (14, 11, N'assets/images/hop_qua_tet.png', 2, 0, GETDATE()),
+        (15, 12, N'assets/images/hop_qua_thinh_vuong.png', 1, 1, GETDATE()),
+        (16, 12, N'assets/images/hop_qua_thinh_vuong.png', 2, 0, GETDATE()),
+        (17, 13, N'assets/images/gio_qua_sum_hop.png', 1, 1, GETDATE()),
+        (18, 14, N'assets/images/gio_qua_cat_tuong.png', 1, 1, GETDATE()),
+        (19, 15, N'assets/images/gio_qua_tai_loc.png', 1, 1, GETDATE()),
+        (20, 15, N'assets/images/gio_qua_tai_loc.png', 2, 0, GETDATE()),
         -- Táo Envy Mỹ (16)
-        (21, 16, N'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (21, 16, N'assets/images/tao_envy.png', 1, 1, GETDATE()),
         -- Kiwi Vàng (17)
-        (22, 17, N'https://images.unsplash.com/photo-1585052201332-b8c0ce30972f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE());
+        (22, 17, N'assets/images/kiwi_vang.png', 1, 1, GETDATE());
     SET IDENTITY_INSERT dbo.product_images OFF;
 
     SET IDENTITY_INSERT dbo.product_variants ON;
@@ -898,7 +984,12 @@ BEGIN TRY
         (14, N'MEKONG-GIAM20K', N'FIXED', N'SHOP', 0.00, 20000.00, 150000.00, N'ORDER', NULL, 400, 12, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:00:00', '2026-05-16T08:00:00', 0, 1),
         (15, N'MEKONG-GIAM10P', N'PERCENT', N'SHOP', 40000.00, 10.00, 250000.00, N'ORDER', NULL, 350, 5, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:05:00', '2026-05-16T08:00:00', 0, 1),
         (16, N'KLEVER-GIAM50K', N'FIXED', N'SHOP', 0.00, 50000.00, 400000.00, N'ORDER', NULL, 250, 3, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:00:00', '2026-05-16T08:00:00', 0, 1),
-        (17, N'KLEVER-GIAM20P', N'PERCENT', N'SHOP', 80000.00, 20.00, 500000.00, N'ORDER', NULL, 200, 1, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:05:00', '2026-05-16T08:00:00', 0, 1);
+        (17, N'KLEVER-GIAM20P', N'PERCENT', N'SHOP', 80000.00, 20.00, 500000.00, N'ORDER', NULL, 200, 1, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:05:00', '2026-05-16T08:00:00', 0, 1),
+        (18, N'SHOP10', N'PERCENT', N'SHOP', 50000.00, 10.00, 100000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, GETDATE(), GETDATE(), 0, 1),
+        (19, N'SAAN5', N'FIXED', N'ALL', 0.00, 5000.00, 50000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (20, N'SALE20', N'PERCENT', N'ALL', 100000.00, 20.00, 200000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (21, N'METAFRUIT50', N'PERCENT', N'ALL', 150000.00, 15.00, 300000.00, N'ORDER', NULL, 500, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (22, N'FREESHIPALL', N'FIXED', N'ALL', 0.00, 15000.00, 150000.00, N'ORDER', NULL, 2000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1);
     SET IDENTITY_INSERT dbo.promotions OFF;
 
     SET IDENTITY_INSERT dbo.cart ON;
@@ -1105,3 +1196,54 @@ VALUES (
     GETDATE()
 );
 GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_acceptance_auto_cancel' AND object_id = OBJECT_ID(N'dbo.orders'))
+BEGIN
+    CREATE INDEX IX_orders_acceptance_auto_cancel
+    ON dbo.orders (status, shop_acceptance_deadline)
+    WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+BEGIN
+    CREATE INDEX IX_return_requests_status ON dbo.return_requests(status, created_at);
+END
+GO
+
+-- =========================================================
+-- Print Seed Info Log for debugging and testing
+-- =========================================================
+PRINT '========================================================================='
+PRINT '                      ONLINE FRUIT SHOPPING SEED DATA                     '
+PRINT '========================================================================='
+PRINT '--- USERS & ACCOUNTS ---'
+PRINT '  * ADMIN:           admin@fruitshop.local       / mật khẩu: admin123'
+PRINT '  * TEST ADMIN:      admin@metafruit.vn          / mật khẩu: admin123'
+PRINT '  * SHOP OWNER 1:    owner1@fruitshop.local      / mật khẩu: admin123  (An Phu Orchard)'
+PRINT '  * SHOP OWNER 2:    owner2@fruitshop.local      / mật khẩu: admin123  (Mekong Fresh Farm)'
+PRINT '  * SHOP OWNER 3:    owner3@fruitshop.local      / mật khẩu: admin123  (Klever Premium Fruits)'
+PRINT '  * TEST SHOP OWNER: shop@metafruit.vn           / mật khẩu: admin123  (MetaFruit Test Shop)'
+PRINT '  * DELIVERY STAFF:  delivery@fruitshop.local    / mật khẩu: admin123'
+PRINT '  * TEST DELIVERY:   delivery@metafruit.vn       / mật khẩu: admin123'
+PRINT '  * CUSTOMER 1:      customer1@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * CUSTOMER 2:      customer2@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * TEST CUSTOMER:   customer@metafruit.vn       / mật khẩu: admin123'
+PRINT '  * CUSTOMER 3 (NEW):customer3@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * CUSTOMER 4 (NEW):customer4@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * CUSTOMER VIP:    vipcustomer@fruitshop.local / mật khẩu: admin123'
+PRINT ''
+PRINT '--- ACTIVE COUPONS & PROMOTIONS ---'
+PRINT '  * SHOP10 (Shop 7 - Klever): Giảm 10% (Tối đa 50k) cho đơn từ 100k'
+PRINT '  * SAAN5 (Hệ thống):         Giảm cố định 5k cho đơn từ 50k'
+PRINT '  * SALE20 (Hệ thống):        Giảm 20% (Tối đa 100k) cho đơn từ 200k'
+PRINT '  * METAFRUIT50 (Hệ thống):   Giảm 15% (Tối đa 150k) cho đơn từ 300k'
+PRINT '  * FREESHIPALL (Hệ thống):   Giảm 15k phí vận chuyển cho đơn từ 150k'
+PRINT '  * WELCOME10 (Hệ thống):     Giảm 10% (Tối đa 50k) cho đơn từ 120k'
+PRINT '  * FREESHIP50 (Hệ thống):    Giảm 20k phí vận chuyển cho đơn từ 300k'
+PRINT '  * ANPHU-GIAM30K (An Phu):   Giảm cố định 30k cho đơn từ 200k'
+PRINT '  * MEKONG-GIAM20K (Mekong):  Giảm cố định 20k cho đơn từ 150k'
+PRINT '  * KLEVER-GIAM50K (Klever):  Giảm cố định 50k cho đơn từ 400k'
+PRINT '========================================================================='
+
+
+

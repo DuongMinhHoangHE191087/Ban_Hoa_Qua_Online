@@ -1,7 +1,6 @@
 package com.fruitmkt.util;
 
 import com.fruitmkt.config.AppConfig;
-import jakarta.servlet.http.Part;
 import java.math.BigDecimal;
 import java.util.regex.Pattern;
 
@@ -54,6 +53,21 @@ public final class ValidationUtil {
         return PHONE_PATTERN.matcher(phone.trim()).matches();
     }
 
+    /**
+     * Chuẩn hóa số điện thoại về định dạng bắt đầu bằng '0' duy nhất, loại bỏ ký tự không phải số.
+     * Ví dụ: "+84 987 654 321" -> "0987654321", "0987-654-321" -> "0987654321"
+     */
+    public static String normalizePhone(String phone) {
+        if (phone == null) return null;
+        String clean = phone.trim().replaceAll("[^0-9+]", "");
+        if (clean.startsWith("+84")) {
+            clean = "0" + clean.substring(3);
+        } else if (clean.startsWith("84") && clean.length() > 9) {
+            clean = "0" + clean.substring(2);
+        }
+        return clean;
+    }
+
     /** Kiểm tra mật khẩu đủ mạnh (8–64 ký tự) */
     public static boolean isValidPassword(String pwd) {
         return isValidPassword(pwd, PASSWORD_MIN_LEN, PASSWORD_MAX_LEN);
@@ -95,15 +109,11 @@ public final class ValidationUtil {
      *
      * @return null nếu hợp lệ, hoặc chuỗi mô tả lỗi cụ thể
      */
-    public static String validateShopDoc(Part part) {
-        if (part == null || part.getSize() == 0) {
-            return "File không được rỗng.";
+    public static String validateShopDoc(String filename, long size) {
+        if (filename == null || filename.trim().isEmpty() || size == 0) {
+            return "File không được rỗng hoặc tên file không hợp lệ.";
         }
-        String filename = part.getSubmittedFileName();
-        if (filename == null || filename.trim().isEmpty()) {
-            return "Tên file không hợp lệ.";
-        }
-        if (part.getSize() > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
+        if (size > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
             return "File '" + sanitizeForLog(filename) + "' vượt quá giới hạn "
                     + (AppConfig.MAX_SHOP_DOC_SIZE_BYTES / 1024 / 1024) + "MB.";
         }
@@ -186,7 +196,8 @@ public final class ValidationUtil {
 
     /** Yêu cầu số điện thoại VN hợp lệ */
     public static String requireValidPhone(String phone, String fieldLabel) throws Exception {
-        String v = requireNotBlank(phone, fieldLabel);
+        String normalized = normalizePhone(phone);
+        String v = requireNotBlank(normalized, fieldLabel);
         if (!isValidPhone(v)) {
             throw new Exception(fieldLabel + " không đúng định dạng (10 số, đầu 03x/05x/07x/08x/09x)!");
         }

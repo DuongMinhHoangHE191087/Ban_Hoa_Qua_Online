@@ -53,10 +53,17 @@ public class LoginServlet extends HttpServlet {
         String password = req.getParameter("password");
         String redirectTarget = req.getParameter("redirect");
         
+        if (identifier != null) {
+            identifier = identifier.trim();
+            if (identifier.matches("^(0|\\+84|84)\\d+$") || identifier.matches("^\\d+$")) {
+                identifier = com.fruitmkt.util.ValidationUtil.normalizePhone(identifier);
+            }
+        }
+        
         // 1. Kiểm tra CSRF token thủ công tại Servlet để tăng tính bảo mật
         String sessionCsrf = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
         String reqCsrf = req.getParameter("_csrf");
-        if (sessionCsrf != null && !sessionCsrf.equals(reqCsrf)) {
+        if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
             req.setAttribute("errorMsg", "CSRF token không hợp lệ hoặc phiên làm việc đã hết hạn.");
             req.getRequestDispatcher("/WEB-INF/jsp/auth/login.jsp").forward(req, resp);
             return;
@@ -69,6 +76,7 @@ public class LoginServlet extends HttpServlet {
             // 3. Chống tấn công Session Fixation bằng cách hủy session cũ và tạo session mới
             req.getSession().invalidate();
             HttpSession newSession = req.getSession(true);
+            newSession.setAttribute(AppConfig.SESSION_CSRF_TOKEN, java.util.UUID.randomUUID().toString());
             SessionUtil.setCurrentUser(newSession, user);
             
             // 4. Tạo bộ đôi Access Token (15 phút) & Refresh Token (7 ngày)
@@ -87,8 +95,15 @@ public class LoginServlet extends HttpServlet {
             
             // 6. Xử lý chuyển hướng (Redirect)
             // Ngăn chặn lỗ hổng Open Redirect bằng cách kiểm tra target path
-            if (redirectTarget != null && !redirectTarget.trim().isEmpty() && (redirectTarget.startsWith("/") || redirectTarget.startsWith(req.getContextPath()))) {
-                resp.sendRedirect(redirectTarget);
+            if (redirectTarget != null && !redirectTarget.trim().isEmpty()) {
+                String cleanTarget = redirectTarget.trim();
+                if ((cleanTarget.startsWith("/") && !cleanTarget.startsWith("//") && !cleanTarget.startsWith("/\\")) 
+                        || cleanTarget.equals(req.getContextPath()) 
+                        || cleanTarget.startsWith(req.getContextPath() + "/")) {
+                    resp.sendRedirect(cleanTarget);
+                } else {
+                    redirectToRoleDashboard(req, resp, user);
+                }
             } else {
                 redirectToRoleDashboard(req, resp, user);
             }

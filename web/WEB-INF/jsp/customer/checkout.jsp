@@ -1,11 +1,11 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Thanh toán - Verdant Market"/></jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined cho phong cách Verdant Clarity -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -202,6 +202,19 @@
 
         <%-- FORM THANH TOÁN chuẩn mẫu Check_Out_UI.html --%>
         <c:otherwise>
+            <!-- Dynamic Flash Message Alert -->
+            <c:if test="${not empty sessionScope.flashMsg}">
+                <div id="flash-alert-container" class="mb-6 p-4 rounded-2xl bg-red-50 flex items-center gap-3 border-l-4 border-red-500 text-red-700 shadow-md">
+                    <span class="material-symbols-outlined">error</span>
+                    <div class="flex-grow font-bold text-sm"><c:out value="${sessionScope.flashMsg}"/></div>
+                    <button type="button" onclick="document.getElementById('flash-alert-container').remove();" class="opacity-60 hover:opacity-100 focus:outline-none">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+                <c:remove var="flashMsg" scope="session"/>
+                <c:remove var="flashType" scope="session"/>
+            </c:if>
+
             <div class="mb-8 flex items-baseline justify-between border-b border-[#b1f2be] pb-4">
                 <div>
                     <h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">Hoàn tất đơn hàng</h1>
@@ -281,7 +294,42 @@
                         </div>
                     </section>
 
-                    <!-- Section 3: Order Items List -->
+                    <!-- Section 3: Mã Giảm Giá -->
+                    <section class="glass-card rounded-xl p-6 md:p-8" id="coupon-section">
+                        <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
+                            <span class="material-symbols-outlined text-2xl">loyalty</span>
+                            <h2 class="font-headline-md text-headline-md font-bold">Mã giảm giá</h2>
+                        </div>
+                        <!-- Một ô nhập mã giảm giá duy nhất -->
+                        <div>
+                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã giảm giá (Shop hoặc Sàn)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="couponInput" placeholder="Nhập mã giảm giá (VD: SHOP10, SAAN5, SALE20)"
+                                    class="form-input rounded-lg px-3 py-2.5 text-sm flex-1 uppercase font-semibold tracking-wider"
+                                    style="text-transform:uppercase"/>
+                                <button type="button" onclick="applyCoupon()"
+                                    class="bg-[#14532D] text-white font-bold px-5 py-2.5 rounded-lg text-sm hover:bg-opacity-90 transition-all cursor-pointer flex-shrink-0 active:scale-95 duration-150 shadow-md">
+                                    Áp dụng
+                                </button>
+                            </div>
+                            <p id="couponMsg" class="text-xs mt-2 hidden"></p>
+                        </div>
+                        
+                        <!-- Container hiển thị các mã đã áp dụng -->
+                        <div id="appliedCouponsContainer" class="mt-4 hidden border-t border-dashed border-emerald-200 pt-3">
+                            <span class="text-xs font-bold text-on-surface-variant block mb-2">Mã đã áp dụng:</span>
+                            <div id="appliedCouponsList" class="flex flex-col gap-2">
+                                <!-- Rendered dynamically via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Hidden inputs để gửi lên Servlet khi Submit -->
+                        <input type="hidden" name="shopCouponCode" id="shopCouponCode"/>
+                        <input type="hidden" name="systemCouponCode" id="systemCouponCode"/>
+
+                    </section>
+
+                    <!-- Section 4: Order Items List -->
                     <section class="glass-card rounded-xl p-6 md:p-8">
                         <div class="flex items-center justify-between mb-6 border-b border-[#b1f2be] pb-3">
                             <div class="flex items-center gap-3 text-primary">
@@ -339,7 +387,15 @@
                         <div class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-6">
                             <div class="flex justify-between items-center">
                                 <span class="text-on-surface-variant">Tạm tính (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
-                                <span class="font-bold text-inverse-surface"><ft:currency value="${cartSummary.subtotal}"/></span>
+                                <span class="font-bold text-inverse-surface" id="summary-subtotal"><ft:currency value="${cartSummary.subtotal}"/></span>
+                            </div>
+                            <div class="flex justify-between items-center" id="shop-discount-row" style="display:none!important">
+                                <span class="text-on-surface-variant">Giảm giá Shop</span>
+                                <span class="font-bold text-red-600" id="summary-shop-discount">- 0 đ</span>
+                            </div>
+                            <div class="flex justify-between items-center" id="system-discount-row" style="display:none!important">
+                                <span class="text-on-surface-variant">Giảm giá Sàn</span>
+                                <span class="font-bold text-red-600" id="summary-system-discount">- 0 đ</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-on-surface-variant">Tổng trọng lượng</span>
@@ -347,13 +403,13 @@
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-on-surface-variant">Phí vận chuyển (Giao hỏa tốc)</span>
-                                <span class="font-bold text-inverse-surface"><ft:currency value="${cartSummary.deliveryFee}"/></span>
+                                <span class="font-bold text-inverse-surface" id="summary-delivery"><ft:currency value="${cartSummary.deliveryFee}"/></span>
                             </div>
                         </div>
                         <div class="border-t border-[#BBF7D0] pt-4 mb-8">
                             <div class="flex justify-between items-end">
                                 <span class="font-label-md text-label-md text-on-surface font-bold">Tổng cộng</span>
-                                <span class="font-headline-md text-headline-md text-primary font-black text-2xl"><ft:currency value="${cartSummary.total}"/></span>
+                                <span class="font-headline-md text-headline-md text-primary font-black text-2xl" id="summary-total"><ft:currency value="${cartSummary.total}"/></span>
                             </div>
                             <span class="block text-right text-xs text-on-surface-variant mt-1">(Đã bao gồm VAT & Cước bảo ôn cold-chain)</span>
                         </div>
@@ -372,5 +428,220 @@
     </c:choose>
 
 </div>
+
+<!-- Hidden inputs to safely pass server variables to JS without IDE syntax errors -->
+<input type="hidden" id="js-subtotal" value="${cartSummary.subtotal}">
+<input type="hidden" id="js-delivery" value="${cartSummary.deliveryFee}">
+<input type="hidden" id="js-ctx" value="${pageContext.request.contextPath}">
+<input type="hidden" id="js-owner-id" value="<c:out value='${shopOwnerId}' default='0'/>">
+
+<script>
+// ─── Coupon AJAX Logic (Merged Input) ─────────────────────────────
+const SUBTOTAL    = parseFloat(document.getElementById('js-subtotal').value || '0');
+const DELIVERY    = parseFloat(document.getElementById('js-delivery').value || '0');
+const CTX         = document.getElementById('js-ctx').value;
+const OWNER_ID    = document.getElementById('js-owner-id').value;
+
+let shopCouponCode   = '';
+let shopDiscount     = 0;
+let systemCouponCode = '';
+let systemDiscount   = 0;
+
+function applyCoupon() {
+    const inputEl = document.getElementById('couponInput');
+    const code = inputEl.value.trim().toUpperCase();
+    if (!code) return;
+
+    // Check if coupon is already applied
+    if (code === shopCouponCode || code === systemCouponCode) {
+        showCouponMsg('Mã giảm giá này đã được áp dụng rồi.', 'text-red-600 font-bold');
+        return;
+    }
+
+    showCouponMsg('Đang kiểm tra...', 'text-on-surface-variant');
+
+    // Step 1: Validate as SHOP coupon first
+    validateCouponAPI(code, 'SHOP')
+        .then(data => {
+            if (data.valid) {
+                // Applied successfully as SHOP coupon!
+                shopCouponCode = code;
+                shopDiscount = data.discountAmount || 0;
+                document.getElementById('shopCouponCode').value = code;
+                showCouponMsg('✔ ' + data.message + ' (Mã của Shop)', 'text-emerald-700 font-bold');
+                inputEl.value = '';
+
+                // Stacking adjustment: if we already have a system coupon, we must revalidate it 
+                // because the subtotal after shop coupon discount has changed!
+                if (systemCouponCode) {
+                    revalidateSystemCoupon().then(() => {
+                        updateSummary();
+                        renderAppliedCoupons();
+                    });
+                } else {
+                    updateSummary();
+                    renderAppliedCoupons();
+                }
+            } else {
+                // Step 2: If shop validation fails, try validating as SYSTEM coupon
+                return validateCouponAPI(code, 'SYSTEM')
+                    .then(sysData => {
+                        if (sysData.valid) {
+                            systemCouponCode = code;
+                            systemDiscount = sysData.discountAmount || 0;
+                            document.getElementById('systemCouponCode').value = code;
+                            showCouponMsg('✔ ' + sysData.message + ' (Mã của Sàn)', 'text-emerald-700 font-bold');
+                            inputEl.value = '';
+                            updateSummary();
+                            renderAppliedCoupons();
+                        } else {
+                            // If both failed, show error message
+                            showCouponMsg('✘ Mã giảm giá không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.', 'text-red-600 font-bold');
+                            console.log('[Coupon Log] Shop check error:', data.message);
+                            console.log('[Coupon Log] System check error:', sysData.message);
+                        }
+                    });
+            }
+        })
+        .catch(err => {
+            console.error('[Coupon Log] Error validating coupon:', err);
+            showCouponMsg('✘ Lỗi kết nối. Vui lòng thử lại.', 'text-red-600 font-bold');
+        });
+}
+
+function validateCouponAPI(code, scope) {
+    const currentSubtotal = scope === 'SYSTEM' ? (SUBTOTAL - shopDiscount) : SUBTOTAL;
+    const url = CTX + '/api/coupon/validate?code=' + encodeURIComponent(code) +
+                '&subtotal=' + currentSubtotal +
+                '&ownerId=' + OWNER_ID +
+                '&scope=' + scope;
+    return fetch(url).then(r => r.json());
+}
+
+function revalidateSystemCoupon() {
+    if (!systemCouponCode) return Promise.resolve();
+    
+    return validateCouponAPI(systemCouponCode, 'SYSTEM')
+        .then(data => {
+            if (data.valid) {
+                systemDiscount = data.discountAmount || 0;
+            } else {
+                console.warn('[Coupon Log] System coupon ' + systemCouponCode + ' became invalid after shop discount applied: ' + data.message);
+                systemCouponCode = '';
+                systemDiscount = 0;
+                document.getElementById('systemCouponCode').value = '';
+            }
+        })
+        .catch(err => {
+            console.error('[Coupon Log] Error revalidating system coupon:', err);
+        });
+}
+
+function removeCoupon(scope) {
+    if (scope === 'SHOP') {
+        shopCouponCode = '';
+        shopDiscount = 0;
+        document.getElementById('shopCouponCode').value = '';
+        showCouponMsg('Đã xóa mã của Shop.', 'text-on-surface-variant');
+        
+        if (systemCouponCode) {
+            revalidateSystemCoupon().then(() => {
+                updateSummary();
+                renderAppliedCoupons();
+            });
+        } else {
+            updateSummary();
+            renderAppliedCoupons();
+        }
+    } else if (scope === 'SYSTEM') {
+        systemCouponCode = '';
+        systemDiscount = 0;
+        document.getElementById('systemCouponCode').value = '';
+        showCouponMsg('Đã xóa mã của Sàn.', 'text-on-surface-variant');
+        updateSummary();
+        renderAppliedCoupons();
+    }
+}
+
+function showCouponMsg(text, className) {
+    const msgEl = document.getElementById('couponMsg');
+    msgEl.textContent = text;
+    msgEl.className = 'text-xs mt-2 ' + className;
+    msgEl.classList.remove('hidden');
+}
+
+function renderAppliedCoupons() {
+    const container = document.getElementById('appliedCouponsContainer');
+    const listEl = document.getElementById('appliedCouponsList');
+    listEl.innerHTML = '';
+    
+    let hasCoupon = false;
+    const fmt = (n) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(n);
+    
+    if (shopCouponCode) {
+        hasCoupon = true;
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
+        item.innerHTML = '<div>' +
+            '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">SHOP</span>' +
+            '<span class="font-bold text-on-surface">' + shopCouponCode + '</span>' +
+            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(shopDiscount) + ')</span>' +
+            '</div>' +
+            '<button type="button" onclick="removeCoupon(\'SHOP\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
+        listEl.appendChild(item);
+    }
+    
+    if (systemCouponCode) {
+        hasCoupon = true;
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
+        item.innerHTML = '<div>' +
+            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">SÀN</span>' +
+            '<span class="font-bold text-on-surface">' + systemCouponCode + '</span>' +
+            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(systemDiscount) + ')</span>' +
+            '</div>' +
+            '<button type="button" onclick="removeCoupon(\'SYSTEM\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
+        listEl.appendChild(item);
+    }
+    
+    if (hasCoupon) {
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+function updateSummary() {
+    const total = Math.max(0, SUBTOTAL - shopDiscount - systemDiscount + DELIVERY);
+    const fmt = (n) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(n);
+
+    const shopRow   = document.getElementById('shop-discount-row');
+    const systemRow = document.getElementById('system-discount-row');
+
+    if (shopDiscount > 0) {
+        shopRow.style.removeProperty('display');
+        document.getElementById('summary-shop-discount').textContent = '- ' + fmt(shopDiscount);
+    } else {
+        shopRow.style.setProperty('display', 'none', 'important');
+    }
+
+    if (systemDiscount > 0) {
+        systemRow.style.removeProperty('display');
+        document.getElementById('summary-system-discount').textContent = '- ' + fmt(systemDiscount);
+    } else {
+        systemRow.style.setProperty('display', 'none', 'important');
+    }
+
+    document.getElementById('summary-total').textContent = fmt(total);
+}
+
+// Enter key apply coupon
+document.getElementById('couponInput').addEventListener('keydown', e => { 
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCoupon(); 
+    } 
+});
+</script>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp"/>

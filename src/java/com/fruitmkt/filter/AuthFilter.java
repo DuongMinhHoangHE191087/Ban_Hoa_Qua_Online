@@ -5,7 +5,6 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.TokenUtil;
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -21,7 +20,6 @@ import java.sql.SQLException;
  * THỨ TỰ CHẠY: 4
  * @author fruitmkt-team
  */
-@WebFilter(urlPatterns = {"/customer/*", "/shop/*", "/delivery/*", "/admin/*", "/checkout", "/cart"})
 public class AuthFilter implements Filter {
 
     private final UserDAO userDAO = new UserDAO();
@@ -84,12 +82,22 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // Không thể xác thực tự động -> Chuyển hướng sang trang Login kèm URL gốc
-        String redirectUrl = req.getRequestURI();
-        if (req.getQueryString() != null) {
-            redirectUrl += "?" + req.getQueryString();
+        // Không thể xác thực tự động -> Kiểm tra nếu là AJAX/JSON thì trả về JSON lỗi thay vì redirect
+        boolean isAjax = "XMLHttpRequest".equals(req.getHeader("X-Requested-With"))
+                || "json".equals(req.getParameter("format"))
+                || (req.getHeader("Accept") != null && req.getHeader("Accept").contains("application/json"));
+        
+        if (isAjax) {
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            resp.setContentType("application/json;charset=UTF-8");
+            resp.getWriter().write("{\"success\":false,\"error\":\"Phiên đăng nhập hết hạn hoặc chưa đăng nhập.\"}");
+        } else {
+            String redirectUrl = req.getRequestURI();
+            if (req.getQueryString() != null) {
+                redirectUrl += "?" + req.getQueryString();
+            }
+            String encodedRedirect = URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8);
+            resp.sendRedirect(req.getContextPath() + "/auth/login?redirect=" + encodedRedirect);
         }
-        String encodedRedirect = URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8);
-        resp.sendRedirect(req.getContextPath() + "/auth/login?redirect=" + encodedRedirect);
     }
 }

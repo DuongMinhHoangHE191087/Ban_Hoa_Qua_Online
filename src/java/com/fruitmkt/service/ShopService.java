@@ -21,9 +21,9 @@ public class ShopService {
     }
 
     public void updateShopStatus(int profileId, String status, String rejectionReason) throws SQLException {
-        ShopProfile profile = shopProfileDAO.findById(profileId);
-        if (profile != null) {
-            shopProfileDAO.updateApprovalStatus(profileId, profile.getUserId(), status, rejectionReason);
+        ShopProfile shop = shopProfileDAO.findById(profileId);
+        if (shop != null) {
+            shopProfileDAO.updateApprovalStatus(profileId, shop.getUserId(), status, rejectionReason);
         }
     }
 }

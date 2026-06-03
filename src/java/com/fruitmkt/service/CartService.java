@@ -118,7 +118,7 @@ public class CartService {
     /**
      * Cập nhật số lượng của một CartItem trong giỏ hàng.
      */
-    public void updateQuantity(int cartItemId, int qty) throws SQLException {
+    public void updateQuantity(int customerId, int cartItemId, int qty) throws SQLException {
         if (qty <= 0) {
             throw new IllegalArgumentException("Số lượng sản phẩm phải lớn hơn 0.");
         }
@@ -126,6 +126,12 @@ public class CartService {
         CartItem item = cartDAO.findItemById(cartItemId);
         if (item == null) {
             throw new IllegalArgumentException("Không tìm thấy sản phẩm này trong giỏ hàng.");
+        }
+
+        // Kiểm tra quyền sở hữu giỏ hàng (IDOR Prevention)
+        List<Cart> carts = cartDAO.findByCustomer(customerId);
+        if (carts.isEmpty() || item.getCartId() != carts.get(0).getCartId()) {
+            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
         }
 
         ProductVariant variant = productVariantDAO.findById(item.getVariantId());
@@ -144,7 +150,18 @@ public class CartService {
     /**
      * Xóa một CartItem khỏi giỏ hàng.
      */
-    public void removeItem(int cartItemId) throws SQLException {
+    public void removeItem(int customerId, int cartItemId) throws SQLException {
+        CartItem item = cartDAO.findItemById(cartItemId);
+        if (item == null) {
+            return;
+        }
+
+        // Kiểm tra quyền sở hữu giỏ hàng (IDOR Prevention)
+        List<Cart> carts = cartDAO.findByCustomer(customerId);
+        if (carts.isEmpty() || item.getCartId() != carts.get(0).getCartId()) {
+            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
+        }
+
         cartDAO.removeItem(cartItemId);
     }
 
@@ -152,10 +169,16 @@ public class CartService {
      * Thay đổi biến thể của một CartItem trong giỏ hàng.
      * Tự động gộp nếu trùng biến thể có sẵn và giới hạn theo tồn kho tối đa.
      */
-    public void changeVariant(int cartItemId, int newVariantId) throws SQLException {
+    public void changeVariant(int customerId, int cartItemId, int newVariantId) throws SQLException {
         CartItem item = cartDAO.findItemById(cartItemId);
         if (item == null) {
             throw new IllegalArgumentException("Không tìm thấy sản phẩm này trong giỏ hàng.");
+        }
+
+        // Kiểm tra quyền sở hữu giỏ hàng (IDOR Prevention)
+        List<Cart> carts = cartDAO.findByCustomer(customerId);
+        if (carts.isEmpty() || item.getCartId() != carts.get(0).getCartId()) {
+            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
         }
 
         ProductVariant newVariant = productVariantDAO.findById(newVariantId);

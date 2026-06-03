@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -13,7 +13,7 @@
     <!-- Material Symbols Outlined -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
     <!-- Tailwind Configuration -->
     <script id="tailwind-config">
         tailwind.config = {
@@ -103,11 +103,13 @@
             <!-- Header Title -->
             <div class="text-center mb-8">
                 <h1 class="text-2xl md:text-3xl font-bold text-primary mb-2 flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-[32px]">person_add</span>
-                    Tạo tài khoản mới
+                    <span class="material-symbols-outlined text-[32px]">
+                        ${not empty requestScope.prefilledUser ? 'storefront' : 'person_add'}
+                    </span>
+                    ${not empty requestScope.prefilledUser ? 'Đăng ký mở cửa hàng' : 'Tạo tài khoản mới'}
                 </h1>
                 <p class="text-sm md:text-base text-on-surface-variant font-light">
-                    Hành trình trải nghiệm và cung cấp nguồn thực phẩm xanh sạch bắt đầu tại đây!
+                    ${not empty requestScope.prefilledUser ? 'Điền thông tin cửa hàng của bạn để bắt đầu kinh doanh trên MetaFruit!' : 'Hành trình trải nghiệm và cung cấp nguồn thực phẩm xanh sạch bắt đầu tại đây!'}
                 </p>
             </div>
 
@@ -131,26 +133,32 @@
             </c:if>
 
             <!-- Unified Form -->
-            <form action="${pageContext.request.contextPath}/auth/register" method="post" class="space-y-6" id="registerForm">
+            <form action="${pageContext.request.contextPath}/auth/register" method="post" enctype="multipart/form-data" class="space-y-6" id="registerForm">
                 
                 <!-- Anti-CSRF Token Placeholder -->
                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 
                 <!-- Dynamic Account Type Selector (Hidden Input + Tailwind Tabs) -->
-                <input type="hidden" id="accountType" name="accountType" value="<c:out value="${not empty param.accountType ? param.accountType : 'CUSTOMER'}"/>">
-                
-                <div class="flex p-1.5 bg-emerald-100/60 rounded-xl max-w-md mx-auto border border-emerald-200/50 shadow-inner">
-                    <button type="button" onclick="switchTab('CUSTOMER')" id="tabCustomer"
-                            class="flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm">
-                        <span class="material-symbols-outlined text-[18px]">shopping_cart</span>
-                        Khách hàng
-                    </button>
-                    <button type="button" onclick="switchTab('SHOP_OWNER')" id="tabShop"
-                            class="flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary">
-                        <span class="material-symbols-outlined text-[18px]">storefront</span>
-                        Chủ cửa hàng
-                    </button>
-                </div>
+                <c:choose>
+                    <c:when test="${not empty requestScope.prefilledUser}">
+                        <input type="hidden" id="accountType" name="accountType" value="SHOP_OWNER">
+                    </c:when>
+                    <c:otherwise>
+                        <input type="hidden" id="accountType" name="accountType" value="<c:out value="${not empty param.accountType ? param.accountType : 'CUSTOMER'}"/>">
+                        <div class="flex p-1.5 bg-emerald-100/60 rounded-xl max-w-md mx-auto border border-emerald-200/50 shadow-inner">
+                            <button type="button" onclick="switchTab('CUSTOMER')" id="tabCustomer"
+                                    class="flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm">
+                                <span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+                                Khách hàng
+                            </button>
+                            <button type="button" onclick="switchTab('SHOP_OWNER')" id="tabShop"
+                                    class="flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary">
+                                <span class="material-symbols-outlined text-[18px]">storefront</span>
+                                Chủ cửa hàng
+                            </button>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
 
                 <!-- Section: Base Fields (Required for both Customer and Shop) -->
                 <div class="bg-white/40 p-5 rounded-xl border border-white/60 space-y-4">
@@ -165,8 +173,11 @@
                             <label class="text-xs font-semibold text-primary" for="fullName">Họ và tên *</label>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">person</span>
-                                <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60" 
-                                       id="fullName" name="fullName" value="<c:out value="${param.fullName}"/>" placeholder="Nhập họ và tên của bạn" type="text" required minlength="3" maxlength="100">
+                                <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${not empty requestScope.prefilledUser ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
+                                       id="fullName" name="fullName" 
+                                       value="<c:out value="${not empty requestScope.prefilledUser ? requestScope.prefilledUser.fullName : param.fullName}"/>" 
+                                       placeholder="Nhập họ và tên của bạn" type="text" required minlength="3" maxlength="100"
+                                       ${not empty requestScope.prefilledUser ? 'readonly' : ''}>
                             </div>
                         </div>
 
@@ -175,8 +186,11 @@
                             <label class="text-xs font-semibold text-primary" for="phone">Số điện thoại *</label>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">call</span>
-                                <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60" 
-                                       id="phone" name="phone" value="<c:out value="${param.phone}"/>" placeholder="Nhập số điện thoại" type="tel" required maxlength="15">
+                                <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${not empty requestScope.prefilledUser ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
+                                       id="phone" name="phone" 
+                                       value="<c:out value="${not empty requestScope.prefilledUser ? requestScope.prefilledUser.phone : param.phone}"/>" 
+                                       placeholder="Nhập số điện thoại" type="tel" required maxlength="15"
+                                       ${not empty requestScope.prefilledUser ? 'readonly' : ''}>
                             </div>
                         </div>
                     </div>
@@ -186,11 +200,15 @@
                         <label class="text-xs font-semibold text-primary" for="email">Địa chỉ Email đăng nhập *</label>
                         <div class="relative">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">mail</span>
-                            <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60" 
-                                   id="email" name="email" value="<c:out value="${param.email}"/>" placeholder="ví dụ: tenban@email.com" type="email" required>
+                            <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${not empty requestScope.prefilledUser ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
+                                   id="email" name="email" 
+                                   value="<c:out value="${not empty requestScope.prefilledUser ? requestScope.prefilledUser.email : param.email}"/>" 
+                                   placeholder="ví dụ: tenban@email.com" type="email" required
+                                   ${not empty requestScope.prefilledUser ? 'readonly' : ''}>
                         </div>
                     </div>
 
+                    <c:if test="${empty requestScope.prefilledUser}">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Password Field -->
                         <div class="flex flex-col gap-1">
@@ -198,7 +216,7 @@
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">lock</span>
                                 <input class="w-full pl-9 pr-10 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60" 
-                                       id="password" name="password" placeholder="Mật khẩu từ 8-64 ký tự" type="password" required minlength="8" maxlength="64">
+                                       id="password" name="password" value="<c:out value="${param.password}"/>" placeholder="Mật khẩu từ 8-64 ký tự" type="password" required minlength="8" maxlength="64">
                                 <button class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors flex items-center justify-center p-1" 
                                         type="button" onclick="togglePasswordVisibility('password', this)">
                                     <span class="material-symbols-outlined text-[20px]">visibility_off</span>
@@ -212,7 +230,7 @@
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">lock</span>
                                 <input class="w-full pl-9 pr-10 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60" 
-                                       id="confirmPassword" name="confirmPassword" placeholder="Nhập lại mật khẩu" type="password" required>
+                                       id="confirmPassword" name="confirmPassword" value="<c:out value="${param.confirmPassword}"/>" placeholder="Nhập lại mật khẩu" type="password" required>
                                 <button class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors flex items-center justify-center p-1" 
                                         type="button" onclick="togglePasswordVisibility('confirmPassword', this)">
                                     <span class="material-symbols-outlined text-[20px]">visibility_off</span>
@@ -220,6 +238,7 @@
                             </div>
                         </div>
                     </div>
+                    </c:if>
                 </div>
 
                 <!-- Section: Advanced Shop Fields (Hidden by default, shown for SHOP_OWNER) -->
@@ -269,11 +288,18 @@
                             <c:choose>
                                 <c:when test="${not empty categories}">
                                     <c:forEach var="cat" items="${categories}">
+                                        <c:set var="isChecked" value="false"/>
+                                        <c:forEach var="selectedId" items="${paramValues.categoryIds}">
+                                            <c:if test="${selectedId == cat.categoryId}">
+                                                <c:set var="isChecked" value="true"/>
+                                            </c:if>
+                                        </c:forEach>
                                         <label class="flex items-center p-3 rounded-lg border border-primary/10 bg-white/40 hover:bg-emerald-50 cursor-pointer transition-all duration-200">
                                             <input class="rounded text-primary focus:ring-primary border-outline/30 bg-white" 
                                                    name="categoryIds" 
                                                    value="<c:out value="${cat.categoryId}"/>" 
-                                                   type="checkbox">
+                                                   type="checkbox"
+                                                   ${isChecked ? 'checked' : ''}>
                                             <span class="ml-2.5 text-xs font-medium text-on-surface"><c:out value="${cat.name}"/></span>
                                         </label>
                                     </c:forEach>
@@ -321,7 +347,7 @@
 
                 <!-- Submit Button -->
                 <button type="submit" class="w-full mt-4 bg-primary text-white text-sm font-semibold py-3.5 px-6 rounded-lg shadow-md hover:bg-primary-hover hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 group cursor-pointer">
-                    <span>Hoàn tất Đăng ký</span>
+                    <span>${not empty requestScope.prefilledUser ? 'Đăng ký mở cửa hàng' : 'Hoàn tất Đăng ký'}</span>
                     <span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
             </form>
@@ -380,23 +406,31 @@
             const tabCustomer = document.getElementById('tabCustomer');
             const tabShop = document.getElementById('tabShop');
             const shopFields = document.getElementById('shopFields');
-            const shopInputs = shopFields.querySelectorAll('input[required-for-shop]');
 
             hiddenInput.value = tabType;
 
-            if (tabType === 'CUSTOMER') {
-                tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
-                tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
-                shopFields.classList.add('hidden');
-                // Xóa required khi ẩn
-                document.getElementById('storeName') && document.getElementById('storeName').removeAttribute('required');
-                document.getElementById('address') && document.getElementById('address').removeAttribute('required');
+            // Kiểm tra sự tồn tại của các tab trước khi cập nhật style
+            if (tabCustomer && tabShop) {
+                if (tabType === 'CUSTOMER') {
+                    tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
+                    tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
+                    shopFields.classList.add('hidden');
+                    document.getElementById('storeName') && document.getElementById('storeName').removeAttribute('required');
+                    document.getElementById('address') && document.getElementById('address').removeAttribute('required');
+                } else {
+                    tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
+                    tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
+                    shopFields.classList.remove('hidden');
+                    document.getElementById('storeName') && document.getElementById('storeName').setAttribute('required', 'required');
+                    document.getElementById('address') && document.getElementById('address').setAttribute('required', 'required');
+                }
             } else {
-                tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
-                tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
-                shopFields.classList.remove('hidden');
-                document.getElementById('storeName') && document.getElementById('storeName').setAttribute('required', 'required');
-                document.getElementById('address') && document.getElementById('address').setAttribute('required', 'required');
+                // Trường hợp prefilledUser, chỉ có tab shop được hiện và không có tab selector
+                if (shopFields) {
+                    shopFields.classList.remove('hidden');
+                    document.getElementById('storeName') && document.getElementById('storeName').setAttribute('required', 'required');
+                    document.getElementById('address') && document.getElementById('address').setAttribute('required', 'required');
+                }
             }
         }
 
@@ -434,7 +468,7 @@
 
             // Kiểm tra số lượng file
             if (files.length > MAX_DOC_COUNT) {
-                errors.push(`Chỉ được chọn tối đa ${MAX_DOC_COUNT} tài liệu.`);
+                errors.push('Chỉ được chọn tối đa ' + MAX_DOC_COUNT + ' tài liệu.');
             }
 
             const validFiles = files.slice(0, MAX_DOC_COUNT);
@@ -445,24 +479,24 @@
                 li.className = 'flex items-center gap-2 text-xs py-1 px-2 bg-white/50 rounded-lg border border-outline/20';
 
                 if (!ALLOWED_EXTS.includes(ext)) {
-                    errors.push(`File "${file.name}" không được hỗ trợ. Chỉ chấp nhận PDF, JPG, PNG, DOCX.`);
+                    errors.push('File "' + file.name + '" không được hỗ trợ. Chỉ chấp nhận PDF, JPG, PNG, DOCX.');
                     li.classList.add('border-red-300', 'bg-red-50/50');
-                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} — Sai định dạng</span>`;
+                    li.innerHTML = '<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">' + file.name + ' — Sai định dạng</span>';
                 } else if (file.size > MAX_DOC_SIZE_BYTES) {
-                    errors.push(`File "${file.name}" vượt quá 25MB.`);
+                    errors.push('File "' + file.name + '" vượt quá 25MB.');
                     li.classList.add('border-red-300', 'bg-red-50/50');
-                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} — Quá 25MB (${(file.size/1024/1024).toFixed(1)}MB)</span>`;
+                    li.innerHTML = '<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">' + file.name + ' — Quá 25MB (' + (file.size/1024/1024).toFixed(1) + 'MB)</span>';
                 } else {
-                    li.innerHTML = `<span class="material-symbols-outlined text-primary text-[16px]">description</span><span class="text-on-surface">${file.name}</span><span class="ml-auto text-outline">${(file.size/1024/1024).toFixed(1)}MB</span>`;
+                    li.innerHTML = '<span class="material-symbols-outlined text-primary text-[16px]">description</span><span class="text-on-surface">' + file.name + '</span><span class="ml-auto text-outline">' + (file.size/1024/1024).toFixed(1) + 'MB</span>';
                 }
                 fileListEl.appendChild(li);
             });
 
             if (validFiles.length > 0) {
                 fileListEl.classList.remove('hidden');
-                uploadLabel.innerHTML = `Đã chọn <span class="text-primary font-bold">${validFiles.length} tệp</span> tài liệu`;
+                uploadLabel.innerHTML = 'Đã chọn <span class="text-primary font-bold">' + validFiles.length + ' tệp</span> tài liệu';
             } else {
-                uploadLabel.innerHTML = `Kéo thả tài liệu vào đây hoặc <span class="text-primary font-bold">chọn tệp từ thiết bị</span>`;
+                uploadLabel.innerHTML = 'Kéo thả tài liệu vào đây hoặc <span class="text-primary font-bold">chọn tệp từ thiết bị</span>';
             }
 
             if (errors.length > 0) {
@@ -471,10 +505,147 @@
             }
         }
 
-        // Khôi phục tab đúng khi load lại trang
+        // Đăng ký sự kiện submit form để kiểm tra định dạng dữ liệu (Client-side Validation)
         document.addEventListener('DOMContentLoaded', () => {
             const currentType = document.getElementById('accountType').value;
             switchTab(currentType);
+
+            const form = document.getElementById('registerForm');
+            form.addEventListener('submit', function(event) {
+                // Xóa các lỗi client cũ
+                const existingErrors = form.querySelectorAll('.client-error');
+                existingErrors.forEach(el => el.remove());
+
+                let hasError = false;
+
+                function showError(inputEl, message) {
+                    hasError = true;
+                    const errorDiv = document.createElement('p');
+                    errorDiv.className = 'client-error text-xs text-red-600 mt-1';
+                    errorDiv.textContent = message;
+                    inputEl.closest('.flex-col').appendChild(errorDiv);
+                }
+
+                const accountType = document.getElementById('accountType').value;
+                const isPrefilled = ${not empty requestScope.prefilledUser ? 'true' : 'false'};
+
+                // Validate base fields nếu không phải prefilled
+                if (!isPrefilled) {
+                    const fullNameInput = document.getElementById('fullName');
+                    if (fullNameInput.value.trim().length < 3) {
+                        showError(fullNameInput, 'Họ và tên phải từ 3 ký tự trở lên.');
+                    }
+
+                    const phoneInput = document.getElementById('phone');
+                    const phoneRegex = /^[0-9]{10,11}$/;
+                    if (!phoneRegex.test(phoneInput.value.trim())) {
+                        showError(phoneInput, 'Số điện thoại không hợp lệ (phải gồm 10-11 chữ số).');
+                    }
+
+                    const emailInput = document.getElementById('email');
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(emailInput.value.trim())) {
+                        showError(emailInput, 'Địa chỉ email không đúng định dạng.');
+                    }
+
+                    const passwordInput = document.getElementById('password');
+                    if (passwordInput.value.length < 8 || passwordInput.value.length > 64) {
+                        showError(passwordInput, 'Mật khẩu phải từ 8 đến 64 ký tự.');
+                    }
+
+                    const confirmPasswordInput = document.getElementById('confirmPassword');
+                    if (passwordInput.value !== confirmPasswordInput.value) {
+                        showError(confirmPasswordInput, 'Mật khẩu xác nhận không khớp.');
+                    }
+                }
+
+                // Validate shop fields if accountType is SHOP_OWNER
+                if (accountType === 'SHOP_OWNER') {
+                    const storeNameInput = document.getElementById('storeName');
+                    if (storeNameInput.value.trim().length < 3) {
+                        showError(storeNameInput, 'Tên cửa hàng phải từ 3 ký tự trở lên.');
+                    }
+
+                    const businessEmailInput = document.getElementById('businessEmail');
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(businessEmailInput.value.trim())) {
+                        showError(businessEmailInput, 'Email liên hệ kinh doanh không đúng định dạng.');
+                    }
+
+                    const addressInput = document.getElementById('address');
+                    if (addressInput.value.trim().length < 5) {
+                        showError(addressInput, 'Địa chỉ kinh doanh phải từ 5 ký tự trở lên.');
+                    }
+
+                    // Check categories
+                    const categoryChecked = form.querySelectorAll('input[name="categoryIds"]:checked');
+                    if (categoryChecked.length === 0) {
+                        hasError = true;
+                        const errorDiv = document.createElement('p');
+                        errorDiv.className = 'client-error text-xs text-red-600 mt-1';
+                        errorDiv.textContent = 'Vui lòng chọn ít nhất một danh mục sản phẩm.';
+                        document.getElementById('categoryGrid').parentNode.appendChild(errorDiv);
+                    }
+
+                    // Check files
+                    const fileInput = document.getElementById('businessDocs');
+                    if (fileInput.files.length === 0) {
+                        hasError = true;
+                        const errorDiv = document.createElement('p');
+                        errorDiv.className = 'client-error text-xs text-red-600 mt-1';
+                        errorDiv.textContent = 'Vui lòng chọn ít nhất một tệp tài liệu để xác minh.';
+                        document.getElementById('dropzone').parentNode.appendChild(errorDiv);
+                    } else {
+                        const files = Array.from(fileInput.files);
+                        if (files.length > MAX_DOC_COUNT) {
+                            hasError = true;
+                            const errorDiv = document.createElement('p');
+                            errorDiv.className = 'client-error text-xs text-red-600 mt-1';
+                            errorDiv.textContent = 'Chỉ được chọn tối đa ' + MAX_DOC_COUNT + ' tài liệu.';
+                            document.getElementById('dropzone').parentNode.appendChild(errorDiv);
+                        }
+
+                        for (let file of files) {
+                            const ext = file.name.split('.').pop().toLowerCase();
+                            if (!ALLOWED_EXTS.includes(ext)) {
+                                hasError = true;
+                                const errorDiv = document.createElement('p');
+                                errorDiv.className = 'client-error text-xs text-red-600 mt-1';
+                                errorDiv.textContent = 'Tệp "' + file.name + '" không hợp lệ. Chỉ chấp nhận các định dạng PDF, JPG, PNG, DOCX.';
+                                document.getElementById('dropzone').parentNode.appendChild(errorDiv);
+                                break;
+                            }
+                            if (file.size > MAX_DOC_SIZE_BYTES) {
+                                hasError = true;
+                                const errorDiv = document.createElement('p');
+                                errorDiv.className = 'client-error text-xs text-red-600 mt-1';
+                                errorDiv.textContent = 'Tệp "' + file.name + '" vượt quá giới hạn 25MB.';
+                                document.getElementById('dropzone').parentNode.appendChild(errorDiv);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Check terms
+                const termsInput = document.getElementById('terms');
+                if (!termsInput.checked) {
+                    hasError = true;
+                    const errorDiv = document.createElement('p');
+                    errorDiv.className = 'client-error text-xs text-red-600 mt-1';
+                    errorDiv.textContent = 'Bạn phải đồng ý với điều khoản sử dụng.';
+                    termsInput.closest('.flex-col, .flex').appendChild(errorDiv);
+                }
+
+                if (hasError) {
+                    event.preventDefault();
+                    // Scroll to first error
+                    const firstError = form.querySelector('.client-error');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
         });
     </script>
 </body>

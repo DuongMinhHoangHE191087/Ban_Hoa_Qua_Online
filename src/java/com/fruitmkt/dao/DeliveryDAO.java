@@ -18,6 +18,18 @@ import java.util.*;
  */
 public class DeliveryDAO extends BaseDAO {
 
+    public Delivery findById(int deliveryId) throws SQLException {
+        String sql = "SELECT * FROM deliveries WHERE delivery_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, deliveryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return mapRow(rs);
+            }
+        }
+        return null;
+    }
+
     public List<Delivery> findByStaffId(int staffId) throws SQLException {
         List<Delivery> list = new ArrayList<>();
         String sql = "SELECT * FROM deliveries WHERE staff_id = ? ORDER BY created_at DESC";
@@ -105,4 +117,19 @@ public class DeliveryDAO extends BaseDAO {
         
         return d;
     }
+
+    public Delivery findByOrderId(int orderId) throws SQLException {
+        String sql = "SELECT * FROM deliveries WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
 }
+

@@ -125,6 +125,19 @@
     </div>
 
     <script>
+        function handleJSONResponse(response) {
+            const contentType = response.headers.get("content-type");
+            if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                    });
+                }
+                throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+            }
+            return response.json();
+        }
+
         function showToast(msg, isSuccess) {
             var toast = document.getElementById("toast");
             toast.innerText = msg;
@@ -152,10 +165,13 @@
                 // Call AJAX API
                 fetch('${pageContext.request.contextPath}/admin/users/status', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: { 
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     body: 'userId=' + userId + '&status=' + newStatus + '&_csrf=${sessionScope._csrfToken}'
                 })
-                .then(response => response.json())
+                .then(handleJSONResponse)
                 .then(data => {
                     this.disabled = false;
                     if (data.success) {
@@ -174,13 +190,13 @@
                             this.innerHTML = '<i class="fa-solid fa-unlock"></i> Mở Khóa';
                         }
                     } else {
-                        showToast(data.message, false);
+                        showToast(data.message || data.error || 'Có lỗi xảy ra', false);
                         this.innerHTML = originalHtml;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showToast('Lỗi kết nối mạng', false);
+                    showToast(error.message || 'Lỗi kết nối mạng', false);
                     this.disabled = false;
                     this.innerHTML = originalHtml;
                 });

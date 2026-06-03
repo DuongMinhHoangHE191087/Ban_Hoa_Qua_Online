@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 
@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 <script>
     tailwind.config = {
         theme: {
@@ -266,7 +266,7 @@
 
                                     <!-- AJAX Deletion Overlay on Hover -->
                                     <div class="absolute inset-1 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                                        <button type="button" onclick="deleteExistingImage(${img.imageId})" 
+                                        <button type="button" onclick="deleteExistingImage('${img.imageId}')" 
                                                 class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer"
                                                 title="Xóa bức ảnh này">
                                             <span class="material-symbols-outlined text-[20px]">delete</span>
@@ -321,6 +321,19 @@
 
 <!-- Scripts for previews and AJAX deletion -->
 <script>
+    function handleJSONResponse(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                });
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+        }
+        return response.json();
+    }
+
     /**
      * AJAX deletion of an existing image from DB and server disk
      */
@@ -328,22 +341,24 @@
         const confirmDelete = confirm("Bạn có chắc chắn muốn xóa bức ảnh này?\nTệp ảnh sẽ bị xóa vĩnh viễn khỏi máy chủ.");
         if (!confirmDelete) return;
 
-        const card = document.getElementById(`image-card-${imageId}`);
+        const card = document.getElementById('image-card-' + imageId);
         if (!card) return;
 
         const params = new URLSearchParams();
         params.append('action', 'delete-image');
         params.append('imageId', imageId);
+        params.append('_csrf', window.csrfToken || '${sessionScope._csrfToken}');
 
         fetch('${pageContext.request.contextPath}/shop/product-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRF-Token': '${sessionScope._csrfToken}'
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
         })
-        .then(response => response.json())
+        .then(handleJSONResponse)
         .then(data => {
             if (data.success) {
                 // Apply gorgeous rotate scale transition on card deletion
@@ -357,7 +372,7 @@
         })
         .catch(err => {
             console.error(err);
-            alert("Lỗi kết nối máy chủ khi xóa hình ảnh.");
+            alert(err.message || "Lỗi kết nối máy chủ khi xóa hình ảnh.");
         });
     }
 

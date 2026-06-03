@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -19,7 +19,7 @@
                     rel="stylesheet">
 
                 <!-- Isolated Tailwind CSS Engine for dynamic layout -->
-                <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+                <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 
                 <!-- Overriding tailwind configurations to match HomeUI brand precisely -->
                 <script>
@@ -770,6 +770,14 @@
                             const response = await fetch(`\${contextPath}/products/detail?id=\${productId}&format=json`, {
                                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
                             });
+                            const contentType = response.headers.get("content-type");
+                            if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+                                if (contentType && contentType.indexOf("application/json") !== -1) {
+                                    const errData = await response.json();
+                                    throw new Error(errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                                }
+                                throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+                            }
                             const data = await response.json();
 
                             if (!data.success || !data.variants || data.variants.length === 0) {
@@ -979,39 +987,41 @@
                     // UNIFIED ADD CART AJAX METHOD (COMMONS)
                     // ============================================================
                     window.addCartItem = async function (variantId, quantity, name, price, imagePath, stockQuantity, productId) {
+                        const isLoggedIn = window.isLoggedIn === true;
+                        const contextPath = window.contextPath || '';
+
+                        // 1. Optimistic Update of Local Storage & Badge
+                        let rollbackItems = null;
                         try {
-                            const isLoggedIn = window.isLoggedIn === true;
-                            const contextPath = window.contextPath || '';
-
-                            const response = await fetch(`\${contextPath}/cart?action=add`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/x-www-form-urlencoded',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                body: `variantId=\${variantId}&quantity=\${quantity}&_csrf=\${window.csrfToken || ''}`
-                            });
-                            const data = await response.json();
-
-                            if (data.success) {
-                                if (isLoggedIn) {
-                                    if (data.cartSummary && data.cartSummary.items) {
-                                        const mappedItems = data.cartSummary.items.map(item => ({
-                                            cartItemId: item.cartItemId,
-                                            variantId: item.variantId,
-                                            productName: item.productName,
-                                            variantLabel: item.variantLabel,
-                                            price: item.price,
-                                            weightKg: item.weightKg || 1.0,
-                                            quantity: item.quantity,
-                                            imagePath: item.imagePath,
-                                            stockQuantity: item.stockQuantity,
-                                            productId: item.productId
-                                        }));
-                                        localStorage.setItem('userCart', JSON.stringify(mappedItems));
-                                    }
+                            if (isLoggedIn) {
+                                let items = JSON.parse(localStorage.getItem('userCart')) || [];
+                                rollbackItems = JSON.stringify(items);
+                                const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+                                if (idx >= 0) {
+                                    items[idx].quantity += parseInt(quantity);
                                 } else {
-                                    const item = {
+                                    items.push({
+                                        cartItemId: -1,
+                                        variantId: parseInt(variantId),
+                                        productName: name.split(' - ')[0],
+                                        variantLabel: name.split(' - ')[1] || 'Mặc định',
+                                        price: parseFloat(price),
+                                        weightKg: 1.0,
+                                        quantity: parseInt(quantity),
+                                        imagePath: imagePath || 'assets/img/placeholder.png',
+                                        stockQuantity: parseInt(stockQuantity) || 99,
+                                        productId: parseInt(productId) || null
+                                    });
+                                }
+                                localStorage.setItem('userCart', JSON.stringify(items));
+                            } else {
+                                let items = JSON.parse(localStorage.getItem('guestCart')) || [];
+                                rollbackItems = JSON.stringify(items);
+                                const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+                                if (idx >= 0) {
+                                    items[idx].quantity += parseInt(quantity);
+                                } else {
+                                    items.push({
                                         variantId: parseInt(variantId),
                                         name: name,
                                         price: parseFloat(price),
@@ -1019,19 +1029,88 @@
                                         imagePath: imagePath || 'assets/img/placeholder.png',
                                         stockQuantity: parseInt(stockQuantity) || 99,
                                         productId: parseInt(productId) || null
-                                    };
-                                    if (typeof GuestCart !== 'undefined') {
-                                        GuestCart.add(item);
-                                    } else {
-                                        let items = JSON.parse(localStorage.getItem('guestCart')) || [];
-                                        const idx = items.findIndex(i => i.variantId === item.variantId);
-                                        if (idx >= 0) items[idx].quantity += item.quantity;
-                                        else items.push(item);
-                                        localStorage.setItem('guestCart', JSON.stringify(items));
-                                    }
+                                    });
                                 }
+                                localStorage.setItem('guestCart', JSON.stringify(items));
+                            }
 
-                                // Update header badges
+                            // Update badge and card quantities immediately
+                            if (typeof GuestCart !== 'undefined') {
+                                GuestCart.updateBadge();
+                            } else {
+                                const badge = document.getElementById('cart-badge');
+                                if (badge) {
+                                    const key = isLoggedIn ? 'userCart' : 'guestCart';
+                                    const items = JSON.parse(localStorage.getItem(key)) || [];
+                                    badge.textContent = items.reduce((sum, i) => sum + i.quantity, 0);
+                                }
+                            }
+                            if (window.updateCardAddedQuantities) {
+                                window.updateCardAddedQuantities();
+                            }
+
+                            // Show toast immediately
+                            showCartSuccessToast(name, quantity);
+
+                        } catch (e) {
+                            console.warn('[Cart] Error performing optimistic UI update:', e);
+                        }
+
+                        // 2. Perform Backend Request Asynchronously
+                        fetch(`\${contextPath}/cart?action=add`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: `variantId=\${variantId}&quantity=\${quantity}&_csrf=\${window.csrfToken || ''}`
+                        })
+                        .then(response => {
+                            const contentType = response.headers.get("content-type");
+                            if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+                                if (contentType && contentType.indexOf("application/json") !== -1) {
+                                    return response.json().then(errData => {
+                                        throw new Error(errData.error || `Lỗi hệ thống (Mã: \${response.status})`);
+                                    });
+                                }
+                                throw new Error(`Lỗi hệ thống (Mã: \${response.status})`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.error || 'Có lỗi xảy ra khi thêm vào giỏ hàng.');
+                            }
+
+                            // Sync with final DB mapping
+                            if (isLoggedIn && data.cartSummary && data.cartSummary.items) {
+                                const mappedItems = data.cartSummary.items.map(item => ({
+                                    cartItemId: item.cartItemId,
+                                    variantId: item.variantId,
+                                    productName: item.productName,
+                                    variantLabel: item.variantLabel,
+                                    price: item.price,
+                                    weightKg: item.weightKg || 1.0,
+                                    quantity: item.quantity,
+                                    imagePath: item.imagePath,
+                                    stockQuantity: item.stockQuantity,
+                                    productId: item.productId
+                                }));
+                                localStorage.setItem('userCart', JSON.stringify(mappedItems));
+                                if (window.updateCardAddedQuantities) {
+                                    window.updateCardAddedQuantities();
+                                }
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error syncing add cart with server:', err);
+                            // Rollback local storage on error
+                            if (rollbackItems) {
+                                if (isLoggedIn) {
+                                    localStorage.setItem('userCart', rollbackItems);
+                                } else {
+                                    localStorage.setItem('guestCart', rollbackItems);
+                                }
                                 if (typeof GuestCart !== 'undefined') {
                                     GuestCart.updateBadge();
                                 } else {
@@ -1042,24 +1121,12 @@
                                         badge.textContent = items.reduce((sum, i) => sum + i.quantity, 0);
                                     }
                                 }
-
-                                // Update home card displays
                                 if (window.updateCardAddedQuantities) {
                                     window.updateCardAddedQuantities();
                                 }
-
-                                // Toast
-                                showCartSuccessToast(name, quantity);
-                                return true;
-                            } else {
-                                alert(data.error || 'Có lỗi xảy ra khi thêm vào giỏ hàng.');
-                                return false;
                             }
-                        } catch (err) {
-                            console.error('Lỗi thêm giỏ hàng:', err);
-                            alert('Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
-                            return false;
-                        }
+                            alert(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
+                        });
                     };
 
                     function showCartSuccessToast(productName, quantity) {
