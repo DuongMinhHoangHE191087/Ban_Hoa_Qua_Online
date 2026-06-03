@@ -222,16 +222,28 @@ async function apiCall(data) {
     try {
         const res = await fetch('${pageContext.request.contextPath}/delivery/api/update', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             body: JSON.stringify(data)
         });
+        const contentType = res.headers.get("content-type");
+        if (!res.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const errData = await res.json();
+                throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + res.status + ')');
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + res.status + ')');
+        }
         const result = await res.json();
         if (result.success) {
             location.reload();
         } else {
             alert("Lỗi: " + result.message);
         }
-    } catch (e) { alert("Lỗi mạng!"); }
+    } catch (e) { alert(e.message || "Lỗi mạng!"); }
 }
 
 function updateStatus(id, status) {

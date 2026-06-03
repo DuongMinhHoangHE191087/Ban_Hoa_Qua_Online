@@ -117,7 +117,7 @@ public class CartServlet extends HttpServlet {
                     int cartItemId = Integer.parseInt(req.getParameter("cartItemId"));
                     int quantity = Integer.parseInt(req.getParameter("quantity"));
 
-                    cartService.updateQuantity(cartItemId, quantity);
+                    cartService.updateQuantity(user.getUserId(), cartItemId, quantity);
                     CartSummaryDTO updatedSummary = cartService.getCart(user.getUserId());
                     JsonUtil.writeJson(resp, Map.of("success", true, "message", "Cập nhật thành công.", "cartSummary", updatedSummary));
                     break;
@@ -131,7 +131,7 @@ public class CartServlet extends HttpServlet {
 
                     int cartItemId = Integer.parseInt(req.getParameter("cartItemId"));
 
-                    cartService.removeItem(cartItemId);
+                    cartService.removeItem(user.getUserId(), cartItemId);
                     CartSummaryDTO updatedSummary = cartService.getCart(user.getUserId());
                     JsonUtil.writeJson(resp, Map.of("success", true, "message", "Đã xóa sản phẩm khỏi giỏ hàng.", "cartSummary", updatedSummary));
                     break;
@@ -145,7 +145,7 @@ public class CartServlet extends HttpServlet {
                     int cartItemId = Integer.parseInt(req.getParameter("cartItemId"));
                     int newVariantId = Integer.parseInt(req.getParameter("newVariantId"));
 
-                    cartService.changeVariant(cartItemId, newVariantId);
+                    cartService.changeVariant(user.getUserId(), cartItemId, newVariantId);
                     CartSummaryDTO updatedSummary = cartService.getCart(user.getUserId());
                     JsonUtil.writeJson(resp, Map.of("success", true, "message", "Đã cập nhật biến thể thành công.", "cartSummary", updatedSummary));
                     break;

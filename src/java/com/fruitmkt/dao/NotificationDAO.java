@@ -3,56 +3,89 @@ package com.fruitmkt.dao;
 import com.fruitmkt.dao.base.BaseDAO;
 import com.fruitmkt.model.entity.Notification;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * NotificationDAO — DAO cho entity Notification.
- *
- * QUY TẮC:
- *   - Chỉ chứa SQL, không chứa business logic
- *   - Dùng PreparedStatement, KHÔNG nối chuỗi SQL
- *   - Mỗi method ném SQLException để Service xử lý
- *   - Dùng try-with-resources cho Connection + PreparedStatement
- *
- * @author fruitmkt-team
  */
 public class NotificationDAO extends BaseDAO {
 
-    /**
-     * TODO: Implement — findByUser(int userId, boolean unreadOnly)
-     */
     public List<Notification> findByUser(int userId, boolean unreadOnly) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findByUser(int userId, boolean unreadOnly)");
+        List<Notification> list = new ArrayList<>();
+        String sql = "SELECT * FROM notifications WHERE user_id = ?";
+        if (unreadOnly) {
+            sql += " AND is_read = 0";
+        }
+        sql += " ORDER BY created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
     }
 
-    /**
-     * TODO: Implement — save(Notification notif)
-     */
     public int save(Notification notif) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: save(Notification notif)");
+        String sql = "INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, notif.getUserId());
+            ps.setString(2, notif.getType());
+            ps.setString(3, notif.getTitle());
+            ps.setString(4, notif.getMessage());
+            ps.setString(5, notif.getActionUrl());
+            ps.setBoolean(6, notif.getIsRead());
+            
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        }
+        return 0;
     }
 
-    /**
-     * TODO: Implement — markRead(int notifId)
-     */
     public void markRead(int notifId) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: markRead(int notifId)");
+        String sql = "UPDATE notifications SET is_read = 1 WHERE notification_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, notifId);
+            ps.executeUpdate();
+        }
     }
 
-    /**
-     * TODO: Implement — markAllRead(int userId)
-     */
     public void markAllRead(int userId) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: markAllRead(int userId)");
+        String sql = "UPDATE notifications SET is_read = 1 WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
     }
 
-    /** Ánh xạ ResultSet -> Notification — gọi trong mọi query SELECT */
     private Notification mapRow(ResultSet rs) throws SQLException {
-        // TODO: rs.getInt(), rs.getString()... theo Schema.sql
-        throw new UnsupportedOperationException("mapRow not implemented");
+        Notification n = new Notification();
+        n.setNotificationId(rs.getInt("notification_id"));
+        n.setUserId(rs.getInt("user_id"));
+        n.setType(rs.getString("type"));
+        n.setTitle(rs.getString("title"));
+        n.setMessage(rs.getString("message"));
+        n.setActionUrl(rs.getString("action_url"));
+        n.setIsRead(rs.getBoolean("is_read"));
+        
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null) {
+            n.setCreatedAt(createdAt.toLocalDateTime());
+        }
+        
+        return n;
     }
 }

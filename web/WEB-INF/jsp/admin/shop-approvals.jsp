@@ -106,8 +106,8 @@
                                                 <td>
                                                     <div class="table-actions" id="action-btns-${shop.profileId}">
                                                         <c:if test="${shop.approvalStatus == 'PENDING'}">
-                                                            <button class="btn btn-success btn-sm" onclick="approveShop(${shop.profileId})" title="Duyệt"><i class="fa-solid fa-check"></i></button>
-                                                            <button class="btn btn-danger btn-sm" onclick="showRejectModal(${shop.profileId})" title="Từ chối"><i class="fa-solid fa-times"></i></button>
+                                                            <button class="btn btn-success btn-sm" onclick="approveShop('${shop.profileId}')" title="Duyệt"><i class="fa-solid fa-check"></i></button>
+                                                            <button class="btn btn-danger btn-sm" onclick="showRejectModal('${shop.profileId}')" title="Từ chối"><i class="fa-solid fa-times"></i></button>
                                                         </c:if>
                                                         <c:if test="${shop.approvalStatus != 'PENDING'}">
                                                             <span style="font-size:0.8rem; color:var(--color-text-light); font-style:italic;">Đã xử lý</span>
@@ -141,6 +141,19 @@
     </div>
 
     <script>
+        function handleJSONResponse(response) {
+            const contentType = response.headers.get("content-type");
+            if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                    });
+                }
+                throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+            }
+            return response.json();
+        }
+
         document.getElementById('shopSearch').addEventListener('input', function(e) {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('#shopTableBody tr').forEach(row => {
@@ -192,10 +205,13 @@
         function updateShopStatus(profileId, status, reason) {
             fetch('${pageContext.request.contextPath}/admin/shops/approve', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: 'profileId=' + profileId + '&status=' + status + '&rejectionReason=' + encodeURIComponent(reason) + '&_csrf=${sessionScope._csrfToken}'
             })
-            .then(response => response.json())
+            .then(handleJSONResponse)
             .then(data => {
                 if(data.success) {
                     Swal.fire({ icon: 'success', title: 'Thành công', text: data.message, timer: 1500, showConfirmButton: false });
@@ -216,7 +232,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Lỗi', 'Lỗi kết nối mạng.', 'error');
+                Swal.fire('Lỗi', error.message || 'Lỗi kết nối mạng.', 'error');
             });
         }
     </script>

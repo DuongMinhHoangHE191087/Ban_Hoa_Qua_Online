@@ -126,7 +126,27 @@
         <filter-name>AuthFilter</filter-name>
         <url-pattern>/checkout</url-pattern>
     </filter-mapping>
-
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/orders</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/notifications</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/reviews</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/returns</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/chat</url-pattern>
+    </filter-mapping>
+ 
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>
         <url-pattern>/customer/*</url-pattern>
@@ -146,6 +166,26 @@
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>
         <url-pattern>/checkout</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/orders</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/notifications</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/reviews</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/returns</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/chat</url-pattern>
     </filter-mapping>
 
 <!-- Trigger reload -->

@@ -1,7 +1,6 @@
 package com.fruitmkt.util;
 
 import com.fruitmkt.config.AppConfig;
-import jakarta.servlet.http.Part;
 import java.math.BigDecimal;
 import java.util.regex.Pattern;
 
@@ -110,15 +109,11 @@ public final class ValidationUtil {
      *
      * @return null nếu hợp lệ, hoặc chuỗi mô tả lỗi cụ thể
      */
-    public static String validateShopDoc(Part part) {
-        if (part == null || part.getSize() == 0) {
-            return "File không được rỗng.";
+    public static String validateShopDoc(String filename, long size) {
+        if (filename == null || filename.trim().isEmpty() || size == 0) {
+            return "File không được rỗng hoặc tên file không hợp lệ.";
         }
-        String filename = part.getSubmittedFileName();
-        if (filename == null || filename.trim().isEmpty()) {
-            return "Tên file không hợp lệ.";
-        }
-        if (part.getSize() > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
+        if (size > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
             return "File '" + sanitizeForLog(filename) + "' vượt quá giới hạn "
                     + (AppConfig.MAX_SHOP_DOC_SIZE_BYTES / 1024 / 1024) + "MB.";
         }

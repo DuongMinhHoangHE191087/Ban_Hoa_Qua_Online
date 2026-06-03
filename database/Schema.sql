@@ -200,6 +200,8 @@ CREATE TABLE orders (
     final_amount DECIMAL(14,2) NOT NULL,
     payment_method NVARCHAR(20) NOT NULL CHECK (payment_method IN ('CK','COD')),
     refund_status NVARCHAR(20) NOT NULL DEFAULT 'NONE' CHECK (refund_status IN ('NONE','PENDING','APPROVED','REJECTED','PROCESSING','REFUNDED','FAILED')),
+    shop_acceptance_deadline DATETIME NULL,
+    shop_accepted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
@@ -374,6 +376,25 @@ CREATE TABLE notifications (
     is_read BIT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT GETDATE()
 );
+
+CREATE TABLE system_config (
+    config_key NVARCHAR(100) PRIMARY KEY,
+    config_value NVARCHAR(500) NOT NULL,
+    description NVARCHAR(500) NULL,
+    data_type NVARCHAR(20) NOT NULL DEFAULT 'STRING' CHECK (data_type IN ('STRING','INT','DECIMAL','BOOLEAN')),
+    effective_date DATETIME NULL,
+    previous_value NVARCHAR(500) NULL,
+    changed_by INT NULL FOREIGN KEY REFERENCES users(user_id),
+    changed_at DATETIME NOT NULL DEFAULT GETDATE(),
+    updated_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
+CREATE INDEX IX_orders_acceptance_auto_cancel
+ON orders (status, shop_acceptance_deadline)
+WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL;
+
+CREATE INDEX IX_return_requests_status ON return_requests(status, created_at);
+
 
 -- Optional: Create Full-Text Search configuration [cite: 19]
 -- CREATE FULLTEXT CATALOG ftCatalog AS DEFAULT;

@@ -259,6 +259,8 @@ BEGIN
         final_amount DECIMAL(14,2) NOT NULL,
         payment_method NVARCHAR(20) NOT NULL CONSTRAINT CK_orders_payment_method  CHECK (payment_method IN ('CK', 'COD')),
         refund_status NVARCHAR(20) NOT NULL CONSTRAINT DF_orders_refund_status DEFAULT 'NONE' CONSTRAINT CK_orders_refund_status CHECK (refund_status IN ('NONE', 'PENDING', 'APPROVED', 'REJECTED', 'PROCESSING', 'REFUNDED', 'FAILED')),
+        shop_acceptance_deadline DATETIME NULL,
+        shop_accepted_at DATETIME NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_orders_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_orders_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_orders_customer FOREIGN KEY (customer_id) REFERENCES dbo.users(user_id),
@@ -526,6 +528,34 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.system_config', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.system_config (
+        config_key      NVARCHAR(100) NOT NULL CONSTRAINT PK_system_config PRIMARY KEY,
+        config_value    NVARCHAR(500) NOT NULL,
+        description     NVARCHAR(500) NULL,
+        data_type       NVARCHAR(20)  NOT NULL CONSTRAINT DF_system_config_data_type DEFAULT 'STRING'
+                        CONSTRAINT CK_system_config_data_type CHECK (data_type IN ('STRING','INT','DECIMAL','BOOLEAN')),
+        effective_date  DATETIME NULL,
+        previous_value  NVARCHAR(500) NULL,
+        changed_by      INT NULL,
+        changed_at      DATETIME NOT NULL CONSTRAINT DF_system_config_changed_at DEFAULT GETDATE(),
+        updated_at      DATETIME NOT NULL CONSTRAINT DF_system_config_updated_at DEFAULT GETDATE(),
+        CONSTRAINT FK_system_config_users FOREIGN KEY (changed_by) REFERENCES dbo.users(user_id)
+    );
+
+    -- Seed giá trị mặc định
+    INSERT INTO dbo.system_config (config_key, config_value, description, data_type)
+    VALUES
+        ('platform_fee_rate',       '0.05', N'Tỷ lệ phí nền tảng (Platform Fee Rate). Mặc định 0.05 (5%).', 'DECIMAL'),
+        ('settlement_freeze_days',  '15',   N'Số ngày đóng băng tiền quyết toán của shop.', 'INT'),
+        ('shop_accept_timeout_min', '30',   N'Thời gian tối đa (phút) để shop chấp nhận đơn hàng trước khi tự hủy.', 'INT'),
+        ('return_request_max_hours','24',   N'Thời gian tối đa (giờ) để khách hàng gửi return request sau DELIVERED.', 'INT');
+
+    PRINT 'Created system_config table and seeded defaults.';
+END
+GO
+
 -- =========================================================
 -- Indexes for hot DAO paths
 -- =========================================================
@@ -790,7 +820,10 @@ BEGIN TRY
         (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
         (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
         (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
+        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (8, N'Lê Minh Tuấn', N'customer3@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000008', N'CUSTOMER', N'ACTIVE', N'18 Nguyễn Du, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (9, N'Nguyễn Thị Lan', N'customer4@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000009', N'CUSTOMER', N'ACTIVE', N'45 Lê Lợi, Bến Nghé, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -953,7 +986,12 @@ BEGIN TRY
         (14, N'MEKONG-GIAM20K', N'FIXED', N'SHOP', 0.00, 20000.00, 150000.00, N'ORDER', NULL, 400, 12, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:00:00', '2026-05-16T08:00:00', 0, 1),
         (15, N'MEKONG-GIAM10P', N'PERCENT', N'SHOP', 40000.00, 10.00, 250000.00, N'ORDER', NULL, 350, 5, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:05:00', '2026-05-16T08:00:00', 0, 1),
         (16, N'KLEVER-GIAM50K', N'FIXED', N'SHOP', 0.00, 50000.00, 400000.00, N'ORDER', NULL, 250, 3, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:00:00', '2026-05-16T08:00:00', 0, 1),
-        (17, N'KLEVER-GIAM20P', N'PERCENT', N'SHOP', 80000.00, 20.00, 500000.00, N'ORDER', NULL, 200, 1, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:05:00', '2026-05-16T08:00:00', 0, 1);
+        (17, N'KLEVER-GIAM20P', N'PERCENT', N'SHOP', 80000.00, 20.00, 500000.00, N'ORDER', NULL, 200, 1, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:05:00', '2026-05-16T08:00:00', 0, 1),
+        (18, N'SHOP10', N'PERCENT', N'SHOP', 50000.00, 10.00, 100000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, GETDATE(), GETDATE(), 0, 1),
+        (19, N'SAAN5', N'FIXED', N'ALL', 0.00, 5000.00, 50000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (20, N'SALE20', N'PERCENT', N'ALL', 100000.00, 20.00, 200000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (21, N'METAFRUIT50', N'PERCENT', N'ALL', 150000.00, 15.00, 300000.00, N'ORDER', NULL, 500, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (22, N'FREESHIPALL', N'FIXED', N'ALL', 0.00, 15000.00, 150000.00, N'ORDER', NULL, 2000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1);
     SET IDENTITY_INSERT dbo.promotions OFF;
 
     SET IDENTITY_INSERT dbo.cart ON;
@@ -1105,4 +1143,55 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_acceptance_auto_cancel' AND object_id = OBJECT_ID(N'dbo.orders'))
+BEGIN
+    CREATE INDEX IX_orders_acceptance_auto_cancel
+    ON dbo.orders (status, shop_acceptance_deadline)
+    WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+BEGIN
+    CREATE INDEX IX_return_requests_status ON dbo.return_requests(status, created_at);
+END
+GO
+
+-- =========================================================
+-- Print Seed Info Log for debugging and testing
+-- =========================================================
+PRINT '========================================================================='
+PRINT '                      ONLINE FRUIT SHOPPING SEED DATA                     '
+PRINT '========================================================================='
+PRINT '--- USERS & ACCOUNTS ---'
+PRINT '  * ADMIN:           admin@fruitshop.local       / mật khẩu: admin123'
+PRINT '  * TEST ADMIN:      admin@metafruit.vn          / mật khẩu: admin123'
+PRINT '  * SHOP OWNER 1:    owner1@fruitshop.local      / mật khẩu: admin123  (An Phu Orchard)'
+PRINT '  * SHOP OWNER 2:    owner2@fruitshop.local      / mật khẩu: admin123  (Mekong Fresh Farm)'
+PRINT '  * SHOP OWNER 3:    owner3@fruitshop.local      / mật khẩu: admin123  (Klever Premium Fruits)'
+PRINT '  * TEST SHOP OWNER: shop@metafruit.vn           / mật khẩu: admin123  (MetaFruit Test Shop)'
+PRINT '  * DELIVERY STAFF:  delivery@fruitshop.local    / mật khẩu: admin123'
+PRINT '  * TEST DELIVERY:   delivery@metafruit.vn       / mật khẩu: admin123'
+PRINT '  * CUSTOMER 1:      customer1@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * CUSTOMER 2:      customer2@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * TEST CUSTOMER:   customer@metafruit.vn       / mật khẩu: admin123'
+PRINT '  * CUSTOMER 3 (NEW):customer3@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * CUSTOMER 4 (NEW):customer4@fruitshop.local   / mật khẩu: admin123'
+PRINT '  * CUSTOMER VIP:    vipcustomer@fruitshop.local / mật khẩu: admin123'
+PRINT ''
+PRINT '--- ACTIVE COUPONS & PROMOTIONS ---'
+PRINT '  * SHOP10 (Shop 7 - Klever): Giảm 10% (Tối đa 50k) cho đơn từ 100k'
+PRINT '  * SAAN5 (Hệ thống):         Giảm cố định 5k cho đơn từ 50k'
+PRINT '  * SALE20 (Hệ thống):        Giảm 20% (Tối đa 100k) cho đơn từ 200k'
+PRINT '  * METAFRUIT50 (Hệ thống):   Giảm 15% (Tối đa 150k) cho đơn từ 300k'
+PRINT '  * FREESHIPALL (Hệ thống):   Giảm 15k phí vận chuyển cho đơn từ 150k'
+PRINT '  * WELCOME10 (Hệ thống):     Giảm 10% (Tối đa 50k) cho đơn từ 120k'
+PRINT '  * FREESHIP50 (Hệ thống):    Giảm 20k phí vận chuyển cho đơn từ 300k'
+PRINT '  * ANPHU-GIAM30K (An Phu):   Giảm cố định 30k cho đơn từ 200k'
+PRINT '  * MEKONG-GIAM20K (Mekong):  Giảm cố định 20k cho đơn từ 150k'
+PRINT '  * KLEVER-GIAM50K (Klever):  Giảm cố định 50k cho đơn từ 400k'
+PRINT '========================================================================='
+
+
 

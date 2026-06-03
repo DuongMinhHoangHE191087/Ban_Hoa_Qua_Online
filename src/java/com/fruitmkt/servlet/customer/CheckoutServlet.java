@@ -1,13 +1,16 @@
 package com.fruitmkt.servlet.customer;
 
+import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.CartService;
+import com.fruitmkt.service.PaymentService;
 import com.fruitmkt.model.dto.CartSummaryDTO;
 import com.fruitmkt.model.entity.CartItem;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.dao.OrderDAO;
+import com.fruitmkt.dao.PaymentDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
 
 import jakarta.servlet.ServletException;
@@ -18,6 +21,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -35,6 +39,19 @@ public class CheckoutServlet extends HttpServlet {
     private final CartService cartService = new CartService();
     private final OrderDAO orderDAO = new OrderDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final PaymentDAO paymentDAO = new PaymentDAO();
+    private final PaymentService paymentService = new PaymentService();
+    private final com.fruitmkt.service.PromotionService promotionService = new com.fruitmkt.service.PromotionService();
+    private final com.fruitmkt.dao.PromotionDAO promotionDAO = new com.fruitmkt.dao.PromotionDAO();
+    private final com.fruitmkt.dao.SystemConfigDAO configDAO = new com.fruitmkt.dao.SystemConfigDAO();
+
+
+    // SePay / VietQR config
+    private static final String BANK_ID       = "MB";
+    private static final String ACCOUNT_NO    = "0999999999";
+    private static final String ACCOUNT_NAME  = "CONG TY METAFRUIT PREMIUM";
+    private static final String REF_PREFIX    = "MF";    // Nội dung CK = MF + orderId
+    private static final int    QR_EXPIRE_MIN = 15;      // QR hết hạn sau 15 phút
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -51,8 +68,9 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        // Kiểm tra phân quyền: Chỉ CUSTOMER mới được quyền checkout
-        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        // Kiểm tra phân quyền: Chỉ CUSTOMER và SHOP_OWNER mới được quyền checkout
+        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())
+                && !com.fruitmkt.config.AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thanh toán. Chức năng này chỉ dành cho khách hàng.");
             return;
         }
@@ -87,24 +105,23 @@ public class CheckoutServlet extends HttpServlet {
                     List<Order> orders = orderDAO.findById(orderId);
                     if (!orders.isEmpty()) {
                         Order order = orders.get(0);
-                        if (order.getCustomerId() == user.getUserId() && "CK".equals(order.getPaymentMethod())) {
+                        if (order.getCustomerId() == user.getUserId() && AppConfig.PAYMENT_CK.equals(order.getPaymentMethod())) {
                             req.setAttribute("order", order);
-                            String bankId = "MB";
-                            String accountNo = "0999999999";
-                            String accountName = "CONG TY METAFRUIT PREMIUM";
-                            String description = "MF" + orderId;
-                            String amountFormatted = order.getFinalAmount().setScale(0, java.math.RoundingMode.HALF_UP).toString();
-                            String qrUrl = "https://img.vietqr.io/image/" + bankId + "-" + accountNo + "-compact2.png"
-                                    + "?amount=" + amountFormatted
-                                    + "&addInfo=" + java.net.URLEncoder.encode(description, "UTF-8")
-                                    + "&accountName=" + java.net.URLEncoder.encode(accountName, "UTF-8");
-                            req.setAttribute("qrUrl", qrUrl);
-                            req.setAttribute("bankId", bankId);
-                            req.setAttribute("accountNo", accountNo);
-                            req.setAttribute("accountName", accountName);
-                            req.setAttribute("description", description);
-                            req.setAttribute("amountFormatted", amountFormatted);
-                            
+                            String reference  = REF_PREFIX + orderId;
+                            String amountFmt  = order.getFinalAmount().setScale(0, java.math.RoundingMode.HALF_UP).toString();
+                            String qrUrl = buildQrUrl(reference, amountFmt);
+                            req.setAttribute("qrUrl",         qrUrl);
+                            req.setAttribute("bankId",        BANK_ID);
+                            req.setAttribute("accountNo",     ACCOUNT_NO);
+                            req.setAttribute("accountName",   ACCOUNT_NAME);
+                            req.setAttribute("reference",     reference);
+                            req.setAttribute("amountFormatted", amountFmt);
+                            req.setAttribute("qrExpireMin",   QR_EXPIRE_MIN);
+                            // Lấy trạng thái payment_transaction để biết đã confirmPayment chưa
+                            try {
+                                var txList = paymentDAO.findByOrder(orderId);
+                                if (!txList.isEmpty()) req.setAttribute("paymentTx", txList.get(0));
+                            } catch (Exception ignored) {}
                             req.getRequestDispatcher("/WEB-INF/jsp/customer/order-payment.jsp").forward(req, resp);
                             return;
                         }
@@ -199,6 +216,12 @@ public class CheckoutServlet extends HttpServlet {
                 }
             }
 
+            if (cartSummary != null && cartSummary.getItems() != null && !cartSummary.getItems().isEmpty()) {
+                int firstProductId = cartSummary.getItems().get(0).getProductId();
+                int ownerId = orderDAO.getOwnerIdByProductId(firstProductId);
+                req.setAttribute("shopOwnerId", ownerId);
+            }
+
             req.setAttribute("cartSummary", cartSummary);
             req.setAttribute("userAddress", user.getUserAddress());
             req.getRequestDispatcher("/WEB-INF/jsp/customer/checkout.jsp").forward(req, resp);
@@ -223,8 +246,9 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        // Kiểm tra phân quyền: Chỉ CUSTOMER mới được quyền checkout
-        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        // Kiểm tra phân quyền: Chỉ CUSTOMER và SHOP_OWNER mới được quyền checkout
+        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())
+                && !com.fruitmkt.config.AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thanh toán. Chức năng này chỉ dành cho khách hàng.");
             return;
         }
@@ -238,10 +262,38 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
+        // ─── action=confirmPayment : Khách bấm "Tôi đã thanh toán" ──────────────
+        String action = req.getParameter("action");
+        if ("confirmPayment".equals(action)) {
+            String orderIdStr = req.getParameter("orderId");
+            try {
+                int orderId2 = Integer.parseInt(orderIdStr);
+                boolean ok = paymentService.confirmManualPayment(orderId2, user.getUserId());
+                if (ok) {
+                    SessionUtil.flashSuccess(session,
+                        "Chúng tôi đã nhận thông báo thanh toán. Admin sẽ xác minh và duyệt trong 1–24 giờ làm việc.");
+                } else {
+                    SessionUtil.flashError(session,
+                        "Mã QR đã hết hạn. Vui lòng làm mới mã QR và thanh toán lại.");
+                }
+            } catch (SecurityException e) {
+                resp.sendError(HttpServletResponse.SC_FORBIDDEN);
+                return;
+            } catch (Exception e) {
+                SessionUtil.flashError(session, "Lỗi: " + e.getMessage());
+            }
+            resp.sendRedirect(req.getContextPath() + "/checkout?action=payment&orderId=" + req.getParameter("orderId"));
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         String deliveryAddress = req.getParameter("deliveryAddress");
         String paymentMethod = req.getParameter("paymentMethod");
         String notes = req.getParameter("notes");
         String variantIdsParam = req.getParameter("variantIds");
+        String shopCouponCode = req.getParameter("shopCouponCode");
+        String systemCouponCode = req.getParameter("systemCouponCode");
+
 
         if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
             SessionUtil.flashError(session, "Vui lòng nhập địa chỉ nhận hàng.");
@@ -339,6 +391,55 @@ public class CheckoutServlet extends HttpServlet {
                 throw new IllegalStateException("Không tìm thấy owner_id cho product_id=" + firstVariant.getProductId());
             }
 
+            // Chống tự mua hàng (Self-Buying Prevention)
+            if (user.getUserId() == ownerId) {
+                SessionUtil.flashError(session, "Bạn không thể mua hàng từ cửa hàng của chính mình.");
+                resp.sendRedirect(req.getContextPath() + "/checkout?variantIds=" + (variantIdsParam != null ? variantIdsParam : ""));
+                return;
+            }
+
+            // Coupon Application
+            BigDecimal shopDiscount = BigDecimal.ZERO;
+            BigDecimal systemDiscount = BigDecimal.ZERO;
+            BigDecimal totalDiscount = BigDecimal.ZERO;
+            com.fruitmkt.model.entity.Promotion shopPromo = null;
+            com.fruitmkt.model.entity.Promotion systemPromo = null;
+
+            try {
+                if (shopCouponCode != null && !shopCouponCode.trim().isEmpty()) {
+                    shopPromo = promotionService.validateShopCoupon(shopCouponCode, ownerId, subtotal);
+                    if (shopPromo == null) {
+                        SessionUtil.flashError(session, "Mã giảm giá của cửa hàng không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
+                        resp.sendRedirect(req.getContextPath() + "/checkout?variantIds=" + (variantIdsParam != null ? variantIdsParam : ""));
+                        return;
+                    }
+                }
+                if (systemCouponCode != null && !systemCouponCode.trim().isEmpty()) {
+                    systemPromo = promotionService.validateSystemCoupon(systemCouponCode, subtotal);
+                    if (systemPromo == null) {
+                        SessionUtil.flashError(session, "Mã giảm giá của sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
+                        resp.sendRedirect(req.getContextPath() + "/checkout?variantIds=" + (variantIdsParam != null ? variantIdsParam : ""));
+                        return;
+                    }
+                }
+                if (shopPromo != null || systemPromo != null) {
+                    BigDecimal[] calcs = promotionService.calculateAllDiscounts(shopPromo, systemPromo, subtotal, deliveryFee);
+                    shopDiscount = calcs[0];
+                    systemDiscount = calcs[1];
+                    totalDiscount = calcs[2];
+                    finalAmount = calcs[3];
+                }
+            } catch (Exception e) {
+                System.err.println("[FruitMkt] ERROR: Lỗi tính toán coupon: " + e.getMessage());
+                SessionUtil.flashError(session, "Lỗi áp dụng mã giảm giá: " + e.getMessage());
+                resp.sendRedirect(req.getContextPath() + "/checkout?variantIds=" + (variantIdsParam != null ? variantIdsParam : ""));
+                return;
+            }
+
+            // Platform fee calculation
+            BigDecimal platformFeeRate = new BigDecimal(String.valueOf(configDAO.getDouble("platform_fee_rate", 0.02)));
+            BigDecimal platformFee = subtotal.multiply(platformFeeRate).setScale(0, java.math.RoundingMode.HALF_UP);
+
             int orderId = 0;
             Connection conn = null;
             try {
@@ -350,18 +451,40 @@ public class CheckoutServlet extends HttpServlet {
                 order.setOwnerId(ownerId);
                 order.setDeliveryAddress(deliveryAddress.trim());
                 order.setUserAddress(user.getUserAddress() != null ? user.getUserAddress() : deliveryAddress.trim());
-                order.setStatus("CONFIRMED");
+                // [FIX B1] COD bắt đầu ở CONFIRMED (shop cần duyệt), CK bắt đầu ở PENDING_PAYMENT
+                order.setStatus(AppConfig.PAYMENT_COD.equals(paymentMethod)
+                        ? AppConfig.ORDER_CONFIRMED
+                        : AppConfig.ORDER_PENDING_PAYMENT);
                 order.setTotalAmount(subtotal);
                 order.setDeliveryFee(deliveryFee);
-                order.setDiscountAmount(BigDecimal.ZERO);
-                order.setSystemDiscountAmount(BigDecimal.ZERO);
-                order.setShopDiscountAmount(BigDecimal.ZERO);
-                order.setPlatformFee(BigDecimal.ZERO);
+                order.setDiscountAmount(totalDiscount);
+                order.setSystemDiscountAmount(systemDiscount);
+                order.setShopDiscountAmount(shopDiscount);
+                order.setPlatformFee(platformFee);
                 order.setFinalAmount(finalAmount);
                 order.setPaymentMethod(paymentMethod);
                 order.setNotes(notes);
 
                 orderId = saveOrderWithConn(conn, order);
+
+                // Save coupon association if applicable
+                if (shopPromo != null && shopPromo.getPromoId() > 0) {
+                    promotionDAO.saveOrderPromotion(conn, orderId, shopPromo.getPromoId(), user.getUserId(), shopDiscount);
+                    String updateUsedCountSql = "UPDATE promotions SET used_count = used_count + 1, updated_at = GETDATE() WHERE promo_id = ?";
+                    try (PreparedStatement psPromo = conn.prepareStatement(updateUsedCountSql)) {
+                        psPromo.setInt(1, shopPromo.getPromoId());
+                        psPromo.executeUpdate();
+                    }
+                }
+                if (systemPromo != null && systemPromo.getPromoId() > 0) {
+                    promotionDAO.saveOrderPromotion(conn, orderId, systemPromo.getPromoId(), user.getUserId(), systemDiscount);
+                    String updateUsedCountSql = "UPDATE promotions SET used_count = used_count + 1, updated_at = GETDATE() WHERE promo_id = ?";
+                    try (PreparedStatement psPromo = conn.prepareStatement(updateUsedCountSql)) {
+                        psPromo.setInt(1, systemPromo.getPromoId());
+                        psPromo.executeUpdate();
+                    }
+                }
+
 
                 String insertItemSql = "INSERT INTO order_items (order_id, variant_id, product_name_snapshot, variant_label_snapshot, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 String updateStockSql = "UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE variant_id = ?";
@@ -415,6 +538,23 @@ public class CheckoutServlet extends HttpServlet {
                 if (conn != null) { try { conn.close(); } catch (SQLException e) { e.printStackTrace(); } }
             }
 
+            // [FIX B2] Tạo payment_transactions record cho đơn CK (sau commit để tránh rollback)
+            if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
+                try {
+                    paymentDAO.initTransaction(
+                        orderId,
+                        "SEPAY",
+                        finalAmount,
+                        REF_PREFIX + orderId,
+                        req.getRemoteAddr(),
+                        LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN)
+                    );
+                } catch (SQLException ex) {
+                    // Log nhưng không throw — đơn hàng đã tạo thành công, payment record có thể retry
+                    System.err.println("[FruitMkt] WARN: Không tạo được payment_transactions cho orderId=" + orderId + ": " + ex.getMessage());
+                }
+            }
+
             // [FIX] Lưu purgedVariantIds vào session thay vì URL
             StringBuilder purgedSb = new StringBuilder();
             for (int i = 0; i < checkoutItems.size(); i++) {
@@ -424,7 +564,11 @@ public class CheckoutServlet extends HttpServlet {
             session.setAttribute("_purgedVariantIds", purgedSb.toString());
 
             SessionUtil.flashSuccess(session, "Đặt hàng thành công! Cảm ơn bạn đã mua hàng.");
-            resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + orderId);
+            if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
+                resp.sendRedirect(req.getContextPath() + "/checkout?action=payment&orderId=" + orderId);
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + orderId);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -433,9 +577,17 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
+    /** Xây dựng URL QR động VietQR */
+    private String buildQrUrl(String reference, String amount) throws java.io.UnsupportedEncodingException {
+        return "https://img.vietqr.io/image/" + BANK_ID + "-" + ACCOUNT_NO + "-compact2.png"
+                + "?amount=" + amount
+                + "&addInfo=" + java.net.URLEncoder.encode(reference, "UTF-8")
+                + "&accountName=" + java.net.URLEncoder.encode(ACCOUNT_NAME, "UTF-8");
+    }
+
     private int saveOrderWithConn(Connection conn, Order order) throws SQLException {
-        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, user_address, notes, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NONE', GETDATE(), GETDATE())";
+        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, user_address, notes, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, shop_acceptance_deadline, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NONE', ?, GETDATE(), GETDATE())";
         try (PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, order.getCustomerId());
             ps.setInt(2, order.getOwnerId());
@@ -451,6 +603,11 @@ public class CheckoutServlet extends HttpServlet {
             ps.setBigDecimal(12, order.getPlatformFee());
             ps.setBigDecimal(13, order.getFinalAmount());
             ps.setString(14, order.getPaymentMethod());
+            if ("CONFIRMED".equals(order.getStatus())) {
+                ps.setTimestamp(15, java.sql.Timestamp.valueOf(LocalDateTime.now().plusMinutes(30)));
+            } else {
+                ps.setNull(15, java.sql.Types.TIMESTAMP);
+            }
             
             ps.executeUpdate();
             try (java.sql.ResultSet rs = ps.getGeneratedKeys()) {

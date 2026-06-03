@@ -167,7 +167,7 @@ public class ShopStatusServlet extends HttpServlet {
                 if (!"businessDocs".equals(part.getName())) continue;
                 if (part.getSize() == 0) continue;
 
-                String docError = com.fruitmkt.util.ValidationUtil.validateShopDoc(part);
+                String docError = com.fruitmkt.util.ValidationUtil.validateShopDoc(part.getSubmittedFileName(), part.getSize());
                 if (docError != null) {
                     throw new Exception(docError);
                 }

@@ -9,6 +9,18 @@ const CartPage = {
     userCartKey: 'userCart', // Key lưu giỏ hàng của user đã đăng nhập ở Local Storage
     productVariantsCache: {},
 
+    async safeParseJSON(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const errData = await response.json();
+                throw new Error(errData.error || errData.message || `Lỗi hệ thống (Mã: ${response.status})`);
+            }
+            throw new Error(`Lỗi hệ thống (Mã: ${response.status})`);
+        }
+        return response.json();
+    },
+
     init(isLoggedIn, contextPath) {
         this.isLoggedIn = isLoggedIn;
         this.contextPath = contextPath;
@@ -50,7 +62,7 @@ const CartPage = {
                 },
                 body: `guestCart=${encodeURIComponent(JSON.stringify(guestItems))}`
             });
-            const data = await response.json();
+            const data = await this.safeParseJSON(response);
             if (data.success) {
                 // Xóa giỏ hàng guest vì đã gộp thành công
                 GuestCart.clear();
@@ -151,7 +163,7 @@ const CartPage = {
             const response = await fetch(`${this.contextPath}/cart?format=json`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
-            const data = await response.json();
+            const data = await this.safeParseJSON(response);
             if (data.success && data.cartSummary) {
                 // Lưu bản chuẩn vào Local Storage
                 this.saveUserCartToLocal(data.cartSummary.items);
@@ -301,7 +313,7 @@ const CartPage = {
                             method: 'POST',
                             headers: { 'X-Requested-With': 'XMLHttpRequest' }
                         });
-                        const data = await response.json();
+                        const data = await this.safeParseJSON(response);
                         if (data.success) {
                             this.showToast('Đã đổi biến thể thành công!', 'success');
                             this.loadAndSyncFromServer();
@@ -378,7 +390,7 @@ const CartPage = {
                     method: 'POST',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
-                const data = await response.json();
+                const data = await this.safeParseJSON(response);
                 if (!data.success) {
                     if (data.errorCode === 'out_of_stock') {
                         this.showToast(data.error, 'error');
@@ -430,7 +442,7 @@ const CartPage = {
                         method: 'POST',
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     });
-                    const data = await response.json();
+                    const data = await this.safeParseJSON(response);
                     if (!data.success) {
                         this.showToast(data.error || 'Lỗi khi xóa sản phẩm trên server.', 'error');
                         this.loadAndSyncFromServer();
@@ -517,7 +529,7 @@ const CartPage = {
 
             try {
                 const response = await fetch(`${this.contextPath}/products/detail?id=${productId}&format=json`);
-                const data = await response.json();
+                const data = await this.safeParseJSON(response);
                 if (data.success && data.variants) {
                     this.productVariantsCache[productId] = data.variants;
                 }
@@ -687,7 +699,7 @@ const CartPage = {
                     'X-CSRF-Token': window.csrfToken || ''
                 }
             });
-            const data = await response.json();
+            const data = await this.safeParseJSON(response);
             
             if (data.success) {
                 console.log('[CartPage] Stock double-check success. Proceeding to checkout.');

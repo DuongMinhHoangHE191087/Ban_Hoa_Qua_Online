@@ -21,11 +21,15 @@ import java.util.*;
 public class UserDAO extends BaseDAO {
 
     /**
-     * TODO: Implement — findById(int id)
+     * Tìm kiếm người dùng bằng ID, trả về danh sách chứa 1 phần tử (để tương thích).
      */
     public List<User> findById(int id) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findById(int id)");
+        List<User> list = new ArrayList<>();
+        User u = findUserById(id);
+        if (u != null) {
+            list.add(u);
+        }
+        return list;
     }
 
     /**
@@ -391,4 +395,18 @@ public class UserDAO extends BaseDAO {
             stmt.executeUpdate();
         }
     }
+
+    public List<User> findActiveShopOwners() throws SQLException {
+        List<User> list = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE role = 'SHOP_OWNER' AND status = 'ACTIVE'";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
 }
+

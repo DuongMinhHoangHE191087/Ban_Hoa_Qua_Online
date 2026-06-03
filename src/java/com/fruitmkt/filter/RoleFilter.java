@@ -67,14 +67,29 @@ public class RoleFilter implements Filter {
             allowed = AppConfig.ROLE_DELIVERY.equals(user.getRole());
         } else if (uri.equals(ctx + "/customer") || uri.startsWith(ctx + "/customer/")) {
             allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
-        } else if (uri.equals(ctx + "/checkout")) {
+        } else if (uri.equals(ctx + "/checkout")
+                || uri.equals(ctx + "/orders")
+                || uri.equals(ctx + "/notifications")
+                || uri.equals(ctx + "/reviews")
+                || uri.equals(ctx + "/returns")
+                || uri.equals(ctx + "/chat")) {
             allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
         } else {
             allowed = true; // Các URL công cộng khác
         }
 
         if (!allowed) {
-            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập trang này.");
+            boolean isAjax = "XMLHttpRequest".equals(req.getHeader("X-Requested-With"))
+                    || "json".equals(req.getParameter("format"))
+                    || (req.getHeader("Accept") != null && req.getHeader("Accept").contains("application/json"));
+            
+            if (isAjax) {
+                resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                resp.setContentType("application/json;charset=UTF-8");
+                resp.getWriter().write("{\"success\":false,\"error\":\"Bạn không có quyền truy cập trang này.\"}");
+            } else {
+                resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập trang này.");
+            }
             return;
         }
         chain.doFilter(request, response);
