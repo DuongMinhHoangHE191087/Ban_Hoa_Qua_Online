@@ -140,6 +140,12 @@ Nền tảng được cấu hình chi tiết phân hệ nghiệp vụ cho **5 đ
     *   Giám sát các dòng tiền giao dịch SePay VietQR toàn hệ thống.
     *   Hệ thống **Settlement Daily Batch Job** tự động chạy vào 0h00 hàng ngày quét các đơn hàng hoàn thành trên 7 ngày để kết toán chốt ví cho các shop owner.
     *   Phê duyệt các yêu cầu hoàn tiền cho khách hàng khi có đổi trả thành công.
+*   **Giao Diện Quản Trị Cao Cấp (Premium Admin UI/UX)**:
+    *   **Đồng Bộ Thiết Kế**: 12 trang quản trị được thiết kế lại toàn diện sử dụng hệ thống Tailwind CSS offline, đồng bộ hoàn hảo với các trang người dùng bên ngoài.
+    *   **Sidebar Tối Giản**: Sidebar dải gradient từ Trắng sang Xanh nhạt (`linear-gradient(180deg, #ffffff 65%, #f4fbf7 100%)`) đồng bộ mượt mà với phần hiển thị dữ liệu chính, loại bỏ các thông tin greeting dư thừa.
+    *   **Thương Hiệu Nhất Quán**: Tích hợp Logo chính thức của dự án cùng dòng chữ thương hiệu `MetaFruit` (với điểm nhấn chữ `Fruit` màu xanh lá non `#84cc16`) đồng nhất với Navbar khách hàng.
+    *   **Header Banners Độc Quyền**: Tất cả banner đầu trang được nâng cấp sang tông màu lá non dịu mát (`from-[#f0faf3] to-[#dcfce7]`) phối chữ xanh lục đậm (`#364e03`) thân thiện với thị giác.
+    *   **SweetAlert2 Premium**: Thay thế toàn bộ hộp thoại `confirm()` và `alert()` mặc định của trình duyệt bằng hệ thống thông báo SweetAlert2 local cao cấp, mượt mà và trực quan.
 
 ---
 
