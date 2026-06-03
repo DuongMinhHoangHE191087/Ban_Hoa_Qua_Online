@@ -34,7 +34,7 @@ import java.util.List;
     fileSizeThreshold = 1024 * 1024 * 2, // 2MB
     maxFileSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 5, // 25MB
     maxRequestSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 10 // 50MB
-)
+)//upload file
 public class ProductCreateController extends HttpServlet {
 
     private final ProductDAO productDAO = new ProductDAO();

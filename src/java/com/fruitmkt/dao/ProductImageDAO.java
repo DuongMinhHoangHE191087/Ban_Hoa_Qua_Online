@@ -38,7 +38,7 @@ public class ProductImageDAO extends BaseDAO {
 
     /**
      * Tìm ảnh sản phẩm theo Image ID.
-     */
+     *///khang
     public ProductImage findById(int imageId) throws SQLException {
         String sql = "SELECT * FROM product_images WHERE image_id = ?";
         try (Connection conn = getConnection();
@@ -52,6 +52,7 @@ public class ProductImageDAO extends BaseDAO {
         }
         return null;
     }
+    //khang
 
     /**
      * Lấy ảnh chính (primary) của một sản phẩm. Nếu không có ảnh primary, lấy ảnh đầu tiên.
