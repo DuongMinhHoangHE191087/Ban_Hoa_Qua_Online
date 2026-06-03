@@ -62,11 +62,48 @@ public class NotificationDAO extends BaseDAO {
         }
     }
 
+    public List<Notification> findAllSystemNotifications() throws SQLException {
+        List<Notification> list = new ArrayList<>();
+        String sql = "SELECT * FROM notifications WHERE notification_type = 'SYSTEM' ORDER BY created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public void insertForRole(String title, String message, String role) throws SQLException {
+        String sql = "INSERT INTO notifications (user_id, title, message, notification_type, is_read, created_at) " +
+                     "SELECT user_id, ?, ?, 'SYSTEM', 0, GETDATE() FROM users WHERE role = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, title);
+            ps.setString(2, message);
+            ps.setString(3, role);
+            ps.executeUpdate();
+        }
+    }
+
     public void markAllRead(int userId) throws SQLException {
         String sql = "UPDATE notifications SET is_read = 1 WHERE user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public void insertForAll(String title, String message) throws SQLException {
+        String sql = "INSERT INTO notifications (user_id, title, message, notification_type, is_read, created_at) " +
+                     "SELECT user_id, ?, ?, 'SYSTEM', 0, GETDATE() FROM users";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, title);
+            ps.setString(2, message);
             ps.executeUpdate();
         }
     }
@@ -78,6 +115,7 @@ public class NotificationDAO extends BaseDAO {
         n.setType(rs.getString("type"));
         n.setTitle(rs.getString("title"));
         n.setMessage(rs.getString("message"));
+        n.setType(rs.getString("notification_type"));
         n.setActionUrl(rs.getString("action_url"));
         n.setIsRead(rs.getBoolean("is_read"));
         
@@ -85,6 +123,14 @@ public class NotificationDAO extends BaseDAO {
         if (createdAt != null) {
             n.setCreatedAt(createdAt.toLocalDateTime());
         }
+        
+        
+        
+        
+        
+        
+        
+        
         
         return n;
     }

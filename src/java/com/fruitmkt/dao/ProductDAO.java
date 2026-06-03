@@ -318,6 +318,59 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
+     * Lấy Product ID từ Order Item ID để cập nhật rating.
+     */
+    public int getProductIdByOrderItem(int orderItemId) throws SQLException {
+        String sql = "SELECT pv.product_id FROM order_items oi JOIN product_variants pv ON oi.variant_id = pv.variant_id WHERE oi.order_item_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderItemId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("product_id");
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Lấy Product ID từ Review ID để cập nhật rating.
+     */
+    public int getProductIdByReview(int reviewId) throws SQLException {
+        String sql = "SELECT pv.product_id FROM reviews r JOIN order_items oi ON r.order_item_id = oi.order_item_id JOIN product_variants pv ON oi.variant_id = pv.variant_id WHERE r.review_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, reviewId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("product_id");
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Tính toán lại và cập nhật điểm đánh giá trung bình (rating) cho sản phẩm
+     * dựa trên các đánh giá hợp lệ (không bị ẩn).
+     */
+    public void recalculateRating(int productId) throws SQLException {
+        String sql = "UPDATE products SET rating = ISNULL((SELECT AVG(CAST(r.rating AS DECIMAL(3,2))) "
+                   + "FROM reviews r "
+                   + "JOIN order_items oi ON r.order_item_id = oi.order_item_id "
+                   + "JOIN product_variants pv ON oi.variant_id = pv.variant_id "
+                   + "WHERE pv.product_id = ? AND r.is_hidden = 0), 0) "
+                   + "WHERE product_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            ps.setInt(2, productId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
      * Tìm kiếm các sản phẩm tương tự cùng danh mục (Category) phục vụ hiển thị
      * danh sách gợi ý ở trang chi tiết sản phẩm. Loại trừ sản phẩm hiện tại.
      * Sắp xếp theo số lượng bán (sold_quantity DESC) và lượt xem (view_count DESC).

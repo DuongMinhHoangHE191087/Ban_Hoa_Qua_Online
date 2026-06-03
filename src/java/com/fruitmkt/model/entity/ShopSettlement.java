@@ -70,4 +70,16 @@ public class ShopSettlement {
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
 
+    public java.util.Date getPeriodStartAsDate() {
+        return periodStart != null ? java.util.Date.from(periodStart.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()) : null;
+    }
+
+    public java.util.Date getPeriodEndAsDate() {
+        return periodEnd != null ? java.util.Date.from(periodEnd.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()) : null;
+    }
+
+    public java.util.Date getSettledAtAsDate() {
+        return paidAt != null ? java.util.Date.from(paidAt.atZone(java.time.ZoneId.systemDefault()).toInstant()) : null;
+    }
+
 }

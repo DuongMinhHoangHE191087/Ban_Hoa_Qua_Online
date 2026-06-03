@@ -110,6 +110,25 @@ public class OrderDAO extends BaseDAO {
         return list;
     }
 
+    public int countAll(String status) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders ");
+        List<Object> params = new ArrayList<>();
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("WHERE status = ? ");
+            params.add(status);
+        }
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) { return rs.getInt(1); }
+            }
+        }
+        return 0;
+    }
+
     /**
      * Lấy toàn bộ danh sách đơn hàng có phân trang, có thể lọc theo trạng thái.
      */

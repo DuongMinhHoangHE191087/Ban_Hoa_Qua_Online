@@ -63,4 +63,8 @@ public class DeliveryService {
     public void assignShipper(int orderId, int staffId, LocalDateTime estimatedTime) throws SQLException {
         deliveryDAO.assignShipper(orderId, staffId, estimatedTime);
     }
+
+    public Delivery getDeliveryByOrderId(int orderId) throws SQLException {
+        return deliveryDAO.findByOrderId(orderId);
+    }
 }
