@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
@@ -242,7 +242,7 @@
 
         <c:if test="${empty orders}">
             <div class="text-center py-16 bg-white/50 premium-glass-card rounded-[2rem] border border-white/30">
-                <span class="material-symbols-outlined text-6xl text-on-surface-variant opacity-60 mb-4">box_open</span>
+                <span class="material-symbols-outlined text-6xl text-on-surface-variant opacity-60 mb-4">inventory</span>
                 <h4 class="text-lg font-bold text-inverse-surface mb-2">Không tìm thấy đơn hàng nào</h4>
                 <p class="text-on-surface-variant text-sm mb-6">Bạn chưa có đơn hàng nào hoặc không có đơn hàng nào khớp với trạng thái đã chọn.</p>
                 <a href="${pageContext.request.contextPath}/products" class="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-semibold hover:bg-inverse-surface transition-all shadow-md active:scale-95 transform">

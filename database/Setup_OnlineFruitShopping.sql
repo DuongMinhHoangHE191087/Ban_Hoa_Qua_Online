@@ -894,30 +894,30 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.product_images ON;
     INSERT INTO dbo.product_images (image_id, product_id, file_path, display_order, is_primary, uploaded_at)
     VALUES
-        (1, 1, N'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (2, 2, N'https://images.unsplash.com/photo-1557800636-894a64c1696f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (3, 3, N'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (4, 4, N'https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (5, 5, N'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (6, 5, N'https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (7, 6, N'https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (8, 6, N'https://images.unsplash.com/photo-1571772996211-2f02c9727629?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (9, 7, N'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (10, 8, N'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (11, 9, N'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (12, 10, N'https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (13, 11, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (14, 11, N'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (15, 12, N'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (16, 12, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
-        (17, 13, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (18, 14, N'https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (19, 15, N'https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
-        (20, 15, N'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80', 2, 0, GETDATE()),
+        (1, 1, N'assets/images/cam_sanh.png', 1, 1, GETDATE()),
+        (2, 2, N'assets/images/buoi_da_xanh.png', 1, 1, GETDATE()),
+        (3, 3, N'assets/images/chuoi_laba.png', 1, 1, GETDATE()),
+        (4, 4, N'assets/images/xoai_cat.png', 1, 1, GETDATE()),
+        (5, 5, N'assets/images/dau_tay.png', 1, 1, GETDATE()),
+        (6, 5, N'assets/images/dau_tay.png', 2, 0, GETDATE()),
+        (7, 6, N'assets/images/dua_luoi.png', 1, 1, GETDATE()),
+        (8, 6, N'assets/images/dua_luoi.png', 2, 0, GETDATE()),
+        (9, 7, N'assets/images/dua_hau_vuong.png', 1, 1, GETDATE()),
+        (10, 8, N'assets/images/cherry_do.png', 1, 1, GETDATE()),
+        (11, 9, N'assets/images/cherry_my.png', 1, 1, GETDATE()),
+        (12, 10, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        (13, 11, N'assets/images/hop_qua_tet.png', 1, 1, GETDATE()),
+        (14, 11, N'assets/images/hop_qua_tet.png', 2, 0, GETDATE()),
+        (15, 12, N'assets/images/hop_qua_thinh_vuong.png', 1, 1, GETDATE()),
+        (16, 12, N'assets/images/hop_qua_thinh_vuong.png', 2, 0, GETDATE()),
+        (17, 13, N'assets/images/gio_qua_sum_hop.png', 1, 1, GETDATE()),
+        (18, 14, N'assets/images/gio_qua_cat_tuong.png', 1, 1, GETDATE()),
+        (19, 15, N'assets/images/gio_qua_tai_loc.png', 1, 1, GETDATE()),
+        (20, 15, N'assets/images/gio_qua_tai_loc.png', 2, 0, GETDATE()),
         -- Táo Envy Mỹ (16)
-        (21, 16, N'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE()),
+        (21, 16, N'assets/images/tao_envy.png', 1, 1, GETDATE()),
         -- Kiwi Vàng (17)
-        (22, 17, N'https://images.unsplash.com/photo-1585052201332-b8c0ce30972f?w=600&auto=format&fit=crop&q=80', 1, 1, GETDATE());
+        (22, 17, N'assets/images/kiwi_vang.png', 1, 1, GETDATE());
     SET IDENTITY_INSERT dbo.product_images OFF;
 
     SET IDENTITY_INSERT dbo.product_variants ON;
