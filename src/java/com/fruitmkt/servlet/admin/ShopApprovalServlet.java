@@ -54,7 +54,7 @@ public class ShopApprovalServlet extends HttpServlet {
             } else {
                 profiles = shopProfileDAO.findByApprovalStatus(filter.toUpperCase());
             }
-            req.setAttribute("profiles", profiles);
+            req.setAttribute("shopList", profiles);
             req.setAttribute("currentFilter", filter.toUpperCase());
         } catch (SQLException e) {
             getServletContext().log("ShopApprovalServlet GET error", e);

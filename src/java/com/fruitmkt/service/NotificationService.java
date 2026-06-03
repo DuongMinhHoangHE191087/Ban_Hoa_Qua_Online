@@ -1,50 +1,22 @@
 package com.fruitmkt.service;
 
+import com.fruitmkt.dao.NotificationDAO;
+import com.fruitmkt.model.entity.Notification;
 import java.sql.SQLException;
+import java.util.List;
 
-/**
- * NotificationService — Tầng business logic cho nghiệp vụ tương ứng.
- *
- * QUY TẮC:
- *   - Chỉ gọi DAO, không viết SQL ở đây
- *   - Chứa tất cả validation và business rule
- *   - Ném RuntimeException hoặc custom exception cho Servlet xử lý
- *   - Không tương tác trực tiếp với HttpRequest/Response
- *
- * @author fruitmkt-team
- */
 public class NotificationService {
+    private final NotificationDAO notificationDAO = new NotificationDAO();
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public void send(int userId, String type, String title, String message, String actionUrl) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: send(int userId, String type, String title, String message, String actionUrl)");
+    public List<Notification> getAllSystemNotifications() throws SQLException {
+        return notificationDAO.findAllSystemNotifications();
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public java.util.List getUnread(int userId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: getUnread(int userId)");
+    public void sendBroadcast(String title, String message, String target) throws SQLException {
+        if ("ALL".equalsIgnoreCase(target)) {
+            notificationDAO.insertForAll(title, message);
+        } else {
+            notificationDAO.insertForRole(title, message, target);
+        }
     }
-
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public void markRead(int notifId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: markRead(int notifId)");
-    }
-
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public void markAllRead(int userId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: markAllRead(int userId)");
-    }
-
 }

@@ -28,29 +28,52 @@ import java.io.IOException;
 @WebServlet("/admin/orders")
 public class AdminOrderServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final OrderService orderService = new OrderService();
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        req.getRequestDispatcher("/WEB-INF/jsp/admin/coming-soon.jsp").forward(req, resp);
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            String status = req.getParameter("status");
+            int page = 1;
+            String pageStr = req.getParameter("page");
+            if (pageStr != null && !pageStr.trim().isEmpty()) {
+                try { page = Integer.parseInt(pageStr); } catch (Exception e) {}
+            }
+            int pageSize = 20;
+
+            java.util.List<com.fruitmkt.model.entity.Order> orders = orderService.getAllOrders(status, page, pageSize);
+            int totalRecords = orderService.countAllOrders(status);
+            int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+
+            req.setAttribute("orderList", orders);
+            req.setAttribute("currentPage", page);
+            req.setAttribute("totalPages", totalPages);
+            req.setAttribute("paramStatus", status);
+
+            req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-orders.jsp").forward(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách đơn hàng toàn sàn");
+        }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        // TODO: 1. Đọc params / JSON body
-        //        2. Validate input
-        //        3. Gọi service
-        //        4. Set flash message
-        //        5. Redirect (PRG pattern)
-        //
-        // Ví dụ:
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Thành công!");
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
-        // resp.sendRedirect(req.getContextPath() + "/..");
-        throw new UnsupportedOperationException("doPost not implemented: AdminOrderServlet");
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            String action = req.getParameter("action");
+            if ("cancel".equals(action)) {
+                int orderId = Integer.parseInt(req.getParameter("orderId"));
+                String reason = req.getParameter("reason");
+                com.fruitmkt.model.entity.User admin = SessionUtil.getCurrentUser(req.getSession());
+                
+                orderService.cancelOrder(orderId, admin.getUserId(), "ADMIN CANCEL: " + reason);
+                SessionUtil.flashSuccess(req.getSession(), "Đã hủy đơn hàng #" + orderId + " thành công!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            SessionUtil.flashError(req.getSession(), "Lỗi khi xử lý đơn hàng: " + e.getMessage());
+        }
+        resp.sendRedirect(req.getContextPath() + "/admin/orders");
     }
 
 }

@@ -82,7 +82,7 @@
                             <i class="fa-solid fa-user-circle"></i>
                         </div>
                         <span class="user-greeting">
-                            Chào, <strong class="user-name"><c:out value="${sessionScope.currentUser.fullName}"/></strong>
+                            Chào, <a href="${pageContext.request.contextPath}/profile" class="user-name text-decoration-none" style="color: var(--color-primary-dark);"><c:out value="${sessionScope.currentUser.fullName}"/></a>
                         </span>
                         <a href="${pageContext.request.contextPath}/auth/logout" class="logout-btn" title="Đăng xuất">
                             <i class="fa-solid fa-right-from-bracket"></i>

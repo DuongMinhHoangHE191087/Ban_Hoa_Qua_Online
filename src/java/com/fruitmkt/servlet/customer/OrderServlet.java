@@ -51,7 +51,19 @@ public class OrderServlet extends HttpServlet {
         try {
             int pageSize = 10;
             java.util.List<com.fruitmkt.model.entity.Order> list = orderDAO.findByCustomer(user.getUserId(), page, pageSize);
+            
+            // Lấy delivery info cho mỗi đơn hàng
+            com.fruitmkt.service.DeliveryService deliveryService = new com.fruitmkt.service.DeliveryService();
+            java.util.Map<Integer, com.fruitmkt.model.entity.Delivery> deliveryMap = new java.util.HashMap<>();
+            for (com.fruitmkt.model.entity.Order order : list) {
+                com.fruitmkt.model.entity.Delivery delivery = deliveryService.getDeliveryByOrderId(order.getOrderId());
+                if (delivery != null) {
+                    deliveryMap.put(order.getOrderId(), delivery);
+                }
+            }
+            
             req.setAttribute("orders", list);
+            req.setAttribute("deliveryMap", deliveryMap);
             req.setAttribute("currentPage", page);
             req.getRequestDispatcher("/WEB-INF/jsp/customer/orders.jsp").forward(req, resp);
         } catch (Exception e) {

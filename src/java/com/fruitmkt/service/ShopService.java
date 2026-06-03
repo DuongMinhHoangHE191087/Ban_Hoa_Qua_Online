@@ -26,4 +26,16 @@ public class ShopService {
             shopProfileDAO.updateApprovalStatus(profileId, profile.getUserId(), status, rejectionReason);
         }
     }
+
+    public ShopProfile getShopByUserId(int userId) throws SQLException {
+        List<ShopProfile> profiles = shopProfileDAO.findByUserId(userId);
+        if (profiles != null && !profiles.isEmpty()) {
+            return profiles.get(0);
+        }
+        return null;
+    }
+
+    public void updateShopProfile(ShopProfile profile) throws SQLException {
+        shopProfileDAO.update(profile);
+    }
 }

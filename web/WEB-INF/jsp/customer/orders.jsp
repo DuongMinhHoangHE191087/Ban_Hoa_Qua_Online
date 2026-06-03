@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
     <jsp:param name="pageTitle" value="Lịch sử đơn hàng" />
@@ -42,9 +43,15 @@
                     </div>
                     <div class="card-body row">
                         <div class="col-md-8 border-end">
-                            <!-- Order details skeleton -->
+                            <!-- Order details -->
                             <p class="mb-1"><strong>Giao đến:</strong> ${order.deliveryAddress}</p>
                             <p class="mb-1"><strong>Ghi chú:</strong> ${order.notes != null ? order.notes : 'Không có'}</p>
+                            <c:if test="${not empty deliveryMap[order.orderId].estimatedDeliveryTime}">
+                                <p class="mb-1 text-primary"><strong>Dự kiến nhận hàng:</strong> 
+                                    <fmt:parseDate value="${deliveryMap[order.orderId].estimatedDeliveryTime}" pattern="yyyy-MM-dd'T'HH:mm" var="estDate" type="both" />
+                                    <fmt:formatDate value="${estDate}" pattern="dd/MM/yyyy HH:mm" />
+                                </p>
+                            </c:if>
                             <p class="mb-1 text-danger fw-bold">Tổng tiền: <ft:formatCurrency value="${order.finalAmount}" /></p>
                         </div>
                         <div class="col-md-4 d-flex flex-column justify-content-center align-items-center text-center">

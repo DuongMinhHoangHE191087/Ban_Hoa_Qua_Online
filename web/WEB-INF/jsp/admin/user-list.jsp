@@ -50,13 +50,20 @@
             <div class="admin-content">
                 <div class="admin-panel">
                     
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+                    <form action="${pageContext.request.contextPath}/admin/users" method="get" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
                         <h2 style="font-size: var(--font-size-lg); margin:0;">Danh sách tài khoản</h2>
                         <div class="search-box" style="display: flex; gap: var(--space-2);">
-                            <input type="text" placeholder="Tìm kiếm user..." style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                            <button class="btn btn-secondary btn-sm"><i class="fa-solid fa-search"></i></button>
+                            <select name="role" style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                                <option value="">Tất cả vai trò</option>
+                                <option value="CUSTOMER" ${paramRole == 'CUSTOMER' ? 'selected' : ''}>Khách hàng</option>
+                                <option value="SHOP_OWNER" ${paramRole == 'SHOP_OWNER' ? 'selected' : ''}>Cửa hàng</option>
+                                <option value="DELIVERY" ${paramRole == 'DELIVERY' ? 'selected' : ''}>Tài xế</option>
+                                <option value="ADMIN" ${paramRole == 'ADMIN' ? 'selected' : ''}>Admin</option>
+                            </select>
+                            <input type="text" name="search" value="<c:out value="${paramSearch}"/>" placeholder="Tên, Email, SĐT..." style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                            <button type="submit" class="btn btn-secondary btn-sm"><i class="fa-solid fa-search"></i> Lọc</button>
                         </div>
-                    </div>
+                    </form>
 
                     <div class="table-container">
                         <table>
@@ -91,6 +98,9 @@
                                                 </td>
                                                 <td>
                                                     <div class="table-actions">
+                                                        <a href="${pageContext.request.contextPath}/admin/users/edit?id=${u.userId}" class="btn btn-sm btn-primary">
+                                                            <i class="fa-solid fa-pen"></i> Sửa
+                                                        </a>
                                                         <c:if test="${u.role ne 'ADMIN'}">
                                                             <button class="btn btn-sm ${u.status == 'ACTIVE' ? 'btn-danger' : 'btn-success'} toggle-status-btn" 
                                                                     data-id="${u.userId}" 
@@ -103,7 +113,7 @@
                                                             </button>
                                                         </c:if>
                                                         <c:if test="${u.role eq 'ADMIN'}">
-                                                            <span class="text-muted" style="font-size: 0.8rem; font-style: italic;">Không thể khóa Admin</span>
+                                                            <span class="text-muted" style="font-size: 0.8rem; font-style: italic;">(Khoá 🔒)</span>
                                                         </c:if>
                                                     </div>
                                                 </td>
@@ -114,6 +124,17 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination -->
+                    <c:if test="${totalPages > 1}">
+                        <div style="display: flex; justify-content: center; margin-top: var(--space-4); gap: 5px;">
+                            <c:forEach begin="1" end="${totalPages}" var="i">
+                                <a href="?page=${i}&role=${paramRole}&search=${paramSearch}" 
+                                   class="btn btn-sm ${i == currentPage ? 'btn-primary' : 'btn-secondary'}">${i}</a>
+                            </c:forEach>
+                        </div>
+                    </c:if>
+                    
                 </div>
             </div>
         </main>
