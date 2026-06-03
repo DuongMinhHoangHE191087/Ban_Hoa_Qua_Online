@@ -8,7 +8,7 @@
 <nav class="navbar">
     <div class="container navbar__inner">
         <a href="${pageContext.request.contextPath}/home" class="navbar__logo">
-            <span class="logo-icon"><i class="fa-solid fa-seedling"></i></span>
+            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" style="height: 38px; width: 38px; border-radius: 8px; object-fit: cover;">
             <span class="logo-text">Meta<span class="text-highlight">Fruit</span></span>
         </a>
 
