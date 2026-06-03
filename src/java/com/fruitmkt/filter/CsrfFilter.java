@@ -32,10 +32,11 @@ public class CsrfFilter implements Filter {
             session.setAttribute(AppConfig.SESSION_CSRF_TOKEN, UUID.randomUUID().toString());
         }
 
-        // Chỉ kiểm tra POST (bỏ qua GET, webhook /api/* và /auth/* trong lúc phát triển)
+        // Chỉ kiểm tra POST (bỏ qua GET, webhook /api/* và /auth/* trong lúc phát triển, và cả /cart)
         if ("POST".equalsIgnoreCase(req.getMethod()) 
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/api/")
-                && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")) {
+                && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")
+                && !req.getRequestURI().startsWith(req.getContextPath() + "/cart")) {
             String sessionToken = (String) session.getAttribute(AppConfig.SESSION_CSRF_TOKEN);
             String requestToken = req.getParameter("_csrf");
             if (requestToken == null || requestToken.trim().isEmpty()) {

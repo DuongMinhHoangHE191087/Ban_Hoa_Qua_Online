@@ -35,10 +35,20 @@ public class ShopProfileDAO extends BaseDAO {
                 // Column does not exist
             }
             if (!columnExists) {
-                String sql = "ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL UNIQUE";
+                // Add column without unique constraint to avoid duplicate NULL error
+                String sqlAdd = "ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL";
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate(sql);
+                    stmt.executeUpdate(sqlAdd);
                     System.out.println("[DB Migrator] Success: Added business_email column to shop_owner_profiles.");
+                }
+                
+                // Create filtered unique index to allow multiple nulls but unique non-null emails
+                String sqlIndex = "SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON shop_owner_profiles(business_email) WHERE business_email IS NOT NULL";
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate(sqlIndex);
+                    System.out.println("[DB Migrator] Success: Created filtered unique index on business_email.");
+                } catch (SQLException ex) {
+                    System.err.println("[DB Migrator] Warning creating index: " + ex.getMessage());
                 }
             }
             schemaChecked = true;

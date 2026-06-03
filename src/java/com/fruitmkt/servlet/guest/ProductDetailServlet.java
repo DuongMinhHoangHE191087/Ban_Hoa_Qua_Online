@@ -272,8 +272,8 @@ public class ProductDetailServlet extends HttpServlet {
 
         } catch (SQLException e) {
             // Log lỗi SQL và chuyển hướng về trang lỗi hệ thống
-            e.printStackTrace();
-            req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Lỗi kết nối cơ sở dữ liệu. Vui lòng thử lại sau.");
+            getServletContext().log("ProductDetailServlet SQL Error for ID " + productId + ": " + e.getMessage(), e);
+            req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage());
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "error");
             resp.sendRedirect(req.getContextPath() + "/home");
         }

@@ -50,9 +50,24 @@ CREATE TABLE shop_owner_profiles (
     rating DECIMAL(3,2) NOT NULL DEFAULT 0,
     preferred_categories NVARCHAR(500) NULL,
     doc_paths NVARCHAR(MAX) NULL,
+    business_email NVARCHAR(255) NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
+
+-- Index for shop_owner_profiles business_email
+-- [BUGFIX] SET QUOTED_IDENTIFIER ON is required to create a filtered index
+GO
+SET QUOTED_IDENTIFIER ON;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_shop_owner_profiles_business_email' AND object_id = OBJECT_ID(N'dbo.shop_owner_profiles'))
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email 
+        ON dbo.shop_owner_profiles(business_email) 
+        WHERE business_email IS NOT NULL;
+END
+GO
+
 
 -- 5. categories [cite: 50]
 CREATE TABLE categories (
@@ -174,7 +189,7 @@ CREATE TABLE orders (
     cancelled_by INT NULL FOREIGN KEY REFERENCES users(user_id),
     cancellation_reason NVARCHAR(500) NULL,
     status NVARCHAR(25) NOT NULL DEFAULT 'PENDING_PAYMENT' CHECK (status IN 
-    ('PENDING_PAYMENT','CONFIRMED','PREPARING','DISPATCHED','DELIVERED','CANCELLED','PAYMENT_FAILED','EXPIRED')),
+    ('PENDING_PAYMENT','APPROVED','CONFIRMED','PREPARING','DISPATCHED','DELIVERED','CANCELLED','PAYMENT_FAILED','EXPIRED')),
     total_amount DECIMAL(14,2) NOT NULL,
     delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
     
@@ -300,6 +315,8 @@ CREATE TABLE deliveries (
     picked_up_at DATETIME NULL,
     delivered_at DATETIME NULL,
     failure_reason NVARCHAR(300) NULL,
+    proof_image_url NVARCHAR(500) NULL,
+    estimated_delivery_time DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );

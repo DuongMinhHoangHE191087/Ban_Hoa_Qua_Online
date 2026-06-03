@@ -126,10 +126,6 @@
         <filter-name>AuthFilter</filter-name>
         <url-pattern>/checkout</url-pattern>
     </filter-mapping>
-    <filter-mapping>
-        <filter-name>AuthFilter</filter-name>
-        <url-pattern>/cart</url-pattern>
-    </filter-mapping>
 
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>
@@ -150,10 +146,6 @@
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>
         <url-pattern>/checkout</url-pattern>
-    </filter-mapping>
-    <filter-mapping>
-        <filter-name>RoleFilter</filter-name>
-        <url-pattern>/cart</url-pattern>
     </filter-mapping>
 
 <!-- Trigger reload -->
