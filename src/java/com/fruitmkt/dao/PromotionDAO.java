@@ -242,6 +242,18 @@ public class PromotionDAO extends BaseDAO {
     }
 
     /**
+     * Xóa mềm chương trình khuyến mãi (chuyển is_deleted = 1 và is_active = 0).
+     */
+    public void softDelete(int promoId) throws SQLException {
+        String sql = "UPDATE promotions SET is_deleted = 1, is_active = 0, updated_at = GETDATE() WHERE promo_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, promoId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
      * Tìm mã giảm giá hợp lệ của SHOP (discount_scope='SHOP', scope='ORDER') theo code + ownerId.
      * Đã kiểm tra: is_active, is_deleted, valid_from/until, min_order_value.
      * Chưa kiểm tra: used_count < max_uses (thực hiện ở Service lớp trên).

@@ -158,6 +158,13 @@ public class PromotionService {
         promotionDAO.deactivate(promoId);
     }
 
+    /**
+     * Xóa mềm mã giảm giá.
+     */
+    public void softDelete(int promoId) throws SQLException {
+        promotionDAO.softDelete(promoId);
+    }
+
     // ─── Mock coupons ────────────────────────────────────────────────────────
 
     /**
