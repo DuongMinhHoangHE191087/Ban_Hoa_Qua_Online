@@ -132,13 +132,26 @@
     </div>
 
     <script>
+        function handleJSONResponse(response) {
+            const contentType = response.headers.get("content-type");
+            if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                    });
+                }
+                throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+            }
+            return response.json();
+        }
+
         document.getElementById('reviewSearch').addEventListener('input', function(e) {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('#reviewTableBody tr').forEach(row => {
-                const searchTexts = row.querySelectorAll('.searchable-text');
-                if(searchTexts.length === 0) return; // empty row
+                const searchableTexts = row.querySelectorAll('.searchable-text');
+                if(searchableTexts.length === 0) return; // empty row
                 let match = false;
-                searchTexts.forEach(el => {
+                searchableTexts.forEach(el => {
                     if(el.textContent.toLowerCase().includes(term)) match = true;
                 });
                 row.style.display = match ? '' : 'none';
@@ -148,10 +161,13 @@
         function toggleReviewVisibility(reviewId, isHidden) {
             fetch('${pageContext.request.contextPath}/admin/reviews/visibility', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: 'reviewId=' + reviewId + '&isHidden=' + isHidden + '&_csrf=${sessionScope._csrfToken}'
             })
-            .then(response => response.json())
+            .then(handleJSONResponse)
             .then(data => {
                 if(data.success) {
                     const statusCol = document.getElementById('status-col-' + reviewId);
@@ -169,7 +185,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Lỗi', 'Lỗi kết nối mạng.', 'error');
+                Swal.fire('Lỗi', error.message || 'Lỗi kết nối mạng.', 'error');
             });
         }
     </script>

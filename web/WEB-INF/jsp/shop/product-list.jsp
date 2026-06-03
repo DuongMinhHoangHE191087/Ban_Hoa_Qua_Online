@@ -238,6 +238,19 @@
 
 <!-- AJAX Callouts & SweetAlert style modal -->
 <script>
+    function handleJSONResponse(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                });
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+        }
+        return response.json();
+    }
+
     /**
      * AJAX Toggle switch for sales display status
      */
@@ -252,15 +265,17 @@
         params.append('action', 'toggle');
         params.append('productId', productId);
         params.append('status', newStatus);
+        params.append('_csrf', window.csrfToken || '${sessionScope._csrfToken}');
 
         fetch('${pageContext.request.contextPath}/shop/product-status', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
         })
-        .then(response => response.json())
+        .then(handleJSONResponse)
         .then(data => {
             checkbox.disabled = false;
             if (data.success) {
@@ -275,7 +290,7 @@
             checkbox.disabled = false;
             checkbox.checked = !isChecked; // Rollback
             console.error(err);
-            alert("Lỗi kết nối máy chủ khi cập nhật trạng thái.");
+            alert(err.message || "Lỗi kết nối máy chủ khi cập nhật trạng thái.");
         });
     }
 
@@ -299,15 +314,17 @@
         const params = new URLSearchParams();
         params.append('action', 'delete');
         params.append('productId', productId);
+        params.append('_csrf', window.csrfToken || '${sessionScope._csrfToken}');
 
         fetch('${pageContext.request.contextPath}/shop/product-status', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
         })
-        .then(response => response.json())
+        .then(handleJSONResponse)
         .then(data => {
             if (data.success) {
                 // Fade out row beautifully with micro-animations
@@ -326,7 +343,7 @@
         })
         .catch(err => {
             console.error(err);
-            alert("Lỗi kết nối máy chủ khi thực hiện xóa.");
+            alert(err.message || "Lỗi kết nối máy chủ khi thực hiện xóa.");
         });
     }
 </script>

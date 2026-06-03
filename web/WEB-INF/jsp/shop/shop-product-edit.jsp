@@ -321,6 +321,19 @@
 
 <!-- Scripts for previews and AJAX deletion -->
 <script>
+    function handleJSONResponse(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                });
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+        }
+        return response.json();
+    }
+
     /**
      * AJAX deletion of an existing image from DB and server disk
      */
@@ -334,15 +347,17 @@
         const params = new URLSearchParams();
         params.append('action', 'delete-image');
         params.append('imageId', imageId);
+        params.append('_csrf', window.csrfToken || '${sessionScope._csrfToken}');
 
         fetch('${pageContext.request.contextPath}/shop/product-status', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
         })
-        .then(response => response.json())
+        .then(handleJSONResponse)
         .then(data => {
             if (data.success) {
                 // Apply gorgeous rotate scale transition on card deletion
@@ -356,7 +371,7 @@
         })
         .catch(err => {
             console.error(err);
-            alert("Lỗi kết nối máy chủ khi xóa hình ảnh.");
+            alert(err.message || "Lỗi kết nối máy chủ khi xóa hình ảnh.");
         });
     }
 

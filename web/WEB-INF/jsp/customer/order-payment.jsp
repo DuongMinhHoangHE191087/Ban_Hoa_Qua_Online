@@ -242,6 +242,19 @@
 
 <!-- JavaScript Controls for Countdown and Real-time Polling -->
 <script>
+    function handleJSONResponse(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                });
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+        }
+        return response.json();
+    }
+
     // Copy to clipboard utility
     function copyText(text, btn) {
         navigator.clipboard.writeText(text).then(() => {
@@ -284,8 +297,10 @@
     const successUrl = '${pageContext.request.contextPath}/checkout?action=success&orderId=${order.orderId}';
 
     const pollingInterval = setInterval(() => {
-        fetch(pollingUrl)
-            .then(response => response.json())
+        fetch(pollingUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(handleJSONResponse)
             .then(data => {
                 console.log('[FruitMkt] Polling Order Status:', data.status);
                 // If order state updated to CONFIRMED (or preparing, dispatched etc. indicating payment complete)
