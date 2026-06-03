@@ -155,7 +155,8 @@
                                 </c:when>
                                 <c:otherwise>
                                     Đã xác nhận
-                                </c:choose>
+                                </c:otherwise>
+                            </c:choose>
                             </span>
                     </div>
 

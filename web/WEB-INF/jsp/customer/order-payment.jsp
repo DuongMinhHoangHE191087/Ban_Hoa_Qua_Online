@@ -138,6 +138,16 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                     <span>Đang chờ hệ thống ghi nhận thanh toán tự động...</span>
                 </div>
+
+                <!-- Nút Làm mới QR khi hết hạn -->
+                <form id="renew-qr-form" action="${pageContext.request.contextPath}/checkout" method="get" class="hidden w-full mt-2">
+                    <input type="hidden" name="action" value="payment"/>
+                    <input type="hidden" name="orderId" value="${order.orderId}"/>
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer">
+                        <span class="material-symbols-outlined text-lg">refresh</span>
+                        Làm mới mã QR
+                    </button>
+                </form>
             </div>
             
             <!-- Dev Helper Tools (Simulated Payment) -->
@@ -233,6 +243,40 @@
                         <li>Tránh nhập thêm các từ khóa như "mua", "thanh toan" để tránh lỗi xử lý webhook.</li>
                     </ul>
                 </div>
+
+                <!-- Phân cách -->
+                <div class="border-t border-[#b1f2be] mt-6 pt-6">
+
+                    <!-- Trạng thái đang chờ xác nhận -->
+                    <c:if test="${paymentTx != null && paymentTx.status == 'processing'}">
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 flex items-start gap-3 mb-4">
+                            <span class="material-symbols-outlined text-blue-500 text-xl flex-shrink-0">schedule</span>
+                            <div>
+                                <strong>Đang xác minh thanh toán</strong><br/>
+                                Chúng tôi đang kiểm tra giao dịch của bạn. Vui lòng đợi 1–24 giờ làm việc.
+                            </div>
+                        </div>
+                    </c:if>
+
+                    <!-- Nút chính: Tôi đã thanh toán -->
+                    <c:if test="${paymentTx == null || paymentTx.status == 'pending' || paymentTx.status == 'processing'}">
+                        <form action="${pageContext.request.contextPath}/checkout" method="post" id="confirm-payment-form">
+                            <input type="hidden" name="action" value="confirmPayment"/>
+                            <input type="hidden" name="orderId" value="${order.orderId}"/>
+                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}"/>
+                            <button type="submit" id="confirm-btn"
+                                class="w-full bg-[#14532D] hover:bg-[#0d3d20] text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2.5 text-base transition-all shadow-lg hover:shadow-xl cursor-pointer"
+                                onclick="return confirmPaymentClick(this)">
+                                <span class="material-symbols-outlined text-xl">payment</span>
+                                Tôi đã thanh toán
+                            </button>
+                        </form>
+                        <p class="text-xs text-on-surface-variant text-center mt-2">
+                            Bấm sau khi bạn đã chuyển khoản xong. Admin sẽ xác minh và duyệt trong 1–24 giờ.
+                        </p>
+                    </c:if>
+
+                </div>
             </div>
         </div>
 
@@ -270,10 +314,11 @@
         });
     }
 
-    // Countdown Timer (10 minutes)
-    let totalSeconds = 600; // 10 minutes
+    // Countdown Timer — dùng qrExpireMin từ server (mặc định 15 phút)
+    let totalSeconds = ${qrExpireMin != null ? qrExpireMin : 15} * 60;
     const countdownEl = document.getElementById('countdown');
     const qrOverlayEl = document.getElementById('qr-overlay');
+    const renewFormEl = document.getElementById('renew-qr-form');
 
     const timerInterval = setInterval(() => {
         if (totalSeconds <= 0) {
@@ -281,6 +326,7 @@
             clearInterval(pollingInterval);
             countdownEl.textContent = "Hết hạn";
             qrOverlayEl.classList.remove('hidden');
+            if (renewFormEl) renewFormEl.classList.remove('hidden');
             return;
         }
 
@@ -317,8 +363,14 @@
 
     // Simulating developer payment success trigger
     function simulateSuccessRedirect() {
-        // Redirection to checkout success
         window.location.href = successUrl;
+    }
+
+    // Xử lý nút "Tôi đã thanh toán" — vô hiệu hóa sau khi bấm để tránh double-submit
+    function confirmPaymentClick(btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-xl animate-spin">hourglass_empty</span> Đang gửi...';
+        return true; // cho phép form submit
     }
 </script>
 

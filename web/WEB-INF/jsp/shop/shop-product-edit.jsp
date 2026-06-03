@@ -266,7 +266,7 @@
 
                                     <!-- AJAX Deletion Overlay on Hover -->
                                     <div class="absolute inset-1 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                                        <button type="button" onclick="deleteExistingImage(${img.imageId})" 
+                                        <button type="button" onclick="deleteExistingImage('${img.imageId}')" 
                                                 class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer"
                                                 title="Xóa bức ảnh này">
                                             <span class="material-symbols-outlined text-[20px]">delete</span>
@@ -341,7 +341,7 @@
         const confirmDelete = confirm("Bạn có chắc chắn muốn xóa bức ảnh này?\nTệp ảnh sẽ bị xóa vĩnh viễn khỏi máy chủ.");
         if (!confirmDelete) return;
 
-        const card = document.getElementById(`image-card-${imageId}`);
+        const card = document.getElementById('image-card-' + imageId);
         if (!card) return;
 
         const params = new URLSearchParams();
