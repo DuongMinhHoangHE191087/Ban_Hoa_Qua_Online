@@ -1,7 +1,5 @@
-
 SET NOCOUNT ON;
 GO
-
 USE [master];
 GO
 
@@ -121,7 +119,7 @@ BEGIN
         harvest_date DATE NULL,
         shelf_life_days INT NULL,
         storage_instruction NVARCHAR(300) NULL,
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETE')), --thêm delete( mới chỉ hiện và ẩn)
+        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED')),
         view_count INT NOT NULL CONSTRAINT DF_products_view_count DEFAULT 0,
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
         sold_quantity INT NOT NULL CONSTRAINT DF_products_sold_quantity DEFAULT 0,
@@ -1144,6 +1142,60 @@ BEGIN CATCH
 END CATCH;
 GO
 
+-- 1. Xóa hồ sơ shop cũ liên quan đến email hoặc số điện thoại này nếu có
+DELETE FROM dbo.shop_owner_profiles 
+WHERE user_id IN (SELECT user_id FROM dbo.users WHERE email = 'shop@gmail.com' OR phone = '0966668888');
+-- 2. Xóa tài khoản cũ trùng email hoặc số điện thoại này để tránh lỗi UQ_users_phone
+DELETE FROM dbo.users WHERE email = 'shop@gmail.com' OR phone = '0966668888';
+-- 3. Khai báo biến tạm lưu ID tự sinh
+DECLARE @new_user_id INT;
+-- 4. Tạo tài khoản Shop Owner hoạt động ngay lập tức
+INSERT INTO dbo.users (
+    full_name, 
+    email, 
+    password_hash, 
+    phone, 
+    role, 
+    status, 
+    is_email_verified, 
+    created_at, 
+    updated_at
+)
+VALUES (
+    N'Chủ Shop MetaFruit', 
+    N'shop@gmail.com', 
+    N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', -- BCrypt hash của '123456'
+    N'0966668888', -- Số điện thoại mới sạch hoàn toàn
+    N'SHOP_OWNER', 
+    N'ACTIVE', 
+    1, -- Đã kích hoạt không cần qua OTP
+    GETDATE(), 
+    GETDATE()
+);
+-- Lấy ID của User mới tạo
+SET @new_user_id = SCOPE_IDENTITY();
+-- 5. Tạo hồ sơ cửa hàng trạng thái APPROVED hoạt động ngay
+INSERT INTO dbo.shop_owner_profiles (
+    user_id, 
+    shop_name, 
+    shop_description, 
+    approval_status, 
+    delivery_address, 
+    rating, 
+    created_at, 
+    updated_at
+)
+VALUES (
+    @new_user_id, 
+    N'Cửa Hàng Hoa Quả Sạch MetaFruit', 
+    N'Chuyên cung cấp hoa quả hữu cơ nhập khẩu sạch đạt tiêu chuẩn quốc tế!', 
+    N'APPROVED', 
+    N'123 Đường Bưởi, Ba Đình, Hà Nội', 
+    5.00, 
+    GETDATE(), 
+    GETDATE()
+);
+GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_acceptance_auto_cancel' AND object_id = OBJECT_ID(N'dbo.orders'))
 BEGIN
     CREATE INDEX IX_orders_acceptance_auto_cancel

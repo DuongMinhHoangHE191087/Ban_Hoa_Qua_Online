@@ -15,42 +15,10 @@ import java.util.*;
  *   - Dùng try-with-resources cho Connection + PreparedStatement
  *
  * @author fruitmkt-team
- */
+ *///khang
 public class ProductDAO extends BaseDAO {
 
-    public ProductDAO() {
-        super();
-        ensureDeletedStatusAllowed();
-    }
-
-    private void ensureDeletedStatusAllowed() {
-        String sqlCheck = "SELECT COUNT(*) FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('products') AND definition LIKE '%DELETED%'";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
-            boolean hasDeleted = false;
-            try (ResultSet rs = stmt.executeQuery(sqlCheck)) {
-                if (rs.next()) {
-                    hasDeleted = rs.getInt(1) > 0;
-                }
-            }
-            if (!hasDeleted) {
-                String sqlFindName = "SELECT name FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('products') AND definition LIKE '%status%'";
-                String constraintName = null;
-                try (ResultSet rs = stmt.executeQuery(sqlFindName)) {
-                    if (rs.next()) {
-                        constraintName = rs.getString(1);
-                    }
-                }
-                if (constraintName != null) {
-                    stmt.execute("ALTER TABLE products DROP CONSTRAINT " + constraintName);
-                }
-                stmt.execute("ALTER TABLE products ADD CONSTRAINT CK_products_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED'))");
-            }
-        } catch (SQLException e) {
-            System.err.println("Warning: Cannot alter products.status check constraint: " + e.getMessage());
-        }
-    }
-
+//khang
     /**
      * Tìm sản phẩm theo ID.
      */
@@ -76,6 +44,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
         String sql = "SELECT * FROM products WHERE status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        //khang
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, offset);
@@ -95,6 +64,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findByOwner(int ownerId) throws SQLException {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' ORDER BY product_id DESC";
+        //khang
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
@@ -114,6 +84,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
         String sql = "SELECT * FROM products WHERE category_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        //khang
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, categoryId);
@@ -157,7 +128,7 @@ public class ProductDAO extends BaseDAO {
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE p.status = 'ACTIVE' ");
+        sql.append("WHERE p.status = 'ACTIVE' ");//khang
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -204,7 +175,7 @@ public class ProductDAO extends BaseDAO {
     public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
         if (minPrice != null || maxPrice != null) {
-            sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
+            sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");//khang
         }
         sql.append("WHERE p.status = 'ACTIVE' ");
         
