@@ -47,7 +47,7 @@ public class DeliveryUpdateAPI extends HttpServlet {
                 String estTimeStr = data.get("estimatedTime");
                 if (estTimeStr != null && !estTimeStr.isEmpty()) {
                     LocalDateTime est = LocalDateTime.parse(estTimeStr); // Expects ISO format like 2026-05-31T14:30
-                    deliveryService.updateEstimatedTime(deliveryId, est);
+                    deliveryService.updateEstimatedTime(currentUser.getUserId(), deliveryId, est);
                 }
             }
 

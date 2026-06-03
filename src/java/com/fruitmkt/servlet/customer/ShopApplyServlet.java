@@ -224,7 +224,7 @@ public class ShopApplyServlet extends HttpServlet {
             if (part.getSize() == 0) continue;
 
             // Sử dụng ValidationUtil để check kích thước, extension
-            String docError = com.fruitmkt.util.ValidationUtil.validateShopDoc(part);
+            String docError = com.fruitmkt.util.ValidationUtil.validateShopDoc(part.getSubmittedFileName(), part.getSize());
             if (docError != null) {
                 throw new Exception(docError);
             }
