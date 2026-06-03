@@ -99,6 +99,35 @@ public class CategoryDAO extends BaseDAO {
         }
     }
 
+    /**
+     * Xóa danh mục (Hard delete - Cần cẩn thận nếu có tham chiếu).
+     */
+    public void delete(int categoryId) throws SQLException {
+        String sql = "DELETE FROM categories WHERE category_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, categoryId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Kiểm tra xem danh mục có sản phẩm đang ACTIVE/INACTIVE (chưa bị DELETE) hay không.
+     */
+    public boolean hasActiveProducts(int categoryId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM products WHERE category_id = ? AND status != 'DELETE'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, categoryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
     /** Ánh xạ ResultSet -> Category */
     private Category mapRow(ResultSet rs) throws SQLException {
         Category category = new Category();

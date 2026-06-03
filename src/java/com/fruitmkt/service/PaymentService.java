@@ -211,7 +211,7 @@ public class PaymentService {
 
         // Cập nhật payment → completed
         paymentDAO.updateStatus(tx.getTransactionId(), "completed", sepayTxId, jsonPayload);
-        // Cập nhật order → CONFIRMED
+        // [AUTOMATED] SePay automatically confirms the order upon successful payment match
         orderDAO.updateStatus(tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
         // Ghi dedup
         paymentDAO.insertDedup(sepayTxId, code, "processed");

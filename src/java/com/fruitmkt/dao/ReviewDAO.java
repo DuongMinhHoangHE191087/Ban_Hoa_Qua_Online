@@ -288,6 +288,67 @@ public class ReviewDAO extends BaseDAO {
     }
 
     /**
+     * Cập nhật đánh giá (Customer edit).
+     */
+    public void update(Review review) throws SQLException {
+        String sql = "UPDATE reviews SET rating = ?, review_text = ?, review_image_url = ? WHERE review_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, review.getRating());
+            ps.setString(2, review.getReviewText());
+            ps.setString(3, review.getReviewImageUrl());
+            ps.setInt(4, review.getReviewId());
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Xóa đánh giá (Hard Delete).
+     */
+    public void delete(int reviewId) throws SQLException {
+        String sql = "DELETE FROM reviews WHERE review_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, reviewId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Lấy đánh giá bằng ID.
+     */
+    public Review findById(int reviewId) throws SQLException {
+        String sql = "SELECT * FROM reviews WHERE review_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, reviewId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lấy đánh giá bằng Order Item ID.
+     */
+    public Review findByOrderItemId(int orderItemId) throws SQLException {
+        String sql = "SELECT * FROM reviews WHERE order_item_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderItemId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Ẩn một đánh giá khỏi giao diện (Soft delete).
      */
     public void hide(int reviewId) throws SQLException {

@@ -28,29 +28,49 @@ import java.io.IOException;
 @WebServlet("/admin/settlements")
 public class AdminSettlementServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final SettlementService settlementService = new SettlementService();
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        req.getRequestDispatcher("/WEB-INF/jsp/admin/coming-soon.jsp").forward(req, resp);
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            String status = req.getParameter("status");
+            int page = 1;
+            String pageStr = req.getParameter("page");
+            if (pageStr != null && !pageStr.trim().isEmpty()) {
+                try { page = Integer.parseInt(pageStr); } catch (Exception e) {}
+            }
+            int pageSize = 20;
+
+            java.util.List<com.fruitmkt.model.entity.ShopSettlement> settlements = settlementService.getAllSettlements(status, page, pageSize);
+            int totalRecords = settlementService.countAllSettlements(status);
+            int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+
+            req.setAttribute("settlementList", settlements);
+            req.setAttribute("currentPage", page);
+            req.setAttribute("totalPages", totalPages);
+            req.setAttribute("paramStatus", status);
+
+            req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-settlements.jsp").forward(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách đối soát");
+        }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        // TODO: 1. Đọc params / JSON body
-        //        2. Validate input
-        //        3. Gọi service
-        //        4. Set flash message
-        //        5. Redirect (PRG pattern)
-        //
-        // Ví dụ:
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Thành công!");
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
-        // resp.sendRedirect(req.getContextPath() + "/..");
-        throw new UnsupportedOperationException("doPost not implemented: AdminSettlementServlet");
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            String action = req.getParameter("action");
+            if ("markPaid".equals(action)) {
+                int settlementId = Integer.parseInt(req.getParameter("settlementId"));
+                settlementService.markPaid(settlementId);
+                SessionUtil.flashSuccess(req.getSession(), "Đã đánh dấu Đã Thanh Toán cho đối soát #" + settlementId);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            SessionUtil.flashError(req.getSession(), "Lỗi cập nhật đối soát: " + e.getMessage());
+        }
+        resp.sendRedirect(req.getContextPath() + "/admin/settlements");
     }
 
 }

@@ -37,6 +37,22 @@ public class OrderService {
         throw new UnsupportedOperationException("Not implemented: placeOrder(int customerId, com.fruitmkt.model.dto.CheckoutDTO dto)");
     }
 
+    public java.util.List<com.fruitmkt.model.entity.Order> getAllOrders(String status, int page, int pageSize) throws SQLException {
+        return orderDAO.findAll(status, page, pageSize);
+    }
+
+    public java.util.List<com.fruitmkt.model.entity.Order> getAllOrders(String status, String paymentMethod, String paymentStatus, int page, int pageSize) throws SQLException {
+        return orderDAO.findAll(status, paymentMethod, paymentStatus, page, pageSize);
+    }
+
+    public int countAllOrders(String status) throws SQLException {
+        return orderDAO.countAll(status);
+    }
+
+    public int countAllOrders(String status, String paymentMethod, String paymentStatus) throws SQLException {
+        return orderDAO.countAll(status, paymentMethod, paymentStatus);
+    }
+
     /**
      * TODO: Implement — xem SRS / use case tương ứng
      */

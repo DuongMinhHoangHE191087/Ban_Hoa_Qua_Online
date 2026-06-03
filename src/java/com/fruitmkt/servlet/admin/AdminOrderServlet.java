@@ -41,6 +41,8 @@ public class AdminOrderServlet extends HttpServlet {
         }
 
         String statusFilter = req.getParameter("status");
+        String paymentMethod = req.getParameter("paymentMethod");
+        String paymentStatus = req.getParameter("paymentStatus");
         String pageStr      = req.getParameter("page");
         int page = 1;
         try { if (pageStr != null) page = Integer.parseInt(pageStr); }
@@ -48,14 +50,41 @@ public class AdminOrderServlet extends HttpServlet {
 
         try {
             int pageSize = AppConfig.PAGE_SIZE_ORDERS;
-            List<Order> orders = orderDAO.findAll(statusFilter, page, pageSize);
-            req.setAttribute("orders",       orders);
-            req.setAttribute("statusFilter", statusFilter);
-            req.setAttribute("currentPage",  page);
+            List<Order> orders = orderDAO.findAll(statusFilter, paymentMethod, paymentStatus, page, pageSize);
+            int totalCount = orderDAO.countAll(statusFilter, paymentMethod, paymentStatus);
+            int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+            if (totalPages < 1) totalPages = 1;
+            
+            req.setAttribute("orders",        orders);
+            req.setAttribute("statusFilter",  statusFilter);
+            req.setAttribute("paymentMethod", paymentMethod);
+            req.setAttribute("paymentStatus", paymentStatus);
+            req.setAttribute("currentPage",   page);
+            req.setAttribute("totalPages",    totalPages);
+
+            // Fetch payment transactions mapping for main orders
+            java.util.Map<Integer, PaymentTransaction> txMap = new java.util.HashMap<>();
+            for (Order order : orders) {
+                PaymentTransaction tx = paymentService.getPaymentByOrder(order.getOrderId());
+                if (tx != null) {
+                    txMap.put(order.getOrderId(), tx);
+                }
+            }
+            req.setAttribute("txMap", txMap);
 
             // Danh sách đơn CK đang chờ xác nhận (cho tab "Chờ duyệt thanh toán")
-            List<Order> pendingPayments = orderDAO.findAll(AppConfig.ORDER_PENDING_PAYMENT, 1, 50);
+            List<Order> pendingPayments = orderDAO.findAll(AppConfig.ORDER_PENDING_PAYMENT, "CK", null, 1, 50);
             req.setAttribute("pendingPayments", pendingPayments);
+
+            // Fetch payment transactions mapping for pending payments
+            java.util.Map<Integer, PaymentTransaction> pendingTxMap = new java.util.HashMap<>();
+            for (Order order : pendingPayments) {
+                PaymentTransaction tx = paymentService.getPaymentByOrder(order.getOrderId());
+                if (tx != null) {
+                    pendingTxMap.put(order.getOrderId(), tx);
+                }
+            }
+            req.setAttribute("pendingTxMap", pendingTxMap);
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/orders.jsp").forward(req, resp);
         } catch (SQLException e) {

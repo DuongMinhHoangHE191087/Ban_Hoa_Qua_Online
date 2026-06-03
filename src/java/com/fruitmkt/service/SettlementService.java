@@ -1,50 +1,23 @@
 package com.fruitmkt.service;
 
+import com.fruitmkt.dao.SettlementDAO;
+import com.fruitmkt.model.entity.ShopSettlement;
+
 import java.sql.SQLException;
+import java.util.List;
 
-/**
- * SettlementService — Tầng business logic cho nghiệp vụ tương ứng.
- *
- * QUY TẮC:
- *   - Chỉ gọi DAO, không viết SQL ở đây
- *   - Chứa tất cả validation và business rule
- *   - Ném RuntimeException hoặc custom exception cho Servlet xử lý
- *   - Không tương tác trực tiếp với HttpRequest/Response
- *
- * @author fruitmkt-team
- */
 public class SettlementService {
+    private final SettlementDAO settlementDAO = new SettlementDAO();
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public com.fruitmkt.model.entity.ShopSettlement calculate(int ownerId, java.time.LocalDate start, java.time.LocalDate end) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: calculate(int ownerId, java.time.LocalDate start, java.time.LocalDate end)");
+    public List<ShopSettlement> getAllSettlements(String status, int page, int pageSize) throws SQLException {
+        return settlementDAO.findAll(status, page, pageSize);
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public void confirm(int settlementId, int adminId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: confirm(int settlementId, int adminId)");
+    public int countAllSettlements(String status) throws SQLException {
+        return settlementDAO.countAll(status);
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
     public void markPaid(int settlementId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: markPaid(int settlementId)");
+        settlementDAO.markPaid(settlementId);
     }
-
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public java.util.List getSettlements(int ownerId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: getSettlements(int ownerId)");
-    }
-
 }
