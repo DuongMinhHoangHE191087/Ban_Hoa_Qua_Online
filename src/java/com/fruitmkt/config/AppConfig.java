@@ -169,6 +169,55 @@ public final class AppConfig {
         /** Thời gian khóa tài khoản (phút) */
         public static final int LOCK_DURATION_MINUTES = 30;
 
+        // ------------------------------------------------------------------
+        // Platform Fee & Settlement (default values — override via system_config DB)
+        // ------------------------------------------------------------------
+        /** Tỷ lệ phí nền tảng mặc định (%). Admin có thể đổi qua AdminSystemConfigServlet. */
+        public static final double PLATFORM_FEE_RATE_DEFAULT = 5.0;      // 5%
+        /** Số ngày đóng băng tiền shop sau khi giao hàng thành công mặc định. */
+        public static final int    FREEZE_DAYS_DEFAULT        = 15;       // 15 ngày
+        /** Thời gian giải quyết khi settlement period (ngày). */
+        public static final int    SETTLEMENT_CYCLE_DAYS      = 30;
+
+        // ------------------------------------------------------------------
+        // Shop Order Acceptance
+        // ------------------------------------------------------------------
+        /** Shop phải nhận đơn trong bao nhiêu phút. Quá hạn tự huỷ. */
+        public static final int    SHOP_ACCEPT_TIMEOUT_MIN    = 30;       // 30 phút
+
+        // ------------------------------------------------------------------
+        // Return Request
+        // ------------------------------------------------------------------
+        /** Khách có tối đa bao nhiêu giờ sau khi DELIVERED để gửi return request. */
+        public static final int    RETURN_REQUEST_MAX_HOURS   = 24;       // 24 giờ
+
+        // ------------------------------------------------------------------
+        // SePay / VietQR (thêm domain deploy ở đây khi lên production)
+        // ------------------------------------------------------------------
+        public static final String SEPAY_BANK_ID       = "MB";
+        public static final String SEPAY_ACCOUNT_NO    = "0999999999";
+        public static final String SEPAY_ACCOUNT_NAME  = "CONG TY METAFRUIT PREMIUM";
+        public static final String PAYMENT_REF_PREFIX  = "MF";
+        /** Thời hạn hiệu lực của mã QR (phút). */
+        public static final int    QR_EXPIRE_MINUTES   = 15;
+        /**
+         * Domain đầy đủ của ứng dụng khi deploy lên server.
+         * Dùng cho SePay Webhook URL và link email.
+         * Đổi sang domain thật khi deploy: https://yourdomain.com
+         */
+        public static final String DEPLOY_BASE_URL     = System.getenv("APP_DEPLOY_URL") != null
+                                                         ? System.getenv("APP_DEPLOY_URL")
+                                                         : APP_BASE_URL;
+        public static final String SEPAY_WEBHOOK_PATH  = "/api/payment/webhook";
+
+        // ------------------------------------------------------------------
+        // System Config Keys (dùng với bảng system_config trong DB)
+        // ------------------------------------------------------------------
+        public static final String CONFIG_PLATFORM_FEE_RATE    = "platform_fee_rate";
+        public static final String CONFIG_FREEZE_DAYS          = "settlement_freeze_days";
+        public static final String CONFIG_ACCEPT_TIMEOUT_MIN   = "shop_accept_timeout_min";
+        public static final String CONFIG_RETURN_MAX_HOURS     = "return_request_max_hours";
+
         private AppConfig() {
                 /* Utility class — không khởi tạo */ }
 
