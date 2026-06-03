@@ -26,8 +26,8 @@ Danh sách toàn bộ các task được giao cho Duong (cập nhật theo file 
 - [x] **Mark Order as Delivered** (Shop Owner, Delivery) - *Đã hoàn thành*
 
 ## Phase 4: Product Review & Rating System
-- [ ] **Write Product Review** (Customer)
-- [ ] **Edit / Delete Product Review** (Customer)
-- [ ] **Rate Products Stars** (Customer)
-- [ ] **Average Rating Calculation** (System)
+- [x] **Write Product Review** (Customer) - *Đã hoàn thành*
+- [x] **Edit / Delete Product Review** (Customer) - *Đã hoàn thành*
+- [x] **Rate Products Stars** (Customer) - *Đã hoàn thành*
+- [x] **Average Rating Calculation** (System) - *Đã hoàn thành*
 - [x] **Approve/Reject Reviews** (Admin) - *Đã hoàn thành*

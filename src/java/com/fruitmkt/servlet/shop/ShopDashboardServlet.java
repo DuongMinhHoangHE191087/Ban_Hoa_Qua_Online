@@ -35,16 +35,22 @@ public class ShopDashboardServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/shop/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: ShopDashboardServlet");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+        if (!SessionUtil.hasRole(req.getSession(), AppConfig.ROLE_SHOP_OWNER)) {
+            resp.sendError(403);
+            return;
+        }
+
+        // Tạm thời chỉ hiển thị giao diện mẫu, chưa tính toán số liệu thật
+        req.setAttribute("revenue", 0);
+        req.setAttribute("orderCount", 0);
+        req.setAttribute("lowStock", 0);
+
+        req.getRequestDispatcher("/WEB-INF/jsp/shop/dashboard.jsp").forward(req, resp);
     }
 
 }

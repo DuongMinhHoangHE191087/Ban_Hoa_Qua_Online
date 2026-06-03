@@ -82,30 +82,33 @@
             
             <form action="${pageContext.request.contextPath}/reviews" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="orderItemId" value="${orderItemId}">
+                <c:if test="${not empty action}">
+                    <input type="hidden" name="action" value="${action}">
+                </c:if>
                 
                 <div class="form-group">
                     <label>Chất lượng sản phẩm</label>
                     <div class="rating-stars">
-                        <input type="radio" name="rating" id="star5" value="5" required>
+                        <input type="radio" name="rating" id="star5" value="5" ${review != null && review.rating == 5 ? 'checked' : ''} required>
                         <label for="star5"><i class="fa-solid fa-star"></i></label>
                         
-                        <input type="radio" name="rating" id="star4" value="4">
+                        <input type="radio" name="rating" id="star4" value="4" ${review != null && review.rating == 4 ? 'checked' : ''}>
                         <label for="star4"><i class="fa-solid fa-star"></i></label>
                         
-                        <input type="radio" name="rating" id="star3" value="3">
+                        <input type="radio" name="rating" id="star3" value="3" ${review != null && review.rating == 3 ? 'checked' : ''}>
                         <label for="star3"><i class="fa-solid fa-star"></i></label>
                         
-                        <input type="radio" name="rating" id="star2" value="2">
+                        <input type="radio" name="rating" id="star2" value="2" ${review != null && review.rating == 2 ? 'checked' : ''}>
                         <label for="star2"><i class="fa-solid fa-star"></i></label>
                         
-                        <input type="radio" name="rating" id="star1" value="1">
+                        <input type="radio" name="rating" id="star1" value="1" ${review != null && review.rating == 1 ? 'checked' : ''}>
                         <label for="star1"><i class="fa-solid fa-star"></i></label>
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label>Nội dung đánh giá</label>
-                    <textarea name="reviewText" class="form-control" placeholder="Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé..." required></textarea>
+                    <textarea name="reviewText" class="form-control" placeholder="Hãy chia sẻ nhận xét của bạn về sản phẩm này nhé..." required><c:out value="${review != null ? review.reviewText : ''}" /></textarea>
                 </div>
                 
                 <div class="form-group">
@@ -114,7 +117,7 @@
                         <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--color-text-light); margin-bottom: 10px;"></i>
                         <p style="color: var(--color-text-light); margin: 0;">Nhấn để chọn ảnh tải lên</p>
                         <input type="file" name="reviewImage" id="reviewImage" accept="image/*" style="display: none;" onchange="previewImage(event)">
-                        <img id="imagePreview" src="#" alt="Preview">
+                        <img id="imagePreview" src="<c:out value="${review != null && review.reviewImageUrl != null ? pageContext.request.contextPath += '/' += review.reviewImageUrl : '#'}" />" alt="Preview" style="${review != null && review.reviewImageUrl != null ? 'display:block;' : ''}">
                     </div>
                 </div>
                 

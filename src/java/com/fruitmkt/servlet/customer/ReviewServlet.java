@@ -17,18 +17,11 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.UUID;
 
-/**
- * ReviewServlet — Controller cho chức năng: Form viết review (sau khi order completed)
- *
- * URL: /reviews
- * GET : Form viết review (sau khi order completed)
- * POST: Lưu review
- */
 @WebServlet("/reviews")
 @MultipartConfig(
-    fileSizeThreshold = 1024 * 1024 * 2,  // 2MB
-    maxFileSize = 1024 * 1024 * 10,       // 10MB
-    maxRequestSize = 1024 * 1024 * 50     // 50MB
+    fileSizeThreshold = 1024 * 1024 * 2,
+    maxFileSize = 1024 * 1024 * 10,
+    maxRequestSize = 1024 * 1024 * 50
 )
 public class ReviewServlet extends HttpServlet {
 
@@ -47,6 +40,7 @@ public class ReviewServlet extends HttpServlet {
         }
 
         String orderItemIdStr = req.getParameter("orderItemId");
+        String action = req.getParameter("action");
         if (orderItemIdStr == null || orderItemIdStr.isEmpty()) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Thiếu Order Item ID");
             return;
@@ -54,15 +48,25 @@ public class ReviewServlet extends HttpServlet {
         
         try {
             int orderItemId = Integer.parseInt(orderItemIdStr);
-            
-            // Check if already reviewed
-            if (reviewDAO.existsByCustomerAndItem(user.getUserId(), orderItemId)) {
-                SessionUtil.setFlashMessage(req.getSession(), "Bạn đã đánh giá sản phẩm này rồi.", "warning");
-                resp.sendRedirect(req.getContextPath() + "/customer/orders");
-                return;
+            Review existingReview = reviewDAO.findByOrderItemId(orderItemId);
+
+            if ("edit".equals(action)) {
+                if (existingReview == null || existingReview.getCustomerId() != user.getUserId()) {
+                    SessionUtil.setFlashMessage(req.getSession(), "Đánh giá không tồn tại hoặc bạn không có quyền sửa.", "danger");
+                    resp.sendRedirect(req.getContextPath() + "/customer/orders");
+                    return;
+                }
+                req.setAttribute("review", existingReview);
+            } else {
+                if (existingReview != null) {
+                    SessionUtil.setFlashMessage(req.getSession(), "Bạn đã đánh giá sản phẩm này rồi.", "warning");
+                    resp.sendRedirect(req.getContextPath() + "/customer/orders");
+                    return;
+                }
             }
 
             req.setAttribute("orderItemId", orderItemId);
+            req.setAttribute("action", action);
             req.getRequestDispatcher("/WEB-INF/jsp/customer/review-submit.jsp").forward(req, resp);
         } catch (Exception e) {
             e.printStackTrace();
@@ -81,19 +85,26 @@ public class ReviewServlet extends HttpServlet {
         }
 
         try {
+            String action = req.getParameter("action");
             int orderItemId = Integer.parseInt(req.getParameter("orderItemId"));
+
+            if ("delete".equals(action)) {
+                Review existingReview = reviewDAO.findByOrderItemId(orderItemId);
+                if (existingReview != null && existingReview.getCustomerId() == user.getUserId()) {
+                    reviewDAO.delete(existingReview.getReviewId());
+                    recalculateRating(orderItemId);
+                    SessionUtil.setFlashMessage(req.getSession(), "Đã xóa đánh giá thành công.", "success");
+                }
+                resp.sendRedirect(req.getContextPath() + "/customer/orders");
+                return;
+            }
+
             int rating = Integer.parseInt(req.getParameter("rating"));
             String reviewText = req.getParameter("reviewText");
 
             if (rating < 1 || rating > 5) {
                 SessionUtil.setFlashMessage(req.getSession(), "Số sao không hợp lệ.", "danger");
-                resp.sendRedirect(req.getContextPath() + "/reviews?orderItemId=" + orderItemId);
-                return;
-            }
-            
-            if (reviewDAO.existsByCustomerAndItem(user.getUserId(), orderItemId)) {
-                SessionUtil.setFlashMessage(req.getSession(), "Bạn đã đánh giá sản phẩm này rồi.", "warning");
-                resp.sendRedirect(req.getContextPath() + "/customer/orders");
+                resp.sendRedirect(req.getContextPath() + "/reviews?orderItemId=" + orderItemId + ("edit".equals(action) ? "&action=edit" : ""));
                 return;
             }
 
@@ -109,29 +120,47 @@ public class ReviewServlet extends HttpServlet {
                 imageUrl = "uploads/reviews/" + fileName;
             }
 
-            Review review = new Review();
-            review.setOrderItemId(orderItemId);
-            review.setCustomerId(user.getUserId());
-            review.setRating(rating);
-            review.setReviewText(reviewText);
-            review.setReviewImageUrl(imageUrl);
-            review.setIsHidden(false);
+            Review existingReview = reviewDAO.findByOrderItemId(orderItemId);
 
-            reviewDAO.save(review);
-
-            // Recalculate Product Rating
-            int productId = productDAO.getProductIdByOrderItem(orderItemId);
-            if (productId != -1) {
-                productDAO.recalculateRating(productId);
+            if ("edit".equals(action)) {
+                if (existingReview != null && existingReview.getCustomerId() == user.getUserId()) {
+                    existingReview.setRating(rating);
+                    existingReview.setReviewText(reviewText);
+                    if (imageUrl != null) {
+                        existingReview.setReviewImageUrl(imageUrl);
+                    }
+                    reviewDAO.update(existingReview);
+                    recalculateRating(orderItemId);
+                    SessionUtil.setFlashMessage(req.getSession(), "Cập nhật đánh giá thành công!", "success");
+                }
+            } else {
+                if (existingReview == null) {
+                    Review review = new Review();
+                    review.setOrderItemId(orderItemId);
+                    review.setCustomerId(user.getUserId());
+                    review.setRating(rating);
+                    review.setReviewText(reviewText);
+                    review.setReviewImageUrl(imageUrl);
+                    review.setIsHidden(false);
+                    reviewDAO.save(review);
+                    recalculateRating(orderItemId);
+                    SessionUtil.setFlashMessage(req.getSession(), "Cảm ơn bạn đã gửi đánh giá!", "success");
+                }
             }
 
-            SessionUtil.setFlashMessage(req.getSession(), "Cảm ơn bạn đã gửi đánh giá!", "success");
             resp.sendRedirect(req.getContextPath() + "/customer/orders");
 
         } catch (Exception e) {
             e.printStackTrace();
-            SessionUtil.setFlashMessage(req.getSession(), "Lỗi khi gửi đánh giá: " + e.getMessage(), "danger");
+            SessionUtil.setFlashMessage(req.getSession(), "Lỗi hệ thống: " + e.getMessage(), "danger");
             resp.sendRedirect(req.getContextPath() + "/customer/orders");
+        }
+    }
+
+    private void recalculateRating(int orderItemId) throws SQLException {
+        int productId = productDAO.getProductIdByOrderItem(orderItemId);
+        if (productId != -1) {
+            productDAO.recalculateRating(productId);
         }
     }
 }

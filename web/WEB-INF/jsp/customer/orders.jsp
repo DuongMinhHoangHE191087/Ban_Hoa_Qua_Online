@@ -74,7 +74,7 @@
                             </c:if>
 
                             <c:if test="${order.status == 'DELIVERED'}">
-                                <a href="${pageContext.request.contextPath}/reviews?orderId=${order.orderId}" class="btn btn-outline-primary w-75 mb-2">Đánh giá sản phẩm</a>
+                                <a href="${pageContext.request.contextPath}/customer/order-reviews?orderId=${order.orderId}" class="btn btn-outline-primary w-75 mb-2">Đánh giá sản phẩm</a>
                             </c:if>
                         </div>
                     </div>
