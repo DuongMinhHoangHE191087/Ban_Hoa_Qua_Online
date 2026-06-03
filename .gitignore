@@ -44,3 +44,7 @@ nbproject/private/private.properties
 /dist
 /out
 /nbproject/private
+tomcat_config.ini
+.env
+.docker-build/
+docker-compose.override.yml

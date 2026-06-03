@@ -29,10 +29,16 @@ echo  [6] Dat lai toan bo (reset)
 echo  [7] Cau hinh Tomcat/Java (install-config)
 echo  [8] Mo ung dung tren web (open)
 echo  [9] Tro giup (help)
-echo  [10] Thoat (exit)
+echo  [10] Hot-Reload Tomcat (Recompile nhanh, giu Session)
+echo  [11] [DOCKER] Build Image (docker-build)
+echo  [12] [DOCKER] Run / Startup App (docker-up)
+echo  [13] [DOCKER] Stop Container (docker-down)
+echo  [14] [DOCKER] View Logs (docker-logs)
+echo  [15] [DOCKER] Full Reset (docker-reset)
+echo  [16] Thoat (exit)
 echo.
 echo ============================================================================
-set /p choice="Nhap lua chon cua ban (0-10): "
+set /p choice="Nhap lua chon cua ban (0-16): "
 
 if "%choice%"=="0" (
     start "Ban Hoa Qua Online - Build & Deploy" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" deploy
@@ -84,6 +90,36 @@ if "%choice%"=="9" (
     goto menu
 )
 if "%choice%"=="10" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" reload
+    pause
+    goto menu
+)
+if "%choice%"=="11" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" docker-build
+    pause
+    goto menu
+)
+if "%choice%"=="12" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" docker-up
+    pause
+    goto menu
+)
+if "%choice%"=="13" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" docker-down
+    pause
+    goto menu
+)
+if "%choice%"=="14" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" docker-logs
+    pause
+    goto menu
+)
+if "%choice%"=="15" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" docker-reset
+    pause
+    goto menu
+)
+if "%choice%"=="16" (
     exit /b 0
 )
 

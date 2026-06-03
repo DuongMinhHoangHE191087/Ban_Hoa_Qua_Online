@@ -12,18 +12,18 @@ public final class AppConfig {
         // ——————————————————————————————————————————————————————————————————
         // Database
         // ------------------------------------------------------------------
-        public static final String DB_HOST = "localhost";
-        public static final String DB_PORT = "1433";
-        public static final String DB_NAME = "OnlineFruitShopping";
-        public static final String DB_USER = "sa";
-        public static final String DB_PASSWORD = "123";
+        public static final String DB_HOST = System.getenv("DB_HOST") != null ? System.getenv("DB_HOST") : "localhost";
+        public static final String DB_PORT = System.getenv("DB_PORT") != null ? System.getenv("DB_PORT") : "1433";
+        public static final String DB_NAME = System.getenv("DB_NAME") != null ? System.getenv("DB_NAME") : "OnlineFruitShopping";
+        public static final String DB_USER = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "sa";
+        public static final String DB_PASSWORD = System.getenv("DB_PASSWORD") != null ? System.getenv("DB_PASSWORD") : "123";
         public static final String DB_DRIVER_CLASS = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
         public static final String DB_JDBC_URL = "jdbc:sqlserver://" + DB_HOST + ":" + DB_PORT
                         + ";databaseName=" + DB_NAME
                         + ";encrypt=false;trustServerCertificate=true";
 
-        public static final String GOOGLE_CLIENT_ID = "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com";
-        public static final String GOOGLE_CLIENT_SECRET = "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";
+        public static final String GOOGLE_CLIENT_ID = System.getenv("GOOGLE_CLIENT_ID") != null ? System.getenv("GOOGLE_CLIENT_ID") : "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com";
+        public static final String GOOGLE_CLIENT_SECRET = System.getenv("GOOGLE_CLIENT_SECRET") != null ? System.getenv("GOOGLE_CLIENT_SECRET") : "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";
         // Domain của bạn. Nếu code ở localhost thì để HTTP
         public static final String GOOGLE_REDIRECT_URI = "http://localhost:8080/Ban_Hoa_Qua_Online/GoogleCallback";
         public static final String GOOGLE_LINK_GET_TOKEN = "https://oauth2.googleapis.com/token";
@@ -32,10 +32,10 @@ public final class AppConfig {
 
         public static final String EMAIL_SMTP_HOST = "smtp.gmail.com";
         public static final String EMAIL_SMTP_PORT = "587";
-        public static final String EMAIL_FROM = "duongminhhoanginwork@gmail.com";
-        public static final String EMAIL_PASSWORD = "jkhg przg aohf pwla";
+        public static final String EMAIL_FROM = System.getenv("EMAIL_FROM") != null ? System.getenv("EMAIL_FROM") : "duongminhhoanginwork@gmail.com";
+        public static final String EMAIL_PASSWORD = System.getenv("EMAIL_PASSWORD") != null ? System.getenv("EMAIL_PASSWORD") : "jkhg przg aohf pwla";
         public static final String APP_NAME = "MetaFruit";
-        public static final String APP_SUPPORT_EMAIL = "duongminhhoanginwork@gmail.com";
+        public static final String APP_SUPPORT_EMAIL = System.getenv("EMAIL_FROM") != null ? System.getenv("EMAIL_FROM") : "duongminhhoanginwork@gmail.com";
         public static final String APP_BRAND_COLOR = "#14532d";
         public static final String APP_BASE_URL = "http://localhost:8080/Ban_Hoa_Qua_Online";
 
@@ -194,9 +194,9 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         // SePay / VietQR (thêm domain deploy ở đây khi lên production)
         // ------------------------------------------------------------------
-        public static final String SEPAY_BANK_ID       = "MB";
-        public static final String SEPAY_ACCOUNT_NO    = "0999999999";
-        public static final String SEPAY_ACCOUNT_NAME  = "CONG TY METAFRUIT PREMIUM";
+        public static final String SEPAY_BANK_ID       = System.getenv("SEPAY_BANK_ID") != null ? System.getenv("SEPAY_BANK_ID") : "MB";
+        public static final String SEPAY_ACCOUNT_NO    = System.getenv("SEPAY_ACCOUNT_NO") != null ? System.getenv("SEPAY_ACCOUNT_NO") : "0394497949";
+        public static final String SEPAY_ACCOUNT_NAME  = System.getenv("SEPAY_ACCOUNT_NAME") != null ? System.getenv("SEPAY_ACCOUNT_NAME") : "Duong Minh Hoang";
         public static final String PAYMENT_REF_PREFIX  = "MF";
         /** Thời hạn hiệu lực của mã QR (phút). */
         public static final int    QR_EXPIRE_MINUTES   = 15;
@@ -217,6 +217,9 @@ public final class AppConfig {
         public static final String CONFIG_FREEZE_DAYS          = "settlement_freeze_days";
         public static final String CONFIG_ACCEPT_TIMEOUT_MIN   = "shop_accept_timeout_min";
         public static final String CONFIG_RETURN_MAX_HOURS     = "return_request_max_hours";
+        public static final String CONFIG_SEPAY_BANK_ID        = "sepay_bank_id";
+        public static final String CONFIG_SEPAY_ACCOUNT_NO     = "sepay_account_no";
+        public static final String CONFIG_SEPAY_ACCOUNT_NAME   = "sepay_account_name";
 
         private AppConfig() {
                 /* Utility class — không khởi tạo */ }

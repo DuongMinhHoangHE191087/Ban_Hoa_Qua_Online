@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: ban_hoa_qua_online
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-1433}
+      - DB_NAME=${DB_NAME:-OnlineFruitShopping}
+      - DB_USER=${DB_USER:-sa}
+      - DB_PASSWORD=${DB_PASSWORD:-123}
+      - EMAIL_FROM=${EMAIL_FROM:-duongminhhoanginwork@gmail.com}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-jkhg przg aohf pwla}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-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}
+      - SEPAY_BANK_ID=${SEPAY_BANK_ID:-MB}
+      - SEPAY_ACCOUNT_NO=${SEPAY_ACCOUNT_NO:-0394497949}
+      - SEPAY_ACCOUNT_NAME=${SEPAY_ACCOUNT_NAME:-Duong Minh Hoang}
+    restart: always
+
