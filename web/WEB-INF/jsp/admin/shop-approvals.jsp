@@ -106,8 +106,8 @@
                                                 <td>
                                                     <div class="table-actions" id="action-btns-${shop.profileId}">
                                                         <c:if test="${shop.approvalStatus == 'PENDING'}">
-                                                            <button class="btn btn-success btn-sm" onclick="approveShop(${shop.profileId})" title="Duyệt"><i class="fa-solid fa-check"></i></button>
-                                                            <button class="btn btn-danger btn-sm" onclick="showRejectModal(${shop.profileId})" title="Từ chối"><i class="fa-solid fa-times"></i></button>
+                                                            <button class="btn btn-success btn-sm" onclick="approveShop('${shop.profileId}')" title="Duyệt"><i class="fa-solid fa-check"></i></button>
+                                                            <button class="btn btn-danger btn-sm" onclick="showRejectModal('${shop.profileId}')" title="Từ chối"><i class="fa-solid fa-times"></i></button>
                                                         </c:if>
                                                         <c:if test="${shop.approvalStatus != 'PENDING'}">
                                                             <span style="font-size:0.8rem; color:var(--color-text-light); font-style:italic;">Đã xử lý</span>

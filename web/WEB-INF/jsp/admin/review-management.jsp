@@ -115,7 +115,7 @@
                                                 </td>
                                                 <td style="text-align:center;">
                                                     <label class="switch">
-                                                        <input type="checkbox" onchange="toggleReviewVisibility(${review.reviewId}, !this.checked)" ${!review.isHidden ? 'checked' : ''}>
+                                                        <input type="checkbox" onchange="toggleReviewVisibility('${review.reviewId}', !this.checked)" ${!review.isHidden ? 'checked' : ''}>
                                                         <span class="slider"></span>
                                                     </label>
                                                 </td>
