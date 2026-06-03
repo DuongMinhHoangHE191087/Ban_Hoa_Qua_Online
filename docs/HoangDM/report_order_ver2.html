@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Báo cáo Kỹ thuật & Nghiệp vụ Phiên bản 2 — Hệ thống Tracking & Phê duyệt Đơn hàng</title>
+    <!-- Outfit Font from Google Fonts for premium design aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4d661c;
+            --primary-dark: #364e03;
+            --primary-light: #f4fbf7;
+            --secondary: #3b82f6;
+            --secondary-dark: #1d4ed8;
+            --accent: #f59e0b;
+            --dark: #00210d;
+            --light: #f8fafc;
+            --border: #e2ece7;
+            --text-main: #44483b;
+            --text-muted: #8e9285;
+            --bg-glass: rgba(255, 255, 255, 0.85);
+            --shadow-premium: 0 10px 30px -10px rgba(20, 83, 45, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+            --radius-lg: 1.5rem;
+            --radius-md: 0.75rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f4fbf7;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(77, 102, 28, 0.04) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.04) 0px, transparent 50%);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 3rem 1.5rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--bg-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(77, 102, 28, 0.08);
+            border-radius: var(--radius-lg);
+            padding: 3rem;
+            box-shadow: var(--shadow-premium);
+        }
+
+        header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 2rem;
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        .logo-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), #608c24);
+            color: white;
+            padding: 0.4rem 1.2rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(77, 102, 28, 0.15);
+        }
+
+        h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: var(--dark);
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-top: 3rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-left: 5px solid var(--primary);
+            padding-left: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-top: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: #4b524d;
+            font-size: 0.95rem;
+        }
+
+        /* Lists & Badges */
+        ul,
+        ol {
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .tag {
+            font-family: 'JetBrains Mono', monospace;
+            background: #e2ece7;
+            color: var(--primary-dark);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border);
+        }
+
+        th, td {
+            padding: 0.95rem 1.25rem;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #f7faf8;
+            color: var(--dark);
+            font-weight: 700;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            border-bottom: 1px solid var(--border);
+            color: #4b524d;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+            border-left: 4px solid var(--primary);
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            color: #ba1a1a;
+            background-color: #fff1f2;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+        }
+
+        pre code {
+            color: inherit;
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        /* Alert Panel */
+        .info-panel {
+            background: rgba(77, 102, 28, 0.05);
+            border: 1px solid rgba(77, 102, 28, 0.15);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .info-panel h4 {
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .highlight-red {
+            color: #ba1a1a;
+            font-weight: 600;
+        }
+        
+        .highlight-green {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .step-badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            font-weight: 700;
+            font-size: 0.75rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+
+        .badge-amber { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+        .badge-emerald { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .badge-blue { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <span class="logo-badge">METAFRUIT TECHNICAL REPORT</span>
+            <h1>Báo Cáo Nghiệp Vụ & Kỹ Thuật Phiên Bản 2</h1>
+            <div class="subtitle">Đồng bộ luồng xử lý thanh toán, chuẩn hóa tracking đơn hàng và hướng dẫn mở rộng bộ lọc</div>
+        </header>
+
+        <h2>1. Đặt Vấn Đề & Mục Tiêu Nâng Cấp</h2>
+        <p>
+            Trước đây, hệ thống gặp một số bất cập trong luồng thanh toán và cập nhật trạng thái đơn hàng:
+        </p>
+        <ul>
+            <li><strong>Lỗi treo trạng thái:</strong> Khi mô phỏng thanh toán thành công (qua SePay webhook hoặc khi khách hàng nhấn "Tôi đã thanh toán" cho đơn CK), đơn hàng vẫn giữ nguyên trạng thái <code>PENDING_PAYMENT</code> (Chờ thanh toán) trên giao diện khách hàng mà không có cập nhật động thể hiện tiến độ phê duyệt.</li>
+            <li><strong>Thiếu kiểm soát quản trị:</strong> Luồng nghiệp vụ yêu cầu Admin phải <em>duyệt thủ công</em> đối với các giao dịch chuyển khoản thì đơn hàng mới chính thức chuyển sang trạng thái <code>CONFIRMED</code> (Đã xác nhận). Tuy nhiên, SePay webhook trước đó tự động đẩy thẳng trạng thái đơn hàng lên <code>CONFIRMED</code> mà không thông qua bước kiểm tra/phê duyệt của Admin.</li>
+            <li><strong>Thiếu tính mở rộng:</strong> Các màn hình danh sách đơn hàng của Admin chưa hỗ trợ bộ lọc động nâng cao theo phương thức thanh toán hoặc trạng thái giao dịch thực tế, gây khó khăn cho việc quản trị đối soát dòng tiền.</li>
+        </ul>
+        <p>
+            <strong>Mục tiêu đạt được trong bản cập nhật này:</strong> Chuẩn hóa luồng nghiệp vụ 5 bước cho hành trình đơn hàng, tách bạch rõ ràng trạng thái Đơn hàng (Order Status) và trạng thái Giao dịch (Transaction Status), thiết lập giao diện quản trị hiện đại đồng bộ bằng Tailwind CSS và biên soạn hướng dẫn chi tiết giúp lập trình viên mở rộng bộ lọc ở các cấu trúc dữ liệu khác.
+        </p>
+
+        <h2>2. Quy Trình Trạng Thái & Luồng Nghiệp Vụ Chuẩn</h2>
+        
+        <h3>A. Đối với đơn hàng Chuyển khoản (QR / CK Bank Transfer)</h3>
+        <p>
+            Luồng trạng thái đi qua các bước kiểm duyệt chặt chẽ như sau:
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Bước hành trình</th>
+                    <th>Trạng thái đơn hàng (Order)</th>
+                    <th>Trạng thái giao dịch (Payment)</th>
+                    <th>Hiển thị phía Khách hàng (Tracking)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>1. Khởi tạo đơn</strong></td>
+                    <td><span class="tag">PENDING_PAYMENT</span></td>
+                    <td><span class="step-badge badge-amber">pending</span></td>
+                    <td>Chờ thanh toán (Chuyển khoản QR)</td>
+                </tr>
+                <tr>
+                    <td><strong>2. Đã chuyển khoản</strong></td>
+                    <td><span class="tag">PENDING_PAYMENT</span></td>
+                    <td><span class="step-badge badge-amber">processing</span> (Khách báo) hoặc <span class="step-badge badge-emerald">completed</span> (SePay)</td>
+                    <td><span class="highlight-red">Đã chuyển tiền / Khớp SePay (Chờ Admin duyệt)</span></td>
+                </tr>
+                <tr>
+                    <td><strong>3. Admin phê duyệt</strong></td>
+                    <td><span class="tag">CONFIRMED</span></td>
+                    <td><span class="step-badge badge-emerald">completed</span></td>
+                    <td><span class="highlight-green">Đã thanh toán (Chờ shop gửi hàng)</span></td>
+                </tr>
+                <tr>
+                    <td><strong>4. Vận hành đơn</strong></td>
+                    <td><span class="tag">PREPARING</span> → <span class="tag">DISPATCHED</span></td>
+                    <td><span class="step-badge badge-emerald">completed</span></td>
+                    <td>Shop chuẩn bị hàng → Đang giao hàng</td>
+                </tr>
+                <tr>
+                    <td><strong>5. Hoàn thành</strong></td>
+                    <td><span class="tag">DELIVERED</span></td>
+                    <td><span class="step-badge badge-emerald">completed</span></td>
+                    <td>Hoàn thành (Đã nhận hàng & ký nhận)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>B. Đối với đơn hàng COD (Thanh toán khi nhận hàng)</h3>
+        <p>
+            Do COD không yêu cầu thanh toán trực tuyến trước khi giao dịch, đơn hàng bỏ qua trạng thái chờ thanh toán và bắt đầu ngay từ bước đã xác nhận:
+        </p>
+        <ol>
+            <li><strong>Khởi tạo đơn:</strong> Trạng thái đơn hàng được đặt là <span class="tag">CONFIRMED</span>. Phía khách hàng hiển thị: <span class="step-badge badge-blue">Đã xác nhận (COD), chờ shop gửi hàng</span>.</li>
+            <li><strong>Nhận hàng và thanh toán:</strong> Khi shipper giao hàng thành công, đơn hàng chuyển thành <span class="tag">DELIVERED</span>.</li>
+        </ol>
+
+        <div class="info-panel">
+            <h4><span class="material-symbols-outlined">shield</span> Cơ chế SePay Webhook mới (An toàn tuyệt đối)</h4>
+            <p>
+                Để tôn trọng luồng phê duyệt của quản trị viên, file <code>PaymentService.java</code> đã được chỉnh sửa loại bỏ dòng code tự động chuyển trạng thái đơn hàng thành <code>CONFIRMED</code> khi nhận callback từ SePay. Thay vào đó, SePay chỉ đánh dấu trạng thái giao dịch trong bảng <code>payment_transactions</code> là <span class="step-badge badge-emerald">completed</span>. Đơn hàng tiếp tục nằm trong danh sách hàng đợi chờ phê duyệt của Admin.
+            </p>
+        </div>
+
+        <h2>3. Chi Tiết Các Tệp Tin Đã Chỉnh Sửa</h2>
+        
+        <h3>1. Khớp nối & Truy vấn cơ sở dữ liệu (DAO Layer)</h3>
+        <ul>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/src/java/com/fruitmkt/dao/OrderDAO.java">OrderDAO.java</a></strong>: 
+                Nâng cấp nạp chồng 2 phương thức <code>findAll</code> và <code>countAll</code> hỗ trợ tham số lọc <code>paymentMethod</code> (phương thức) và <code>paymentStatus</code> (trạng thái thanh toán từ bảng liên kết <code>payment_transactions</code>).
+            </li>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/src/java/com/fruitmkt/dao/DeliveryDAO.java">DeliveryDAO.java</a></strong>: 
+                Loại bỏ phương thức trùng lặp <code>findByOrderId(int)</code> giải quyết triệt để lỗi biên dịch hệ thống.
+            </li>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/src/java/com/fruitmkt/dao/ReturnRequestDAO.java">ReturnRequestDAO.java</a></strong>: 
+                Bổ sung các hàm lọc phân trang <code>findAll(status, page, pageSize)</code> và <code>countAll(status)</code> sửa lỗi gọi sai tham số ở tầng Service.
+            </li>
+        </ul>
+
+        <h3>2. Tầng Nghiệp Vụ (Service & Servlet Layer)</h3>
+        <ul>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/src/java/com/fruitmkt/service/PaymentService.java">PaymentService.java</a></strong>: 
+                Tinh chỉnh <code>processWebhook</code> không cập nhật tự động trạng thái đơn hàng. Admin phê duyệt thông qua <code>adminApprovePayment</code> sẽ thực hiện cập nhật kép: chuyển giao dịch thành <code>completed</code> và đổi trạng thái đơn thành <code>CONFIRMED</code>.
+            </li>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/src/java/com/fruitmkt/servlet/admin/AdminOrderServlet.java">AdminOrderServlet.java</a></strong>: 
+                Đọc các bộ lọc parameter từ giao diện truyền vào, thực hiện truy vấn cơ sở dữ liệu có điều kiện, đồng thời nạp bản đồ giao dịch <code>txMap</code> và <code>pendingTxMap</code> để chuyển tải thông tin sang trang JSP.
+            </li>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/src/java/com/fruitmkt/servlet/customer/OrderServlet.java">OrderServlet.java</a></strong>: 
+                Cập nhật hành động chi tiết <code>action=detail</code> nạp thêm thuộc tính <code>paymentTx</code> giúp đồng bộ thông tin giao dịch trên sơ đồ timeline tracking của khách hàng.
+            </li>
+        </ul>
+
+        <h3>3. Giao Diện Người Dùng (UI Layer)</h3>
+        <ul>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/web/WEB-INF/jsp/admin/orders.jsp">orders.jsp (Admin)</a></strong>: 
+                Sử dụng Tailwind CSS thiết lập giao diện dạng Glassmorphism sang trọng, bố cục bảng trực quan, thiết kế thanh tiến trình lọc động và tích hợp bảng "Developer Filter Expansion Guide" chứa các đoạn mã nguồn mẫu.
+            </li>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/web/WEB-INF/jsp/customer/orders.jsp">orders.jsp (Customer)</a></strong>: 
+                Hiển thị nhãn trạng thái trực quan phân biệt trạng thái chờ duyệt của Chuyển khoản (màu vàng nhấp nháy), khớp SePay (màu xanh lá nhấp nháy) và COD (màu xanh dương).
+            </li>
+            <li><strong><a href="file:///d:/DMHoang/Project_GitHub/Ban_Hoa_Qua_Online/web/WEB-INF/jsp/customer/order-detail.jsp">order-detail.jsp (Customer)</a></strong>: 
+                Nâng cấp thanh tiến trình timeline từ 4 bước lên 5 bước chuẩn quốc tế. Cập nhật nhãn trạng thái thời gian thực dựa trên <code>paymentTx.status</code>.
+            </li>
+        </ul>
+
+        <h2>4. Hướng Dẫn Tự Thêm Bộ Lọc (Developer Filter Guide)</h2>
+        <p>
+            Để giúp nhà phát triển có thể tự thêm bất kỳ bộ lọc nào khác (Ví dụ: Lọc sản phẩm theo khoảng giá bán <code>minPrice</code> và <code>maxPrice</code> ở trang Admin Product), vui lòng thực hiện tuần tự theo 4 bước dưới đây:
+        </p>
+
+        <h3>Bước 1: Chỉnh sửa cơ sở dữ liệu tại lớp DAO</h3>
+        <p>
+            Mở file DAO tương ứng (ví dụ: <code>ProductDAO.java</code>), thêm tham số lọc vào phương thức truy vấn và ghép nối chuỗi SQL động:
+        </p>
+        <pre><code>public List<Product> findAll(BigDecimal minPrice, BigDecimal maxPrice, int page, int pageSize) throws SQLException {
+    List<Product> list = new ArrayList<>();
+    int offset = (page - 1) * pageSize;
+    
+    // Khởi tạo SQL cơ bản
+    StringBuilder sql = new StringBuilder("SELECT * FROM products WHERE 1=1 ");
+    List<Object> params = new ArrayList<>();
+    
+    // Ghép nối SQL động dựa trên giá trị tham số truyền vào
+    if (minPrice != null) {
+        sql.append("AND price >= ? ");
+        params.add(minPrice);
+    }
+    if (maxPrice != null) {
+        sql.append("AND price <= ? ");
+        params.add(maxPrice);
+    }
+    
+    // Thêm phân trang (SQL Server Syntax)
+    sql.append("ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+    params.add(offset);
+    params.add(pageSize);
+    
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        // Gán tham số an toàn tránh SQL Injection
+        for (int i = 0; i < params.size(); i++) {
+            ps.setObject(i + 1, params.get(i));
+        }
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        }
+    }
+    return list;
+}</code></pre>
+
+        <h3>Bước 2: Nâng cấp tầng Service (nếu có)</h3>
+        <p>
+            Tạo phương thức trung gian tại lớp Service nhận tham số và gọi trực tiếp xuống DAO:
+        </p>
+        <pre><code>public List<Product> getProducts(BigDecimal minPrice, BigDecimal maxPrice, int page, int pageSize) throws SQLException {
+    return productDAO.findAll(minPrice, maxPrice, page, pageSize);
+}</code></pre>
+
+        <h3>Bước 3: Đọc tham số từ Request tại lớp Servlet</h3>
+        <p>
+            Tại phương thức <code>doGet</code> của Servlet (ví dụ: <code>AdminProductServlet.java</code>), tiến hành nhận tham số và ép kiểu dữ liệu an toàn trước khi chuyển giao cho Service:
+        </p>
+        <pre><code>String minPriceStr = req.getParameter("minPrice");
+String maxPriceStr = req.getParameter("maxPrice");
+
+BigDecimal minPrice = null;
+BigDecimal maxPrice = null;
+
+try {
+    if (minPriceStr != null && !minPriceStr.trim().isEmpty()) {
+        minPrice = new BigDecimal(minPriceStr.trim());
+    }
+    if (maxPriceStr != null && !maxPriceStr.trim().isEmpty()) {
+        maxPrice = new BigDecimal(maxPriceStr.trim());
+    }
+} catch (NumberFormatException e) {
+    // Log cảnh báo định dạng số không hợp lệ
+}
+
+// Gọi service với tham số đã lọc
+List<Product> products = productService.getProducts(minPrice, maxPrice, page, pageSize);
+req.setAttribute("products", products);
+req.setAttribute("minPrice", minPrice);
+req.setAttribute("maxPrice", maxPrice);</code></pre>
+
+        <h3>Bước 4: Thêm giao diện nhập liệu tại JSP</h3>
+        <p>
+            Thêm các thẻ đầu vào tương ứng bên trong biểu mẫu lọc của trang JSP (ví dụ: <code>products.jsp</code>). Lưu giữ lại giá trị lọc cũ sau khi tải lại trang bằng biểu thức EL:
+        </p>
+        <pre><code>&lt;form action="${pageContext.request.contextPath}/admin/products" method="GET" class="flex gap-4 items-center"&gt;
+    &lt;div class="flex flex-col"&gt;
+        &lt;label class="text-xs font-bold text-gray-700"&gt;Giá tối thiểu&lt;/label&gt;
+        &lt;input type="number" name="minPrice" value="${minPrice}" placeholder="Từ đ" class="border p-2 rounded-lg text-sm" /&gt;
+    &lt;/div&gt;
+    &lt;div class="flex flex-col"&gt;
+        &lt;label class="text-xs font-bold text-gray-700"&gt;Giá tối đa&lt;/label&gt;
+        &lt;input type="number" name="maxPrice" value="${maxPrice}" placeholder="Đến đ" class="border p-2 rounded-lg text-sm" /&gt;
+    &lt;/div&gt;
+    &lt;button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg mt-4 text-sm"&gt;Lọc kết quả&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+
+        <h2>5. Nâng Cấp Trải Nghiệm Người Dùng (UI/UX Premium Overrides)</h2>
+        <p>
+            Nhằm giải quyết triệt để nợ công nghệ về mặt giao diện và nâng cao tính thẩm mỹ đồng bộ toàn hệ thống, hai đợt tinh chỉnh lớn đã được thực hiện:
+        </p>
+        
+        <h3>A. Loại bỏ hộp thoại native alert() xấu bằng SweetAlert2 toàn sàn</h3>
+        <p>
+            Các hộp thoại cảnh báo mặc định của trình duyệt (native browser alerts) thường làm gián đoạn trải nghiệm người dùng và không đồng bộ với thiết kế thương hiệu. Giải pháp của chúng tôi:
+        </p>
+        <ul>
+            <li><strong>Nhúng SweetAlert2 toàn cục:</strong> Thư viện SweetAlert2 được tích hợp trực tiếp vào <code>header.jsp</code> (cho các trang khách hàng, cửa hàng, shipper) và <code>admin-sidebar.jsp</code> (cho tất cả các trang quản trị).</li>
+            <li><strong>Đè hàm alert() hệ thống:</strong> Đè trực tiếp phương thức <code>window.alert</code> mặc định bằng một hàm tùy biến gọi SweetAlert2 với thiết kế HSL Tailored và bo góc mượt mà:</li>
+        </ul>
+        <pre><code>window.alert = function(message) {
+    Swal.fire({
+        icon: 'info',
+        title: 'Thông báo',
+        text: message,
+        confirmButtonText: 'Đồng ý',
+        confirmButtonColor: '#4D661C', // Màu chủ đạo của thương hiệu
+        background: '#ffffff',
+        customClass: {
+            popup: 'premium-swal-popup',
+            title: 'premium-swal-title',
+            confirmButton: 'premium-swal-button'
+        }
+    });
+};</code></pre>
+        <p>
+            <em>Kết quả:</em> Toàn bộ 19 vị trí sử dụng <code>alert(...)</code> trong mã nguồn (ở các trang Home, Product Detail, Seller Product-List, Delivery Dashboard, main.js...) tự động chuyển thành các hộp thoại SweetAlert2 sang trọng, không cần chỉnh sửa từng file đơn lẻ.
+        </p>
+
+        <h3>B. Thay thế Dropdown Select mặc định bằng giao diện Custom Chevron</h3>
+        <p>
+            Các thẻ <code>&lt;select&gt;</code> nguyên bản trông rất thô và không đồng đều giữa các hệ điều hành (Windows, macOS, iOS, Android). Chúng tôi đã tái cấu trúc CSS toàn cục tại <code>main.css</code>:
+        </p>
+        <ul>
+            <li>Sử dụng thuộc tính <code>appearance: none;</code> để ẩn hoàn toàn mũi tên mặc định của trình duyệt.</li>
+            <li>Thay thế bằng SVG hình mũi tên chevron thanh mảnh, phối hợp màu sắc động theo chủ đề Emerald Green của thương hiệu thông qua background-image.</li>
+            <li>Bo góc <code>border-radius: var(--radius-md)</code>, thêm khoảng đệm <code>padding-right: 2.5rem</code> để chữ không đè lên mũi tên, tạo chiều sâu thị giác.</li>
+        </ul>
+
+        <h2>6. Kết Luận & Đánh Giá</h2>
+        <p>
+            Hệ thống sau khi cập nhật đã đạt được sự nhất quán cao về mặt dữ liệu và trải nghiệm người dùng:
+        </p>
+        <ul>
+            <li>Khách hàng luôn nhận được phản hồi trực quan về tình trạng giao dịch chuyển khoản trên giao diện hành trình đơn hàng, giải tỏa tâm lý lo lắng sau khi chuyển tiền.</li>
+            <li>Admin giữ quyền kiểm soát tối cao đối với dòng tiền thật, ngăn chặn rủi ro gian lận giao dịch ảo.</li>
+            <li>Cấu trúc mã nguồn phân tầng rõ ràng, chuẩn hóa phương thức nạp chồng, tuân thủ tuyệt đối các nguyên tắc an toàn cơ sở dữ liệu và bảo mật phiên.</li>
+        </ul>
+        
+        <p style="text-align: center; margin-top: 3rem; color: var(--text-muted); font-size: 0.85rem;">
+            Báo cáo được biên soạn tự động bởi hệ thống Antigravity Orchestrator &copy; 2026.
+        </p>
+    </div>
+</body>
+
+</html>
