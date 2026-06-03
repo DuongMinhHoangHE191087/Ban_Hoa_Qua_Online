@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
@@ -6,7 +6,7 @@
 </jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -178,7 +178,7 @@
                         <!-- Step 2 -->
                         <div class="flex flex-col items-center flex-1">
                             <div class="w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all ${stepNum >= 2 ? (stepNum > 2 ? 'bg-primary text-on-primary' : 'bg-primary-container text-on-primary-container ring-4 ring-primary/20') : 'bg-outline-variant/30 text-on-surface-variant'}">
-                                <span class="material-symbols-outlined text-lg">box_unpacking</span>
+                                <span class="material-symbols-outlined text-lg">inventory</span>
                             </div>
                             <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 2 ? 'text-primary' : 'text-on-surface-variant'}">Chuẩn bị hàng</span>
                             <span class="text-[10px] text-on-surface-variant">Shop chuẩn bị lạnh</span>

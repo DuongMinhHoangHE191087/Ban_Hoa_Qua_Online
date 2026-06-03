@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -19,7 +19,7 @@
                     rel="stylesheet">
 
                 <!-- Isolated Tailwind CSS Engine for dynamic layout -->
-                <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+                <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 
                 <!-- Overriding tailwind configurations to match HomeUI brand precisely -->
                 <script>
