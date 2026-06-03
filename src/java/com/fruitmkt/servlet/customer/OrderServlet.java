@@ -35,7 +35,7 @@ public class OrderServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
-        if (user == null || !"CUSTOMER".equals(user.getRole())) {
+        if (user == null || (!"CUSTOMER".equals(user.getRole()) && !"SHOP_OWNER".equals(user.getRole()))) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -63,7 +63,7 @@ public class OrderServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
-        if (user == null || !"CUSTOMER".equals(user.getRole())) {
+        if (user == null || (!"CUSTOMER".equals(user.getRole()) && !"SHOP_OWNER".equals(user.getRole()))) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }

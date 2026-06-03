@@ -51,8 +51,9 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        // Kiểm tra phân quyền: Chỉ CUSTOMER mới được quyền checkout
-        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        // Kiểm tra phân quyền: Chỉ CUSTOMER và SHOP_OWNER mới được quyền checkout
+        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())
+                && !com.fruitmkt.config.AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thanh toán. Chức năng này chỉ dành cho khách hàng.");
             return;
         }
@@ -223,8 +224,9 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        // Kiểm tra phân quyền: Chỉ CUSTOMER mới được quyền checkout
-        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        // Kiểm tra phân quyền: Chỉ CUSTOMER và SHOP_OWNER mới được quyền checkout
+        if (!com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())
+                && !com.fruitmkt.config.AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thanh toán. Chức năng này chỉ dành cho khách hàng.");
             return;
         }

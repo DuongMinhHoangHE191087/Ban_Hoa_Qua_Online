@@ -46,7 +46,17 @@ public class CsrfFilter implements Filter {
                 requestToken = req.getHeader("X-XSRF-TOKEN");
             }
             if (sessionToken == null || !sessionToken.equals(requestToken)) {
-                resp.sendError(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ.");
+                boolean isAjax = "XMLHttpRequest".equals(req.getHeader("X-Requested-With"))
+                        || "json".equals(req.getParameter("format"))
+                        || (req.getHeader("Accept") != null && req.getHeader("Accept").contains("application/json"));
+                
+                if (isAjax) {
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    resp.setContentType("application/json;charset=UTF-8");
+                    resp.getWriter().write("{\"success\":false,\"error\":\"CSRF token không hợp lệ.\"}");
+                } else {
+                    resp.sendError(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ.");
+                }
                 return;
             }
         }
