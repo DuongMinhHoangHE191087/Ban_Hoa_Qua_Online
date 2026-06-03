@@ -35,8 +35,8 @@ public class ShopDashboardServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // Tạm thời redirect sang trang quản lý sản phẩm để chủ cửa hàng thao tác ngay
-        resp.sendRedirect(req.getContextPath() + "/shop/products");
+        // Redirect to inventory management page first
+        resp.sendRedirect(req.getContextPath() + "/shop/inventory");
     }
 
 }
