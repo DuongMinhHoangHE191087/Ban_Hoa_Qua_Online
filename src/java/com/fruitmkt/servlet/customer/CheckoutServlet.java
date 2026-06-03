@@ -47,11 +47,12 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // SePay / VietQR config
-    private static final String BANK_ID       = "MB";
-    private static final String ACCOUNT_NO    = "0999999999";
-    private static final String ACCOUNT_NAME  = "CONG TY METAFRUIT PREMIUM";
-    private static final String REF_PREFIX    = "MF";    // Nội dung CK = MF + orderId
-    private static final int    QR_EXPIRE_MIN = 15;      // QR hết hạn sau 15 phút
+    private static final String BANK_ID       = AppConfig.SEPAY_BANK_ID;
+    private static final String ACCOUNT_NO    = AppConfig.SEPAY_ACCOUNT_NO;
+    private static final String ACCOUNT_NAME  = AppConfig.SEPAY_ACCOUNT_NAME;
+    private static final String REF_PREFIX    = AppConfig.PAYMENT_REF_PREFIX;    // Nội dung CK = MF + orderId
+    private static final int    QR_EXPIRE_MIN = AppConfig.QR_EXPIRE_MINUTES;      // QR hết hạn sau 15 phút
+
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
