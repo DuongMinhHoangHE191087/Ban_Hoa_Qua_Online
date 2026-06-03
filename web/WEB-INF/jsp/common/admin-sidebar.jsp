@@ -1,5 +1,24 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!-- SweetAlert2 library and alert override for premium notifications across all admin pages -->
+<script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+<script>
+    window.alert = function(message) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Thông báo quản trị',
+            text: message,
+            confirmButtonText: 'Đồng ý',
+            confirmButtonColor: '#4D661C', // Deep Emerald Forest
+            background: '#ffffff',
+            customClass: {
+                popup: 'premium-swal-popup',
+                title: 'premium-swal-title',
+                confirmButton: 'premium-swal-button'
+            }
+        });
+    };
+</script>
 <aside class="admin-sidebar">
     <div class="admin-sidebar__logo">
         <a href="${pageContext.request.contextPath}/admin/dashboard" class="logo-link">

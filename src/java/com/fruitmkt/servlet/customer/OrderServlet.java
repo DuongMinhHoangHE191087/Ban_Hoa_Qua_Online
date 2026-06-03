@@ -56,6 +56,11 @@ public class OrderServlet extends HttpServlet {
                     if (order != null) {
                         req.setAttribute("order", order);
                         req.setAttribute("orderItems", orderService.getOrderItems(orderId));
+                        // Fetch payment transaction for detail view
+                        try {
+                            com.fruitmkt.service.PaymentService paymentService = new com.fruitmkt.service.PaymentService();
+                            req.setAttribute("paymentTx", paymentService.getPaymentByOrder(orderId));
+                        } catch (Exception ignored) {}
                         // Get delivery tracking info if any
                         try {
                             com.fruitmkt.dao.DeliveryDAO deliveryDAO = new com.fruitmkt.dao.DeliveryDAO();
@@ -117,18 +122,27 @@ public class OrderServlet extends HttpServlet {
             int totalCount = orderDAO.countByCustomer(user.getUserId(), status);
             
             
-            // Lấy delivery info cho mỗi đơn hàng
+            // Lấy delivery info và payment info cho mỗi đơn hàng
             com.fruitmkt.service.DeliveryService deliveryService = new com.fruitmkt.service.DeliveryService();
+            com.fruitmkt.service.PaymentService paymentService = new com.fruitmkt.service.PaymentService();
             java.util.Map<Integer, com.fruitmkt.model.entity.Delivery> deliveryMap = new java.util.HashMap<>();
+            java.util.Map<Integer, com.fruitmkt.model.entity.PaymentTransaction> paymentTxMap = new java.util.HashMap<>();
             for (com.fruitmkt.model.entity.Order order : list) {
                 com.fruitmkt.model.entity.Delivery delivery = deliveryService.getDeliveryByOrderId(order.getOrderId());
                 if (delivery != null) {
                     deliveryMap.put(order.getOrderId(), delivery);
                 }
+                if ("CK".equals(order.getPaymentMethod())) {
+                    com.fruitmkt.model.entity.PaymentTransaction tx = paymentService.getPaymentByOrder(order.getOrderId());
+                    if (tx != null) {
+                        paymentTxMap.put(order.getOrderId(), tx);
+                    }
+                }
             }
             
             req.setAttribute("orders", list);
             req.setAttribute("deliveryMap", deliveryMap);
+            req.setAttribute("paymentTxMap", paymentTxMap);
             req.setAttribute("currentPage", page);
             req.setAttribute("totalPages", (int) Math.ceil((double) totalCount / pageSize));
             req.setAttribute("selectedStatus", status);

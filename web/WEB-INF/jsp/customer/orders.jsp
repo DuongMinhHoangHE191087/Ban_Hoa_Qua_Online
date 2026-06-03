@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -146,10 +146,28 @@
                     <div>
                         <c:choose>
                             <c:when test="${order.status == 'PENDING_PAYMENT'}">
-                                <span class="bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Chờ thanh toán</span>
+                                <c:set var="pt" value="${paymentTxMap[order.orderId]}" />
+                                <c:choose>
+                                    <c:when test="${pt.status == 'processing'}">
+                                        <span class="bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider animate-pulse">Đã chuyển tiền (Chờ duyệt)</span>
+                                    </c:when>
+                                    <c:when test="${pt.status == 'completed'}">
+                                        <span class="bg-emerald-100 text-emerald-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider animate-pulse">Khớp SePay (Chờ Admin duyệt)</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Chờ thanh toán (Chuyển khoản QR)</span>
+                                    </c:otherwise>
+                                </c:choose>
                             </c:when>
                             <c:when test="${order.status == 'CONFIRMED'}">
-                                <span class="bg-blue-100 text-blue-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Đã xác nhận</span>
+                                <c:choose>
+                                    <c:when test="${order.paymentMethod == 'CK'}">
+                                        <span class="bg-emerald-100 text-emerald-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Đã thanh toán (Chờ shop gửi hàng)</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="bg-blue-100 text-blue-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Đã xác nhận (COD), chờ shop gửi hàng</span>
+                                    </c:otherwise>
+                                </c:choose>
                             </c:when>
                             <c:when test="${order.status == 'PREPARING'}">
                                 <span class="bg-indigo-100 text-indigo-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Shop chuẩn bị hàng</span>
