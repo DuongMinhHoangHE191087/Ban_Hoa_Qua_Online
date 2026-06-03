@@ -7,23 +7,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiểm duyệt đánh giá - Admin MetaFruit</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Kiểm duyệt đánh giá – Admin MetaFruit</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: var(--radius-full);
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary:      '#4d661c',
+                        'primary-dk': '#364e03',
+                        'primary-lt': '#f0f7e6',
+                        surface:      '#ffffff',
+                        'surface-2':  '#f8fafc',
+                        border:       '#e2ece7',
+                        'txt':        '#0f172a',
+                        'txt-2':      '#475569',
+                        'txt-3':      '#94a3b8',
+                    },
+                    fontFamily: {
+                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
+                    },
+                    boxShadow: {
+                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
+                    }
+                }
+            }
         }
-        .status-VISIBLE { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-        .status-HIDDEN { background: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; }
+    </script>
+    <style>
+        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
+        .glass-card {
+            background:#fff;
+            border:1px solid #e2ece7;
+            border-radius:1rem;
+            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
+        }
+        tbody tr { transition:background .12s; }
+        tbody tr:hover td { background:#f8fafc; }
         
         /* Toggle Switch CSS */
         .switch {
@@ -32,162 +55,189 @@
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc; transition: .4s; border-radius: 24px;
+            background-color: #cbd5e1; transition: .4s; border-radius: 24px;
         }
         .slider:before {
             position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
             background-color: white; transition: .4s; border-radius: 50%;
         }
-        input:checked + .slider { background-color: var(--color-success); }
+        input:checked + .slider { background-color: #10b981; }
         input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body>
-    <div class="admin-layout">
-        <!-- Sidebar -->
-        <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
-            <jsp:param name="activeMenu" value="reviews"/>
-        </jsp:include>
+<div class="admin-layout">
+    <%-- Sidebar --%>
+    <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
+        <jsp:param name="activeMenu" value="reviews"/>
+    </jsp:include>
 
-        <!-- Main Content -->
-        <main class="admin-main">
-            <header class="admin-header">
-                <div>
-                    <h1>Kiểm Duyệt Đánh Giá</h1>
-                    <p style="color: var(--color-text-light); font-size: 0.9rem;">Quản lý nội dung phản hồi từ người dùng, ẩn các đánh giá spam, không phù hợp.</p>
-                </div>
-            </header>
+    <%-- Main --%>
+    <main class="admin-main p-6 md:p-8 overflow-y-auto">
 
-            <div class="admin-content">
-                <div class="admin-panel">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
-                        <h2 style="font-size: var(--font-size-lg); margin:0;"><i class="fa-solid fa-comments"></i> Danh sách Đánh giá</h2>
-                        <div class="search-box" style="display: flex; gap: var(--space-2);">
-                            <input type="text" id="reviewSearch" placeholder="Tìm nội dung, user..." style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                            <button class="btn btn-secondary btn-sm"><i class="fa-solid fa-search"></i></button>
-                        </div>
-                    </div>
+        <%-- Page header --%>
+        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+            <div>
+                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Kiểm Duyệt Đánh Giá</h1>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Quản lý phản hồi khách hàng, ẩn đánh giá không phù hợp hoặc spam.</p>
+            </div>
+            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                <i class="fa-solid fa-comments text-amber-500"></i>
+                <span class="text-xs font-bold uppercase tracking-wider">Reviews</span>
+            </div>
+        </div>
 
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 25%">Sản phẩm / Người dùng</th>
-                                    <th style="text-align:center;">Rating</th>
-                                    <th style="width: 40%">Nội dung</th>
-                                    <th style="text-align:center;">Trạng thái</th>
-                                    <th style="text-align:center;">Ẩn / Hiện</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reviewTableBody">
-                                <c:choose>
-                                    <c:when test="${empty reviewList}">
-                                        <tr><td colspan="5" class="text-center text-muted">Chưa có đánh giá nào trên hệ thống.</td></tr>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <c:forEach var="review" items="${reviewList}">
-                                            <tr>
-                                                <td>
-                                                    <strong class="searchable-text" style="color:var(--color-primary);">${review.productName}</strong><br>
-                                                    <small class="searchable-text" style="color:var(--color-text-light);">Bởi: <b>${review.customerName}</b></small>
-                                                </td>
-                                                <td style="text-align:center; color:#f59e0b;">
-                                                    <c:forEach begin="1" end="${review.rating}"><i class="fa-solid fa-star"></i></c:forEach>
-                                                    <c:forEach begin="${review.rating + 1}" end="5"><i class="fa-regular fa-star"></i></c:forEach>
-                                                </td>
-                                                <td>
-                                                    <div class="searchable-text" style="max-width:300px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${fn:escapeXml(review.reviewText)}">${review.reviewText}</div>
-                                                    <c:if test="${not empty review.reviewImageUrl}">
-                                                        <a href="${review.reviewImageUrl}" target="_blank" style="font-size:0.8rem; color:var(--color-primary); display:block; margin-top:4px;">
-                                                            <i class="fa-solid fa-image"></i> Xem ảnh
-                                                        </a>
-                                                    </c:if>
-                                                </td>
-                                                <td style="text-align:center;" id="status-col-${review.reviewId}">
-                                                    <c:choose>
-                                                        <c:when test="${review.isHidden}">
-                                                            <span class="status-badge status-HIDDEN"><i class="fa-solid fa-eye-slash"></i> Đã Ẩn</span>
-                                                        </c:when>
-                                                        <c:otherwise>
-                                                            <span class="status-badge status-VISIBLE"><i class="fa-solid fa-eye"></i> Đang Hiện</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                                <td style="text-align:center;">
-                                                    <label class="switch">
-                                                        <input type="checkbox" onchange="toggleReviewVisibility('${review.reviewId}', !this.checked)" ${!review.isHidden ? 'checked' : ''}>
-                                                        <span class="slider"></span>
-                                                    </label>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
+        <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
+
+        <%-- Review list panel --%>
+        <div class="glass-card">
+            <%-- Filter/Search bar --%>
+            <div class="px-6 py-4 border-b border-border bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <h3 class="font-bold text-txt text-sm"><i class="fa-solid fa-star text-amber-500 mr-1"></i> Đánh Giá Từ Khách Hàng</h3>
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="reviewSearch" placeholder="Tìm tên sản phẩm, khách hàng..." 
+                           class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none pl-9 pr-4 py-2 text-xs bg-white transition-all">
+                    <i class="fa-solid fa-search text-txt-3 absolute left-3 top-2.5 text-xs"></i>
                 </div>
             </div>
-        </main>
-    </div>
 
-    <script>
-        function handleJSONResponse(response) {
-            const contentType = response.headers.get("content-type");
-            if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
-                if (contentType && contentType.indexOf("application/json") !== -1) {
-                    return response.json().then(errData => {
-                        throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
-                    });
-                }
-                throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
-            }
-            return response.json();
-        }
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="bg-surface-2 border-b border-border text-txt-2 text-xs uppercase tracking-wider">
+                            <th class="px-6 py-3.5 font-bold" style="width: 25%">Sản phẩm / Người dùng</th>
+                            <th class="px-6 py-3.5 font-bold text-center">Rating</th>
+                            <th class="px-6 py-3.5 font-bold" style="width: 40%">Nội dung đánh giá</th>
+                            <th class="px-6 py-3.5 font-bold text-center">Trạng thái hiển thị</th>
+                            <th class="px-6 py-3.5 font-bold text-center">Ẩn / Hiện</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviewTableBody" class="divide-y divide-[#f1f5f9]">
+                        <c:choose>
+                            <c:when test="${empty reviewList}">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center text-txt-3">
+                                        <i class="fa-solid fa-inbox text-3xl mb-2 block text-slate-300"></i>
+                                        Chưa có đánh giá nào trên hệ thống.
+                                    </td>
+                                </tr>
+                            </c:when>
+                            <c:otherwise>
+                                <c:forEach var="review" items="${reviewList}">
+                                    <tr>
+                                        <%-- Product / User --%>
+                                        <td class="px-6 py-4">
+                                            <strong class="searchable-text text-primary text-sm block font-bold">${review.productName}</strong>
+                                            <span class="searchable-text text-xs text-txt-2 block mt-1">Bởi: <b class="text-txt">${review.customerName}</b></span>
+                                        </td>
+                                        <%-- Rating --%>
+                                        <td class="px-6 py-4 text-center whitespace-nowrap text-amber-400 text-xs">
+                                            <c:forEach begin="1" end="${review.rating}"><i class="fa-solid fa-star"></i></c:forEach>
+                                            <c:forEach begin="${review.rating + 1}" end="5"><i class="fa-regular fa-star text-slate-300"></i></c:forEach>
+                                        </td>
+                                        <%-- Review text & Image --%>
+                                        <td class="px-6 py-4 text-xs text-txt-2">
+                                            <div class="searchable-text max-w-[320px] truncate font-medium text-txt" title="${fn:escapeXml(review.reviewText)}">
+                                                ${review.reviewText}
+                                            </div>
+                                            <c:if test="${not empty review.reviewImageUrl}">
+                                                <a href="${review.reviewImageUrl}" target="_blank" 
+                                                   class="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-primary hover:text-primary-dk hover:underline">
+                                                    <i class="fa-solid fa-image"></i> Xem ảnh đính kèm
+                                                </a>
+                                            </c:if>
+                                        </td>
+                                        <%-- Status Badge --%>
+                                        <td class="px-6 py-4 text-center" id="status-col-${review.reviewId}">
+                                            <c:choose>
+                                                <c:when test="${review.isHidden}">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold">
+                                                        <i class="fa-solid fa-eye-slash text-[10px]"></i> Đã Ẩn
+                                                    </span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold">
+                                                        <i class="fa-solid fa-eye text-[10px]"></i> Đang Hiện
+                                                    </span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                        <%-- Action Slider Toggle --%>
+                                        <td class="px-6 py-4 text-center">
+                                            <label class="switch">
+                                                <input type="checkbox" onchange="toggleReviewVisibility('${review.reviewId}', !this.checked)" ${!review.isHidden ? 'checked' : ''}>
+                                                <span class="slider"></span>
+                                            </label>
+                                        </td>
+                                    </tr>
+                                </c:forEach>
+                            </c:otherwise>
+                        </c:choose>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        document.getElementById('reviewSearch').addEventListener('input', function(e) {
-            const term = e.target.value.toLowerCase();
-            document.querySelectorAll('#reviewTableBody tr').forEach(row => {
-                const searchableTexts = row.querySelectorAll('.searchable-text');
-                if(searchableTexts.length === 0) return; // empty row
-                let match = false;
-                searchableTexts.forEach(el => {
-                    if(el.textContent.toLowerCase().includes(term)) match = true;
+    </main>
+</div>
+
+<script>
+    function handleJSONResponse(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
                 });
-                row.style.display = match ? '' : 'none';
-            });
-        });
-
-        function toggleReviewVisibility(reviewId, isHidden) {
-            fetch('${pageContext.request.contextPath}/admin/reviews/visibility', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: 'reviewId=' + reviewId + '&isHidden=' + isHidden + '&_csrf=${sessionScope._csrfToken}'
-            })
-            .then(handleJSONResponse)
-            .then(data => {
-                if(data.success) {
-                    const statusCol = document.getElementById('status-col-' + reviewId);
-                    if(isHidden) {
-                        statusCol.innerHTML = '<span class="status-badge status-HIDDEN"><i class="fa-solid fa-eye-slash"></i> Đã Ẩn</span>';
-                    } else {
-                        statusCol.innerHTML = '<span class="status-badge status-VISIBLE"><i class="fa-solid fa-eye"></i> Đang Hiện</span>';
-                    }
-                    const Toast = Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-                    Toast.fire({ icon: 'success', title: data.message });
-                } else {
-                    Swal.fire('Lỗi', data.message, 'error');
-                    setTimeout(() => window.location.reload(), 1500);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire('Lỗi', error.message || 'Lỗi kết nối mạng.', 'error');
-            });
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
         }
-    </script>
+        return response.json();
+    }
+
+    document.getElementById('reviewSearch').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        document.querySelectorAll('#reviewTableBody tr').forEach(row => {
+            const searchableTexts = row.querySelectorAll('.searchable-text');
+            if(searchableTexts.length === 0) return; // empty row
+            let match = false;
+            searchableTexts.forEach(el => {
+                if(el.textContent.toLowerCase().includes(term)) match = true;
+            });
+            row.style.display = match ? '' : 'none';
+        });
+    });
+
+    function toggleReviewVisibility(reviewId, isHidden) {
+        fetch('${pageContext.request.contextPath}/admin/reviews/visibility', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'reviewId=' + reviewId + '&isHidden=' + isHidden + '&_csrf=${sessionScope._csrfToken}'
+        })
+        .then(handleJSONResponse)
+        .then(data => {
+            if(data.success) {
+                const statusCol = document.getElementById('status-col-' + reviewId);
+                if(isHidden) {
+                    statusCol.innerHTML = '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold"><i class="fa-solid fa-eye-slash text-[10px]"></i> Đã Ẩn</span>';
+                } else {
+                    statusCol.innerHTML = '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold"><i class="fa-solid fa-eye text-[10px]"></i> Đang Hiện</span>';
+                }
+                const Toast = Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+                Toast.fire({ icon: 'success', title: data.message });
+            } else {
+                Swal.fire('Lỗi', data.message, 'error');
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Lỗi', error.message || 'Lỗi kết nối mạng.', 'error');
+        });
+    }
+</script>
 </body>
 </html>

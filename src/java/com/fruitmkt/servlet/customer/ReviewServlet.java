@@ -1,6 +1,10 @@
 package com.fruitmkt.servlet.customer;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.dao.ProductDAO;
+import com.fruitmkt.dao.ReviewDAO;
+import com.fruitmkt.model.entity.Review;
+import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.ReviewService;
 import com.fruitmkt.service.OrderService;
@@ -11,8 +15,10 @@ import com.fruitmkt.model.entity.OrderItem;
 import com.fruitmkt.model.entity.Review;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -27,12 +33,23 @@ import java.util.ArrayList;
  *
  * @author fruitmkt-team
  */
+import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.util.UUID;
+
 @WebServlet("/reviews")
+@MultipartConfig(
+    fileSizeThreshold = 1024 * 1024 * 2,
+    maxFileSize = 1024 * 1024 * 10,
+    maxRequestSize = 1024 * 1024 * 50
+)
 public class ReviewServlet extends HttpServlet {
 
     private final ReviewService reviewService = new ReviewService();
     private final OrderService orderService = new OrderService();
     private final OrderDAO orderDAO = new OrderDAO();
+    private final ReviewDAO reviewDAO = new ReviewDAO();
+    private final ProductDAO productDAO = new ProductDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -45,9 +62,11 @@ public class ReviewServlet extends HttpServlet {
         User user = SessionUtil.getCurrentUser(session);
 
         if (user == null || !"CUSTOMER".equals(user.getRole())) {
+            SessionUtil.setFlashMessage(session, "Vui lòng đăng nhập để đánh giá sản phẩm.", "danger");
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
+     
 
         String orderIdStr = req.getParameter("orderId");
         if (orderIdStr == null || orderIdStr.trim().isEmpty()) {

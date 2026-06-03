@@ -153,5 +153,12 @@ public class ReviewService {
      */
     public void updateReviewVisibility(int reviewId, boolean isHidden) throws SQLException {
         reviewDAO.updateVisibility(reviewId, isHidden);
+        
+        // Recalculate product rating
+        com.fruitmkt.dao.ProductDAO productDAO = new com.fruitmkt.dao.ProductDAO();
+        int productId = productDAO.getProductIdByReview(reviewId);
+        if (productId != -1) {
+            productDAO.recalculateRating(productId);
+        }
     }
 }

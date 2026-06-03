@@ -9,8 +9,9 @@ import java.util.List;
  * NotificationService — Quản lý gửi và hiển thị thông báo trong hệ thống.
  */
 public class NotificationService {
-
     private final NotificationDAO notificationDAO = new NotificationDAO();
+
+
 
     public void send(int userId, String type, String title, String message, String actionUrl) throws SQLException {
         Notification notif = new Notification();
@@ -37,5 +38,16 @@ public class NotificationService {
 
     public void markAllRead(int userId) throws SQLException {
         notificationDAO.markAllRead(userId);
+    }
+    public List<Notification> getAllSystemNotifications() throws SQLException {
+        return notificationDAO.findAllSystemNotifications();
+    }
+
+    public void sendBroadcast(String title, String message, String target) throws SQLException {
+        if ("ALL".equalsIgnoreCase(target)) {
+            notificationDAO.insertForAll(title, message);
+        } else {
+            notificationDAO.insertForRole(title, message, target);
+        }
     }
 }

@@ -8,235 +8,326 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giám sát đơn hàng - Admin MetaFruit</title>
+    <!-- Google Fonts & Tailwind CSS -->
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#4d661c",
+                        "primary-dark": "#364e03",
+                        "primary-light": "#d9f99d",
+                        bg: "#f4fbf7",
+                        surface: "#ffffff",
+                        border: "#e2ece7",
+                        "text-primary": "#00210d",
+                        "text-secondary": "#44483b",
+                        "text-muted": "#8e9285",
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        body { background-color: var(--color-background); font-family: var(--font-primary); margin: 0; }
-        
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: var(--radius-full);
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .status-PENDING_PAYMENT { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-        .status-CONFIRMED { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
-        .status-PREPARING { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
-        .status-APPROVED { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-        .status-DISPATCHED { background: #fce7f3; color: #9d174d; border: 1px solid #fbcfe8; }
-        .status-DELIVERED { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .status-CANCELLED { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-
-        .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.5rem; }
-        .filter-btn { padding: 6px 14px; border: 1px solid var(--color-border); border-radius: 20px; background: white; color: var(--color-text-secondary); text-decoration: none; font-size: 0.85rem; font-weight: 500; transition: 0.2s; }
-        .filter-btn:hover, .filter-btn.active { background: var(--color-primary); color: white; border-color: var(--color-primary); text-decoration: none; }
-
-        .table-actions { display: flex; gap: 6px; justify-content: center; }
-        
-        .section-title {
-            font-size: var(--font-size-md);
-            font-weight: 700;
-            color: var(--color-primary-dark);
-            margin-top: 0;
-            margin-bottom: var(--space-4);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;
-        }
-        .modal.show { display: flex; }
-        .modal-content {
-            background-color: #fff; padding: 20px; border-radius: 12px; width: 400px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        }
-        .modal-content h3 { margin-top: 0; color: #111827; font-size: 1.15rem; }
-        .modal-content textarea {
-            width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px;
-            margin-top: 10px; resize: none; font-family: inherit;
+        .premium-glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(77, 102, 28, 0.08);
+            box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.03);
         }
     </style>
 </head>
-<body>
-    <div class="admin-layout">
+<body class="bg-bg text-text-primary">
+    <div class="admin-layout flex min-h-screen">
         <!-- Sidebar -->
         <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
             <jsp:param name="activeMenu" value="orders"/>
         </jsp:include>
 
         <!-- Main Content -->
-        <main class="admin-main">
-            <header class="admin-header" style="height: auto; padding: var(--space-4) var(--space-6); display: block; border-bottom: 1px solid var(--color-border); background: white;">
+        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+            <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
                 <div>
-                    <h1 style="margin: 0 0 4px; font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">Giám Sát Đơn Hàng</h1>
-                    <p style="margin: 0; color: var(--color-text-light); font-size: 0.9rem;">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Giám Sát Đơn Hàng</h1>
+                    <p class="text-[#475569] text-xs md:text-sm mt-1">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
                 </div>
-            </header>
+                <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                    <i class="fa-solid fa-leaf text-[#84cc16]"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
+                </div>
+            </div>
 
-            <div class="admin-content">
-                <!-- Flash Message -->
-                <c:if test="${not empty sessionScope.flashMsg}">
-                    <script>
-                        Swal.fire({
-                            icon: '${sessionScope.flashType == "success" ? "success" : "error"}',
-                            title: '${sessionScope.flashType == "success" ? "Thành công" : "Lỗi"}',
-                            text: '${sessionScope.flashMsg}',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    </script>
-                    <c:remove var="flashMsg" scope="session"/>
-                    <c:remove var="flashType" scope="session"/>
-                </c:if>
+            <!-- Flash Message (PRG pattern support) -->
+            <c:if test="${not empty sessionScope.flashMsg}">
+                <script>
+                    Swal.fire({
+                        icon: '${sessionScope.flashType == "success" ? "success" : "error"}',
+                        title: '${sessionScope.flashType == "success" ? "Thành công" : "Lỗi"}',
+                        text: '${sessionScope.flashMsg}',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                </script>
+                <c:remove var="flashMsg" scope="session"/>
+                <c:remove var="flashType" scope="session"/>
+            </c:if>
 
-                <!-- Section 1: Đơn hàng chuyển khoản cần xác nhận thanh toán -->
-                <div class="admin-panel" style="margin-bottom: var(--space-6); border-left: 4px solid #f59e0b;">
-                    <h3 class="section-title" style="color: #d97706;">
-                        <i class="fa-solid fa-receipt"></i> Đơn Chuyển Khoản Chờ Phê Duyệt (${pendingPayments.size()})
-                    </h3>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Mã Đơn</th>
-                                    <th>Khách Hàng</th>
-                                    <th>Gian Hàng (Shop ID)</th>
-                                    <th>Thời Gian Đặt</th>
-                                    <th>Số Tiền</th>
-                                    <th style="text-align:center;">Hành Động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:choose>
-                                    <c:when test="${empty pendingPayments}">
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted" style="padding: 1.5rem;">Không có đơn hàng nào chờ duyệt thanh toán.</td>
+
+            <!-- Section 1: Đơn hàng chuyển khoản cần xác nhận thanh toán -->
+            <div class="premium-glass-card rounded-[1.5rem] p-6 mb-8 border-l-4 border-l-amber-500">
+                <h3 class="text-lg font-bold text-amber-700 flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined">payments</span> Đơn Chuyển Khoản Chờ Phê Duyệt (${pendingPayments.size()})
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Mã Đơn</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Khách Hàng</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Gian Hàng</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Mã Tham Chiếu QR</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Trạng Thái Giao Dịch</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Số Tiền</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary text-center">Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/60">
+                            <c:choose>
+                                <c:when test="${empty pendingPayments}">
+                                    <tr>
+                                        <td colspan="7" class="p-8 text-center text-text-muted italic">Không có đơn hàng nào chờ duyệt thanh toán.</td>
+                                    </tr>
+                                </c:when>
+                                <c:otherwise>
+                                    <c:forEach var="order" items="${pendingPayments}">
+                                        <c:set var="pt" value="${pendingTxMap[order.orderId]}" />
+                                        <tr class="hover:bg-primary-light/10 transition-colors">
+                                            <td class="p-3 font-bold text-primary">#${order.orderId}</td>
+                                            <td class="p-3">User ID: ${order.customerId}</td>
+                                            <td class="p-3">Shop ID: ${order.ownerId}</td>
+                                            <td class="p-3 font-mono text-xs font-bold text-slate-600">${pt != null ? pt.sepayReference : 'N/A'}</td>
+                                            <td class="p-3">
+                                                <c:choose>
+                                                    <c:when test="${empty pt}">
+                                                        <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold border border-gray-200">Chưa tạo QR</span>
+                                                    </c:when>
+                                                    <c:when test="${pt.status == 'pending'}">
+                                                        <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold border border-gray-200">Chưa thanh toán</span>
+                                                    </c:when>
+                                                    <c:when test="${pt.status == 'processing'}">
+                                                        <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold border border-amber-200 animate-pulse">Khách báo đã CK</span>
+                                                    </c:when>
+                                                    <c:when test="${pt.status == 'completed'}">
+                                                        <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200">Đã khớp SePay (Chờ duyệt)</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="px-2.5 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold border border-red-200">${pt.status}</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="p-3 text-[#ba1a1a] font-extrabold"><ft:currency value="${order.finalAmount}" /></td>
+                                            <td class="p-3 text-center">
+                                                <div class="flex gap-2 justify-center">
+                                                    <form action="${pageContext.request.contextPath}/admin/orders" method="POST" class="inline" onsubmit="return confirmApprove(event, '${order.orderId}')">
+                                                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                        <input type="hidden" name="action" value="confirmPayment">
+                                                        <input type="hidden" name="orderId" value="${order.orderId}">
+                                                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer">
+                                                            <span class="material-symbols-outlined text-sm">check</span> Xác nhận nhận tiền
+                                                        </button>
+                                                    </form>
+                                                    <button class="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-all active:scale-95 cursor-pointer" onclick="showCancelModal('${order.orderId}')">
+                                                        <span class="material-symbols-outlined text-sm">close</span> Hủy đơn
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <c:forEach var="order" items="${pendingPayments}">
-                                            <tr>
-                                                <td><strong>#${order.orderId}</strong></td>
-                                                <td>User ID: ${order.customerId}</td>
-                                                <td>Shop ID: ${order.ownerId}</td>
-                                                <td>${order.createdAt}</td>
-                                                <td class="text-danger fw-bold"><ft:currency value="${order.finalAmount}" /></td>
-                                                <td style="text-align:center;">
-                                                    <div class="table-actions">
-                                                        <form action="${pageContext.request.contextPath}/admin/orders" method="POST" style="display:inline;" onsubmit="return confirmApprove(event, '${order.orderId}')">
-                                                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                            <input type="hidden" name="action" value="confirmPayment">
-                                                            <input type="hidden" name="orderId" value="${order.orderId}">
-                                                            <button type="submit" class="btn btn-success btn-sm"><i class="fa-solid fa-check"></i> Xác nhận đã nhận tiền</button>
-                                                        </form>
-                                                        <button class="btn btn-danger btn-sm" onclick="showCancelModal('${order.orderId}')"><i class="fa-solid fa-ban"></i> Hủy đơn</button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
+                                    </c:forEach>
+                                </c:otherwise>
+                            </c:choose>
+                        </tbody>
+                    </table>
                 </div>
+            </div>
 
-                <!-- Section 2: Bộ lọc và danh sách tất cả các đơn hàng -->
-                <div class="admin-panel">
-                    <h3 class="section-title">
-                        <i class="fa-solid fa-list-check"></i> Lịch Sử Giao Dịch Toàn Sàn
-                    </h3>
+            <!-- Section 2: Bộ lọc và danh sách tất cả các đơn hàng -->
+            <div class="premium-glass-card rounded-[1.5rem] p-6">
+                <h3 class="text-lg font-bold text-primary-dark flex items-center gap-2 mb-6 border-b border-border pb-3">
+                    <span class="material-symbols-outlined">list_alt</span> Lịch Sử Giao Dịch Toàn Sàn
+                </h3>
+                
+                <!-- Dynamic Filters Form -->
+                <form action="" method="GET" class="flex flex-wrap gap-4 items-end bg-slate-50/50 p-4 rounded-2xl border border-border mb-6">
+                    <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
+                        <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Trạng thái Đơn hàng</span>
+                        <select name="status" class="w-full rounded-xl border border-border/80 p-2 bg-white text-xs focus:ring-2 focus:ring-primary focus:outline-none">
+                            <option value="" ${empty statusFilter ? 'selected' : ''}>Tất cả trạng thái</option>
+                            <option value="PENDING_PAYMENT" ${statusFilter == 'PENDING_PAYMENT' ? 'selected' : ''}>Chờ thanh toán</option>
+                            <option value="CONFIRMED" ${statusFilter == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
+                            <option value="PREPARING" ${statusFilter == 'PREPARING' ? 'selected' : ''}>Shop đang chuẩn bị</option>
+                            <option value="APPROVED" ${statusFilter == 'APPROVED' ? 'selected' : ''}>Đã duyệt (Chờ giao)</option>
+                            <option value="DISPATCHED" ${statusFilter == 'DISPATCHED' ? 'selected' : ''}>Đang giao</option>
+                            <option value="DELIVERED" ${statusFilter == 'DELIVERED' ? 'selected' : ''}>Đã nhận</option>
+                            <option value="CANCELLED" ${statusFilter == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
+                        </select>
+                    </div>
                     
-                    <!-- Status Filter -->
-                    <div class="filter-bar">
-                        <a href="?status=" class="filter-btn ${empty statusFilter ? 'active' : ''}">Tất cả</a>
-                        <a href="?status=PENDING_PAYMENT" class="filter-btn ${statusFilter == 'PENDING_PAYMENT' ? 'active' : ''}">Chờ thanh toán</a>
-                        <a href="?status=CONFIRMED" class="filter-btn ${statusFilter == 'CONFIRMED' ? 'active' : ''}">Đã xác nhận</a>
-                        <a href="?status=APPROVED" class="filter-btn ${statusFilter == 'APPROVED' ? 'active' : ''}">Đã duyệt (Chờ giao)</a>
-                        <a href="?status=DISPATCHED" class="filter-btn ${statusFilter == 'DISPATCHED' ? 'active' : ''}">Đang giao</a>
-                        <a href="?status=DELIVERED" class="filter-btn ${statusFilter == 'DELIVERED' ? 'active' : ''}">Đã nhận</a>
-                        <a href="?status=CANCELLED" class="filter-btn ${statusFilter == 'CANCELLED' ? 'active' : ''}">Đã hủy</a>
+                    <div class="flex flex-col gap-1 flex-1 min-w-[150px]">
+                        <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Hình thức thanh toán</span>
+                        <select name="paymentMethod" class="w-full rounded-xl border border-border/80 p-2 bg-white text-xs focus:ring-2 focus:ring-primary focus:outline-none">
+                            <option value="" ${empty paymentMethod ? 'selected' : ''}>Tất cả hình thức</option>
+                            <option value="CK" ${paymentMethod == 'CK' ? 'selected' : ''}>Chuyển khoản (CK)</option>
+                            <option value="COD" ${paymentMethod == 'COD' ? 'selected' : ''}>Thanh toán khi nhận (COD)</option>
+                        </select>
                     </div>
 
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Mã Đơn</th>
-                                    <th>Khách Hàng</th>
-                                    <th>Chủ Shop</th>
-                                    <th>Phương Thức</th>
-                                    <th>Tổng Tiền</th>
-                                    <th>Trạng Thái</th>
-                                    <th>Thời Gian</th>
-                                    <th style="text-align:center;">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:choose>
-                                    <c:when test="${empty orders}">
-                                        <tr>
-                                            <td colspan="8" class="text-center text-muted" style="padding: 1.5rem;">Không tìm thấy dữ liệu đơn hàng nào.</td>
-                                        </tr>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <c:forEach var="order" items="${orders}">
-                                            <tr>
-                                                <td><strong>#${order.orderId}</strong></td>
-                                                <td>Khách ID: ${order.customerId}</td>
-                                                <td>Shop ID: ${order.ownerId}</td>
-                                                <td><span class="badge" style="background:#e2e8f0; color:#475569;">${order.paymentMethod}</span></td>
-                                                <td class="text-danger fw-bold"><ft:currency value="${order.finalAmount}" /></td>
-                                                <td>
-                                                    <span class="status-badge status-${order.status}">
+                    <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
+                        <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Trạng thái Giao dịch</span>
+                        <select name="paymentStatus" class="w-full rounded-xl border border-border/80 p-2 bg-white text-xs focus:ring-2 focus:ring-primary focus:outline-none">
+                            <option value="" ${empty paymentStatus ? 'selected' : ''}>Tất cả trạng thái GD</option>
+                            <option value="pending" ${paymentStatus == 'pending' ? 'selected' : ''}>Chưa thanh toán (pending)</option>
+                            <option value="processing" ${paymentStatus == 'processing' ? 'selected' : ''}>Khách báo đã chuyển (processing)</option>
+                            <option value="completed" ${paymentStatus == 'completed' ? 'selected' : ''}>Thành công (completed)</option>
+                            <option value="failed" ${paymentStatus == 'failed' ? 'selected' : ''}>Thất bại (failed)</option>
+                            <option value="refunded" ${paymentStatus == 'refunded' ? 'selected' : ''}>Đã hoàn tiền (refunded)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="bg-primary text-white hover:bg-primary-dark font-bold px-5 py-2 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1 active:scale-95 cursor-pointer">
+                            <span class="material-symbols-outlined text-sm">search</span> Lọc đơn
+                        </button>
+                        <a href="?" class="bg-white border border-border hover:bg-slate-100 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center cursor-pointer">
+                            Reset
+                        </a>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Mã Đơn</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Khách Hàng</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Chủ Shop</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Hình Thức</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Chi Tiết Giao Dịch</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Tổng Tiền</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Trạng Thái Đơn</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary">Thời Gian Đặt</th>
+                                <th class="p-3 border-b border-border font-semibold text-text-secondary text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/60">
+                            <c:choose>
+                                <c:when test="${empty orders}">
+                                    <tr>
+                                        <td colspan="9" class="p-8 text-center text-text-muted italic">Không tìm thấy dữ liệu đơn hàng nào.</td>
+                                    </tr>
+                                </c:when>
+                                <c:otherwise>
+                                    <c:forEach var="order" items="${orders}">
+                                        <c:set var="pt" value="${txMap[order.orderId]}" />
+                                        <tr class="hover:bg-primary-light/10 transition-colors">
+                                            <td class="p-3 font-bold text-primary">#${order.orderId}</td>
+                                            <td class="p-3">Khách ID: ${order.customerId}</td>
+                                            <td class="p-3">Shop ID: ${order.ownerId}</td>
+                                            <td class="p-3">
+                                                <span class="px-2 py-0.5 rounded text-[11px] font-bold ${order.paymentMethod == 'CK' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}">
+                                                    ${order.paymentMethod}
+                                                </span>
+                                            </td>
+                                            <td class="p-3">
+                                                <c:choose>
+                                                    <c:when test="${order.paymentMethod == 'COD'}">
+                                                        <span class="text-text-muted text-xs italic">COD (Thu tiền khi nhận)</span>
+                                                    </c:when>
+                                                    <c:otherwise>
                                                         <c:choose>
-                                                            <c:when test="${order.status == 'PENDING_PAYMENT'}">Chờ thanh toán</c:when>
-                                                            <c:when test="${order.status == 'CONFIRMED'}">Đã xác nhận</c:when>
-                                                            <c:when test="${order.status == 'PREPARING'}">Shop đang chuẩn bị</c:when>
-                                                            <c:when test="${order.status == 'APPROVED'}">Đã duyệt (Chờ giao)</c:when>
-                                                            <c:when test="${order.status == 'DISPATCHED'}">Đang giao</c:when>
-                                                            <c:when test="${order.status == 'DELIVERED'}">Đã nhận</c:when>
-                                                            <c:when test="${order.status == 'CANCELLED'}">Đã hủy</c:when>
-                                                            <c:otherwise>${order.status}</c:otherwise>
+                                                            <c:when test="${empty pt}">
+                                                                <span class="text-text-muted text-xs">Chưa tạo QR</span>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <div class="flex flex-col text-xs">
+                                                                    <span class="font-bold text-slate-700">Ref: ${pt.sepayReference}</span>
+                                                                    <span class="text-text-muted text-[10px]">Trạng thái: 
+                                                                        <strong class="${pt.status == 'completed' ? 'text-emerald-600' : (pt.status == 'processing' ? 'text-amber-600' : 'text-slate-600')}">${pt.status}</strong>
+                                                                    </span>
+                                                                </div>
+                                                            </c:otherwise>
                                                         </c:choose>
-                                                    </span>
-                                                </td>
-                                                <td style="font-size: 0.85rem; color: var(--color-text-light);">${order.createdAt}</td>
-                                                <td style="text-align:center;">
-                                                    <div class="table-actions">
-                                                        <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED'}">
-                                                            <button class="btn btn-danger btn-sm" onclick="showCancelModal('${order.orderId}')"><i class="fa-solid fa-trash-can"></i> Hủy đơn</button>
-                                                        </c:if>
-                                                        <c:if test="${order.status == 'DELIVERED' || order.status == 'CANCELLED'}">
-                                                            <span style="font-size:0.8rem; color:var(--color-text-light); font-style:italic;">Không thể tác động</span>
-                                                        </c:if>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="p-3 text-[#ba1a1a] font-extrabold"><ft:currency value="${order.finalAmount}" /></td>
+                                            <td class="p-3">
+                                                <span class="px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1
+                                                    ${order.status == 'PENDING_PAYMENT' ? 'bg-amber-50 text-amber-800 border border-amber-200' : ''}
+                                                    ${order.status == 'CONFIRMED' ? 'bg-blue-50 text-blue-800 border border-blue-200' : ''}
+                                                    ${order.status == 'PREPARING' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' : ''}
+                                                    ${order.status == 'APPROVED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : ''}
+                                                    ${order.status == 'DISPATCHED' ? 'bg-sky-50 text-sky-800 border border-sky-200' : ''}
+                                                    ${order.status == 'DELIVERED' ? 'bg-teal-50 text-teal-800 border border-teal-200' : ''}
+                                                    ${order.status == 'CANCELLED' ? 'bg-red-50 text-red-800 border border-red-200' : ''}
+                                                ">
+                                                    <c:choose>
+                                                        <c:when test="${order.status == 'PENDING_PAYMENT'}">Chờ thanh toán</c:when>
+                                                        <c:when test="${order.status == 'CONFIRMED'}">Đã xác nhận</c:when>
+                                                        <c:when test="${order.status == 'PREPARING'}">Shop đang chuẩn bị</c:when>
+                                                        <c:when test="${order.status == 'APPROVED'}">Đã duyệt (Chờ giao)</c:when>
+                                                        <c:when test="${order.status == 'DISPATCHED'}">Đang giao</c:when>
+                                                        <c:when test="${order.status == 'DELIVERED'}">Đã nhận</c:when>
+                                                        <c:when test="${order.status == 'CANCELLED'}">Đã hủy</c:when>
+                                                        <c:otherwise>${order.status}</c:otherwise>
+                                                    </c:choose>
+                                                </span>
+                                            </td>
+                                            <td class="p-3 text-text-muted text-xs">${order.createdAt}</td>
+                                            <td class="p-3 text-center">
+                                                <div class="flex gap-2 justify-center">
+                                                    <!-- Nút Hủy đơn cho các đơn chưa kết thúc -->
+                                                    <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED'}">
+                                                        <button class="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-100 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer" onclick="showCancelModal('${order.orderId}')">
+                                                            <i class="fa-solid fa-trash-can"></i> Hủy đơn
+                                                        </button>
+                                                    </c:if>
+                                                    <c:if test="${order.status == 'DELIVERED' || order.status == 'CANCELLED'}">
+                                                        <span class="text-text-muted text-xs italic">Không thể thao tác</span>
+                                                    </c:if>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </c:otherwise>
+                            </c:choose>
+                        </tbody>
+                    </table>
+                </div>
 
-                    <!-- Pagination -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem;">
-                        <span style="font-size:0.85rem; color:var(--color-text-light);">Trang ${currentPage}</span>
-                        <div style="display:flex; gap:5px;">
-                            <c:if test="${currentPage > 1}">
-                                <a href="?status=${statusFilter}&page=${currentPage - 1}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-chevron-left"></i> Trước</a>
-                            </c:if>
-                            <a href="?status=${statusFilter}&page=${currentPage + 1}" class="btn btn-secondary btn-sm">Sau <i class="fa-solid fa-chevron-right"></i></a>
-                        </div>
+                <!-- Pagination UI with advanced parameters preserved -->
+                <div class="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-border gap-4">
+                    <span class="text-xs text-text-secondary font-medium">Trang ${currentPage} / ${totalPages}</span>
+                    <div class="flex gap-1.5">
+                        <c:if test="${currentPage > 1}">
+                            <a href="?status=${statusFilter}&paymentMethod=${paymentMethod}&paymentStatus=${paymentStatus}&page=${currentPage - 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
+                                <span class="material-symbols-outlined text-sm">chevron_left</span> Trước
+                            </a>
+                        </c:if>
+                        <c:if test="${currentPage < totalPages}">
+                            <a href="?status=${statusFilter}&paymentMethod=${paymentMethod}&paymentStatus=${paymentStatus}&page=${currentPage + 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
+                                Sau <span class="material-symbols-outlined text-sm">chevron_right</span>
+                            </a>
+                        </c:if>
                     </div>
                 </div>
             </div>
@@ -244,18 +335,20 @@
     </div>
 
     <!-- Modal Hủy Đơn -->
-    <div id="cancelModal" class="modal">
-        <div class="modal-content">
-            <h3>Hủy đơn hàng bởi Admin</h3>
-            <p style="font-size:0.85rem; color:#6b7280; margin-bottom: 12px;">Vui lòng nhập lý do hủy đơn hàng này để cập nhật hệ thống và gửi thông báo.</p>
+    <div id="cancelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-border animate-fade-in">
+            <h3 class="text-lg font-bold text-text-primary mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-red-600">warning</span> Hủy đơn hàng bởi Admin
+            </h3>
+            <p class="text-text-secondary text-xs mb-4 leading-relaxed">Vui lòng nhập lý do hủy đơn hàng này để cập nhật hệ thống và tự động hoàn trả tồn kho sản phẩm.</p>
             <form action="${pageContext.request.contextPath}/admin/orders" method="POST" onsubmit="return submitCancel(event)">
                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 <input type="hidden" name="action" value="cancelOrder">
                 <input type="hidden" name="orderId" id="cancelOrderId">
-                <textarea name="reason" id="cancelReason" rows="4" placeholder="Nhập lý do hủy..." required></textarea>
-                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeCancelModal()">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-danger">Xác nhận Hủy Đơn</button>
+                <textarea name="reason" id="cancelReason" rows="4" class="w-full rounded-xl border border-border/80 p-3 text-sm focus:ring-2 focus:ring-primary focus:outline-none mb-4" placeholder="Nhập lý do chi tiết..." required></textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="bg-white border border-border text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all active:scale-95 cursor-pointer" onclick="closeCancelModal()">Hủy bỏ</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer">Xác nhận Hủy Đơn</button>
                 </div>
             </form>
         </div>
@@ -284,11 +377,11 @@
         function showCancelModal(orderId) {
             document.getElementById('cancelOrderId').value = orderId;
             document.getElementById('cancelReason').value = '';
-            document.getElementById('cancelModal').classList.add('show');
+            document.getElementById('cancelModal').classList.remove('hidden');
         }
 
         function closeCancelModal() {
-            document.getElementById('cancelModal').classList.remove('show');
+            document.getElementById('cancelModal').classList.add('hidden');
         }
 
         function submitCancel(event) {
