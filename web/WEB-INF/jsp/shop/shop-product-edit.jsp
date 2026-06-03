@@ -353,6 +353,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-Token': '${sessionScope._csrfToken}'
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
