@@ -182,7 +182,7 @@ public class ProductEditServlet extends HttpServlet {
             if (name == null || name.trim().isEmpty()) {
                 errors.add("Tên sản phẩm không được để trống.");
             }
-            if (status == null || (!"ACTIVE".equals(status) && !"INACTIVE".equals(status))) {
+            if (status == null || (!"ACTIVE".equals(status) && !"INACTIVE".equals(status) && !"OUT_OF_SEASON".equals(status))) {
                 errors.add("Trạng thái hiển thị không hợp lệ.");
             }
 
