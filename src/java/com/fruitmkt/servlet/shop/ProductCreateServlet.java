@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ProductCreateController — Servlet xử lý thêm mới sản phẩm và upload ảnh cho shop
- * URL: /shop/product-create
+ * ProductCreateServlet — Servlet xử lý thêm mới sản phẩm và upload ảnh cho shop
+ URL: /shop/product-create
  */
 @WebServlet("/shop/product-create")
 @MultipartConfig(
@@ -35,7 +35,7 @@ import java.util.List;
     maxFileSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 5, // 25MB
     maxRequestSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 10 // 50MB
 )//upload file
-public class ProductCreateController extends HttpServlet {
+public class ProductCreateServlet extends HttpServlet {
 
     private final ProductDAO productDAO = new ProductDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
