@@ -111,7 +111,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT DISTINCT p.* FROM products p "
                    + "JOIN promotions pr ON p.product_id = pr.product_id "
-                   + "WHERE pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "WHERE p.status = 'ACTIVE' AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
                    + "ORDER BY p.product_id DESC";
         try (Connection conn = getConnection();
@@ -323,6 +323,43 @@ public class ProductDAO extends BaseDAO {
             ps.setInt(3, productId);
             ps.executeUpdate();
         }
+    }
+
+    /**
+     * Tạo thông báo yêu cầu nhập kho gửi đến chủ shop, lưu vết customerId và productId trong message.
+     */
+    public void createRestockNotification(int ownerId, int customerId, int productId, String productName) throws SQLException {
+        String sql = "INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at) "
+                   + "VALUES (?, 'SYSTEM', ?, ?, ?, 0, GETDATE())";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setString(2, "Yêu cầu nhập kho vụ mới");
+            ps.setString(3, "[RestockRequest: customer=" + customerId + ", product=" + productId + "] Khách hàng quan tâm và yêu cầu nhập kho vụ mới cho sản phẩm: " + productName);
+            ps.setString(4, "/shop/inventory");
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Kiểm tra xem khách hàng đã gửi yêu cầu nhập kho cho sản phẩm này trong ngày hôm nay chưa.
+     */
+    public boolean hasRequestedRestockToday(int ownerId, int customerId, int productId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM notifications "
+                   + "WHERE user_id = ? AND type = 'SYSTEM' "
+                   + "AND message LIKE ? "
+                   + "AND CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setString(2, "%[RestockRequest: customer=" + customerId + ", product=" + productId + "]%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 
     /**

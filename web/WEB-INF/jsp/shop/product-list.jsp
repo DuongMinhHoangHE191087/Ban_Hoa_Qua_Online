@@ -452,6 +452,7 @@
 <script>
     const CTX = document.getElementById('js-ctx').value;
     const CSRF = document.getElementById('js-csrf').value;
+    window.csrfToken = CSRF;
 
     document.addEventListener('DOMContentLoaded', function() {
         const harvestDateInput = document.getElementById('modal-harvestDate');
@@ -469,9 +470,34 @@
                     throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
                 });
             }
+            if (response.status === 403) {
+                throw new Error('CSRF_ERROR');
+            }
             throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
         }
         return response.json();
+    }
+
+    function handleAjaxError(err, defaultMessage) {
+        console.error(err);
+        if (err.message === 'CSRF_ERROR' || err.message.includes('CSRF')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Phiên làm việc hết hạn',
+                text: 'Phiên làm việc của bạn đã hết hạn hoặc được làm mới. Vui lòng làm mới trang.',
+                confirmButtonText: 'Làm mới ngay',
+                confirmButtonColor: '#4d661c'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: err.message || defaultMessage || "Lỗi kết nối máy chủ.",
+                confirmButtonColor: '#4d661c'
+            });
+        }
     }
 
     /**
@@ -493,7 +519,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-Token': CSRF,
+                'X-CSRF-Token': window.csrfToken || CSRF,
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
@@ -524,13 +550,7 @@
         .catch(err => {
             checkbox.disabled = false;
             checkbox.checked = !isChecked; // Rollback
-            console.error(err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Lỗi kết nối',
-                text: err.message || "Lỗi kết nối máy chủ khi cập nhật trạng thái.",
-                confirmButtonColor: '#4d661c'
-            });
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi cập nhật trạng thái.");
         });
     }
 
@@ -577,7 +597,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-Token': CSRF,
+                'X-CSRF-Token': window.csrfToken || CSRF,
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
@@ -612,13 +632,7 @@
             }
         })
         .catch(err => {
-            console.error(err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Lỗi',
-                text: err.message || "Lỗi kết nối máy chủ khi thực hiện xóa.",
-                confirmButtonColor: '#4d661c'
-            });
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi thực hiện xóa sản phẩm.");
         });
     }
 
@@ -810,13 +824,13 @@
         params.append('action', 'set-primary');
         params.append('imageId', imageId);
         params.append('productId', productId);
-        params.append('_csrf', CSRF);
+        params.append('_csrf', window.csrfToken || CSRF);
 
         fetch(CTX + '/shop/product-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-Token': CSRF,
+                'X-CSRF-Token': window.csrfToken || CSRF,
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
@@ -842,8 +856,7 @@
             }
         })
         .catch(err => {
-            console.error(err);
-            Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: err.message, confirmButtonColor: '#4d661c' });
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi cập nhật ảnh chính.");
         });
     }
 
@@ -870,10 +883,10 @@
             const params = new URLSearchParams();
             params.append('action', 'reorder-images');
             params.append('imageIds', ids.join(','));
-            params.append('_csrf', CSRF);
+            params.append('_csrf', window.csrfToken || CSRF);
             fetch(CTX + '/shop/product-status', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': CSRF, 'X-Requested-With': 'XMLHttpRequest' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.csrfToken || CSRF, 'X-Requested-With': 'XMLHttpRequest' },
                 body: params
             }).catch(err => console.warn('Reorder save failed:', err));
         });
@@ -1062,13 +1075,13 @@
                 const params = new URLSearchParams();
                 params.append('action', 'delete-image');
                 params.append('imageId', imageId);
-                params.append('_csrf', CSRF);
+                params.append('_csrf', window.csrfToken || CSRF);
 
                 fetch(CTX + '/shop/product-status', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': CSRF,
+                        'X-CSRF-Token': window.csrfToken || CSRF,
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: params
@@ -1098,13 +1111,7 @@
                     }
                 })
                 .catch(err => {
-                    console.error(err);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Lỗi',
-                        text: err.message || "Lỗi kết nối máy chủ khi xóa hình ảnh.",
-                        confirmButtonColor: '#4d661c'
-                    });
+                    handleAjaxError(err, "Lỗi kết nối máy chủ khi xóa hình ảnh.");
                 });
             }
         });
@@ -1172,13 +1179,7 @@
             }
         })
         .catch(err => {
-            console.error(err);
-            Swal.fire({
-                icon: 'error',
-                title: 'Lỗi hệ thống',
-                text: err.message || 'Lỗi kết nối máy chủ.',
-                confirmButtonColor: '#4d661c'
-            });
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi lưu sản phẩm.");
         });
     }
 </script>
