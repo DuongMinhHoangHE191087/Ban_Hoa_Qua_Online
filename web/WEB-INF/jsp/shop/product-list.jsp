@@ -453,6 +453,14 @@
     const CTX = document.getElementById('js-ctx').value;
     const CSRF = document.getElementById('js-csrf').value;
 
+    document.addEventListener('DOMContentLoaded', function() {
+        const harvestDateInput = document.getElementById('modal-harvestDate');
+        if (harvestDateInput) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            harvestDateInput.setAttribute('max', todayStr);
+        }
+    });
+
     function handleJSONResponse(response) {
         const contentType = response.headers.get("content-type");
         if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
@@ -766,26 +774,34 @@
         let path = img.filePath || '';
         if (path.startsWith('build/')) path = path.substring(6);
 
-        card.innerHTML = `
-            <img src="\${CTX}/\${path}" alt="\${img.isPrimary ? '\u2b50 \u1ea2nh ch\u00ednh' : '\u1ea2nh ph\u1ee5'}" class="w-full h-full object-cover rounded-lg">
-            <div class="absolute top-1.5 left-1.5 z-10">
-                <span class="text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm \${img.isPrimary ? 'bg-primary text-white' : 'bg-white/90 text-txt-2'}">
-                    \${img.isPrimary ? '\u2b50 \u1ea2nh ch\u00ednh' : '\u1ea2nh ph\u1ee5'}
-                </span>
-            </div>
-            <div class="absolute inset-1 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-                \${!img.isPrimary ? `<button type="button" title="\u0110\u1eb7t l\u00e0m \u1ea3nh ch\u00ednh"
-                        onclick="setExistingImagePrimary(\${img.imageId}, \${productId})"
-                        class="w-8 h-8 rounded-full bg-amber-400 hover:bg-amber-500 text-white flex items-center justify-center shadow active:scale-90 transition-transform cursor-pointer border-0 text-[13px]">
-                    \u2b50
-                </button>` : ''}
-                <button type="button" title="X\u00f3a \u1ea3nh"
-                        onclick="deleteExistingImageModal(\${img.imageId})"
-                        class="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow active:scale-90 transition-transform cursor-pointer border-0">
-                    <span class="material-symbols-outlined text-[16px]">delete</span>
-                </button>
-            </div>
-        `;
+        const altText = img.isPrimary ? 'Ảnh chính' : 'Ảnh phụ';
+        const badgeClass = img.isPrimary ? 'bg-primary text-white' : 'bg-white/90 text-txt-2';
+        
+        let primaryBtnHtml = '';
+        if (!img.isPrimary) {
+            primaryBtnHtml = '<button type="button" title="Đặt làm ảnh chính" ' +
+                'onclick="setExistingImagePrimary(' + img.imageId + ', ' + productId + ')" ' +
+                'class="w-8 h-8 rounded-full bg-amber-400 hover:bg-amber-500 text-white flex items-center justify-center shadow active:scale-90 transition-transform cursor-pointer border-0 text-[13px]">' +
+                '⭐' +
+                '</button>';
+        }
+
+        card.innerHTML = 
+            '<img src="' + CTX + '/' + path + '" alt="' + altText + '" class="w-full h-full object-cover rounded-lg">' +
+            '<div class="absolute top-1.5 left-1.5 z-10">' +
+                '<span class="text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm ' + badgeClass + '">' +
+                    altText +
+                '</span>' +
+            '</div>' +
+            '<div class="absolute inset-1 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">' +
+                primaryBtnHtml +
+                '<button type="button" title="Xóa ảnh" ' +
+                        'onclick="deleteExistingImageModal(' + img.imageId + ')" ' +
+                        'class="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow active:scale-90 transition-transform cursor-pointer border-0">' +
+                    '<span class="material-symbols-outlined text-[16px]">delete</span>' +
+                '</button>' +
+            '</div>';
+
         container.appendChild(card);
     }
 

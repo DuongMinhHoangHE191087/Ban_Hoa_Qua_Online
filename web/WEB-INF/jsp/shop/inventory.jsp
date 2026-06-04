@@ -322,8 +322,29 @@
         </div>
 
     <script>
-        // Set default restock date to today
-        document.getElementById('changedAt').valueAsDate = new Date();
+        // Set dynamic csrfToken for JS context
+        window.csrfToken = '${sessionScope._csrfToken}';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set max restock date to today and default to today
+            const changedAtInput = document.getElementById('changedAt');
+            if (changedAtInput) {
+                const todayStr = new Date().toISOString().split('T')[0];
+                changedAtInput.setAttribute('max', todayStr);
+                changedAtInput.value = todayStr;
+            }
+
+            // Intercept form submit to ensure CSRF token is correctly attached
+            const form = document.getElementById('restockForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    const csrfInput = this.querySelector('input[name="_csrf"]');
+                    if (csrfInput && (!csrfInput.value || csrfInput.value.trim() === '')) {
+                        csrfInput.value = window.csrfToken || '';
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

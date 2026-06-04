@@ -138,6 +138,9 @@ public class ProductCreateServlet extends HttpServlet {
         if (harvestDateStr != null && !harvestDateStr.trim().isEmpty()) {
             try {
                 harvestDate = LocalDate.parse(harvestDateStr);
+                if (harvestDate.isAfter(LocalDate.now())) {
+                    errors.add("Ngày thu hoạch không được vượt quá ngày hiện tại.");
+                }
             } catch (DateTimeParseException e) {
                 errors.add("Ngày thu hoạch không đúng định dạng YYYY-MM-DD.");
             }

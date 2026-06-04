@@ -2,6 +2,7 @@ package com.fruitmkt.service;
 
 import com.fruitmkt.dao.InventoryDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
+import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.model.entity.InventoryLog;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -23,6 +24,7 @@ public class InventoryService {
 
     private final InventoryDAO inventoryDAO = new InventoryDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final ProductDAO productDAO = new ProductDAO();
 
     /**
      * Thực hiện nghiệp vụ nhập kho (Restock) cho một biến thể sản phẩm.
@@ -61,6 +63,10 @@ public class InventoryService {
 
                 // 3. Cập nhật tồn kho thực tế
                 productVariantDAO.updateStock(conn, variantId, quantity);
+
+                // 4. Lấy productId từ variantId và cập nhật ngày thu hoạch cùng trạng thái sản phẩm sang ACTIVE
+                int productId = productVariantDAO.getProductId(conn, variantId);
+                productDAO.updateHarvestDateAndStatus(conn, productId, changedAt, "ACTIVE");
 
                 conn.commit();
             } catch (Exception e) {
