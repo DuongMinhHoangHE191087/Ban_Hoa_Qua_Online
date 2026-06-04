@@ -466,6 +466,14 @@
         }
     });
 
+    document.addEventListener('DOMContentLoaded', function() {
+        const harvestDateInput = document.getElementById('modal-harvestDate');
+        if (harvestDateInput) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            harvestDateInput.setAttribute('max', todayStr);
+        }
+    });
+
     function handleJSONResponse(response) {
         const contentType = response.headers.get("content-type");
         if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
