@@ -43,10 +43,12 @@ public class InventoryServlet extends HttpServlet {
             return;
         }
 
+        List<Map<String, Object>> variantsWithProduct = new ArrayList<>();
+        List<ReplenishmentLog> history = new ArrayList<>();
+        String errorMsg = null;
         try {
             // 1. Fetch variants belonging to products of this shop owner
             List<Product> products = productDAO.findByOwner(currentUser.getUserId());
-            List<Map<String, Object>> variantsWithProduct = new ArrayList<>();
             for (Product p : products) {
                 List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
                 for (ProductVariant v : variants) {
@@ -60,22 +62,33 @@ public class InventoryServlet extends HttpServlet {
                     variantsWithProduct.add(map);
                 }
             }
-
-            // 2. Fetch past replenishment log history
-            List<ReplenishmentLog> history = replenishmentService.getReplenishmentHistory(currentUser.getUserId());
-
-            // 3. Set request attributes
-            req.setAttribute("variants", variantsWithProduct);
-            req.setAttribute("replenishmentLogs", history);
-
-            // 4. Forward to inventory JSP page
-            req.getRequestDispatcher("/WEB-INF/jsp/shop/inventory.jsp").forward(req, resp);
-
         } catch (SQLException e) {
             e.printStackTrace();
-            SessionUtil.flashError(session, "Đã xảy ra lỗi khi tải dữ liệu tồn kho.");
-            resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
+            errorMsg = "Không thể tải danh sách sản phẩm: " + e.getMessage();
         }
+
+        try {
+            // 2. Fetch past replenishment log history
+            history = replenishmentService.getReplenishmentHistory(currentUser.getUserId());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (errorMsg == null) {
+                errorMsg = "Không thể tải lịch sử nhập kho: " + e.getMessage();
+            } else {
+                errorMsg += " | " + e.getMessage();
+            }
+        }
+
+        if (errorMsg != null) {
+            req.setAttribute("inventoryError", errorMsg);
+        }
+
+        // 3. Set request attributes
+        req.setAttribute("variants", variantsWithProduct);
+        req.setAttribute("replenishmentLogs", history);
+
+        // 4. Forward to inventory JSP page
+        req.getRequestDispatcher("/WEB-INF/jsp/shop/inventory.jsp").forward(req, resp);
     }
 
     @Override

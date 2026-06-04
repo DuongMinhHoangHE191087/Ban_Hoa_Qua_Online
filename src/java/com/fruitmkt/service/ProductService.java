@@ -96,7 +96,15 @@ public class ProductService {
         productDAO.updateStatus(productId, status);
     }
 
+    public int getLowStockCountByOwner(int ownerId, int threshold) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("ownerId không hợp lệ.");
+        }
+        return productDAO.getLowStockCountByOwner(ownerId, threshold);
+    }
+
     // ── Private helpers ────────────────────────────────────────────────────
+
 
     private void validateProduct(Product product) {
         if (product == null) throw new IllegalArgumentException("Dữ liệu sản phẩm không được null.");
