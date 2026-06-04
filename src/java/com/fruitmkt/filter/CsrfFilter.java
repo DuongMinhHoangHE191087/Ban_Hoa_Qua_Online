@@ -45,6 +45,13 @@ public class CsrfFilter implements Filter {
             if (requestToken == null || requestToken.trim().isEmpty()) {
                 requestToken = req.getHeader("X-XSRF-TOKEN");
             }
+            
+            System.out.println("CsrfFilter Debug: URI=" + req.getRequestURI() 
+                + " | sessionToken=" + sessionToken 
+                + " | requestToken=" + requestToken 
+                + " | X-CSRF-Token Header=" + req.getHeader("X-CSRF-Token")
+                + " | _csrf Param=" + req.getParameter("_csrf"));
+            
             if (sessionToken == null || !sessionToken.equals(requestToken)) {
                 boolean isAjax = "XMLHttpRequest".equals(req.getHeader("X-Requested-With"))
                         || "json".equals(req.getParameter("format"))
