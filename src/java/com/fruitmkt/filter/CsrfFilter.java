@@ -46,7 +46,7 @@ public class CsrfFilter implements Filter {
                 requestToken = req.getHeader("X-XSRF-TOKEN");
             }
             
-            System.out.println("CsrfFilter Debug: URI=" + req.getRequestURI() 
+            req.getServletContext().log("CsrfFilter Debug: URI=" + req.getRequestURI() 
                 + " | sessionToken=" + sessionToken 
                 + " | requestToken=" + requestToken 
                 + " | X-CSRF-Token Header=" + req.getHeader("X-CSRF-Token")
