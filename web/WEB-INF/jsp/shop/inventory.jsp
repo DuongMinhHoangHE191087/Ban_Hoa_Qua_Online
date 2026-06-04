@@ -225,13 +225,19 @@
                                                 <td>
                                                     <c:choose>
                                                         <c:when test="${v.stockQuantity <= 0}">
-                                                            <span class="badge badge-danger">Hết hàng (0)</span>
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-sm">
+                                                                <i class="fa-solid fa-circle-xmark mr-1 text-[10px]"></i> Hết hàng (0)
+                                                            </span>
                                                         </c:when>
                                                         <c:when test="${v.stockQuantity < 10}">
-                                                            <span class="badge badge-warning">Sắp hết hàng (${v.stockQuantity})</span>
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
+                                                                <i class="fa-solid fa-triangle-exclamation mr-1 text-[10px]"></i> Sắp hết (${v.stockQuantity})
+                                                            </span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="badge badge-success">Còn hàng (${v.stockQuantity})</span>
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                                                                <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Còn hàng (${v.stockQuantity})
+                                                            </span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
@@ -283,7 +289,7 @@
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <code>${log.changeType}</code>
+                                                    <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">${log.changeType}</span>
                                                 </td>
                                                 <td>
                                                     <c:choose>
