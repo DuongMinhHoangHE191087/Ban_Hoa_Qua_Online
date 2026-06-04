@@ -1239,10 +1239,12 @@
                 <!-- Stock Indicator -->
                 <div class="stock-indicator" id="variant-stock-hint">
                     <c:if test="${not empty variants}">
-                        <i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i>
-                        Tồn kho: <strong style="color:#14532d;"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i>
+                            Tồn kho: <strong id="stock-qty-val" style="color:#14532d;"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
+                        </div>
                         <div class="stock-bar-bg">
-                            <div class="stock-bar-fill" style="width: min(100%, calc(${variants[0].stockQuantity} * 100% / 200));"></div>
+                            <div class="stock-bar-fill" id="stock-bar-fill-indicator" data-initial-stock="${variants[0].stockQuantity}"></div>
                         </div>
                     </c:if>
                 </div>
@@ -1368,7 +1370,7 @@
                                                 </div>
                                                 <div class="voucher-expire">Còn <c:out value="${pv.maxUses - pv.usedCount}"/> lượt dùng</div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${pv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${pv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1389,7 +1391,7 @@
                                                     <c:if test="${sv.minOrderValue > 0}"> • Đơn tối thiểu <ft:currency value="${sv.minOrderValue}"/></c:if>
                                                 </div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${sv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${sv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1410,7 +1412,7 @@
                                                     <c:if test="${syv.minOrderValue > 0}"> • Đơn tối thiểu <ft:currency value="${syv.minOrderValue}"/></c:if>
                                                 </div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${syv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${syv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1434,7 +1436,7 @@
                             <c:forEach var="sp" items="${shopOtherProducts}">
                                 <a href="${pageContext.request.contextPath}/products/detail?id=${sp.productId}" 
                                    class="shop-product-mini" style="text-decoration:none; color:inherit;">
-                                    <img src="${sp.image}" class="shop-product-mini-img" alt="<c:out value='${sp.name}'/>" onerror="handleImageError(this)">
+                                    <img src="${sp.image}" class="shop-product-mini-img" alt="${sp.name}" onerror="handleImageError(this)">
                                     <div class="shop-product-mini-info">
                                         <div class="shop-product-mini-name"><c:out value="${sp.name}"/></div>
                                         <div class="shop-product-mini-price"><ft:currency value="${sp.price}"/></div>
@@ -1509,7 +1511,7 @@
                         <div class="rating-bar-row">
                             <div class="bar-stars">${starIndex} <i class="fa-solid fa-star text-[#F59E0B]"></i></div>
                             <div class="progress-bar-bg">
-                                <div class="progress-bar-fill" style="width: ${starPercent}%"></div>
+                                <div class="progress-bar-fill" data-percent="${starPercent}"></div>
                             </div>
                             <div class="bar-count-percent">
                                 <fmt:formatNumber value="${starPercent}" maxFractionDigits="0"/>% (${starCount})
@@ -1651,6 +1653,9 @@
 </div>
 
 <script>
+    // Define server-side variables safely in JS scope
+    const currentProductId = parseInt('${product.productId}') || 0;
+
     // Image fallback
     window.handleImageError = function(img) {
         if (!img.dataset.errorStage) {
@@ -1711,6 +1716,17 @@
         }
     }
 
+    // 2a. Dynamic Stock indicator progress updater
+    function updateStockIndicator(stock) {
+        const qtyVal = document.getElementById('stock-qty-val');
+        if (qtyVal) qtyVal.textContent = stock;
+        const fillBar = document.getElementById('stock-bar-fill-indicator');
+        if (fillBar) {
+            const fillPercent = (stock * 100) / 200;
+            fillBar.style.width = Math.min(100, fillPercent) + '%';
+        }
+    }
+
     // 2b. Variant change — update price, unit, stock, and check stock-out states
     function onVariantChange(radioElement) {
         const price = parseFloat(radioElement.getAttribute('data-price'));
@@ -1724,10 +1740,8 @@
         const unitDisplay = document.getElementById('displayed-unit');
         if (unitDisplay) unitDisplay.textContent = ' / ' + label;
 
-        const stockHint = document.getElementById('variant-stock-hint');
-        if (stockHint) {
-            stockHint.innerHTML = '<i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i> Tồn kho: <strong style="color:#14532d;">' + stock + '</strong> sản phẩm khả dụng';
-        }
+        // Dynamic stock indicator update
+        updateStockIndicator(stock);
 
         const qtyInput = document.getElementById('purchase-qty');
         if (qtyInput) qtyInput.value = 1;
@@ -1787,7 +1801,7 @@
         }
 
         if (window.addCartItem) {
-            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, ${product.productId});
+            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, currentProductId);
         } else {
             console.warn('window.addCartItem not defined globally, falling back to Local Storage only.');
             if (typeof GuestCart !== 'undefined') {
@@ -1906,7 +1920,8 @@
     }
 
     // 9. Copy voucher code
-    function copyVoucher(btn, code) {
+    function copyVoucher(btn) {
+        const code = btn.getAttribute('data-code');
         if (navigator.clipboard) {
             navigator.clipboard.writeText(code).catch(() => {});
         } else {
@@ -1931,6 +1946,12 @@
 
     // 10. Auto-update similar product images from seeded Unsplash fallback map
     document.addEventListener('DOMContentLoaded', () => {
+        // Initialize star rating progress bars style
+        document.querySelectorAll('.progress-bar-fill').forEach(el => {
+            const pct = el.getAttribute('data-percent');
+            if (pct) el.style.width = pct + '%';
+        });
+
         const fruitImages = {
             1: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=600&auto=format&fit=crop&q=80',
             2: 'https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&auto=format&fit=crop&q=80',
@@ -1958,6 +1979,13 @@
             // Apply initial stock-out UI check
             const initialStock = parseInt(firstVariant.getAttribute('data-stock')) || 0;
             updateStockUI(initialStock);
+            updateStockIndicator(initialStock);
+        } else {
+            const fillIndicator = document.getElementById('stock-bar-fill-indicator');
+            if (fillIndicator) {
+                const initialStock = parseInt(fillIndicator.getAttribute('data-initial-stock')) || 0;
+                updateStockIndicator(initialStock);
+            }
         }
     });
 </script>
