@@ -119,17 +119,17 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>ReplenishmentLog.java</code></td>
+                        <td><code>InventoryLog.java</code></td>
                         <td>Entity Model</td>
-                        <td>Ánh xạ cấu trúc bảng <code>replenishment_logs</code> trong CSDL và chứa các thuộc tính bổ trợ hiển thị.</td>
+                        <td>Ánh xạ cấu trúc bảng <code>inventory_logs</code> trong CSDL và chứa các thuộc tính bổ trợ hiển thị.</td>
                     </tr>
                     <tr>
-                        <td><code>ReplenishmentLogDAO.java</code></td>
+                        <td><code>InventoryDAO.java</code></td>
                         <td>DAO (Data Access)</td>
                         <td>Cô lập và trực tiếp thực thi các câu lệnh SQL INSERT và SELECT lên cơ sở dữ liệu.</td>
                     </tr>
                     <tr>
-                        <td><code>ReplenishmentService.java</code></td>
+                        <td><code>InventoryService.java</code></td>
                         <td>Service (Business)</td>
                         <td>Quản lý nghiệp vụ kiểm tra logic và chịu trách nhiệm điều phối Giao dịch CSDL (JDBC Transaction).</td>
                     </tr>
@@ -142,24 +142,24 @@
             </table>
         </div>
 
-        <!-- Class 1: ReplenishmentLog -->
-        <h2>2. Lớp ReplenishmentLog.java (Entity Model)</h2>
+        <!-- Class 1: InventoryLog -->
+        <h2>2. Lớp InventoryLog.java (Entity Model)</h2>
         <div class="card">
             <p>Mã nguồn định nghĩa các thuộc tính ánh xạ cơ bản và thuộc tính hiển thị liên kết:</p>
             <div class="code-block">
-                <span class="kw">public class</span> ReplenishmentLog {<br>
+                <span class="kw">public class</span> InventoryLog {<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> logId;<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> variantId;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> replenishedBy;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> quantity;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String supplierDetails;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> LocalDate replenishmentDate;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> LocalDateTime createdAt;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> changedBy;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String changeType;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> quantityDelta;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> quantityAfter;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String note;<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> LocalDateTime changedAt;<br>
                 <br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt">// Helper fields for UI display (not mapped in database tables)</span><br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String productName;<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String variantLabel;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String replenishedByName;<br>
                 }
             </div>
 
@@ -178,9 +178,9 @@
                         <td>Cho phép kiểm soát tồn kho ở mức độ chi tiết nhất (ví dụ: quả táo đỏ loại 1kg, 2kg có tồn kho riêng).</td>
                     </tr>
                     <tr>
-                        <td><code>private String supplierDetails;</code></td>
-                        <td>Lưu thông tin nhà cung cấp của lô hàng (cho phép NULL).</td>
-                        <td>Hỗ trợ việc truy vết nguồn gốc xuất xứ trái cây khi có sự cố chất lượng.</td>
+                        <td><code>private int quantityDelta;</code></td>
+                        <td>Hiển thị số lượng thay đổi (+ khi nhập kho, - khi bán hàng/hủy hàng).</td>
+                        <td>Cho phép ghi nhận cả nghiệp vụ tăng lẫn giảm tồn kho một cách thống nhất trên một bảng dữ liệu.</td>
                     </tr>
                     <tr>
                         <td><code>private String productName;</code><br><code>private String variantLabel;</code></td>
@@ -191,8 +191,8 @@
             </table>
         </div>
 
-        <!-- Class 2: ReplenishmentLogDAO -->
-        <h2>3. Lớp ReplenishmentLogDAO.java (Data Access Object)</h2>
+        <!-- Class 2: InventoryDAO -->
+        <h2>3. Lớp InventoryDAO.java (Data Access Object)</h2>
         <div class="card">
             <p>Trực tiếp tương tác với dữ liệu. Dưới đây là giải thích chi tiết các phương thức nghiệp vụ:</p>
             
@@ -219,19 +219,16 @@
                 </tbody>
             </table>
 
-            <h3>Hàm <code>save(Connection conn, ReplenishmentLog log)</code></h3>
+            <h3>Hàm <code>save(Connection conn, InventoryLog log)</code></h3>
             <div class="code-block">
-                String sql = <span class="str">"INSERT INTO replenishment_logs (variant_id, replenished_by, quantity, supplier_details, replenishment_date, created_at) VALUES (?, ?, ?, ?, ?, GETDATE())"</span>;<br>
+                String sql = <span class="str">"INSERT INTO inventory_logs (variant_id, changed_by, change_type, quantity_delta, quantity_after, note, changed_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())"</span>;<br>
                 <span class="kw">try</span> (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(1, log.getVariantId());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(2, log.getReplenishedBy());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(3, log.getQuantity());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (log.getSupplierDetails() != <span class="kw">null</span>) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setString(4, log.getSupplierDetails());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;} <span class="kw">else</span> {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setNull(4, Types.NVARCHAR);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;}<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setDate(5, Date.valueOf(log.getReplenishmentDate()));<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(2, log.getChangedBy());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setString(3, log.getChangeType());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(4, log.getQuantityDelta());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(5, log.getQuantityAfter());<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;ps.setString(6, log.getNote());<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;ps.executeUpdate();<br>
                 }
             </div>
@@ -252,41 +249,35 @@
                     <tr>
                         <td><code>Statement.RETURN_GENERATED_KEYS</code></td>
                         <td>Yêu cầu CSDL trả về các cột khóa tự tăng (Identity) vừa mới được sinh ra.</td>
-                        <td>Giúp lấy được <code>log_id</code> tự sinh ngay sau khi insert, phục vụ mục đích audit log hoặc hiển thị ngay lập tức lên UI mà không cần SELECT lại.</td>
-                    </tr>
-                    <tr>
-                        <td><code>ps.setNull(4, Types.NVARCHAR);</code></td>
-                        <td>Xử lý trường hợp chuỗi thông tin nhà cung cấp bị trống (Optional input).</td>
-                        <td><strong>Tránh lỗi NullPointerException:</strong> Hệ thống thiết lập chính xác kiểu dữ liệu NULL trên SQL Server mà không làm crash ứng dụng Java.</td>
-                    </tr>
-                    <tr>
-                        <td><code>Date.valueOf(log.getReplenishmentDate())</code></td>
-                        <td>Chuyển đổi kiểu dữ liệu <code>java.time.LocalDate</code> thành kiểu <code>java.sql.Date</code>.</td>
-                        <td>Đảm bảo tương thích kiểu dữ liệu ngày tháng giữa code Java hiện đại và các driver JDBC của SQL Server.</td>
+                        <td>Giúp lấy được <code>log_id</code> tự sinh ngay sau khi insert, phục vụ mục đích hiển thị ngay lập tức lên UI mà không cần SELECT lại.</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Class 3: ReplenishmentService -->
-        <h2>4. Lớp ReplenishmentService.java (Service Layer - Transaction Orchestrator)</h2>
+        <!-- Class 3: InventoryService -->
+        <h2>4. Lớp InventoryService.java (Service Layer - Transaction Orchestrator)</h2>
         <div class="card">
             <p>Tầng quản lý nghiệp vụ và thực thi giao dịch. Đảm bảo tính nguyên tử (Atomicity):</p>
             <div class="code-block">
-                <span class="kw">try</span> (Connection conn = replenishmentLogDAO.openConnection()) {<br>
+                <span class="kw">try</span> (Connection conn = inventoryDAO.openConnection()) {<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;conn.setAutoCommit(<span class="kw">false</span>);<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">try</span> {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;replenishmentLogDAO.save(conn, log);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> currentStock = productVariantDAO.getStockQuantity(conn, variantId);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> stockAfter = currentStock + quantity;<br>
                 <br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String updateStockSql = <span class="str">"UPDATE product_variants SET stock_quantity = stock_quantity + ?, updated_at = GETDATE() WHERE variant_id = ?"</span>;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">try</span> (PreparedStatement ps = conn.prepareStatement(updateStockSql)) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(1, quantity);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(2, variantId);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> affectedRows = ps.executeUpdate();<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (affectedRows == 0) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">throw new</span> SQLException(<span class="str">"Variant not found!"</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InventoryLog log = <span class="kw">new</span> InventoryLog();<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setVariantId(variantId);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setChangedBy(userId);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setChangeType(<span class="str">"MANUAL_ADJUST"</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setQuantityDelta(quantity);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setQuantityAfter(stockAfter);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setNote(note != <span class="kw">null</span> && !note.trim().isEmpty() ? note.trim() : <span class="str">"Nhập kho"</span>);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setChangedAt(changedAt.atTime(LocalTime.now()));<br>
+                <br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inventoryDAO.save(conn, log);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;productVariantDAO.updateStock(conn, variantId, quantity);<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.commit();<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;} <span class="kw">catch</span> (Exception e) {<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.rollback();<br>
@@ -308,17 +299,12 @@
                     <tr>
                         <td><code>try (Connection conn = ...)</code></td>
                         <td>Sử dụng cú pháp <strong>try-with-resources</strong> để khai báo và khởi tạo kết nối Database.</td>
-                        <td><strong>Chống rò rỉ kết nối (Connection Leak):</strong> Java sẽ tự động đóng kết nối (gọi <code>conn.close()</code>) trong mọi trường hợp (dù code chạy thành công hay xảy ra ngoại lệ), bảo vệ tài nguyên Server.</td>
+                        <td><strong>Chống rò rỉ kết nối (Connection Leak):</strong> Java sẽ tự động đóng kết nối (gọi <code>conn.close()</code>) trong mọi trường hợp, bảo vệ tài nguyên Server.</td>
                     </tr>
                     <tr>
                         <td><code>conn.setAutoCommit(false);</code></td>
                         <td>Tắt chế độ tự động xác nhận câu lệnh của JDBC.</td>
                         <td>Đánh dấu điểm bắt đầu của một <strong>Database Transaction</strong>. Mọi câu lệnh SQL chạy sau dòng này sẽ chỉ nằm ở trạng thái chờ xác nhận.</td>
-                    </tr>
-                    <tr>
-                        <td><code>if (affectedRows == 0) { throw new SQLException(...) }</code></td>
-                        <td>Nếu câu lệnh UPDATE tồn kho không tác động đến dòng nào (do sai ID hoặc đã bị xóa mềm).</td>
-                        <td>Chủ động phát ra lỗi để kích hoạt luồng Rollback ngay lập tức, ngăn ngừa dữ liệu rác (log ghi nhận nhập kho thành công nhưng thực tế kho không đổi).</td>
                     </tr>
                     <tr>
                         <td><code>conn.commit();</code></td>
@@ -329,11 +315,6 @@
                         <td><code>conn.rollback();</code></td>
                         <td>Hủy bỏ toàn bộ các câu lệnh đã chạy từ lúc đặt <code>setAutoCommit(false)</code>.</td>
                         <td>Hoàn trả cơ sở dữ liệu về trạng thái an toàn trước khi xảy ra lỗi. Không để xảy ra tình trạng mất mát dữ liệu hoặc log mồ côi.</td>
-                    </tr>
-                    <tr>
-                        <td><code>conn.setAutoCommit(true);</code></td>
-                        <td>Bật lại chế độ autocommit trước khi trả Connection về pool của Server (Tomcat).</td>
-                        <td>Trả kết nối về trạng thái mặc định an toàn để các luồng xử lý khác (ở các Servlet khác) tái sử dụng kết nối không bị ảnh hưởng lỗi logic transaction.</td>
                     </tr>
                 </tbody>
             </table>

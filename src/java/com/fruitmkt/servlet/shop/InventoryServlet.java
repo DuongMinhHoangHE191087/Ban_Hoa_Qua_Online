@@ -2,12 +2,12 @@ package com.fruitmkt.servlet.shop;
 
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.util.SessionUtil;
-import com.fruitmkt.service.ReplenishmentService;
+import com.fruitmkt.service.InventoryService;
 import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
 import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.ProductVariant;
-import com.fruitmkt.model.entity.ReplenishmentLog;
+import com.fruitmkt.model.entity.InventoryLog;
 import com.fruitmkt.model.entity.User;
 
 import jakarta.servlet.ServletException;
@@ -26,7 +26,7 @@ import java.util.*;
 @WebServlet("/shop/inventory")
 public class InventoryServlet extends HttpServlet {
 
-    private final ReplenishmentService replenishmentService = new ReplenishmentService();
+    private final InventoryService inventoryService = new InventoryService();
     private final ProductDAO productDAO = new ProductDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
 
@@ -61,12 +61,12 @@ public class InventoryServlet extends HttpServlet {
                 }
             }
 
-            // 2. Fetch past replenishment log history
-            List<ReplenishmentLog> history = replenishmentService.getReplenishmentHistory(currentUser.getUserId());
+            // 2. Fetch past restock history logs
+            List<InventoryLog> history = inventoryService.getRestockHistory(currentUser.getUserId());
 
             // 3. Set request attributes
             req.setAttribute("variants", variantsWithProduct);
-            req.setAttribute("replenishmentLogs", history);
+            req.setAttribute("restockLogs", history);
 
             // 4. Forward to inventory JSP page
             req.getRequestDispatcher("/WEB-INF/jsp/shop/inventory.jsp").forward(req, resp);
@@ -93,13 +93,13 @@ public class InventoryServlet extends HttpServlet {
         // 1. Read parameters
         String variantIdStr = req.getParameter("variantId");
         String quantityStr = req.getParameter("quantity");
-        String supplierDetails = req.getParameter("supplierDetails");
-        String replenishmentDateStr = req.getParameter("replenishmentDate");
+        String note = req.getParameter("note");
+        String changedAtStr = req.getParameter("changedAt");
 
         // 2. Validation
         if (variantIdStr == null || variantIdStr.trim().isEmpty() ||
             quantityStr == null || quantityStr.trim().isEmpty() ||
-            replenishmentDateStr == null || replenishmentDateStr.trim().isEmpty()) {
+            changedAtStr == null || changedAtStr.trim().isEmpty()) {
             SessionUtil.flashError(session, "Vui lòng nhập đầy đủ các trường bắt buộc.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
@@ -107,7 +107,7 @@ public class InventoryServlet extends HttpServlet {
 
         int variantId;
         int quantity;
-        LocalDate replenishmentDate;
+        LocalDate changedAt;
 
         try {
             variantId = Integer.parseInt(variantIdStr);
@@ -119,7 +119,7 @@ public class InventoryServlet extends HttpServlet {
         }
 
         try {
-            replenishmentDate = LocalDate.parse(replenishmentDateStr);
+            changedAt = LocalDate.parse(changedAtStr);
         } catch (DateTimeParseException e) {
             SessionUtil.flashError(session, "Định dạng ngày nhập kho không hợp lệ.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
@@ -132,7 +132,7 @@ public class InventoryServlet extends HttpServlet {
             return;
         }
 
-        if (replenishmentDate.isAfter(LocalDate.now())) {
+        if (changedAt.isAfter(LocalDate.now())) {
             SessionUtil.flashError(session, "Ngày nhập kho không được lớn hơn ngày hiện tại.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
@@ -155,7 +155,7 @@ public class InventoryServlet extends HttpServlet {
             }
 
             // 4. Call Service to execute transaction
-            replenishmentService.replenish(variantId, quantity, supplierDetails, replenishmentDate, currentUser.getUserId());
+            inventoryService.restock(variantId, quantity, note, changedAt, currentUser.getUserId());
             SessionUtil.flashSuccess(session, "Nhập kho sản phẩm thành công!");
 
         } catch (SQLException e) {

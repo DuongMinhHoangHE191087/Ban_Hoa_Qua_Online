@@ -52,7 +52,9 @@
         .table tr:hover { background-color: rgba(77, 102, 28, 0.02); }
         
         /* Badge for stock quantity increase */
-        .stock-delta { font-weight: 700; color: var(--color-success); background-color: #E8F5E9; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.85rem; display: inline-block; }
+        .stock-delta { font-weight: 700; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.85rem; display: inline-block; }
+        .stock-delta-positive { background-color: #E8F5E9; color: var(--color-success); }
+        .stock-delta-negative { background-color: #FFEBEE; color: var(--color-danger); }
         
         /* Form Controls overrides for consistency */
         .form-group { margin-bottom: 1.25rem; }
@@ -129,17 +131,19 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label" for="replenishmentDate">Ngày nhập kho <span class="text-danger">*</span></label>
-                                <input type="date" name="replenishmentDate" id="replenishmentDate" class="form-control" required>
+                                <label class="form-label" for="changedAt">Ngày nhập kho <span class="text-danger">*</span></label>
+                                <input type="date" name="changedAt" id="changedAt" class="form-control" required>
                             </div>
 
+
+
                             <div class="form-group">
-                                <label class="form-label" for="supplierDetails">Thông tin nhà cung cấp</label>
-                                <input type="text" name="supplierDetails" id="supplierDetails" class="form-control" placeholder="Tên nhà cung cấp (tùy chọn)">
+                                <label class="form-label" for="note">Ghi chú</label>
+                                <input type="text" name="note" id="note" class="form-control" placeholder="Ghi chú nhập kho (ví dụ: Nhập hàng từ nhà cung cấp A)">
                             </div>
 
                             <button type="submit" class="btn btn-primary btn-block mt-4">
-                                <i class="fa-solid fa-circle-arrow-down me-2"></i>Nhập kho sản phẩm
+                                <i class="fa-solid fa-circle-arrow-down me-2"></i>Nhập kho
                             </button>
                         </form>
                     </div>
@@ -202,23 +206,24 @@
                     <!-- History Column -->
                     <div class="card">
                         <div class="card-header">
-                            <h2 class="card-title"><i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch sử nhập kho</h2>
+                            <h2 class="card-title"><i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch sử biến động kho</h2>
                         </div>
                         <div class="card-body" style="padding: 0;">
                             <div class="table-responsive-scroll">
                                 <table class="table">
                                     <thead>
                                         <tr>
-                                            <th>Mã Phiếu</th>
+                                            <th>Mã</th>
                                             <th>Sản phẩm & Biến thể</th>
-                                            <th>Số lượng</th>
-                                            <th>Nhà cung cấp</th>
-                                            <th>Ngày nhập</th>
+                                            <th>Thay đổi</th>
+                                            <th>Loại</th>
+                                            <th>Ghi chú</th>
+                                            <th>Thời gian</th>
                                             <th>Người thực hiện</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <c:forEach var="log" items="${replenishmentLogs}">
+                                        <c:forEach var="log" items="${restockLogs}">
                                             <tr>
                                                 <td>#${log.logId}</td>
                                                 <td>
@@ -226,26 +231,31 @@
                                                     <div class="text-muted" style="font-size: 0.8rem;">${log.variantLabel}</div>
                                                 </td>
                                                 <td>
-                                                    <span class="stock-delta">+${log.quantity}</span>
+                                                    <span class="stock-delta ${log.quantityDelta >= 0 ? 'stock-delta-positive' : 'stock-delta-negative'}">
+                                                        ${log.quantityDelta >= 0 ? '+' : ''}${log.quantityDelta}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <code>${log.changeType}</code>
                                                 </td>
                                                 <td>
                                                     <c:choose>
-                                                        <c:when test="${not empty log.supplierDetails}">
-                                                            ${log.supplierDetails}
+                                                        <c:when test="${not empty log.note}">
+                                                            <span style="color: var(--color-text-primary);">${log.note}</span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="text-muted">Không có</span>
+                                                            <span class="text-muted">-</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
-                                                <td>${log.replenishmentDate}</td>
-                                                <td>${log.replenishedByName}</td>
+                                                <td>${log.formattedChangedAt}</td>
+                                                <td>${log.changedByName}</td>
                                             </tr>
                                         </c:forEach>
-                                        <c:if test="${empty replenishmentLogs}">
+                                        <c:if test="${empty restockLogs}">
                                             <tr>
-                                                <td colspan="6" class="text-center py-4" style="color: var(--color-text-muted); font-style: italic; padding: 2rem;">
-                                                    Chưa có lịch sử nhập kho nào!
+                                                <td colspan="7" class="text-center py-4" style="color: var(--color-text-muted); font-style: italic; padding: 2rem;">
+                                                    Chưa có lịch sử biến động kho nào!
                                                 </td>
                                             </tr>
                                         </c:if>
@@ -261,8 +271,8 @@
     </div>
 
     <script>
-        // Set default replenishment date to today
-        document.getElementById('replenishmentDate').valueAsDate = new Date();
+        // Set default restock date to today
+        document.getElementById('changedAt').valueAsDate = new Date();
     </script>
 </body>
 </html>

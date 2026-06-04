@@ -16,6 +16,11 @@ public class InventoryLog {
     private String note;
     private java.time.LocalDateTime changedAt;
 
+    // Helper fields for UI display
+    private String productName;
+    private String variantLabel;
+    private String changedByName;
+
     public InventoryLog() {}
 
     public int getLogId() { return logId; }
@@ -41,5 +46,19 @@ public class InventoryLog {
 
     public java.time.LocalDateTime getChangedAt() { return changedAt; }
     public void setChangedAt(java.time.LocalDateTime changedAt) { this.changedAt = changedAt; }
+
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+
+    public String getVariantLabel() { return variantLabel; }
+    public void setVariantLabel(String variantLabel) { this.variantLabel = variantLabel; }
+
+    public String getFormattedChangedAt() {
+        if (changedAt == null) return "";
+        return changedAt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
+
+    public String getChangedByName() { return changedByName; }
+    public void setChangedByName(String changedByName) { this.changedByName = changedByName; }
 
 }
