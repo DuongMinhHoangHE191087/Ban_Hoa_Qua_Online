@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ProductEditController — Servlet xử lý chỉnh sửa sản phẩm cho shop
- * URL: /shop/product-edit
+ * ProductEditServlet — Servlet xử lý chỉnh sửa sản phẩm cho shop
+ URL: /shop/product-edit
  */
 @WebServlet("/shop/product-edit")
 @MultipartConfig(
@@ -35,7 +35,7 @@ import java.util.List;
     maxFileSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 5, // 25MB
     maxRequestSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 10 // 50MB
 )
-public class ProductEditController extends HttpServlet {
+public class ProductEditServlet extends HttpServlet {
 
     private final ProductDAO productDAO = new ProductDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();

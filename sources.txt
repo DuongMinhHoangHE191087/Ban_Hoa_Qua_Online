@@ -12,6 +12,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ProductDA
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ProductImageDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ProductVariantDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\PromotionDAO.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ReplenishmentLogDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ReturnRequestDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ReviewDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\SettlementDAO.java
@@ -46,6 +47,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ProductImage.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ProductVariant.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Promotion.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ReplenishmentLog.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ReturnRequest.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Review.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\SepayWebhookDedup.java
@@ -66,6 +68,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\Order
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\PaymentService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\ProductService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\PromotionService.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\ReplenishmentService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\ReturnRequestService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\ReturnService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\ReviewService.java
@@ -119,10 +122,10 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest\ProductDetailServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest\ProductListServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\InventoryServlet.java
-D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ProductCreateController.java
-D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ProductEditController.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ProductCreateServlet.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ProductEditServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ProductManageServlet.java
-D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ProductStatusController.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ProductStatusServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\PromotionServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\SettlementServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\shop\ShopDashboardServlet.java
