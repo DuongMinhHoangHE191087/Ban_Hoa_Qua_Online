@@ -330,7 +330,7 @@ public class ProductDAO extends BaseDAO {
      */
     public void autoDeactivateExpiredProducts() throws SQLException {
         String sql = "UPDATE products SET status = 'INACTIVE', updated_at = GETDATE() "
-                   + "WHERE status = 'ACTIVE' AND harvest_date IS NOT NULL AND shelf_life_days IS NOT NULL "
+                   + "WHERE status = 'ACTIVE' AND harvest_date IS NOT NULL AND shelf_life_days IS NOT NULL AND shelf_life_days > 0 "
                    + "AND DATEADD(day, shelf_life_days, harvest_date) <= CAST(GETDATE() AS DATE)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
