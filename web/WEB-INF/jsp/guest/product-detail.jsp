@@ -34,8 +34,8 @@
     }
 </script>
 
-<!-- Custom Premium CSS for Product Detail Page -->
-<style>
+<!-- Custom Premium CSS for Product Detail Page using Tailwind directives -->
+<style type="text/tailwindcss">
     /* ============================================================
        PREMIUM PAGE DESIGN TOKENS
     ============================================================ */
