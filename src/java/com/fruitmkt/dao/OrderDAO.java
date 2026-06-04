@@ -469,6 +469,23 @@ public class OrderDAO extends BaseDAO {
         return 0;
     }
 
+    /** Tính tổng doanh thu của shop owner (chỉ các đơn hàng DELIVERED). */
+    public java.math.BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
+        String sql = "SELECT SUM(final_amount) FROM orders WHERE owner_id = ? AND status = 'DELIVERED'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.math.BigDecimal revenue = rs.getBigDecimal(1);
+                    return revenue != null ? revenue : java.math.BigDecimal.ZERO;
+                }
+            }
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+
+
     /** Ánh xạ ResultSet -> Order — gọi trong mọi query SELECT */
     private Order mapRow(ResultSet rs) throws SQLException {
         Order o = new Order();

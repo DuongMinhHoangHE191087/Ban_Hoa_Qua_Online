@@ -432,6 +432,25 @@ public class ProductDAO extends BaseDAO {
         return list;
     }
 
+    /** Đếm số lượng biến thể sản phẩm có số lượng tồn kho <= threshold của chủ cửa hàng. */
+    public int getLowStockCountByOwner(int ownerId, int threshold) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM product_variants pv "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "WHERE p.owner_id = ? AND pv.stock_quantity <= ? AND pv.is_active = 1 AND p.status = 'ACTIVE'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, threshold);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+
 
     /** Ánh xạ ResultSet -> Product — gọi trong mọi query SELECT */
     private Product mapRow(ResultSet rs) throws SQLException {

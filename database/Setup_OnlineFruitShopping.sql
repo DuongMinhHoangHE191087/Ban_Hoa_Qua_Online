@@ -1,4 +1,4 @@
-SET NOCOUNT ON;
+﻿SET NOCOUNT ON;
 GO
 USE [master];
 GO
@@ -575,231 +575,231 @@ GO
 -- Indexes for hot DAO paths
 -- =========================================================
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_owner_profiles_approval_status_profile_id' AND object_id = OBJECT_ID(N'dbo.shop_owner_profiles'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_owner_profiles_approval_status_profile_id')
 BEGIN
     CREATE INDEX IX_shop_owner_profiles_approval_status_profile_id
         ON dbo.shop_owner_profiles (approval_status, profile_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_owner_id_product_id_desc' AND object_id = OBJECT_ID(N'dbo.products'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_owner_id_product_id_desc')
 BEGIN
     CREATE INDEX IX_products_owner_id_product_id_desc
         ON dbo.products (owner_id, product_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_category_id_product_id_desc' AND object_id = OBJECT_ID(N'dbo.products'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_category_id_product_id_desc')
 BEGIN
     CREATE INDEX IX_products_category_id_product_id_desc
         ON dbo.products (category_id, product_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_images_product_id_display_order' AND object_id = OBJECT_ID(N'dbo.product_images'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_images_product_id_display_order')
 BEGIN
     CREATE INDEX IX_product_images_product_id_display_order
         ON dbo.product_images (product_id, display_order ASC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_variants_product_id_is_active_price' AND object_id = OBJECT_ID(N'dbo.product_variants'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_variants_product_id_is_active_price')
 BEGIN
     CREATE INDEX IX_product_variants_product_id_is_active_price
         ON dbo.product_variants (product_id, is_active, price);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id')
 BEGIN
     CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_id
         ON dbo.cart_items (cart_id, variant_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_cart_items_cart_id_added_at' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_cart_items_cart_id_added_at')
 BEGIN
     CREATE INDEX IX_cart_items_cart_id_added_at
         ON dbo.cart_items (cart_id, added_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_customer_id_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_customer_id_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_customer_id_order_id_desc
         ON dbo.orders (customer_id, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_status_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_status_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_owner_id_status_order_id_desc
         ON dbo.orders (owner_id, status, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_owner_id_order_id_desc
         ON dbo.orders (owner_id, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_status_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_status_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_status_order_id_desc
         ON dbo.orders (status, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_order_id' AND object_id = OBJECT_ID(N'dbo.order_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_order_id')
 BEGIN
     CREATE INDEX IX_order_items_order_id
         ON dbo.order_items (order_id, order_item_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_variant_id' AND object_id = OBJECT_ID(N'dbo.order_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_variant_id')
 BEGIN
     CREATE INDEX IX_order_items_variant_id
         ON dbo.order_items (variant_id, order_item_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_created_by_is_deleted_promo_id_desc' AND object_id = OBJECT_ID(N'dbo.promotions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_created_by_is_deleted_promo_id_desc')
 BEGIN
     CREATE INDEX IX_promotions_created_by_is_deleted_promo_id_desc
         ON dbo.promotions (created_by, is_deleted, promo_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_product_scope_active_validity' AND object_id = OBJECT_ID(N'dbo.promotions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_product_scope_active_validity')
 BEGIN
     CREATE INDEX IX_promotions_product_scope_active_validity
         ON dbo.promotions (product_id, scope, is_active, is_deleted, valid_from, valid_until);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_inventory_logs_variant_id_changed_at_desc' AND object_id = OBJECT_ID(N'dbo.inventory_logs'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_inventory_logs_variant_id_changed_at_desc')
 BEGIN
     CREATE INDEX IX_inventory_logs_variant_id_changed_at_desc
         ON dbo.inventory_logs (variant_id, changed_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_order_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_order_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_return_requests_order_id_created_at_desc
         ON dbo.return_requests (order_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_customer_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_customer_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_return_requests_customer_id_created_at_desc
         ON dbo.return_requests (customer_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status_created_at_desc')
 BEGIN
     CREATE INDEX IX_return_requests_status_created_at_desc
         ON dbo.return_requests (status, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_owner_id_settlement_id_desc' AND object_id = OBJECT_ID(N'dbo.shop_settlements'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_owner_id_settlement_id_desc')
 BEGIN
     CREATE INDEX IX_shop_settlements_owner_id_settlement_id_desc
         ON dbo.shop_settlements (owner_id, settlement_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_status_settlement_id_desc' AND object_id = OBJECT_ID(N'dbo.shop_settlements'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_status_settlement_id_desc')
 BEGIN
     CREATE INDEX IX_shop_settlements_status_settlement_id_desc
         ON dbo.shop_settlements (status, settlement_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlement_orders_settlement_id_order_id' AND object_id = OBJECT_ID(N'dbo.shop_settlement_orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlement_orders_settlement_id_order_id')
 BEGIN
     CREATE INDEX IX_shop_settlement_orders_settlement_id_order_id
         ON dbo.shop_settlement_orders (settlement_id, order_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_status_delivery_id_desc' AND object_id = OBJECT_ID(N'dbo.deliveries'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_status_delivery_id_desc')
 BEGIN
     CREATE INDEX IX_deliveries_staff_id_status_delivery_id_desc
         ON dbo.deliveries (staff_id, status, delivery_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_delivery_id_desc' AND object_id = OBJECT_ID(N'dbo.deliveries'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_delivery_id_desc')
 BEGIN
     CREATE INDEX IX_deliveries_staff_id_delivery_id_desc
         ON dbo.deliveries (staff_id, delivery_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_reviews_order_item_id' AND object_id = OBJECT_ID(N'dbo.reviews'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_reviews_order_item_id')
 BEGIN
     CREATE INDEX IX_reviews_order_item_id
         ON dbo.reviews (order_item_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_owner' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_owner')
 BEGIN
     CREATE INDEX IX_chat_sessions_customer_owner
         ON dbo.chat_sessions (customer_id, owner_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_id_updated_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_id_updated_at_desc')
 BEGIN
     CREATE INDEX IX_chat_sessions_customer_id_updated_at_desc
         ON dbo.chat_sessions (customer_id, updated_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_owner_id_updated_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_owner_id_updated_at_desc')
 BEGIN
     CREATE INDEX IX_chat_sessions_owner_id_updated_at_desc
         ON dbo.chat_sessions (owner_id, updated_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_is_read_created_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_messages'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_is_read_created_at_desc')
 BEGIN
     CREATE INDEX IX_chat_messages_session_id_is_read_created_at_desc
         ON dbo.chat_messages (session_id, is_read, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_messages'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_chat_messages_session_id_created_at_desc
         ON dbo.chat_messages (session_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_is_read_created_at_desc' AND object_id = OBJECT_ID(N'dbo.notifications'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_is_read_created_at_desc')
 BEGIN
     CREATE INDEX IX_notifications_user_id_is_read_created_at_desc
         ON dbo.notifications (user_id, is_read, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.notifications'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_notifications_user_id_created_at_desc
         ON dbo.notifications (user_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_payment_transactions_sepay_transaction_id' AND object_id = OBJECT_ID(N'dbo.payment_transactions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_payment_transactions_sepay_transaction_id')
 BEGIN
     CREATE INDEX IX_payment_transactions_sepay_transaction_id
         ON dbo.payment_transactions (sepay_transaction_id);
@@ -1217,7 +1217,7 @@ VALUES (
     GETDATE()
 );
 GO
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_acceptance_auto_cancel' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_acceptance_auto_cancel')
 BEGIN
     CREATE INDEX IX_orders_acceptance_auto_cancel
     ON dbo.orders (status, shop_acceptance_deadline)
@@ -1225,7 +1225,7 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status')
 BEGIN
     CREATE INDEX IX_return_requests_status ON dbo.return_requests(status, created_at);
 END
@@ -1265,6 +1265,7 @@ PRINT '  * ANPHU-GIAM30K (An Phu):   Giảm cố định 30k cho đơn từ 200k
 PRINT '  * MEKONG-GIAM20K (Mekong):  Giảm cố định 20k cho đơn từ 150k'
 PRINT '  * KLEVER-GIAM50K (Klever):  Giảm cố định 50k cho đơn từ 400k'
 PRINT '========================================================================='
+
 
 
 
