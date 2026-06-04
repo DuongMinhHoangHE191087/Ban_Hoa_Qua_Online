@@ -119,7 +119,7 @@ BEGIN
         harvest_date DATE NULL,
         shelf_life_days INT NULL,
         storage_instruction NVARCHAR(300) NULL,
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED')),
+        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED', 'OUT_OF_SEASON')),
         view_count INT NOT NULL CONSTRAINT DF_products_view_count DEFAULT 0,
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
         sold_quantity INT NOT NULL CONSTRAINT DF_products_sold_quantity DEFAULT 0,
