@@ -18,6 +18,22 @@
     <jsp:param name="pageTitle" value="${product.name}"/>
 </jsp:include>
 
+<!-- Load Tailwind CSS dynamically to sync container layout with Home page -->
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#4D661C',
+                    'primary-dark': '#364E03',
+                    'primary-light': '#D9F99D',
+                }
+            }
+        }
+    }
+</script>
+
 <!-- Custom Premium CSS for Product Detail Page -->
 <style>
     /* ============================================================
@@ -1127,10 +1143,19 @@
                 <div class="flex items-center space-x-2 mb-3 gap-2">
                     <c:choose>
                         <c:when test="${product.status == 'ACTIVE'}">
-                            <span class="badge-stock badge-instock"><i class="fa-solid fa-circle-check mr-1"></i> Còn hàng</span>
+                            <span id="variant-status-badge" class="badge-stock ${not empty variants && variants[0].stockQuantity > 0 ? 'badge-instock' : 'badge-outstock'}">
+                                <c:choose>
+                                    <c:when test="${not empty variants && variants[0].stockQuantity > 0}">
+                                        <i class="fa-solid fa-circle-check mr-1"></i> Còn hàng
+                                    </c:when>
+                                    <c:otherwise>
+                                        <i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng
+                                    </c:otherwise>
+                                </c:choose>
+                            </span>
                         </c:when>
                         <c:otherwise>
-                            <span class="badge-stock badge-outstock"><i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng</span>
+                            <span id="variant-status-badge" class="badge-stock badge-outstock"><i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng</span>
                         </c:otherwise>
                     </c:choose>
                     <span class="badge-rating-top">
@@ -1214,23 +1239,25 @@
                 <!-- Stock Indicator -->
                 <div class="stock-indicator" id="variant-stock-hint">
                     <c:if test="${not empty variants}">
-                        <i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i>
-                        Tồn kho: <strong style="color:#14532d;"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i>
+                            Tồn kho: <strong id="stock-qty-val" style="color:#14532d;"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
+                        </div>
                         <div class="stock-bar-bg">
-                            <div class="stock-bar-fill" style="width: min(100%, calc(${variants[0].stockQuantity} * 100% / 200));"></div>
+                            <div class="stock-bar-fill" id="stock-bar-fill-indicator" data-initial-stock="${variants[0].stockQuantity}"></div>
                         </div>
                     </c:if>
                 </div>
 
                 <!-- Cart Action Row -->
                 <c:if test="${not empty variants && product.status == 'ACTIVE'}">
-                    <div class="cart-action-row">
-                        <div class="qty-selector">
+                    <div class="cart-action-row" id="cart-action-controls">
+                        <div class="qty-selector" id="purchase-qty-selector">
                             <button type="button" class="qty-btn" onclick="adjustQuantity(-1)"><i class="fa-solid fa-minus"></i></button>
                             <input type="number" id="purchase-qty" class="qty-input" value="1" min="1" readonly>
                             <button type="button" class="qty-btn" onclick="adjustQuantity(1)"><i class="fa-solid fa-plus"></i></button>
                         </div>
-                        <button type="button" class="btn-add-to-cart-large" onclick="handleAddToCart()">
+                        <button type="button" id="btn-add-to-cart" class="btn-add-to-cart-large" onclick="handleAddToCart()">
                             <i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng
                         </button>
                     </div>
@@ -1343,7 +1370,7 @@
                                                 </div>
                                                 <div class="voucher-expire">Còn <c:out value="${pv.maxUses - pv.usedCount}"/> lượt dùng</div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${pv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${pv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1364,7 +1391,7 @@
                                                     <c:if test="${sv.minOrderValue > 0}"> • Đơn tối thiểu <ft:currency value="${sv.minOrderValue}"/></c:if>
                                                 </div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${sv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${sv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1385,7 +1412,7 @@
                                                     <c:if test="${syv.minOrderValue > 0}"> • Đơn tối thiểu <ft:currency value="${syv.minOrderValue}"/></c:if>
                                                 </div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${syv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${syv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1409,7 +1436,7 @@
                             <c:forEach var="sp" items="${shopOtherProducts}">
                                 <a href="${pageContext.request.contextPath}/products/detail?id=${sp.productId}" 
                                    class="shop-product-mini" style="text-decoration:none; color:inherit;">
-                                    <img src="${sp.image}" class="shop-product-mini-img" alt="<c:out value='${sp.name}'/>" onerror="handleImageError(this)">
+                                    <img src="${sp.image}" class="shop-product-mini-img" alt="${sp.name}" onerror="handleImageError(this)">
                                     <div class="shop-product-mini-info">
                                         <div class="shop-product-mini-name"><c:out value="${sp.name}"/></div>
                                         <div class="shop-product-mini-price"><ft:currency value="${sp.price}"/></div>
@@ -1484,7 +1511,7 @@
                         <div class="rating-bar-row">
                             <div class="bar-stars">${starIndex} <i class="fa-solid fa-star text-[#F59E0B]"></i></div>
                             <div class="progress-bar-bg">
-                                <div class="progress-bar-fill" style="width: ${starPercent}%"></div>
+                                <div class="progress-bar-fill" data-percent="${starPercent}"></div>
                             </div>
                             <div class="bar-count-percent">
                                 <fmt:formatNumber value="${starPercent}" maxFractionDigits="0"/>% (${starCount})
@@ -1626,6 +1653,9 @@
 </div>
 
 <script>
+    // Define server-side variables safely in JS scope
+    const currentProductId = parseInt('${product.productId}') || 0;
+
     // Image fallback
     window.handleImageError = function(img) {
         if (!img.dataset.errorStage) {
@@ -1645,7 +1675,59 @@
         element.classList.add('active');
     }
 
-    // 2. Variant change — update price, unit, stock
+    // 2. Helper to update Out of Stock UI elements
+    function updateStockUI(stock) {
+        const badge = document.getElementById('variant-status-badge');
+        const btnAdd = document.getElementById('btn-add-to-cart');
+        const qtySelector = document.getElementById('purchase-qty-selector');
+
+        if (stock <= 0) {
+            // Update badge to Out of Stock
+            if (badge) {
+                badge.className = 'badge-stock badge-outstock';
+                badge.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng';
+            }
+            // Disable and dim the Add to Cart button
+            if (btnAdd) {
+                btnAdd.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                btnAdd.setAttribute('disabled', 'true');
+                btnAdd.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Hết Hàng';
+            }
+            // Dim quantity selector controls
+            if (qtySelector) {
+                qtySelector.classList.add('opacity-50', 'pointer-events-none');
+            }
+        } else {
+            // Update badge to In Stock
+            if (badge) {
+                badge.className = 'badge-stock badge-instock';
+                badge.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Còn hàng';
+            }
+            // Enable and restore the Add to Cart button
+            if (btnAdd) {
+                btnAdd.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                btnAdd.removeAttribute('disabled');
+                btnAdd.innerHTML = '<i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng';
+            }
+            // Restore quantity selector controls
+            if (qtySelector) {
+                qtySelector.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+    }
+
+    // 2a. Dynamic Stock indicator progress updater
+    function updateStockIndicator(stock) {
+        const qtyVal = document.getElementById('stock-qty-val');
+        if (qtyVal) qtyVal.textContent = stock;
+        const fillBar = document.getElementById('stock-bar-fill-indicator');
+        if (fillBar) {
+            const fillPercent = (stock * 100) / 200;
+            fillBar.style.width = Math.min(100, fillPercent) + '%';
+        }
+    }
+
+    // 2b. Variant change — update price, unit, stock, and check stock-out states
     function onVariantChange(radioElement) {
         const price = parseFloat(radioElement.getAttribute('data-price'));
         const label = radioElement.getAttribute('data-label');
@@ -1658,11 +1740,14 @@
         const unitDisplay = document.getElementById('displayed-unit');
         if (unitDisplay) unitDisplay.textContent = ' / ' + label;
 
-        const stockHint = document.getElementById('variant-stock-hint');
-        if (stockHint) stockHint.innerHTML = 'Tồn kho: <strong>' + stock + '</strong> sản phẩm khả dụng';
+        // Dynamic stock indicator update
+        updateStockIndicator(stock);
 
         const qtyInput = document.getElementById('purchase-qty');
         if (qtyInput) qtyInput.value = 1;
+
+        // Apply Out of Stock UI check
+        updateStockUI(stock);
     }
 
     // 3. Quantity adjustment
@@ -1692,7 +1777,20 @@
         const quantity = parseInt(qtyInput ? qtyInput.value : 1);
         const name = "<c:out value='${product.name}'/> - " + checkedVariant.getAttribute('data-label');
         const price = parseFloat(checkedVariant.getAttribute('data-price'));
-        const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 99;
+        const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 0;
+
+        // CRITICAL: Block out-of-stock actions and display Red Alert
+        if (stockQuantity <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hết hàng!',
+                text: 'Sản phẩm này hiện tại đã hết hàng, không thể thêm vào giỏ hàng.',
+                confirmButtonText: 'Đồng ý',
+                confirmButtonColor: '#B71C1C',
+                background: '#ffffff'
+            });
+            return;
+        }
 
         let imagePath = 'assets/img/placeholder.png';
         const mainImg = document.getElementById('main-product-img');
@@ -1703,7 +1801,7 @@
         }
 
         if (window.addCartItem) {
-            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, ${product.productId});
+            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, currentProductId);
         } else {
             console.warn('window.addCartItem not defined globally, falling back to Local Storage only.');
             if (typeof GuestCart !== 'undefined') {
@@ -1822,7 +1920,8 @@
     }
 
     // 9. Copy voucher code
-    function copyVoucher(btn, code) {
+    function copyVoucher(btn) {
+        const code = btn.getAttribute('data-code');
         if (navigator.clipboard) {
             navigator.clipboard.writeText(code).catch(() => {});
         } else {
@@ -1847,6 +1946,12 @@
 
     // 10. Auto-update similar product images from seeded Unsplash fallback map
     document.addEventListener('DOMContentLoaded', () => {
+        // Initialize star rating progress bars style
+        document.querySelectorAll('.progress-bar-fill').forEach(el => {
+            const pct = el.getAttribute('data-percent');
+            if (pct) el.style.width = pct + '%';
+        });
+
         const fruitImages = {
             1: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=600&auto=format&fit=crop&q=80',
             2: 'https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&auto=format&fit=crop&q=80',
@@ -1870,6 +1975,17 @@
             const label = firstVariant.getAttribute('data-label');
             const unitEl = document.getElementById('displayed-unit');
             if (unitEl && label) unitEl.textContent = ' / ' + label;
+            
+            // Apply initial stock-out UI check
+            const initialStock = parseInt(firstVariant.getAttribute('data-stock')) || 0;
+            updateStockUI(initialStock);
+            updateStockIndicator(initialStock);
+        } else {
+            const fillIndicator = document.getElementById('stock-bar-fill-indicator');
+            if (fillIndicator) {
+                const initialStock = parseInt(fillIndicator.getAttribute('data-initial-stock')) || 0;
+                updateStockIndicator(initialStock);
+            }
         }
     });
 </script>

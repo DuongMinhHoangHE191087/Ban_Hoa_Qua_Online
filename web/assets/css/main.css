@@ -258,6 +258,7 @@ a:hover { text-decoration: underline; }
 .user-greeting {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
+    white-space: nowrap;
 }
 .user-name {
     color: var(--color-primary-dark);

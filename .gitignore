@@ -48,3 +48,4 @@ tomcat_config.ini
 .env
 .docker-build/
 docker-compose.override.yml
+*.log
