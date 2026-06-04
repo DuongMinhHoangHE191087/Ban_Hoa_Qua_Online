@@ -80,7 +80,7 @@ public class ProductStatusServlet extends HttpServlet {
                     return;
                 }
 
-                productDAO.updateStatus(productId, "DELETED");
+                productDAO.deleteProduct(productId);
                 out.print("{\"success\":true}");
 
             } else if ("delete-image".equals(action)) {

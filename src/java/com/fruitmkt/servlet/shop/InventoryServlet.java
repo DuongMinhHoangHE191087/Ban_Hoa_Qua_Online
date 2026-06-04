@@ -43,10 +43,12 @@ public class InventoryServlet extends HttpServlet {
             return;
         }
 
+        List<Map<String, Object>> variantsWithProduct = new ArrayList<>();
+        List<InventoryLog> history = new ArrayList<>();
+        String errorMsg = null;
         try {
             // 1. Fetch variants belonging to products of this shop owner
             List<Product> products = productDAO.findByOwner(currentUser.getUserId());
-            List<Map<String, Object>> variantsWithProduct = new ArrayList<>();
             for (Product p : products) {
                 List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
                 for (ProductVariant v : variants) {
@@ -62,20 +64,23 @@ public class InventoryServlet extends HttpServlet {
             }
 
             // 2. Fetch past restock history logs
-            List<InventoryLog> history = inventoryService.getRestockHistory(currentUser.getUserId());
-
-            // 3. Set request attributes
-            req.setAttribute("variants", variantsWithProduct);
-            req.setAttribute("restockLogs", history);
-
-            // 4. Forward to inventory JSP page
-            req.getRequestDispatcher("/WEB-INF/jsp/shop/inventory.jsp").forward(req, resp);
+            history = inventoryService.getRestockHistory(currentUser.getUserId());
 
         } catch (SQLException e) {
             e.printStackTrace();
-            SessionUtil.flashError(session, "Đã xảy ra lỗi khi tải dữ liệu tồn kho.");
-            resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
+            errorMsg = "Không thể tải danh sách sản phẩm hoặc lịch sử: " + e.getMessage();
         }
+
+        if (errorMsg != null) {
+            req.setAttribute("inventoryError", errorMsg);
+        }
+
+        // 3. Set request attributes
+        req.setAttribute("variants", variantsWithProduct);
+        req.setAttribute("restockLogs", history);
+
+        // 4. Forward to inventory JSP page
+        req.getRequestDispatcher("/WEB-INF/jsp/shop/inventory.jsp").forward(req, resp);
     }
 
     @Override
@@ -98,8 +103,8 @@ public class InventoryServlet extends HttpServlet {
 
         // 2. Validation
         if (variantIdStr == null || variantIdStr.trim().isEmpty() ||
-            quantityStr == null || quantityStr.trim().isEmpty() ||
-            changedAtStr == null || changedAtStr.trim().isEmpty()) {
+                quantityStr == null || quantityStr.trim().isEmpty() ||
+                changedAtStr == null || changedAtStr.trim().isEmpty()) {
             SessionUtil.flashError(session, "Vui lòng nhập đầy đủ các trường bắt buộc.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
@@ -139,7 +144,8 @@ public class InventoryServlet extends HttpServlet {
         }
 
         try {
-            // 3. Security check: Verify that this variant belongs to a product owned by the current Shop Owner
+            // 3. Security check: Verify that this variant belongs to a product owned by the
+            // current Shop Owner
             ProductVariant pv = productVariantDAO.findById(variantId);
             if (pv == null) {
                 SessionUtil.flashError(session, "Biến thể sản phẩm không tồn tại.");
