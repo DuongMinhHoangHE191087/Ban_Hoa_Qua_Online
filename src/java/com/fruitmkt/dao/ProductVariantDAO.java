@@ -116,12 +116,23 @@ public class ProductVariantDAO extends BaseDAO {
      * Cập nhật số lượng tồn kho (tăng hoặc giảm) của biến thể sản phẩm.
      */
     public void updateStock(int variantId, int delta) throws SQLException {
+        try (Connection conn = getConnection()) {
+            updateStock(conn, variantId, delta);
+        }
+    }
+
+    /**
+     * Cập nhật số lượng tồn kho (tăng hoặc giảm) trong một Transaction Connection.
+     */
+    public void updateStock(Connection conn, int variantId, int delta) throws SQLException {
         String sql = "UPDATE product_variants SET stock_quantity = stock_quantity + ?, updated_at = GETDATE() WHERE variant_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, delta);
             ps.setInt(2, variantId);
-            ps.executeUpdate();
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Cập nhật tồn kho thất bại. Biến thể sản phẩm không tồn tại hoặc đã bị xóa.");
+            }
         }
     }
 
@@ -141,9 +152,17 @@ public class ProductVariantDAO extends BaseDAO {
      * Lấy số lượng tồn kho hiện tại của một biến thể sản phẩm.
      */
     public int getStockQuantity(int variantId) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return getStockQuantity(conn, variantId);
+        }
+    }
+
+    /**
+     * Lấy số lượng tồn kho hiện tại trong một Transaction Connection.
+     */
+    public int getStockQuantity(Connection conn, int variantId) throws SQLException {
         String sql = "SELECT stock_quantity FROM product_variants WHERE variant_id = ? AND is_active = 1";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, variantId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -151,7 +170,7 @@ public class ProductVariantDAO extends BaseDAO {
                 }
             }
         }
-        return 0;
+        throw new SQLException("Biến thể sản phẩm không tồn tại hoặc không hoạt động.");
     }
 
     /** Ánh xạ ResultSet -> ProductVariant */
