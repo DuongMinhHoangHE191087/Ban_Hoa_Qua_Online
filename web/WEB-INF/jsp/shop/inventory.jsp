@@ -45,49 +45,10 @@
             border: 1px solid #e2ece7;
             box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px -4px rgba(20,83,45,.06);
         }
-        /* Sticky scrollable table body */
-        .scroll-table-wrapper { max-height: 260px; overflow-y: auto; }
-        .scroll-table-wrapper thead th { position: sticky; top: 0; z-index: 5; }
-        /* Custom scrollbar */
-        .scroll-table-wrapper::-webkit-scrollbar { width: 4px; }
-        .scroll-table-wrapper::-webkit-scrollbar-track { background: #f1f5f9; }
-        .scroll-table-wrapper::-webkit-scrollbar-thumb { background: #bbf7d0; border-radius: 2px; }
-        
-        /* Card & Table */
-        .card { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--color-border); overflow: hidden; height: fit-content; }
-        .card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-border); background-color: rgba(77, 102, 28, 0.02); }
-        .card-title { font-size: 1.1rem; font-weight: 700; color: var(--color-primary-dark); margin: 0; }
-        .card-body { padding: 1.5rem; }
-        
-        .table-responsive { width: 100%; overflow-x: auto; }
-        .table-responsive-scroll {
-            width: 100%;
-            overflow-x: auto;
-            max-height: 230px;
-            overflow-y: auto;
-            border-bottom: 1px solid var(--color-border);
-        }
-        .table { width: 100%; border-collapse: collapse; text-align: left; }
-        .table th, .table td { padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; }
-        .table th { background-color: #f8fcf9; font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; position: sticky; top: 0; z-index: 10; border-bottom: 1.5px solid var(--color-border); }
-        .table tr:last-child td { border-bottom: none; }
-        .table tr:hover { background-color: rgba(77, 102, 28, 0.02); }
-        
-        /* Badge for stock quantity increase */
-        .stock-delta { font-weight: 700; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.85rem; display: inline-block; }
-        .stock-delta-positive { background-color: #E8F5E9; color: var(--color-success); }
-        .stock-delta-negative { background-color: #FFEBEE; color: var(--color-danger); }
-        
-        /* Form Controls overrides for consistency */
-        .form-group { margin-bottom: 1.25rem; }
-        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--color-text-secondary); font-size: 0.875rem; }
-        .form-control { width: 100%; padding: 0.65rem 0.75rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.925rem; box-sizing: border-box; background-color: #fff; transition: border-color 0.2s; }
-        .form-control:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(77, 102, 28, 0.1); }
-        
-        /* Alert Close button */
-        .alert-dismissible { position: relative; display: flex; justify-content: space-between; align-items: center; }
-        .btn-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: inherit; opacity: 0.7; }
-        .btn-close:hover { opacity: 1; }
+        /* Custom scrollbar for table container */
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #bbf7d0; border-radius: 2px; }
     </style>
 </head>
 <body class="antialiased text-[#0f172a]">
@@ -175,16 +136,14 @@
                                        class="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
                             </div>
 
-                            <div class="form-group">
-                                <label class="form-label" for="changedAt">Ngày nhập kho <span class="text-danger">*</span></label>
-                                <input type="date" name="changedAt" id="changedAt" class="form-control" required>
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold text-txt-2 mb-2" for="changedAt">Ngày nhập kho <span class="text-red-500">*</span></label>
+                                <input type="date" name="changedAt" id="changedAt" class="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" required>
                             </div>
 
-
-
-                            <div class="form-group">
-                                <label class="form-label" for="note">Ghi chú</label>
-                                <input type="text" name="note" id="note" class="form-control" placeholder="Ghi chú nhập kho (ví dụ: Nhập hàng từ nhà cung cấp A)">
+                            <div class="mb-4">
+                                <label class="block text-xs font-bold text-txt-2 mb-2" for="note">Ghi chú</label>
+                                <input type="text" name="note" id="note" class="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" placeholder="Ghi chú nhập kho (ví dụ: Nhập hàng từ nhà cung cấp A)">
                             </div>
 
                             <button type="submit" class="w-full mt-6 py-3 px-4 bg-gradient-to-r from-primary to-[#5b7a22] hover:from-[#435919] hover:to-primary-hover text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg shadow-primary/20 hover:shadow-primary/30 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer border-0">
@@ -200,29 +159,29 @@
             <div class="lg:col-span-3 flex flex-col gap-6">
                     
                     <!-- Stock Levels Card -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title"><i class="fa-solid fa-boxes-stacked me-2"></i>Số lượng tồn kho hiện tại</h2>
+                    <div class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden h-fit">
+                        <div class="p-5 border-b border-border bg-[#f9fdf9]">
+                            <h2 class="text-sm font-bold text-txt"><i class="fa-solid fa-boxes-stacked mr-2"></i>Số lượng tồn kho hiện tại</h2>
                         </div>
-                        <div class="card-body" style="padding: 0;">
-                            <div class="table-responsive-scroll">
-                                <table class="table">
-                                    <thead>
+                        <div class="p-0">
+                            <div class="w-full overflow-auto max-h-[260px] scrollbar-thin">
+                                <table class="w-full border-collapse text-left">
+                                    <thead class="bg-[#f8fcf9] text-xs font-bold uppercase tracking-wider text-txt-2 sticky top-0 z-10 border-b border-border">
                                         <tr>
-                                            <th>Sản phẩm & Biến thể</th>
-                                            <th>SKU</th>
-                                            <th>Tồn kho hiện tại</th>
+                                            <th class="px-5 py-3.5">Sản phẩm & Biến thể</th>
+                                            <th class="px-5 py-3.5">SKU</th>
+                                            <th class="px-5 py-3.5">Tồn kho hiện tại</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <c:forEach var="v" items="${variants}">
-                                            <tr>
-                                                <td>
-                                                    <strong style="color: var(--color-text-primary);">${v.productName}</strong>
-                                                    <div class="text-muted" style="font-size: 0.8rem;">${v.variantLabel}</div>
+                                            <tr class="hover:bg-primary/5 transition-colors">
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
+                                                    <strong class="text-txt font-bold">${v.productName}</strong>
+                                                    <div class="text-[#94a3b8] text-xs">${v.variantLabel}</div>
                                                 </td>
-                                                <td><code>${v.sku}</code></td>
-                                                <td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm"><code>${v.sku}</code></td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
                                                     <c:choose>
                                                         <c:when test="${v.stockQuantity <= 0}">
                                                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-sm">
@@ -245,7 +204,7 @@
                                         </c:forEach>
                                         <c:if test="${empty variants}">
                                             <tr>
-                                                <td colspan="3" class="text-center py-4" style="color: var(--color-text-muted); font-style: italic; padding: 2rem;">
+                                                <td colspan="3" class="text-center py-8 text-[#94a3b8] italic">
                                                     Chưa có sản phẩm nào!
                                                 </td>
                                             </tr>
@@ -257,57 +216,57 @@
                     </div>
 
                     <!-- History Column -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title"><i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch sử biến động kho</h2>
+                    <div class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden h-fit">
+                        <div class="p-5 border-b border-border bg-[#f9fdf9]">
+                            <h2 class="text-sm font-bold text-txt"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Lịch sử biến động kho</h2>
                         </div>
-                        <div class="card-body" style="padding: 0;">
-                            <div class="table-responsive-scroll">
-                                <table class="table">
-                                    <thead>
+                        <div class="p-0">
+                            <div class="w-full overflow-auto max-h-[260px] scrollbar-thin">
+                                <table class="w-full border-collapse text-left">
+                                    <thead class="bg-[#f8fcf9] text-xs font-bold uppercase tracking-wider text-txt-2 sticky top-0 z-10 border-b border-border">
                                         <tr>
-                                            <th>Mã</th>
-                                            <th>Sản phẩm & Biến thể</th>
-                                            <th>Thay đổi</th>
-                                            <th>Loại</th>
-                                            <th>Ghi chú</th>
-                                            <th>Thời gian</th>
-                                            <th>Người thực hiện</th>
+                                            <th class="px-5 py-3.5">Mã</th>
+                                            <th class="px-5 py-3.5">Sản phẩm & Biến thể</th>
+                                            <th class="px-5 py-3.5">Thay đổi</th>
+                                            <th class="px-5 py-3.5">Loại</th>
+                                            <th class="px-5 py-3.5">Ghi chú</th>
+                                            <th class="px-5 py-3.5">Thời gian</th>
+                                            <th class="px-5 py-3.5">Người thực hiện</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <c:forEach var="log" items="${restockLogs}">
-                                            <tr>
-                                                <td>#${log.logId}</td>
-                                                <td>
-                                                    <strong style="color: var(--color-text-primary);">${log.productName}</strong>
-                                                    <div class="text-muted" style="font-size: 0.8rem;">${log.variantLabel}</div>
+                                            <tr class="hover:bg-primary/5 transition-colors">
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">#${log.logId}</td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
+                                                    <strong class="text-txt font-bold">${log.productName}</strong>
+                                                    <div class="text-[#94a3b8] text-xs">${log.variantLabel}</div>
                                                 </td>
-                                                <td>
-                                                    <span class="stock-delta ${log.quantityDelta >= 0 ? 'stock-delta-positive' : 'stock-delta-negative'}">
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
+                                                    <span class="font-bold px-2 py-0.5 rounded text-xs ${log.quantityDelta >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">
                                                         ${log.quantityDelta >= 0 ? '+' : ''}${log.quantityDelta}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
                                                     <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">${log.changeType}</span>
                                                 </td>
-                                                <td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
                                                     <c:choose>
                                                         <c:when test="${not empty log.note}">
-                                                            <span style="color: var(--color-text-primary);">${log.note}</span>
+                                                            <span class="text-txt">${log.note}</span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="text-muted">-</span>
+                                                            <span class="text-[#94a3b8]">-</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
-                                                <td>${log.formattedChangedAt}</td>
-                                                <td>${log.changedByName}</td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">${log.formattedChangedAt}</td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">${log.changedByName}</td>
                                             </tr>
                                         </c:forEach>
                                         <c:if test="${empty restockLogs}">
                                             <tr>
-                                                <td colspan="7" class="text-center py-4" style="color: var(--color-text-muted); font-style: italic; padding: 2rem;">
+                                                <td colspan="7" class="text-center py-8 text-[#94a3b8] italic">
                                                     Chưa có lịch sử biến động kho nào!
                                                 </td>
                                             </tr>
