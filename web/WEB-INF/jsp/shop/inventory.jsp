@@ -187,15 +187,17 @@
                                 <input type="text" name="note" id="note" class="form-control" placeholder="Ghi chú nhập kho (ví dụ: Nhập hàng từ nhà cung cấp A)">
                             </div>
 
-                            <button type="submit" class="btn btn-primary btn-block mt-4">
-                                <i class="fa-solid fa-circle-arrow-down me-2"></i>Nhập kho
+                            <button type="submit" class="w-full mt-6 py-3 px-4 bg-gradient-to-r from-primary to-[#5b7a22] hover:from-[#435919] hover:to-primary-hover text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg shadow-primary/20 hover:shadow-primary/30 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer border-0">
+                                <i class="fa-solid fa-circle-arrow-down text-base"></i>
+                                <span>Nhập kho sản phẩm</span>
                             </button>
                         </form>
                     </div>
                 </div>
+            </div>
 
-                <!-- Right Columns (Tables Column) -->
-                <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <!-- Right Columns (Tables Column) -->
+            <div class="lg:col-span-3 flex flex-col gap-6">
                     
                     <!-- Stock Levels Card -->
                     <div class="card">
@@ -310,8 +312,8 @@
                         </div>
                     </div>
 
-                </div>
             </div>
+        </div>
 
     <script>
         // Set default restock date to today
