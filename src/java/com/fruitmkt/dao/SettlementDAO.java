@@ -5,70 +5,86 @@ import com.fruitmkt.model.entity.ShopSettlement;
 import java.sql.*;
 import java.util.*;
 
-/**
- * SettlementDAO — DAO cho entity ShopSettlement.
- *
- * QUY TẮC:
- *   - Chỉ chứa SQL, không chứa business logic
- *   - Dùng PreparedStatement, KHÔNG nối chuỗi SQL
- *   - Mỗi method ném SQLException để Service xử lý
- *   - Dùng try-with-resources cho Connection + PreparedStatement
- *
- * @author fruitmkt-team
- */
 public class SettlementDAO extends BaseDAO {
 
-    /**
-     * TODO: Implement — findById(int id)
-     */
-    public List<ShopSettlement> findById(int id) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findById(int id)");
+    public List<ShopSettlement> findAll(String status, int page, int pageSize) throws SQLException {
+        List<ShopSettlement> list = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+        StringBuilder sql = new StringBuilder("SELECT * FROM shop_settlements ");
+        List<Object> params = new ArrayList<>();
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("WHERE status = ? ");
+            params.add(status);
+        }
+        sql.append("ORDER BY settlement_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        params.add(offset);
+        params.add(pageSize);
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
     }
 
-    /**
-     * TODO: Implement — findByOwner(int ownerId)
-     */
-    public List<ShopSettlement> findByOwner(int ownerId) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findByOwner(int ownerId)");
+    public int countAll(String status) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM shop_settlements ");
+        List<Object> params = new ArrayList<>();
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("WHERE status = ? ");
+            params.add(status);
+        }
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) { return rs.getInt(1); }
+            }
+        }
+        return 0;
     }
 
-    /**
-     * TODO: Implement — findAll(String status)
-     */
-    public List<ShopSettlement> findAll(String status) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: findAll(String status)");
-    }
-
-    /**
-     * TODO: Implement — save(ShopSettlement settlement)
-     */
-    public int save(ShopSettlement settlement) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: save(ShopSettlement settlement)");
-    }
-
-    /**
-     * TODO: Implement — confirm(int settlementId, int confirmedBy)
-     */
-    public void confirm(int settlementId, int confirmedBy) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: confirm(int settlementId, int confirmedBy)");
-    }
-
-    /**
-     * TODO: Implement — markPaid(int settlementId)
-     */
     public void markPaid(int settlementId) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: markPaid(int settlementId)");
+        String sql = "UPDATE shop_settlements SET status = 'PAID', paid_at = GETDATE() WHERE settlement_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, settlementId);
+            ps.executeUpdate();
+        }
     }
 
-    /** Ánh xạ ResultSet -> ShopSettlement — gọi trong mọi query SELECT */
     private ShopSettlement mapRow(ResultSet rs) throws SQLException {
-        // TODO: rs.getInt(), rs.getString()... theo Schema.sql
-        throw new UnsupportedOperationException("mapRow not implemented");
+        ShopSettlement s = new ShopSettlement();
+        s.setSettlementId(rs.getInt("settlement_id"));
+        s.setOwnerId(rs.getInt("owner_id"));
+        s.setPeriodStart(rs.getDate("period_start") != null ? rs.getDate("period_start").toLocalDate() : null);
+        s.setPeriodEnd(rs.getDate("period_end") != null ? rs.getDate("period_end").toLocalDate() : null);
+        s.setGrossAmount(rs.getBigDecimal("gross_amount"));
+        s.setPlatformFeeAmount(rs.getBigDecimal("platform_fee_amount"));
+        s.setRefundAmount(rs.getBigDecimal("refund_amount"));
+        s.setAdjustmentAmount(rs.getBigDecimal("adjustment_amount"));
+        s.setNetAmount(rs.getBigDecimal("net_amount"));
+        s.setStatus(rs.getString("status"));
+        
+        Timestamp calcAt = rs.getTimestamp("calculated_at");
+        if (calcAt != null) s.setCalculatedAt(calcAt.toLocalDateTime());
+        
+        Timestamp confAt = rs.getTimestamp("confirmed_at");
+        if (confAt != null) s.setConfirmedAt(confAt.toLocalDateTime());
+        
+        Timestamp paidAt = rs.getTimestamp("paid_at");
+        if (paidAt != null) s.setPaidAt(paidAt.toLocalDateTime());
+        
+        s.setCreatedBy(rs.getInt("created_by"));
+        s.setNote(rs.getString("note"));
+        return s;
     }
 }

@@ -8,6 +8,15 @@ param(
 $LogFile = "build_tools.log"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+function Log-Message {
+    param([string]$Message, [string]$Level = "INFO")
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "[$timestamp] [$Level] $Message"
+    Add-Content -Path $LogFile -Value $logEntry
+    Write-Host $logEntry
+}
+
+
 # ==================== CONFIGURATION LOADING & AUTO-DETECTION ====================
 $JAVA_HOME = "C:\Program Files\Java\jdk-26.0.1"
 $JRE_HOME = "C:\Program Files\Java\jdk-26.0.1"
@@ -25,6 +34,16 @@ if (Test-Path "nbproject/private/private.properties") {
             }
         }
     }
+}
+
+# 1.5 Auto-create config files from templates if they do not exist
+if (-not (Test-Path "tomcat_config.ini") -and (Test-Path "tomcat_config.ini.template")) {
+    Copy-Item "tomcat_config.ini.template" "tomcat_config.ini"
+    Log-Message "Created tomcat_config.ini from template." "INFO"
+}
+if (-not (Test-Path ".env") -and (Test-Path ".env.template")) {
+    Copy-Item ".env.template" ".env"
+    Log-Message "Created .env from template." "INFO"
 }
 
 # 2. Load config from ini if exists
@@ -85,13 +104,7 @@ if ($CATALINA_HOME) { $env:CATALINA_HOME = $CATALINA_HOME }
 if ($CATALINA_BASE) { $env:CATALINA_BASE = $CATALINA_BASE }
 $env:PATH = "$JAVA_HOME\bin;" + $env:PATH
 
-function Log-Message {
-    param([string]$Message, [string]$Level = "INFO")
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logEntry = "[$timestamp] [$Level] $Message"
-    Add-Content -Path $LogFile -Value $logEntry
-    Write-Host $logEntry
-}
+
 
 function Show-Help {
     Write-Host @"
@@ -112,10 +125,19 @@ Cac tuy chon:
   install-config - Cau hinh lai Tomcat paths
   open           - Mo ung dung trong browser (http://localhost:8080/Ban_Hoa_Qua_Online/)
   deploy         - Chay toan bo quy trinh (Clean, Build, Deploy, Run & Watch)
+  reload         - Recompile nhanh va Hot-Reload Tomcat (giu nguyen Session)
+
+
+Docker options:
+  docker-build   - Build Docker image tu Dockerfile
+  docker-up      - Khoi chay ung dung bang Docker Compose
+  docker-down    - Dung va xoa container Docker
+  docker-logs    - Xem log thoi gian thuc cua container Docker
+  docker-reset   - Reset sach se Docker (xoa container, volume, va image)
 
 Vi du:
   powershell -ExecutionPolicy Bypass -File build-tools.ps1 status
-  powershell -ExecutionPolicy Bypass -File build-tools.ps1 deploy
+  powershell -ExecutionPolicy Bypass -File build-tools.ps1 docker-up
 
 ====================================================================
 "@
@@ -327,6 +349,49 @@ function Open-App {
     Log-Message "Open-app executed"
 }
 
+function Compile-Java-Atomic {
+    param(
+        [string]$webBuildDir,
+        [string]$tomcatHome,
+        [string]$classpath,
+        [string]$compileLogFile
+    )
+    
+    $classesDir = "$webBuildDir/WEB-INF/classes"
+    $classesTempDir = "$webBuildDir/WEB-INF/classes_temp"
+    
+    if (Test-Path $classesTempDir) {
+        Remove-Item $classesTempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-Item -ItemType Directory -Path $classesTempDir -Force | Out-Null
+    
+    $javaFiles = Get-ChildItem -Path "src/java" -Filter "*.java" -Recurse | ForEach-Object { $_.FullName }
+    if (-not $javaFiles) {
+        Write-Host "[ERROR] No Java files found in src/java!" -ForegroundColor Red
+        return $false
+    }
+    [System.IO.File]::WriteAllLines("sources.txt", $javaFiles)
+    
+    $javacCmd = "javac -encoding UTF-8 -g:none -nowarn -target 17 -source 17 -cp `"$classpath`" -d `"$classesTempDir`" @sources.txt > `"$compileLogFile`" 2>&1"
+    cmd.exe /c $javacCmd
+    
+    if ($LASTEXITCODE -eq 0) {
+        if (-not (Test-Path $classesDir)) {
+            New-Item -ItemType Directory -Path $classesDir -Force | Out-Null
+        }
+        
+        # Mirror compiled class files atomically using robocopy
+        Start-Process -FilePath "robocopy" `
+            -ArgumentList "`"$classesTempDir`"", "`"$classesDir`"", "/mir", "/w:1", "/r:1", "/ndl", "/nfl" `
+            -NoNewWindow -Wait
+            
+        Remove-Item $classesTempDir -Recurse -Force -ErrorAction SilentlyContinue
+        return $true
+    } else {
+        return $false
+    }
+}
+
 function Deploy-App {
     Write-Host "`n===== [1/6] STOPPING TOMCAT AND RELEASING PORTS =====" -ForegroundColor Green
     Kill-Tomcat
@@ -370,26 +435,12 @@ function Deploy-App {
             -PassThru -Wait -NoNewWindow
     }
 
-    $classesDir = "$webBuildDir/WEB-INF/classes"
-    New-Item -ItemType Directory -Path $classesDir -Force | Out-Null
-
-    $javaFiles = Get-ChildItem -Path "src/java" -Filter "*.java" -Recurse | ForEach-Object { $_.FullName }
-    if (-not $javaFiles) {
-        Write-Host "[ERROR] No Java files found in src/java!" -ForegroundColor Red
-        return
-    }
-
-    Write-Host "Found $($javaFiles.Count) Java source files. Compiling..." -ForegroundColor Yellow
-    [System.IO.File]::WriteAllLines("sources.txt", $javaFiles)
-
     $classpath = "web/WEB-INF/lib/*;$tomcatHome/lib/*"
     $compileLogFile = "compile_output.log"
     if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
 
-    $javacCmd = "javac -encoding UTF-8 -g:none -nowarn -target 17 -source 17 -cp `"$classpath`" -d `"$classesDir`" @sources.txt > `"$compileLogFile`" 2>&1"
-    cmd.exe /c $javacCmd
-
-    if ($LASTEXITCODE -ne 0) {
+    $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
+    if (-not $compiled) {
         $compileErrors = Get-Content $compileLogFile -Raw -ErrorAction SilentlyContinue
         Write-Host "=================== COMPILATION ERRORS ===================" -ForegroundColor Red
         Write-Host $compileErrors -ForegroundColor Red
@@ -470,12 +521,9 @@ function Deploy-App {
                         -ArgumentList "`"$webSrcDir`"", "`"$webBuildDir`"", "/s", "/e", "/xd", "WEB-INF\classes", "/w:1", "/r:1", "/ndl", "/nfl" `
                         -Wait -NoNewWindow
                 }
-                # Compile Java
-                $javaFiles = Get-ChildItem -Path "src/java" -Filter "*.java" -Recurse | ForEach-Object { $_.FullName }
-                [System.IO.File]::WriteAllLines("sources.txt", $javaFiles)
-                cmd.exe /c $javacCmd
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host "[WATCH] Recompile and sync completed successfully!" -ForegroundColor Green
+                $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
+                if ($compiled) {
+                    Write-Host "[WATCH] Recompile and atomic sync completed successfully!" -ForegroundColor Green
                 } else {
                     Write-Host "[WATCH] Recompile failed!" -ForegroundColor Red
                 }
@@ -486,6 +534,72 @@ function Deploy-App {
             }
         }
     }
+}
+
+function Deploy-Reload {
+    Write-Host "`n===== PERFORMING FAST HOT-RELOAD =====" -ForegroundColor Green
+    
+    $webSrcDir = "web"
+    $webBuildDir = "build/web"
+    if (Test-Path $webSrcDir) {
+        Write-Host "Syncing web files..." -ForegroundColor Yellow
+        Start-Process -FilePath "robocopy" `
+            -ArgumentList "`"$webSrcDir`"", "`"$webBuildDir`"", "/s", "/e", "/xd", "WEB-INF\classes", "/w:1", "/r:1", "/ndl", "/nfl" `
+            -Wait -NoNewWindow
+    }
+    
+    $tomcatHome = ""
+    if ($env:CATALINA_HOME) { $tomcatHome = $env:CATALINA_HOME }
+    
+    $classpath = "web/WEB-INF/lib/*;$tomcatHome/lib/*"
+    $compileLogFile = "compile_output.log"
+    if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
+    
+    $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
+    if ($compiled) {
+        Write-Host "[OK] Hot-reload compilation and atomic sync completed successfully!" -ForegroundColor Green
+        Write-Host "Tomcat will reload the context in ~1-2 seconds. Active sessions preserved." -ForegroundColor Cyan
+    } else {
+        $compileErrors = Get-Content $compileLogFile -Raw -ErrorAction SilentlyContinue
+        Write-Host "=================== COMPILATION ERRORS ===================" -ForegroundColor Red
+        Write-Host $compileErrors -ForegroundColor Red
+        Write-Host "=========================================================" -ForegroundColor Red
+    }
+    if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
+}
+
+# Docker management functions
+function Docker-Build {
+    Write-Host "`n===== BUILDING DOCKER IMAGE =====" -ForegroundColor Green
+    docker compose build
+}
+
+function Docker-Up {
+    Write-Host "`n===== STARTING DOCKER CONTAINER =====" -ForegroundColor Green
+    if (-not (Test-Path ".env")) {
+        if (Test-Path ".env.template") {
+            Copy-Item ".env.template" ".env"
+            Write-Host "Created .env from template." -ForegroundColor Yellow
+        }
+    }
+    docker compose up -d
+    Write-Host "[OK] Docker container is starting up!" -ForegroundColor Green
+    Write-Host "Go to: http://localhost:8080/Ban_Hoa_Qua_Online/" -ForegroundColor Cyan
+}
+
+function Docker-Down {
+    Write-Host "`n===== STOPPING DOCKER CONTAINER =====" -ForegroundColor Yellow
+    docker compose down
+}
+
+function Docker-Logs {
+    Write-Host "`n===== SHOWING DOCKER LOGS (Press Ctrl+C to exit logs) =====" -ForegroundColor Cyan
+    docker compose logs -f
+}
+
+function Docker-Reset {
+    Write-Host "`n===== RESETTING DOCKER (Removing Volumes and Images) =====" -ForegroundColor Red
+    docker compose down -v --rmi all
 }
 
 # Main execution
@@ -500,6 +614,12 @@ switch ($Action.ToLower()) {
     "install-config" { Install-Config }
     "open" { Open-App }
     "deploy" { Deploy-App }
+    "reload" { Deploy-Reload }
+    "docker-build" { Docker-Build }
+    "docker-up" { Docker-Up }
+    "docker-down" { Docker-Down }
+    "docker-logs" { Docker-Logs }
+    "docker-reset" { Docker-Reset }
     default {
         Write-Host "Unknown option: $Action" -ForegroundColor Red
         Write-Host "Use 'help' for available options" -ForegroundColor Yellow

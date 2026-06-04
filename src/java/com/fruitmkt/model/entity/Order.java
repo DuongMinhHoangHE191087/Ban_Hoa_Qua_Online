@@ -98,4 +98,8 @@ public class Order {
     public java.time.LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
+    public java.util.Date getCreatedAtAsDate() {
+        return createdAt != null ? java.util.Date.from(createdAt.atZone(java.time.ZoneId.systemDefault()).toInstant()) : null;
+    }
+
 }

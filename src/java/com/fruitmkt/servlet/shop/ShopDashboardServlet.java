@@ -35,8 +35,22 @@ public class ShopDashboardServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // Tạm thời redirect sang trang quản lý sản phẩm để chủ cửa hàng thao tác ngay
-        resp.sendRedirect(req.getContextPath() + "/shop/products");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+        if (!SessionUtil.hasRole(req.getSession(), AppConfig.ROLE_SHOP_OWNER)) {
+            resp.sendError(403);
+            return;
+        }
+
+        // Tạm thời chỉ hiển thị giao diện mẫu, chưa tính toán số liệu thật
+        req.setAttribute("revenue", 0);
+        req.setAttribute("orderCount", 0);
+        req.setAttribute("lowStock", 0);
+
+        req.getRequestDispatcher("/WEB-INF/jsp/shop/dashboard.jsp").forward(req, resp);
     }
 
 }

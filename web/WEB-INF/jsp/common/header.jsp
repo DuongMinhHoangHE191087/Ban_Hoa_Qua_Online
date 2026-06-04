@@ -26,11 +26,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- FontAwesome Icons & Material Symbols -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
     <!-- Core CSS -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    
+    <!-- SweetAlert2 library for premium notifications -->
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+    <script>
+        // Override global native alert with beautiful SweetAlert2 popup
+        window.alert = function(message) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Thông báo',
+                text: message,
+                confirmButtonText: 'Đồng ý',
+                confirmButtonColor: '#4D661C', // Match primary design token
+                background: '#ffffff',
+                customClass: {
+                    popup: 'premium-swal-popup',
+                    title: 'premium-swal-title',
+                    confirmButton: 'premium-swal-button'
+                }
+            });
+        };
+    </script>
     
     <!-- Global application state injected for AJAX cart operations -->
     <script>

@@ -90,6 +90,20 @@ public class DeliveryDAO extends BaseDAO {
         }
     }
 
+    public Delivery findByOrderId(int orderId) throws SQLException {
+        String sql = "SELECT TOP 1 * FROM deliveries WHERE order_id = ? ORDER BY created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
     private Delivery mapRow(ResultSet rs) throws SQLException {
         Delivery d = new Delivery();
         d.setDeliveryId(rs.getInt("delivery_id"));
@@ -118,18 +132,5 @@ public class DeliveryDAO extends BaseDAO {
         return d;
     }
 
-    public Delivery findByOrderId(int orderId) throws SQLException {
-        String sql = "SELECT * FROM deliveries WHERE order_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, orderId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        }
-        return null;
-    }
 }
 

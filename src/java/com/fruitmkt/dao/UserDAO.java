@@ -20,14 +20,17 @@ import java.util.*;
  */
 public class UserDAO extends BaseDAO {
 
-    /**
-     * Tìm kiếm người dùng bằng ID, trả về danh sách chứa 1 phần tử (để tương thích).
-     */
     public List<User> findById(int id) throws SQLException {
         List<User> list = new ArrayList<>();
-        User u = findUserById(id);
-        if (u != null) {
-            list.add(u);
+        String sql = "SELECT * FROM users WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
         }
         return list;
     }
@@ -105,6 +108,61 @@ public class UserDAO extends BaseDAO {
     }
     return null;
 }
+
+    public List<User> searchUsers(String role, String keyword, int offset, int limit) throws SQLException {
+        List<User> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT * FROM users WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (role != null && !role.trim().isEmpty()) {
+            sql.append(" AND role = ?");
+            params.add(role.trim());
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (full_name LIKE ? OR email LIKE ? OR phone LIKE ?)");
+            String likeKw = "%" + keyword.trim() + "%";
+            params.add(likeKw); params.add(likeKw); params.add(likeKw);
+        }
+        sql.append(" ORDER BY user_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        params.add(offset);
+        params.add(limit);
+        
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countUsers(String role, String keyword) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM users WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (role != null && !role.trim().isEmpty()) {
+            sql.append(" AND role = ?");
+            params.add(role.trim());
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append(" AND (full_name LIKE ? OR email LIKE ? OR phone LIKE ?)");
+            String likeKw = "%" + keyword.trim() + "%";
+            params.add(likeKw); params.add(likeKw); params.add(likeKw);
+        }
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) { return rs.getInt(1); }
+            }
+        }
+        return 0;
+    }
 
     /**
      * Retrieve all users.
@@ -388,6 +446,25 @@ public class UserDAO extends BaseDAO {
      * Xóa người dùng bằng ID (sử dụng khi đăng ký lỗi để đồng bộ).
      */
     public void deleteUser(int userId) throws SQLException {
+        // Kiểm tra xem user có đơn hàng nào không
+        String sqlCheck = "SELECT COUNT(*) FROM orders WHERE customer_id = ? OR owner_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(sqlCheck)) {
+            checkStmt.setInt(1, userId);
+            checkStmt.setInt(2, userId);
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    // Nếu có đơn hàng, không xóa cứng mà chuyển trạng thái thành SUSPENDED
+                    String sqlUpdate = "UPDATE users SET status = 'SUSPENDED', updated_at = GETDATE() WHERE user_id = ?";
+                    try (PreparedStatement updateStmt = conn.prepareStatement(sqlUpdate)) {
+                        updateStmt.setInt(1, userId);
+                        updateStmt.executeUpdate();
+                    }
+                    throw new SQLException("Không thể xóa cứng người dùng vì đã có đơn hàng trong hệ thống. Trạng thái tài khoản đã được chuyển sang SUSPENDED.");
+                }
+            }
+        }
+
         String sql = "DELETE FROM users WHERE user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {

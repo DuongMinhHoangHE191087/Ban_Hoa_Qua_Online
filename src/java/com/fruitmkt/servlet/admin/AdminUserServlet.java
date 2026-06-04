@@ -18,8 +18,27 @@ public class AdminUserServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            List<User> users = userService.getAllUsers();
+            String role = request.getParameter("role");
+            String keyword = request.getParameter("search");
+            
+            int page = 1;
+            String pageStr = request.getParameter("page");
+            if (pageStr != null && !pageStr.trim().isEmpty()) {
+                try { page = Integer.parseInt(pageStr); } catch(Exception e) {}
+            }
+            int pageSize = 10;
+            int offset = (page - 1) * pageSize;
+            
+            List<User> users = userService.searchUsers(role, keyword, offset, pageSize);
+            int totalRecords = userService.countUsers(role, keyword);
+            int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+            
             request.setAttribute("userList", users);
+            request.setAttribute("currentPage", page);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("paramRole", role);
+            request.setAttribute("paramSearch", keyword);
+            
             request.getRequestDispatcher("/WEB-INF/jsp/admin/user-list.jsp").forward(request, response);
         } catch (Exception e) {
             e.printStackTrace();

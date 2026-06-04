@@ -110,6 +110,25 @@ public class OrderDAO extends BaseDAO {
         return list;
     }
 
+    public int countAll(String status) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders ");
+        List<Object> params = new ArrayList<>();
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("WHERE status = ? ");
+            params.add(status);
+        }
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) { return rs.getInt(1); }
+            }
+        }
+        return 0;
+    }
+
     /**
      * Lấy toàn bộ danh sách đơn hàng có phân trang, có thể lọc theo trạng thái.
      */
@@ -125,6 +144,83 @@ public class OrderDAO extends BaseDAO {
         sql.append("ORDER BY order_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
         params.add(offset);
         params.add(pageSize);
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countAll(String status, String paymentMethod, String paymentStatus) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders o ");
+        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            sql.append("JOIN payment_transactions pt ON o.order_id = pt.order_id ");
+        }
+        sql.append("WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+        
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND o.status = ? ");
+            params.add(status);
+        }
+        if (paymentMethod != null && !paymentMethod.trim().isEmpty()) {
+            sql.append("AND o.payment_method = ? ");
+            params.add(paymentMethod);
+        }
+        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            sql.append("AND pt.status = ? ");
+            params.add(paymentStatus);
+        }
+        
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) { return rs.getInt(1); }
+            }
+        }
+        return 0;
+    }
+
+    public List<Order> findAll(String status, String paymentMethod, String paymentStatus, int page, int pageSize) throws SQLException {
+        List<Order> list = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+        if (offset < 0) offset = 0;
+        
+        StringBuilder sql = new StringBuilder("SELECT o.* FROM orders o ");
+        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            sql.append("JOIN payment_transactions pt ON o.order_id = pt.order_id ");
+        }
+        
+        sql.append("WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+        
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND o.status = ? ");
+            params.add(status);
+        }
+        if (paymentMethod != null && !paymentMethod.trim().isEmpty()) {
+            sql.append("AND o.payment_method = ? ");
+            params.add(paymentMethod);
+        }
+        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            sql.append("AND pt.status = ? ");
+            params.add(paymentStatus);
+        }
+        
+        sql.append("ORDER BY o.order_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        params.add(offset);
+        params.add(pageSize);
+        
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {

@@ -42,4 +42,8 @@ public class Notification {
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public java.util.Date getCreatedAtAsDate() {
+        return createdAt != null ? java.util.Date.from(createdAt.atZone(java.time.ZoneId.systemDefault()).toInstant()) : null;
+    }
+
 }

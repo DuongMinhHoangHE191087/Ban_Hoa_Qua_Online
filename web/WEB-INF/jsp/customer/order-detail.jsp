@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
@@ -134,17 +134,20 @@
             <c:when test="${order.status == 'CANCELLED'}">
                 <c:set var="stepNum" value="-1" />
             </c:when>
-            <c:when test="${order.status == 'PENDING_PAYMENT' || order.status == 'CONFIRMED'}">
+            <c:when test="${order.status == 'PENDING_PAYMENT'}">
                 <c:set var="stepNum" value="1" />
             </c:when>
-            <c:when test="${order.status == 'APPROVED' || order.status == 'PREPARING'}">
+            <c:when test="${order.status == 'CONFIRMED'}">
                 <c:set var="stepNum" value="2" />
             </c:when>
-            <c:when test="${order.status == 'DISPATCHED' || order.status == 'SHIPPED'}">
+            <c:when test="${order.status == 'APPROVED' || order.status == 'PREPARING'}">
                 <c:set var="stepNum" value="3" />
             </c:when>
-            <c:when test="${order.status == 'DELIVERED'}">
+            <c:when test="${order.status == 'DISPATCHED' || order.status == 'SHIPPED'}">
                 <c:set var="stepNum" value="4" />
+            </c:when>
+            <c:when test="${order.status == 'DELIVERED'}">
+                <c:set var="stepNum" value="5" />
             </c:when>
         </c:choose>
 
@@ -152,7 +155,7 @@
             <!-- Timeline connectors background -->
             <div class="absolute top-[50px] left-0 right-0 h-1.5 bg-outline-variant/30 rounded-full z-0"></div>
             <!-- Timeline active progress bar -->
-            <div class="absolute top-[50px] left-0 h-1.5 bg-primary rounded-full z-0 transition-all duration-500" style="width: ${stepNum == -1 ? '100%' : (stepNum - 1) * 33.33}%"></div>
+            <div class="absolute top-[50px] left-0 h-1.5 bg-primary rounded-full z-0 transition-all duration-500" style="width: ${stepNum == -1 ? '100%' : (stepNum - 1) * 25}%"></div>
             
             <div class="flex justify-between items-center z-10 relative">
                 <c:choose>
@@ -172,33 +175,64 @@
                                 <span class="material-symbols-outlined text-lg">receipt_long</span>
                             </div>
                             <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 1 ? 'text-primary' : 'text-on-surface-variant'}">Đặt hàng</span>
-                            <span class="text-[10px] text-on-surface-variant">Thành công</span>
+                            <c:choose>
+                                <c:when test="${order.status == 'PENDING_PAYMENT'}">
+                                    <c:choose>
+                                        <c:when test="${paymentTx != null && paymentTx.status == 'processing'}">
+                                            <span class="text-[10px] text-amber-600 animate-pulse font-semibold">Đã chuyển tiền (Chờ duyệt)</span>
+                                        </c:when>
+                                        <c:when test="${paymentTx != null && paymentTx.status == 'completed'}">
+                                            <span class="text-[10px] text-emerald-600 animate-pulse font-semibold">Khớp SePay (Chờ Admin duyệt)</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="text-[10px] text-amber-600 font-semibold">Chờ thanh toán QR</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="text-[10px] text-on-surface-variant">Thành công</span>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
                         
                         <!-- Step 2 -->
                         <div class="flex flex-col items-center flex-1">
                             <div class="w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all ${stepNum >= 2 ? (stepNum > 2 ? 'bg-primary text-on-primary' : 'bg-primary-container text-on-primary-container ring-4 ring-primary/20') : 'bg-outline-variant/30 text-on-surface-variant'}">
-                                <span class="material-symbols-outlined text-lg">inventory</span>
+                                <span class="material-symbols-outlined text-lg">verified</span>
                             </div>
-                            <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 2 ? 'text-primary' : 'text-on-surface-variant'}">Chuẩn bị hàng</span>
-                            <span class="text-[10px] text-on-surface-variant">Shop chuẩn bị lạnh</span>
+                            <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 2 ? 'text-primary' : 'text-on-surface-variant'}">Đã xác nhận</span>
+                            <span class="text-[10px] text-on-surface-variant">
+                                <c:choose>
+                                    <c:when test="${order.paymentMethod == 'CK'}">Đã thanh toán</c:when>
+                                    <c:otherwise>COD được duyệt</c:otherwise>
+                                </c:choose>
+                            </span>
                         </div>
-
+                        
                         <!-- Step 3 -->
                         <div class="flex flex-col items-center flex-1">
                             <div class="w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all ${stepNum >= 3 ? (stepNum > 3 ? 'bg-primary text-on-primary' : 'bg-primary-container text-on-primary-container ring-4 ring-primary/20') : 'bg-outline-variant/30 text-on-surface-variant'}">
-                                <span class="material-symbols-outlined text-lg">local_shipping</span>
+                                <span class="material-symbols-outlined text-lg">inventory</span>
                             </div>
-                            <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 3 ? 'text-primary' : 'text-on-surface-variant'}">Đang giao hàng</span>
-                            <span class="text-[10px] text-on-surface-variant">Shipper hỏa tốc</span>
+                            <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 3 ? 'text-primary' : 'text-on-surface-variant'}">Chuẩn bị hàng</span>
+                            <span class="text-[10px] text-on-surface-variant">Shop chuẩn bị lạnh</span>
                         </div>
 
                         <!-- Step 4 -->
                         <div class="flex flex-col items-center flex-1">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all ${stepNum >= 4 ? 'bg-primary text-on-primary' : 'bg-outline-variant/30 text-on-surface-variant'}">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all ${stepNum >= 4 ? (stepNum > 4 ? 'bg-primary text-on-primary' : 'bg-primary-container text-on-primary-container ring-4 ring-primary/20') : 'bg-outline-variant/30 text-on-surface-variant'}">
+                                <span class="material-symbols-outlined text-lg">local_shipping</span>
+                            </div>
+                            <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 4 ? 'text-primary' : 'text-on-surface-variant'}">Đang giao hàng</span>
+                            <span class="text-[10px] text-on-surface-variant">Shipper hỏa tốc</span>
+                        </div>
+
+                        <!-- Step 5 -->
+                        <div class="flex flex-col items-center flex-1">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-md transition-all ${stepNum >= 5 ? 'bg-primary text-on-primary' : 'bg-outline-variant/30 text-on-surface-variant'}">
                                 <span class="material-symbols-outlined text-lg">task_alt</span>
                             </div>
-                            <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 4 ? 'text-primary' : 'text-on-surface-variant'}">Hoàn thành</span>
+                            <span class="text-xs md:text-sm font-bold mt-2 ${stepNum >= 5 ? 'text-primary' : 'text-on-surface-variant'}">Hoàn thành</span>
                             <span class="text-[10px] text-on-surface-variant">Đã ký nhận</span>
                         </div>
                     </c:otherwise>

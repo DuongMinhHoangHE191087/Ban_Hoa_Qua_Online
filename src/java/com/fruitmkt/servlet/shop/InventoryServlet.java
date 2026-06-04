@@ -2,64 +2,173 @@ package com.fruitmkt.servlet.shop;
 
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.util.SessionUtil;
-import com.fruitmkt.service.InventoryService;
+import com.fruitmkt.service.ReplenishmentService;
+import com.fruitmkt.dao.ProductDAO;
+import com.fruitmkt.dao.ProductVariantDAO;
+import com.fruitmkt.model.entity.Product;
+import com.fruitmkt.model.entity.ProductVariant;
+import com.fruitmkt.model.entity.ReplenishmentLog;
+import com.fruitmkt.model.entity.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 
 /**
- * InventoryServlet — Controller cho chức năng: Bảng tồn kho và lịch sử điều chỉnh
- *
+ * InventoryServlet — Controller for Restock Management and inventory logs.
  * URL: /shop/inventory
- * GET : Bảng tồn kho và lịch sử điều chỉnh
- * POST: Điều chỉnh tồn kho thủ công
- *
- * QUY TẮC SERVLET:
- *   1. Không viết SQL ở đây — gọi Service
- *   2. Sau POST thành công dùng PRG pattern (sendRedirect)
- *   3. Lưu flash message vào session trước redirect
- *   4. Forward đến /WEB-INF/jsp/shop/... (không để truy cập trực tiếp)
- *   5. Kiểm tra quyền bằng SessionUtil trước khi xử lý
- *
- * @author fruitmkt-team
  */
 @WebServlet("/shop/inventory")
 public class InventoryServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final ReplenishmentService replenishmentService = new ReplenishmentService();
+    private final ProductDAO productDAO = new ProductDAO();
+    private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/shop/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: InventoryServlet");
+        req.setCharacterEncoding("UTF-8");
+        resp.setContentType("text/html;charset=UTF-8");
+
+        HttpSession session = req.getSession();
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        try {
+            // 1. Fetch variants belonging to products of this shop owner
+            List<Product> products = productDAO.findByOwner(currentUser.getUserId());
+            List<Map<String, Object>> variantsWithProduct = new ArrayList<>();
+            for (Product p : products) {
+                List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
+                for (ProductVariant v : variants) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("productId", p.getProductId());
+                    map.put("productName", p.getName());
+                    map.put("variantId", v.getVariantId());
+                    map.put("variantLabel", v.getVariantLabel());
+                    map.put("stockQuantity", v.getStockQuantity());
+                    map.put("sku", v.getSku());
+                    variantsWithProduct.add(map);
+                }
+            }
+
+            // 2. Fetch past replenishment log history
+            List<ReplenishmentLog> history = replenishmentService.getReplenishmentHistory(currentUser.getUserId());
+
+            // 3. Set request attributes
+            req.setAttribute("variants", variantsWithProduct);
+            req.setAttribute("replenishmentLogs", history);
+
+            // 4. Forward to inventory JSP page
+            req.getRequestDispatcher("/WEB-INF/jsp/shop/inventory.jsp").forward(req, resp);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            SessionUtil.flashError(session, "Đã xảy ra lỗi khi tải dữ liệu tồn kho.");
+            resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Đọc params / JSON body
-        //        2. Validate input
-        //        3. Gọi service
-        //        4. Set flash message
-        //        5. Redirect (PRG pattern)
-        //
-        // Ví dụ:
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Thành công!");
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
-        // resp.sendRedirect(req.getContextPath() + "/..");
-        throw new UnsupportedOperationException("doPost not implemented: InventoryServlet");
-    }
+        req.setCharacterEncoding("UTF-8");
 
+        HttpSession session = req.getSession();
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        // 1. Read parameters
+        String variantIdStr = req.getParameter("variantId");
+        String quantityStr = req.getParameter("quantity");
+        String supplierDetails = req.getParameter("supplierDetails");
+        String replenishmentDateStr = req.getParameter("replenishmentDate");
+
+        // 2. Validation
+        if (variantIdStr == null || variantIdStr.trim().isEmpty() ||
+            quantityStr == null || quantityStr.trim().isEmpty() ||
+            replenishmentDateStr == null || replenishmentDateStr.trim().isEmpty()) {
+            SessionUtil.flashError(session, "Vui lòng nhập đầy đủ các trường bắt buộc.");
+            resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+            return;
+        }
+
+        int variantId;
+        int quantity;
+        LocalDate replenishmentDate;
+
+        try {
+            variantId = Integer.parseInt(variantIdStr);
+            quantity = Integer.parseInt(quantityStr);
+        } catch (NumberFormatException e) {
+            SessionUtil.flashError(session, "Mã sản phẩm hoặc số lượng nhập kho không hợp lệ.");
+            resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+            return;
+        }
+
+        try {
+            replenishmentDate = LocalDate.parse(replenishmentDateStr);
+        } catch (DateTimeParseException e) {
+            SessionUtil.flashError(session, "Định dạng ngày nhập kho không hợp lệ.");
+            resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+            return;
+        }
+
+        if (quantity <= 0) {
+            SessionUtil.flashError(session, "Số lượng nhập kho phải lớn hơn 0.");
+            resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+            return;
+        }
+
+        if (replenishmentDate.isAfter(LocalDate.now())) {
+            SessionUtil.flashError(session, "Ngày nhập kho không được lớn hơn ngày hiện tại.");
+            resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+            return;
+        }
+
+        try {
+            // 3. Security check: Verify that this variant belongs to a product owned by the current Shop Owner
+            ProductVariant pv = productVariantDAO.findById(variantId);
+            if (pv == null) {
+                SessionUtil.flashError(session, "Biến thể sản phẩm không tồn tại.");
+                resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+                return;
+            }
+
+            List<Product> products = productDAO.findById(pv.getProductId());
+            if (products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
+                SessionUtil.flashError(session, "Bạn không có quyền nhập kho cho sản phẩm này.");
+                resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+                return;
+            }
+
+            // 4. Call Service to execute transaction
+            replenishmentService.replenish(variantId, quantity, supplierDetails, replenishmentDate, currentUser.getUserId());
+            SessionUtil.flashSuccess(session, "Nhập kho sản phẩm thành công!");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            SessionUtil.flashError(session, e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            SessionUtil.flashError(session, "Đã xảy ra lỗi không xác định.");
+        }
+
+        // 5. Redirect (PRG Pattern)
+        resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+    }
 }

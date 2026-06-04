@@ -15,36 +15,79 @@ import java.sql.SQLException;
  */
 public class ChatService {
 
+    private final com.fruitmkt.dao.ChatDAO chatDAO = new com.fruitmkt.dao.ChatDAO();
+
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Lấy hoặc tạo phiên chat mới giữa customer và shop owner. Không yêu cầu đơn hàng phải tồn tại.
      */
     public com.fruitmkt.model.entity.ChatSession getOrCreateSession(int customerId, int ownerId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: getOrCreateSession(int customerId, int ownerId)");
+        if (customerId <= 0 || ownerId <= 0) {
+            throw new IllegalArgumentException("ID khách hàng hoặc ID chủ shop không hợp lệ.");
+        }
+        if (customerId == ownerId) {
+            throw new IllegalArgumentException("Không thể tự trò chuyện với chính mình.");
+        }
+
+        java.util.List<com.fruitmkt.model.entity.ChatSession> existing = chatDAO.findSessionByParticipants(customerId, ownerId);
+        if (existing != null && !existing.isEmpty()) {
+            return existing.get(0);
+        }
+
+        int newId = chatDAO.createSession(customerId, ownerId);
+        com.fruitmkt.model.entity.ChatSession session = new com.fruitmkt.model.entity.ChatSession();
+        session.setSessionId(newId);
+        session.setCustomerId(customerId);
+        session.setOwnerId(ownerId);
+        session.setStatus("ACTIVE");
+        session.setCreatedAt(java.time.LocalDateTime.now());
+        session.setUpdatedAt(java.time.LocalDateTime.now());
+        return session;
     }
 
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Gửi tin nhắn mới. Tiệt trùng thẻ HTML chống XSS.
      */
     public void sendMessage(int sessionId, int senderId, String content) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: sendMessage(int sessionId, int senderId, String content)");
+        if (sessionId <= 0 || senderId <= 0) {
+            throw new IllegalArgumentException("Session ID hoặc Sender ID không hợp lệ.");
+        }
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("Nội dung tin nhắn không được để trống.");
+        }
+
+        // Tẩy XSS cơ bản bằng cách loại bỏ các thẻ HTML
+        String sanitizedContent = content.replaceAll("<[^>]*>", "").trim();
+        if (sanitizedContent.isEmpty()) {
+            throw new IllegalArgumentException("Nội dung tin nhắn không hợp lệ.");
+        }
+
+        com.fruitmkt.model.entity.ChatMessage msg = new com.fruitmkt.model.entity.ChatMessage();
+        msg.setSessionId(sessionId);
+        msg.setSenderId(senderId);
+        msg.setContent(sanitizedContent);
+        msg.setIsRead(false);
+
+        chatDAO.saveMessage(msg);
     }
 
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Lấy toàn bộ danh sách tin nhắn của 1 phiên.
      */
-    public java.util.List getMessages(int sessionId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: getMessages(int sessionId)");
+    public java.util.List<com.fruitmkt.model.entity.ChatMessage> getMessages(int sessionId) throws SQLException {
+        if (sessionId <= 0) {
+            throw new IllegalArgumentException("Session ID không hợp lệ.");
+        }
+        return chatDAO.findMessages(sessionId);
     }
 
     /**
-     * TODO: Implement — xem SRS / use case tương ứng
+     * Đánh dấu tin nhắn đã đọc.
      */
     public void markRead(int sessionId, int readerId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: markRead(int sessionId, int readerId)");
+        if (sessionId <= 0 || readerId <= 0) {
+            throw new IllegalArgumentException("Session ID hoặc Reader ID không hợp lệ.");
+        }
+        chatDAO.markRead(sessionId, readerId);
     }
 
 }

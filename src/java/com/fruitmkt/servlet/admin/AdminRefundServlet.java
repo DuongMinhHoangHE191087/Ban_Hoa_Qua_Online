@@ -1,0 +1,67 @@
+package com.fruitmkt.servlet.admin;
+
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.service.ReturnRequestService;
+import com.fruitmkt.util.SessionUtil;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.*;
+import java.io.IOException;
+
+@WebServlet("/admin/refunds")
+public class AdminRefundServlet extends HttpServlet {
+
+    private final ReturnRequestService returnRequestService = new ReturnRequestService();
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            String status = req.getParameter("status");
+            int page = 1;
+            String pageStr = req.getParameter("page");
+            if (pageStr != null && !pageStr.trim().isEmpty()) {
+                try { page = Integer.parseInt(pageStr); } catch (Exception e) {}
+            }
+            int pageSize = 20;
+
+            java.util.List<com.fruitmkt.model.entity.ReturnRequest> requests = returnRequestService.getAllRequests(status, page, pageSize);
+            int totalRecords = returnRequestService.countAllRequests(status);
+            int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+
+            req.setAttribute("requestList", requests);
+            req.setAttribute("currentPage", page);
+            req.setAttribute("totalPages", totalPages);
+            req.setAttribute("paramStatus", status);
+
+            req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-refunds.jsp").forward(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách yêu cầu hoàn trả");
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            String action = req.getParameter("action"); // "approve" or "reject"
+            int requestId = Integer.parseInt(req.getParameter("requestId"));
+            int orderId = Integer.parseInt(req.getParameter("orderId"));
+            String reason = req.getParameter("decisionReason");
+            
+            User admin = SessionUtil.getCurrentUser(req.getSession());
+            
+            returnRequestService.processRequest(requestId, action, reason, admin.getUserId(), orderId);
+            
+            if ("approve".equals(action)) {
+                SessionUtil.flashSuccess(req.getSession(), "Đã chấp nhận hoàn tiền cho yêu cầu #" + requestId);
+            } else {
+                SessionUtil.flashSuccess(req.getSession(), "Đã từ chối yêu cầu hoàn tiền #" + requestId);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            SessionUtil.flashError(req.getSession(), "Lỗi xử lý hoàn tiền: " + e.getMessage());
+        }
+        resp.sendRedirect(req.getContextPath() + "/admin/refunds");
+    }
+}

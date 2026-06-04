@@ -28,38 +28,60 @@ import java.io.IOException;
 @WebServlet("/shop/profile")
 public class ShopProfileServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final com.fruitmkt.service.ShopService shopService = new com.fruitmkt.service.ShopService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/shop/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: ShopProfileServlet");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || !"SHOP_OWNER".equals(user.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        try {
+            com.fruitmkt.model.entity.ShopProfile profile = shopService.getShopByUserId(user.getUserId());
+            req.setAttribute("shopProfile", profile);
+            req.getRequestDispatcher("/WEB-INF/jsp/shop/profile.jsp").forward(req, resp);
+        } catch (Exception e) {
+            getServletContext().log("Lỗi tải thông tin shop: " + e.getMessage(), e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải thông tin shop");
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Đọc params / JSON body
-        //        2. Validate input
-        //        3. Gọi service
-        //        4. Set flash message
-        //        5. Redirect (PRG pattern)
-        //
-        // Ví dụ:
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Thành công!");
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
-        // resp.sendRedirect(req.getContextPath() + "/..");
-        throw new UnsupportedOperationException("doPost not implemented: ShopProfileServlet");
+        req.setCharacterEncoding("UTF-8");
+        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || !"SHOP_OWNER".equals(user.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        try {
+            com.fruitmkt.model.entity.ShopProfile profile = shopService.getShopByUserId(user.getUserId());
+            if (profile != null) {
+                profile.setShopDescription(req.getParameter("shopDescription"));
+                profile.setDeliveryAddress(req.getParameter("deliveryAddress"));
+                profile.setPreferredCategories(req.getParameter("preferredCategories"));
+                // Note: shopName update might be restricted, but let's allow it for now
+                String newName = req.getParameter("shopName");
+                if (newName != null && !newName.trim().isEmpty()) {
+                    profile.setShopName(newName.trim());
+                }
+
+                shopService.updateShopProfile(profile);
+                SessionUtil.flashSuccess(req.getSession(), "Cập nhật hồ sơ cửa hàng thành công!");
+            } else {
+                SessionUtil.flashError(req.getSession(), "Không tìm thấy hồ sơ cửa hàng!");
+            }
+        } catch (Exception e) {
+            getServletContext().log("Lỗi cập nhật shop: " + e.getMessage(), e);
+            SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());
+        }
+
+        resp.sendRedirect(req.getContextPath() + "/shop/profile");
     }
 
 }
