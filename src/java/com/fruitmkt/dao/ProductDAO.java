@@ -306,6 +306,51 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
+     * Thực hiện xóa mềm sản phẩm (soft delete) một cách an toàn và triệt để:
+     * 1. Cập nhật status của sản phẩm thành 'DELETED'
+     * 2. Hủy kích hoạt tất cả các biến thể của sản phẩm (is_active = 0)
+     * 3. Xóa các biến thể này khỏi giỏ hàng của tất cả khách hàng (cart_items)
+     */
+    public void deleteProduct(int productId) throws SQLException {
+        String updateProductSql = "UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?";
+        String updateVariantsSql = "UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?";
+        String deleteCartSql = "DELETE FROM cart_items WHERE variant_id IN (SELECT variant_id FROM product_variants WHERE product_id = ?)";
+        String updatePromotionsSql = "UPDATE promotions SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?";
+        
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement psCart = conn.prepareStatement(deleteCartSql);
+                 PreparedStatement psVar = conn.prepareStatement(updateVariantsSql);
+                 PreparedStatement psProm = conn.prepareStatement(updatePromotionsSql);
+                 PreparedStatement psProd = conn.prepareStatement(updateProductSql)) {
+                
+                // 1. Xóa các cart items của sản phẩm này
+                psCart.setInt(1, productId);
+                psCart.executeUpdate();
+                
+                // 2. Tắt các biến thể
+                psVar.setInt(1, productId);
+                psVar.executeUpdate();
+                
+                // 3. Tắt các khuyến mãi áp dụng riêng cho sản phẩm này
+                psProm.setInt(1, productId);
+                psProm.executeUpdate();
+                
+                // 4. Cập nhật status sản phẩm thành DELETED
+                psProd.setInt(1, productId);
+                psProd.executeUpdate();
+                
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    /**
      * Tăng số lượng lượt xem của sản phẩm.
      */
     public void incrementViewCount(int productId) throws SQLException {
