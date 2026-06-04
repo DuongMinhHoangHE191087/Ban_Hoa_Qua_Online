@@ -63,6 +63,10 @@ public class ProductManageServlet extends HttpServlet {
                 categoryMap.put(c.getCategoryId(), c.getName());
             }
 
+            // Tải danh sách danh mục hoạt động cho Popup Modal tạo mới
+            List<Category> activeCategories = categoryDAO.findAllActive();
+            req.setAttribute("categories", activeCategories);
+
             for (Product p : rawProducts) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("productId", p.getProductId());
@@ -96,18 +100,28 @@ public class ProductManageServlet extends HttpServlet {
 
                 // Lấy thông tin biến thể đại diện để lấy giá và tồn kho
                 List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
-                BigDecimal price = BigDecimal.ZERO;
-                int stock = 0;
-                String unit = "Chưa có";
+                BigDecimal minPrice = BigDecimal.ZERO;
+                BigDecimal maxPrice = BigDecimal.ZERO;
+                int totalStock = 0;
+                String unitDisplay = "Chưa có";
                 if (variants != null && !variants.isEmpty()) {
-                    ProductVariant v = variants.get(0);
-                    price = v.getPrice();
-                    stock = v.getStockQuantity();
-                    unit = v.getVariantLabel();
+                    minPrice = variants.get(0).getPrice();
+                    maxPrice = variants.get(variants.size() - 1).getPrice();
+                    for (ProductVariant v : variants) {
+                        totalStock += v.getStockQuantity();
+                    }
+                    if (variants.size() == 1) {
+                        unitDisplay = variants.get(0).getVariantLabel();
+                    } else {
+                        unitDisplay = variants.size() + " phân loại";
+                    }
                 }
-                map.put("price", price);
-                map.put("stock", stock);
-                map.put("unit", unit);
+                map.put("price", minPrice);
+                map.put("minPrice", minPrice);
+                map.put("maxPrice", maxPrice);
+                map.put("hasMultipleVariants", variants != null && variants.size() > 1);
+                map.put("stock", totalStock);
+                map.put("unit", unitDisplay);
 
                 products.add(map);
             }
