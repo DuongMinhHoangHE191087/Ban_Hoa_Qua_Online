@@ -23,6 +23,7 @@ public class ProductDAO extends BaseDAO {
      * Tìm sản phẩm theo ID.
      */
     public List<Product> findById(int id) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE product_id = ?";
         try (Connection conn = getConnection();
@@ -41,6 +42,7 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách toàn bộ sản phẩm có phân trang.
      */
     public List<Product> findAll(int page, int pageSize) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
         String sql = "SELECT * FROM products WHERE status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -62,6 +64,7 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách sản phẩm theo ID của chủ cửa hàng.
      */
     public List<Product> findByOwner(int ownerId) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' ORDER BY product_id DESC";
         //khang
@@ -81,6 +84,7 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách sản phẩm theo Category ID có phân trang.
      */
     public List<Product> findByCategory(int categoryId, int page, int pageSize) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
         String sql = "SELECT * FROM products WHERE category_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -103,6 +107,7 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách tất cả sản phẩm đang có chương trình khuyến mãi hoạt động (Flash Sale).
      */
     public List<Product> findFlashSaleProducts() throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT DISTINCT p.* FROM products p "
                    + "JOIN promotions pr ON p.product_id = pr.product_id "
@@ -123,6 +128,7 @@ public class ProductDAO extends BaseDAO {
      * Tìm kiếm sản phẩm theo từ khóa, danh mục, khoảng giá và phân trang.
      */
     public List<Product> search(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, int page, int pageSize) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT DISTINCT p.* FROM products p ");
         if (minPrice != null || maxPrice != null) {
@@ -173,6 +179,7 @@ public class ProductDAO extends BaseDAO {
      * Đếm tổng số sản phẩm ACTIVE khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
      */
     public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
+        autoDeactivateExpiredProducts();
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");//khang
@@ -304,6 +311,33 @@ public class ProductDAO extends BaseDAO {
             ps.executeUpdate();
         }
     }
+
+    /**
+     * Cập nhật ngày thu hoạch và trạng thái sản phẩm trong một Transaction Connection.
+     */
+    public void updateHarvestDateAndStatus(Connection conn, int productId, java.time.LocalDate harvestDate, String status) throws SQLException {
+        String sql = "UPDATE products SET harvest_date = ?, status = ?, updated_at = GETDATE() WHERE product_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(harvestDate));
+            ps.setString(2, status);
+            ps.setInt(3, productId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Tự động chuyển trạng thái của các sản phẩm đã hết hạn bảo quản/hết vụ từ ACTIVE sang INACTIVE.
+     */
+    public void autoDeactivateExpiredProducts() throws SQLException {
+        String sql = "UPDATE products SET status = 'INACTIVE', updated_at = GETDATE() "
+                   + "WHERE status = 'ACTIVE' AND harvest_date IS NOT NULL AND shelf_life_days IS NOT NULL "
+                   + "AND DATEADD(day, shelf_life_days, harvest_date) <= CAST(GETDATE() AS DATE)";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.executeUpdate();
+        }
+    }
+
 
     /**
      * Thực hiện xóa mềm sản phẩm (soft delete) một cách an toàn và triệt để:
