@@ -180,6 +180,23 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.replenishment_logs', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.replenishment_logs (
+        log_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_replenishment_logs PRIMARY KEY,
+        variant_id INT NOT NULL,
+        replenished_by INT NOT NULL,
+        quantity INT NOT NULL CONSTRAINT CK_replenishment_logs_quantity CHECK (quantity > 0),
+        supplier_details NVARCHAR(500) NULL,
+        replenishment_date DATE NOT NULL,
+        created_at DATETIME NOT NULL CONSTRAINT DF_replenishment_logs_created_at DEFAULT GETDATE(),
+        CONSTRAINT FK_replenishment_logs_variants FOREIGN KEY (variant_id) REFERENCES dbo.product_variants(variant_id) ON DELETE CASCADE,
+        CONSTRAINT FK_replenishment_logs_users FOREIGN KEY (replenished_by) REFERENCES dbo.users(user_id)
+    );
+END
+GO
+
+
 IF OBJECT_ID(N'dbo.promotions', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.promotions (
@@ -821,7 +838,9 @@ BEGIN TRY
         (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
         (8, N'Lê Minh Tuấn', N'customer3@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000008', N'CUSTOMER', N'ACTIVE', N'18 Nguyễn Du, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
         (9, N'Nguyễn Thị Lan', N'customer4@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000009', N'CUSTOMER', N'ACTIVE', N'45 Lê Lợi, Bến Nghé, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
+        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (27, N'Nguyễn Văn Đăng Ký', N'pending_shop1@fruitshop.local', N'$2a$10$wTfA2q1E1Hk08vU9g2aQ1OWf8gXz6H1A2pZ9vT3yXyT1A2bC3D4E5', N'0911223344', N'CUSTOMER', N'ACTIVE', NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (28, N'Trần Thị Chờ Duyệt', N'pending_shop2@fruitshop.local', N'$2a$10$wTfA2q1E1Hk08vU9g2aQ1OWf8gXz6H1A2pZ9vT3yXyT1A2bC3D4E5', N'0988776655', N'CUSTOMER', N'ACTIVE', NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -839,7 +858,9 @@ BEGIN TRY
         (1, 3, N'An Phu Orchard', N'Premium citrus and banana supplier', N'APPROVED', NULL, '2026-05-02T10:00:00', N'12 Le Loi, District 1, HCMC', 4.88, N'[1,2,3]', N'["uploads/shop-docs/3/doc1.pdf"]', '2026-05-02T10:00:00', '2026-05-16T08:00:00'),
         (2, 4, N'Mekong Fresh Farm', N'Mango, berries, and grapes specialist', N'APPROVED', NULL, '2026-05-03T10:00:00', N'88 Nguyen Trai, District 5, HCMC', 4.76, N'[2,3,6]', N'["uploads/shop-docs/4/doc1.pdf"]', '2026-05-03T10:00:00', '2026-05-16T08:00:00'),
         (3, 7, N'Klever Premium Fruits', N'Imported fruits, gift boxes, and seasonal premium selections', N'APPROVED', NULL, '2026-05-04T10:00:00', N'52 Vo Thi Sau, District 3, HCMC', 4.91, N'[4,10]', N'["uploads/shop-docs/7/doc1.pdf"]', '2026-05-04T10:00:00', '2026-05-16T08:00:00'),
-        (4, 21, N'MetaFruit Test Shop', N'Cửa hàng hoa quả tươi sạch phục vụ kiểm thử', N'APPROVED', NULL, GETDATE(), N'100 Láng Hạ, Hà Nội', 5.00, N'[1,2,5]', N'["uploads/shop-docs/21/doc1.pdf"]', GETDATE(), GETDATE());
+        (4, 21, N'MetaFruit Test Shop', N'Cửa hàng hoa quả tươi sạch phục vụ kiểm thử', N'APPROVED', NULL, GETDATE(), N'100 Láng Hạ, Hà Nội', 5.00, N'[1,2,5]', N'["uploads/shop-docs/21/doc1.pdf"]', GETDATE(), GETDATE()),
+        (5, 27, N'Trái Cây Sạch Hữu Cơ', N'Cung cấp trái cây chuẩn VietGAP', N'PENDING', NULL, NULL, N'123 Đường VietGAP, Quận 1', 0, NULL, N'["uploads/docs/doc1.pdf"]', GETDATE(), GETDATE()),
+        (6, 28, N'Đặc Sản Trái Cây Vùng Miền', N'Tất cả đặc sản trái cây 3 miền', N'PENDING', NULL, NULL, N'456 Vùng Miền, Quận 3', 0, NULL, N'["uploads/docs/doc2.pdf"]', GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.shop_owner_profiles OFF;
 
     SET IDENTITY_INSERT dbo.categories ON;
