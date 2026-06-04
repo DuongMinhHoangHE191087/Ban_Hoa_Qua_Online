@@ -87,15 +87,15 @@ public class ProductDetailServlet extends HttpServlet {
                 return;
             }
 
-            // Nếu sản phẩm INACTIVE mà không phải hết hạn vụ (isExpired() == false) thì là ngừng bán, chặn truy cập
-            if ("INACTIVE".equals(product.getStatus()) && !product.isExpired()) {
+            // Nếu sản phẩm INACTIVE thì là ngừng bán, chặn truy cập hoàn toàn
+            if ("INACTIVE".equals(product.getStatus())) {
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Sản phẩm này hiện đã ngừng bán.");
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "warning");
                 resp.sendRedirect(req.getContextPath() + "/home");
                 return;
             }
 
-            boolean isExpiredProduct = "INACTIVE".equals(product.getStatus()) && product.isExpired();
+            boolean isExpiredProduct = "OUT_OF_SEASON".equals(product.getStatus());
             req.setAttribute("isExpiredProduct", isExpiredProduct);
 
             boolean hasRequestedToday = false;
@@ -332,8 +332,8 @@ public class ProductDetailServlet extends HttpServlet {
             if (products != null && !products.isEmpty()) {
                 Product p = products.get(0);
 
-                // Nếu sản phẩm INACTIVE nhưng không hết hạn (ngừng bán) thì chặn gửi yêu cầu restock
-                if ("INACTIVE".equals(p.getStatus()) && !p.isExpired()) {
+                // Nếu sản phẩm INACTIVE thì chặn gửi yêu cầu restock
+                if ("INACTIVE".equals(p.getStatus())) {
                     result.put("success", false);
                     result.put("message", "Sản phẩm này đã ngừng bán, không thể gửi yêu cầu nhập kho.");
                     com.fruitmkt.util.JsonUtil.writeJson(resp, result);

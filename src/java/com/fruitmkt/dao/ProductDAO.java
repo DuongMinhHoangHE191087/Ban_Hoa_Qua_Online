@@ -362,11 +362,8 @@ public class ProductDAO extends BaseDAO {
         return false;
     }
 
-    /**
-     * Tự động chuyển trạng thái của các sản phẩm đã hết hạn bảo quản/hết vụ từ ACTIVE sang INACTIVE.
-     */
     public void autoDeactivateExpiredProducts() throws SQLException {
-        String sql = "UPDATE products SET status = 'INACTIVE', updated_at = GETDATE() "
+        String sql = "UPDATE products SET status = 'OUT_OF_SEASON', updated_at = GETDATE() "
                    + "WHERE status = 'ACTIVE' AND harvest_date IS NOT NULL AND shelf_life_days IS NOT NULL AND shelf_life_days > 0 "
                    + "AND DATEADD(day, shelf_life_days, harvest_date) <= CAST(GETDATE() AS DATE)";
         try (Connection conn = getConnection();

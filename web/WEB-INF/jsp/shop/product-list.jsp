@@ -228,11 +228,14 @@
 
                                         <!-- AJAX Toggle Sale Switch -->
                                         <td class="text-center">
-                                            <div class="flex items-center justify-center">
+                                            <div class="flex flex-col items-center justify-center gap-1">
+                                                <c:if test="${item.status == 'OUT_OF_SEASON'}">
+                                                    <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Hết vụ</span>
+                                                </c:if>
                                                 <label class="relative inline-flex items-center cursor-pointer select-none">
                                                     <input type="checkbox" id="toggle-status-${item.productId}" 
                                                            class="sr-only peer" 
-                                                           ${item.status == 'ACTIVE' ? 'checked' : ''} 
+                                                           ${item.status == 'ACTIVE' || item.status == 'OUT_OF_SEASON' ? 'checked' : ''} 
                                                            onchange="toggleSaleStatus('${item.productId}', this)">
                                                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                                 </label>
@@ -335,6 +338,7 @@
                                 <select name="status" id="modal-status" required class="form-control-custom py-[0.55rem]">
                                     <option value="ACTIVE">Công khai bán (ACTIVE)</option>
                                     <option value="INACTIVE">Tạm ẩn hiển thị (INACTIVE)</option>
+                                    <option value="OUT_OF_SEASON">Hết vụ thu hoạch (OUT_OF_SEASON)</option>
                                 </select>
                             </div>
                         </div>

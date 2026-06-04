@@ -1278,7 +1278,7 @@ UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -3, GETDATE()) AS DATE)
 UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 16;
 UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -5, GETDATE()) AS DATE), shelf_life_days = 14, status = 'ACTIVE' WHERE product_id = 17;
 
--- Loại B: Đã hết hạn thực tế (Tự động chuyển thành INACTIVE khi load trang)
+-- Loại B: Đã hết hạn thực tế (Tự động chuyển thành OUT_OF_SEASON khi load trang)
 UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -45, GETDATE()) AS DATE), shelf_life_days = 20, status = 'ACTIVE' WHERE product_id = 2;
 UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -10, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 4;
 UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -50, GETDATE()) AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 7;
