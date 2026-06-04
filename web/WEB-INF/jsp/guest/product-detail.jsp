@@ -18,6 +18,22 @@
     <jsp:param name="pageTitle" value="${product.name}"/>
 </jsp:include>
 
+<!-- Load Tailwind CSS dynamically to sync container layout with Home page -->
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#4D661C',
+                    'primary-dark': '#364E03',
+                    'primary-light': '#D9F99D',
+                }
+            }
+        }
+    }
+</script>
+
 <!-- Custom Premium CSS for Product Detail Page -->
 <style>
     /* ============================================================
@@ -1127,10 +1143,19 @@
                 <div class="flex items-center space-x-2 mb-3 gap-2">
                     <c:choose>
                         <c:when test="${product.status == 'ACTIVE'}">
-                            <span class="badge-stock badge-instock"><i class="fa-solid fa-circle-check mr-1"></i> Còn hàng</span>
+                            <span id="variant-status-badge" class="badge-stock ${not empty variants && variants[0].stockQuantity > 0 ? 'badge-instock' : 'badge-outstock'}">
+                                <c:choose>
+                                    <c:when test="${not empty variants && variants[0].stockQuantity > 0}">
+                                        <i class="fa-solid fa-circle-check mr-1"></i> Còn hàng
+                                    </c:when>
+                                    <c:otherwise>
+                                        <i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng
+                                    </c:otherwise>
+                                </c:choose>
+                            </span>
                         </c:when>
                         <c:otherwise>
-                            <span class="badge-stock badge-outstock"><i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng</span>
+                            <span id="variant-status-badge" class="badge-stock badge-outstock"><i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng</span>
                         </c:otherwise>
                     </c:choose>
                     <span class="badge-rating-top">
@@ -1224,13 +1249,13 @@
 
                 <!-- Cart Action Row -->
                 <c:if test="${not empty variants && product.status == 'ACTIVE'}">
-                    <div class="cart-action-row">
-                        <div class="qty-selector">
+                    <div class="cart-action-row" id="cart-action-controls">
+                        <div class="qty-selector" id="purchase-qty-selector">
                             <button type="button" class="qty-btn" onclick="adjustQuantity(-1)"><i class="fa-solid fa-minus"></i></button>
                             <input type="number" id="purchase-qty" class="qty-input" value="1" min="1" readonly>
                             <button type="button" class="qty-btn" onclick="adjustQuantity(1)"><i class="fa-solid fa-plus"></i></button>
                         </div>
-                        <button type="button" class="btn-add-to-cart-large" onclick="handleAddToCart()">
+                        <button type="button" id="btn-add-to-cart" class="btn-add-to-cart-large" onclick="handleAddToCart()">
                             <i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng
                         </button>
                     </div>
@@ -1645,7 +1670,48 @@
         element.classList.add('active');
     }
 
-    // 2. Variant change — update price, unit, stock
+    // 2. Helper to update Out of Stock UI elements
+    function updateStockUI(stock) {
+        const badge = document.getElementById('variant-status-badge');
+        const btnAdd = document.getElementById('btn-add-to-cart');
+        const qtySelector = document.getElementById('purchase-qty-selector');
+
+        if (stock <= 0) {
+            // Update badge to Out of Stock
+            if (badge) {
+                badge.className = 'badge-stock badge-outstock';
+                badge.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng';
+            }
+            // Disable and dim the Add to Cart button
+            if (btnAdd) {
+                btnAdd.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                btnAdd.setAttribute('disabled', 'true');
+                btnAdd.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Hết Hàng';
+            }
+            // Dim quantity selector controls
+            if (qtySelector) {
+                qtySelector.classList.add('opacity-50', 'pointer-events-none');
+            }
+        } else {
+            // Update badge to In Stock
+            if (badge) {
+                badge.className = 'badge-stock badge-instock';
+                badge.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Còn hàng';
+            }
+            // Enable and restore the Add to Cart button
+            if (btnAdd) {
+                btnAdd.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                btnAdd.removeAttribute('disabled');
+                btnAdd.innerHTML = '<i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng';
+            }
+            // Restore quantity selector controls
+            if (qtySelector) {
+                qtySelector.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+    }
+
+    // 2b. Variant change — update price, unit, stock, and check stock-out states
     function onVariantChange(radioElement) {
         const price = parseFloat(radioElement.getAttribute('data-price'));
         const label = radioElement.getAttribute('data-label');
@@ -1659,10 +1725,15 @@
         if (unitDisplay) unitDisplay.textContent = ' / ' + label;
 
         const stockHint = document.getElementById('variant-stock-hint');
-        if (stockHint) stockHint.innerHTML = 'Tồn kho: <strong>' + stock + '</strong> sản phẩm khả dụng';
+        if (stockHint) {
+            stockHint.innerHTML = '<i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i> Tồn kho: <strong style="color:#14532d;">' + stock + '</strong> sản phẩm khả dụng';
+        }
 
         const qtyInput = document.getElementById('purchase-qty');
         if (qtyInput) qtyInput.value = 1;
+
+        // Apply Out of Stock UI check
+        updateStockUI(stock);
     }
 
     // 3. Quantity adjustment
@@ -1692,7 +1763,20 @@
         const quantity = parseInt(qtyInput ? qtyInput.value : 1);
         const name = "<c:out value='${product.name}'/> - " + checkedVariant.getAttribute('data-label');
         const price = parseFloat(checkedVariant.getAttribute('data-price'));
-        const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 99;
+        const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 0;
+
+        // CRITICAL: Block out-of-stock actions and display Red Alert
+        if (stockQuantity <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hết hàng!',
+                text: 'Sản phẩm này hiện tại đã hết hàng, không thể thêm vào giỏ hàng.',
+                confirmButtonText: 'Đồng ý',
+                confirmButtonColor: '#B71C1C',
+                background: '#ffffff'
+            });
+            return;
+        }
 
         let imagePath = 'assets/img/placeholder.png';
         const mainImg = document.getElementById('main-product-img');
@@ -1870,6 +1954,10 @@
             const label = firstVariant.getAttribute('data-label');
             const unitEl = document.getElementById('displayed-unit');
             if (unitEl && label) unitEl.textContent = ' / ' + label;
+            
+            // Apply initial stock-out UI check
+            const initialStock = parseInt(firstVariant.getAttribute('data-stock')) || 0;
+            updateStockUI(initialStock);
         }
     });
 </script>
