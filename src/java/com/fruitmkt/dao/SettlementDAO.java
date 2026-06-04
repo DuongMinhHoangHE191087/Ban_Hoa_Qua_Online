@@ -61,6 +61,21 @@ public class SettlementDAO extends BaseDAO {
         }
     }
 
+    public List<ShopSettlement> findByOwner(int ownerId) throws SQLException {
+        List<ShopSettlement> list = new ArrayList<>();
+        String sql = "SELECT * FROM shop_settlements WHERE owner_id = ? ORDER BY settlement_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     private ShopSettlement mapRow(ResultSet rs) throws SQLException {
         ShopSettlement s = new ShopSettlement();
         s.setSettlementId(rs.getInt("settlement_id"));

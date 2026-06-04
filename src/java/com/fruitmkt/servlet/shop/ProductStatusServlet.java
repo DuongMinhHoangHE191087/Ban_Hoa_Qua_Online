@@ -18,11 +18,11 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * ProductStatusController — API Servlet phục vụ AJAX Toggle, Soft Delete, và Xóa ảnh nhanh
- * URL: /shop/product-status
+ * ProductStatusServlet — API Servlet phục vụ AJAX Toggle, Soft Delete, và Xóa ảnh nhanh
+ URL: /shop/product-status
  */
 @WebServlet("/shop/product-status")
-public class ProductStatusController extends HttpServlet {
+public class ProductStatusServlet extends HttpServlet {
 
     private final ProductDAO productDAO = new ProductDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
