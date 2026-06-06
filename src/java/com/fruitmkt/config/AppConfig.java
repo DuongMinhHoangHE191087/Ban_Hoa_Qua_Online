@@ -34,6 +34,13 @@ public final class AppConfig {
         public static final String EMAIL_SMTP_PORT = "587";
         public static final String EMAIL_FROM = System.getenv("EMAIL_FROM") != null ? System.getenv("EMAIL_FROM") : "duongminhhoanginwork@gmail.com";
         public static final String EMAIL_PASSWORD = System.getenv("EMAIL_PASSWORD") != null ? System.getenv("EMAIL_PASSWORD") : "jkhg przg aohf pwla";
+        public static final String SECRET_KEY = System.getenv("SECRET_KEY") != null ? System.getenv("SECRET_KEY") : "fruitmkt-super-secret-key-2026-secure-sha256";
+        public static final long ACCESS_TOKEN_EXPIRY_MS = System.getenv("ACCESS_TOKEN_EXPIRY_MS") != null 
+                        ? Long.parseLong(System.getenv("ACCESS_TOKEN_EXPIRY_MS")) 
+                        : 15L * 60 * 1000;
+        public static final int REFRESH_TOKEN_EXPIRY_SECS = System.getenv("REFRESH_TOKEN_EXPIRY_SECS") != null 
+                        ? Integer.parseInt(System.getenv("REFRESH_TOKEN_EXPIRY_SECS")) 
+                        : 7 * 24 * 60 * 60;
         public static final String APP_NAME = "MetaFruit";
         public static final String APP_SUPPORT_EMAIL = System.getenv("EMAIL_FROM") != null ? System.getenv("EMAIL_FROM") : "duongminhhoanginwork@gmail.com";
         public static final String APP_BRAND_COLOR = "#14532d";
