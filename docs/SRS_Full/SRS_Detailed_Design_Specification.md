@@ -463,13 +463,33 @@ class InventoryDAO {
 class ProductVariantDAO {
     +ProductVariant getVariantById(int variantId)
 }
+class UserAddressDAO {
+    +List~UserAddress~ findByUser(int userId)
+    +UserAddress findById(int addressId)
+    +boolean save(UserAddress addr)
+    +boolean update(UserAddress addr)
+    +boolean delete(int addressId)
+    +void clearDefault(int userId)
+}
+class UserAddress {
+    +int addressId
+    +int userId
+    +String recipientName
+    +String recipientPhone
+    +String addressDetail
+    +boolean isDefault
+    +LocalDateTime createdAt
+}
 
 BaseDAO <|-- OrderDAO
 BaseDAO <|-- CartDAO
 BaseDAO <|-- InventoryDAO
 BaseDAO <|-- ProductVariantDAO
+BaseDAO <|-- UserAddressDAO
 
 class CheckoutDTO {
+    +String recipientName
+    +String recipientPhone
     +String delivery_address
     +String delivery_time_slot
     +String payment_method
@@ -478,12 +498,14 @@ class CheckoutDTO {
 
 CheckoutServlet --> OrderService : Invokes
 CheckoutServlet --> InventoryService : Invokes
+CheckoutServlet --> UserAddressDAO : Invokes
 OrderService --> InventoryService : Calls
 OrderService --> OrderDAO : Calls
 OrderService --> CartDAO : Calls
 InventoryService --> InventoryDAO : Calls
 InventoryService --> ProductVariantDAO : Calls
 CheckoutServlet ..> CheckoutDTO : Parses Data
+UserAddressDAO ..> UserAddress : Maps Entity
 @enduml
 ```
 
@@ -497,9 +519,10 @@ CheckoutServlet ..> CheckoutDTO : Parses Data
 | 04 | `com.fruitmkt.service.InventoryService` | Enforces real-time stock safety: reserves variant stocks and releases holds if transactions fail. |
 | 05 | `com.fruitmkt.dao.OrderDAO` | Handles database insertions for the `orders` and `order_items` tables. |
 | 06 | `com.fruitmkt.dao.CartDAO` | Retrieves active carts and removes checked-out items. |
-| 07 | `com.fruitmkt.dao.InventoryDAO` | Reserves physical warehouse inventory inside active connection scopes to prevent double-reservation anomalies. |
 | 08 | `com.fruitmkt.dao.ProductVariantDAO` | Retrieves product variants, pricing tiers, and stock amounts. |
 | 09 | `com.fruitmkt.model.dto.CheckoutDTO` | A unified DTO mapping address information, logistics slots, and payment channels. |
+| 10 | `com.fruitmkt.dao.UserAddressDAO` | Manages relational CRUD database operations for the `user_addresses` table. |
+| 11 | `com.fruitmkt.model.entity.UserAddress` | Model entity representing a customer's registered shipping address. |
 
 ---
 
@@ -524,6 +547,8 @@ database "SQL Server Database" as DB
 
 Customer -> Ctrl: POST /customer/checkout (CheckoutDTO data)
 activate Ctrl
+Ctrl -> Ctrl: Validate recipient details & delivery address
+note over Ctrl: If validation fails, redirects\nback to checkout with error
 Ctrl -> CartDAO: getCartByCustomerId(userId)
 activate CartDAO
 CartDAO -> DB: SELECT * FROM cart / cart_items WHERE customer_id = ?

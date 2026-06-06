@@ -5,6 +5,7 @@
 --%>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <nav class="navbar">
     <div class="container navbar__inner">
         <a href="${pageContext.request.contextPath}/home" class="navbar__logo">
@@ -12,28 +13,37 @@
             <span class="logo-text">Meta<span class="text-highlight">Fruit</span></span>
         </a>
 
-        <form action="${pageContext.request.contextPath}/home" method="get" class="navbar__search">
-            <div class="search-wrapper">
-                <input type="text" name="keyword" placeholder="Tìm hoa quả sạch nhập khẩu, hữu cơ..." value="<c:out value="${param.keyword}"/>">
-                <button type="submit" aria-label="Tìm kiếm">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </button>
-            </div>
-        </form>
+        <c:set var="currentURI" value="${pageContext.request.requestURI}" />
+        <c:choose>
+            <c:when test="${fn:contains(currentURI, '/products') and not fn:contains(currentURI, '/products/detail')}">
+                <!-- Hide header search to avoid duplicate search inputs on product list page -->
+                <div class="navbar__search opacity-0 pointer-events-none" style="visibility: hidden;"></div>
+            </c:when>
+            <c:otherwise>
+                <form action="${pageContext.request.contextPath}/products" method="get" class="navbar__search">
+                    <div class="search-wrapper">
+                        <input type="text" name="keyword" placeholder="Tìm hoa quả sạch nhập khẩu, hữu cơ..." value="<c:out value="${param.keyword}"/>">
+                        <button type="submit" aria-label="Tìm kiếm">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </div>
+                </form>
+            </c:otherwise>
+        </c:choose>
 
         <ul class="navbar__menu">
             <li>
-                <a href="${pageContext.request.contextPath}/home" class="menu-link">
+                <a href="${pageContext.request.contextPath}/products" class="menu-link">
                     <i class="fa-solid fa-apple-whole"></i> Sản phẩm
                 </a>
             </li>
             <li>
-                <a href="#about" class="menu-link">
+                <a href="${pageContext.request.contextPath}/about" class="menu-link">
                     <i class="fa-solid fa-info-circle"></i> Giới thiệu
                 </a>
             </li>
             <li>
-                <a href="#contact" class="menu-link">
+                <a href="${pageContext.request.contextPath}/about#contact" class="menu-link">
                     <i class="fa-solid fa-envelope"></i> Liên hệ
                 </a>
             </li>
@@ -78,8 +88,15 @@
                     </li>
                     
                     <li class="navbar__user-profile">
-                        <div class="user-avatar">
-                            <i class="fa-solid fa-user-circle"></i>
+                        <div class="user-avatar" style="overflow: hidden;">
+                            <c:choose>
+                                <c:when test="${not empty sessionScope.currentUser.avatarUrl}">
+                                    <img src="${sessionScope.currentUser.avatarUrl.startsWith('http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                                </c:when>
+                                <c:otherwise>
+                                    <i class="fa-solid fa-user-circle"></i>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
                         <span class="user-greeting">
                             Chào, <a href="${pageContext.request.contextPath}/profile" class="user-name text-decoration-none" style="color: var(--color-primary-dark);"><c:out value="${sessionScope.currentUser.fullName}"/></a>

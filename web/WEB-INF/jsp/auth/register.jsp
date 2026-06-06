@@ -11,7 +11,7 @@
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Material Symbols Outlined -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
     <!-- Tailwind Configuration -->
@@ -221,6 +221,19 @@
                                         type="button" onclick="togglePasswordVisibility('password', this)">
                                     <span class="material-symbols-outlined text-[20px]">visibility_off</span>
                                 </button>
+                            </div>
+                            
+                            <!-- Password Strength Indicator -->
+                            <div class="mt-2 space-y-1">
+                                <div class="flex items-center justify-between text-[10px] font-semibold">
+                                    <span class="text-on-surface-variant">Độ mạnh mật khẩu:</span>
+                                    <span id="strengthText" class="text-on-surface-variant font-bold">Trống</span>
+                                </div>
+                                <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden flex gap-1">
+                                    <div id="strengthSegment1" class="h-full w-1/3 bg-gray-300 rounded-full transition-all"></div>
+                                    <div id="strengthSegment2" class="h-full w-1/3 bg-gray-300 rounded-full transition-all"></div>
+                                    <div id="strengthSegment3" class="h-full w-1/3 bg-gray-300 rounded-full transition-all"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -527,7 +540,7 @@
                 }
 
                 const accountType = document.getElementById('accountType').value;
-                const isPrefilled = ${not empty requestScope.prefilledUser ? 'true' : 'false'};
+                const isPrefilled = "${requestScope.prefilledUser != null}" === "true";
 
                 // Validate base fields nếu không phải prefilled
                 if (!isPrefilled) {
@@ -646,6 +659,57 @@
                     }
                 }
             });
+
+            // Live password strength calculation
+            const passwordField = document.getElementById('password');
+            if (passwordField) {
+                const strengthText = document.getElementById('strengthText');
+                const seg1 = document.getElementById('strengthSegment1');
+                const seg2 = document.getElementById('strengthSegment2');
+                const seg3 = document.getElementById('strengthSegment3');
+
+                passwordField.addEventListener('input', function() {
+                    const pwd = this.value;
+                    let score = 0;
+
+                    if (pwd.length >= 8) score++;
+                    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
+                    if (/\d/.test(pwd)) score++;
+                    if (/[^a-zA-Z\d]/.test(pwd)) score++;
+
+                    seg1.className = 'h-full w-1/3 bg-gray-300 rounded-full transition-all';
+                    seg2.className = 'h-full w-1/3 bg-gray-300 rounded-full transition-all';
+                    seg3.className = 'h-full w-1/3 bg-gray-300 rounded-full transition-all';
+
+                    if (pwd.length === 0) {
+                        strengthText.textContent = 'Trống';
+                        strengthText.className = 'text-on-surface-variant font-bold';
+                        return;
+                    }
+                    if (pwd.length < 8) {
+                        strengthText.textContent = 'Rất ngắn (Yếu)';
+                        strengthText.className = 'text-red-500 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-red-500 rounded-full transition-all';
+                        return;
+                    }
+                    if (score <= 1) {
+                        strengthText.textContent = 'Yếu';
+                        strengthText.className = 'text-red-500 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-red-500 rounded-full transition-all';
+                    } else if (score === 2 || score === 3) {
+                        strengthText.textContent = 'Trung bình';
+                        strengthText.className = 'text-orange-500 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-orange-500 rounded-full transition-all';
+                        seg2.className = 'h-full w-1/3 bg-orange-500 rounded-full transition-all';
+                    } else if (score >= 4) {
+                        strengthText.textContent = 'Mạnh';
+                        strengthText.className = 'text-green-600 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
+                        seg2.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
+                        seg3.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
+                    }
+                });
+            }
         });
     </script>
 </body>

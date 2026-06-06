@@ -20,29 +20,71 @@
 
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
     
-    <!-- Google Fonts -->
+    <!-- Google Fonts: Lexend + Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- FontAwesome Icons & Material Symbols -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
 
-    <!-- Core CSS -->
+    <!-- Core CSS (navbar, legacy components) -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    
-    <!-- SweetAlert2 library for premium notifications -->
+
+    <%-- ── Tailwind CSS — Global shared design system ────────────────────────── --%>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script>
+        /**
+         * MetaFruit Global Tailwind Design System
+         * Shared across ALL pages. Pages may call tailwind.config = { theme: { extend: {...} } }
+         * after this header to add page-specific tokens without re-declaring the base palette.
+         */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        /* Brand */
+                        "primary":               "#4d661c",
+                        "primary-hover":         "#364e03",
+                        "primary-light":         "#d9f99d",
+                        "primary-dark":          "#364e03",
+                        "secondary":             "#31694b",
+                        "tertiary":              "#486554",
+                        "tertiary-container":    "#d5f5e0",
+                        /* Surfaces */
+                        "surface-bright":        "#eaffea",
+                        "surface-container-low": "#d1ffd8",
+                        /* Text */
+                        "on-surface":            "#00210d",
+                        "on-surface-variant":    "#44483b",
+                        /* Outline */
+                        "outline":               "#75796a",
+                        "outline-variant":       "#c5c8b7",
+                        /* Semantic */
+                        "error":                 "#ba1a1a"
+                    },
+                    fontFamily: {
+                        sans: ["Lexend", "Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "4xl": "2rem"
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- SweetAlert2 — premium modals -->
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
     <script>
-        // Override global native alert with beautiful SweetAlert2 popup
         window.alert = function(message) {
             Swal.fire({
-                icon: 'info',
-                title: 'Thông báo',
-                text: message,
+                icon: 'info', title: 'Thông báo', text: message,
                 confirmButtonText: 'Đồng ý',
-                confirmButtonColor: '#4D661C', // Match primary design token
+                confirmButtonColor: '#4D661C',
                 background: '#ffffff',
                 customClass: {
                     popup: 'premium-swal-popup',
@@ -52,12 +94,12 @@
             });
         };
     </script>
-    
-    <!-- Global application state injected for AJAX cart operations -->
+
+    <!-- Global app state for AJAX / cart -->
     <script>
-        window.isLoggedIn = ${not empty sessionScope.currentUser ? 'true' : 'false'};
+        window.isLoggedIn  = "${sessionScope.currentUser != null}" === "true";
         window.contextPath = '${pageContext.request.contextPath}';
-        window.csrfToken = '${sessionScope._csrfToken}';
+        window.csrfToken   = '${sessionScope._csrfToken}';
     </script>
 </head>
 <body>
