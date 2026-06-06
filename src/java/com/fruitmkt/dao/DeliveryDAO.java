@@ -46,14 +46,15 @@ public class DeliveryDAO extends BaseDAO {
     }
 
     public void updateStatusAndProof(int deliveryId, String status, String failureReason, String proofImageUrl) throws SQLException {
+        // B3 Fix: added space before WHERE to prevent SQL syntax error
         String sql = "UPDATE deliveries SET status = ?, failure_reason = ?, proof_image_url = ?, updated_at = GETDATE() ";
         if ("PICKED_UP".equals(status)) {
             sql += ", picked_up_at = GETDATE() ";
         } else if ("DELIVERED".equals(status)) {
             sql += ", delivered_at = GETDATE() ";
         }
-        sql += "WHERE delivery_id = ?";
-        
+        sql += " WHERE delivery_id = ?";
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, status);
@@ -90,6 +91,16 @@ public class DeliveryDAO extends BaseDAO {
         }
     }
 
+    public boolean claimDelivery(int deliveryId, int staffId) throws SQLException {
+        String sql = "UPDATE deliveries SET staff_id = ?, updated_at = GETDATE() WHERE delivery_id = ? AND staff_id IS NULL";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, staffId);
+            ps.setInt(2, deliveryId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     public Delivery findByOrderId(int orderId) throws SQLException {
         String sql = "SELECT TOP 1 * FROM deliveries WHERE order_id = ? ORDER BY created_at DESC";
         try (Connection conn = getConnection();
@@ -102,6 +113,38 @@ public class DeliveryDAO extends BaseDAO {
             }
         }
         return null;
+    }
+
+    /**
+     * Lấy tất cả deliveries (dùng cho admin/report).
+     */
+    public List<Delivery> findAll() throws SQLException {
+        List<Delivery> list = new ArrayList<>();
+        String sql = "SELECT * FROM deliveries ORDER BY created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy deliveries chưa được gán staff (staff_id IS NULL).
+     */
+    public List<Delivery> findUnassigned() throws SQLException {
+        List<Delivery> list = new ArrayList<>();
+        String sql = "SELECT * FROM deliveries WHERE staff_id IS NULL AND status = 'ASSIGNED' ORDER BY created_at ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        }
+        return list;
     }
 
     private Delivery mapRow(ResultSet rs) throws SQLException {
