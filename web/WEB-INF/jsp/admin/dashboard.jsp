@@ -122,7 +122,7 @@
             <i class="fa-solid fa-bolt text-amber-500"></i> Truy cập nhanh
         </h2>
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <%-- User management --%>
             <div class="glass-card p-6 flex flex-col items-center text-center justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-200">
                 <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-4 shadow-sm">
@@ -145,6 +145,19 @@
                 <p class="text-xs text-txt-2 mb-6">Kiểm duyệt giao dịch chuyển khoản VietQR, đối soát COD và theo dõi hành trình đơn.</p>
                 <a href="${pageContext.request.contextPath}/admin/orders" 
                    class="w-full py-2.5 bg-primary-lt text-primary hover:bg-primary hover:text-white rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer">
+                    Truy cập ngay
+                </a>
+            </div>
+
+            <%-- Reports & Thống kê --%>
+            <div class="glass-card p-6 flex flex-col items-center text-center justify-between hover:shadow-card hover:-translate-y-1 transition-all duration-200">
+                <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-4 shadow-sm">
+                    <i class="fa-solid fa-chart-column"></i>
+                </div>
+                <h3 class="text-base font-bold text-txt mb-2">Báo cáo Thống kê</h3>
+                <p class="text-xs text-txt-2 mb-6">Xem xu hướng doanh số, biểu đồ tăng trưởng và báo cáo sử dụng chi tiết trái cây.</p>
+                <a href="${pageContext.request.contextPath}/admin/reports" 
+                   class="w-full py-2.5 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer">
                     Truy cập ngay
                 </a>
             </div>

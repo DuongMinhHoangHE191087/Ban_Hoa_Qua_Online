@@ -485,5 +485,40 @@ public class UserDAO extends BaseDAO {
         }
         return list;
     }
+
+    public List<Map<String, Object>> getUserRegistrationTrend(String startDate, String endDate) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+            "SELECT CAST(created_at AS DATE) AS reg_date, COUNT(*) AS user_count " +
+            "FROM users " +
+            "WHERE 1=1 "
+        );
+        List<Object> params = new ArrayList<>();
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) >= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) <= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("GROUP BY CAST(created_at AS DATE) ORDER BY reg_date");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", rs.getDate("reg_date").toString());
+                    map.put("count", rs.getInt("user_count"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
 }
 
