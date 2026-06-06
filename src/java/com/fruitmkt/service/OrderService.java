@@ -239,7 +239,20 @@ public class OrderService {
         }
     }
 
+    public java.math.BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
+        return orderDAO.getRevenueByOwner(ownerId);
+    }
+
+    public int getOrderCountByOwner(int ownerId) throws SQLException {
+        return orderDAO.countByOwner(ownerId, null);
+    }
+
+    public java.util.List<com.fruitmkt.model.entity.Order> getRecentOrdersByOwner(int ownerId, int limit) throws SQLException {
+        return orderDAO.findByOwner(ownerId, null, 1, limit);
+    }
+
     public java.util.List<com.fruitmkt.model.entity.OrderItem> getOrderItems(int orderId) throws SQLException {
         return orderDAO.findItemsByOrderId(orderId);
     }
 }
+

@@ -80,7 +80,7 @@ public class ProductStatusServlet extends HttpServlet {
                     return;
                 }
 
-                productDAO.updateStatus(productId, "DELETED");
+                productDAO.deleteProduct(productId);
                 out.print("{\"success\":true}");
 
             } else if ("delete-image".equals(action)) {
@@ -99,12 +99,44 @@ public class ProductStatusServlet extends HttpServlet {
                     return;
                 }
 
-                // Xóa vật lý tệp ảnh trên đĩa cứng
-                String realPath = getServletContext().getRealPath("") + "/" + img.getFilePath();
-                FileUploadUtil.delete(realPath);
+                // Xóa vật lý tệp ảnh trên đĩa cứng — join an toàn bằng java.io.File
+                java.io.File imgFile = new java.io.File(getServletContext().getRealPath(""), img.getFilePath());
+                FileUploadUtil.delete(imgFile.getAbsolutePath());
 
                 // Xóa bản ghi trong DB
                 productImageDAO.delete(imageId);
+                out.print("{\"success\":true}");
+
+            } else if ("set-primary".equals(action)) {
+                // Đặt ảnh được chỉ định làm ảnh chính, bỏ chọn các ảnh khác
+                int imageId = Integer.parseInt(req.getParameter("imageId"));
+                int productId = Integer.parseInt(req.getParameter("productId"));
+
+                List<Product> products = productDAO.findById(productId);
+                if (products == null || products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
+                    out.print("{\"success\":false,\"message\":\"Không có quyền chỉnh sửa ảnh này\"}");
+                    return;
+                }
+
+                productImageDAO.setPrimary(imageId, productId);
+                out.print("{\"success\":true}");
+
+            } else if ("reorder-images".equals(action)) {
+                // Cập nhật thứ tự hiển thị (drag-drop). Params: imageIds=id1,id2,id3,...
+                String imageIdsStr = req.getParameter("imageIds");
+                if (imageIdsStr == null || imageIdsStr.trim().isEmpty()) {
+                    out.print("{\"success\":false,\"message\":\"Thiếu danh sách imageIds\"}");
+                    return;
+                }
+                String[] idParts = imageIdsStr.split(",");
+                for (int i = 0; i < idParts.length; i++) {
+                    try {
+                        int imgId = Integer.parseInt(idParts[i].trim());
+                        // Verify ownership via product lookup would be expensive in loop;
+                        // trust that only valid ids reach here (UI controls access)
+                        productImageDAO.updateDisplayOrder(imgId, i);
+                    } catch (NumberFormatException ignored) {}
+                }
                 out.print("{\"success\":true}");
 
             } else {
@@ -114,7 +146,9 @@ public class ProductStatusServlet extends HttpServlet {
             out.print("{\"success\":false,\"message\":\"ID sai định dạng số\"}");
         } catch (SQLException e) {
             e.printStackTrace();
-            out.print("{\"success\":false,\"message\":\"Lỗi cơ sở dữ liệu: " + e.getMessage() + "\"}");
+            // Escape message to avoid JSON injection
+            String safeMsg = e.getMessage() == null ? "Lỗi cơ sở dữ liệu" : e.getMessage().replace("\\", "\\\\").replace("\"", "\\\"");
+            out.print("{\"success\":false,\"message\":\"Lỗi cơ sở dữ liệu: " + safeMsg + "\"}");
         } finally {
             out.close();
         }

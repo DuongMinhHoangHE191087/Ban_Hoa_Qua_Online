@@ -79,4 +79,12 @@ public class Product {
     public java.time.LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
+    public boolean isExpired() {
+        if (harvestDate == null || shelfLifeDays == null || shelfLifeDays <= 0) {
+            return false;
+        }
+        return harvestDate.plusDays(shelfLifeDays).isBefore(java.time.LocalDate.now()) ||
+               harvestDate.plusDays(shelfLifeDays).isEqual(java.time.LocalDate.now());
+    }
+
 }

@@ -23,6 +23,7 @@ public class ProductDAO extends BaseDAO {
      * Tìm sản phẩm theo ID.
      */
     public List<Product> findById(int id) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE product_id = ?";
         try (Connection conn = getConnection();
@@ -41,6 +42,7 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách toàn bộ sản phẩm có phân trang.
      */
     public List<Product> findAll(int page, int pageSize) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
         String sql = "SELECT * FROM products WHERE status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -62,6 +64,7 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách sản phẩm theo ID của chủ cửa hàng.
      */
     public List<Product> findByOwner(int ownerId) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' ORDER BY product_id DESC";
         //khang
@@ -81,6 +84,7 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách sản phẩm theo Category ID có phân trang.
      */
     public List<Product> findByCategory(int categoryId, int page, int pageSize) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
         String sql = "SELECT * FROM products WHERE category_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -103,10 +107,11 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách tất cả sản phẩm đang có chương trình khuyến mãi hoạt động (Flash Sale).
      */
     public List<Product> findFlashSaleProducts() throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT DISTINCT p.* FROM products p "
                    + "JOIN promotions pr ON p.product_id = pr.product_id "
-                   + "WHERE pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "WHERE p.status = 'ACTIVE' AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
                    + "ORDER BY p.product_id DESC";
         try (Connection conn = getConnection();
@@ -123,6 +128,7 @@ public class ProductDAO extends BaseDAO {
      * Tìm kiếm sản phẩm theo từ khóa, danh mục, khoảng giá và phân trang.
      */
     public List<Product> search(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, int page, int pageSize) throws SQLException {
+        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT DISTINCT p.* FROM products p ");
         if (minPrice != null || maxPrice != null) {
@@ -173,6 +179,7 @@ public class ProductDAO extends BaseDAO {
      * Đếm tổng số sản phẩm ACTIVE khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
      */
     public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
+        autoDeactivateExpiredProducts();
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");//khang
@@ -306,6 +313,112 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
+     * Cập nhật ngày thu hoạch và trạng thái sản phẩm trong một Transaction Connection.
+     */
+    public void updateHarvestDateAndStatus(Connection conn, int productId, java.time.LocalDate harvestDate, String status) throws SQLException {
+        String sql = "UPDATE products SET harvest_date = ?, status = ?, updated_at = GETDATE() WHERE product_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, java.sql.Date.valueOf(harvestDate));
+            ps.setString(2, status);
+            ps.setInt(3, productId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Tạo thông báo yêu cầu nhập kho gửi đến chủ shop, lưu vết customerId và productId trong message.
+     */
+    public void createRestockNotification(int ownerId, int customerId, int productId, String productName) throws SQLException {
+        String sql = "INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at) "
+                   + "VALUES (?, 'SYSTEM', ?, ?, ?, 0, GETDATE())";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setString(2, "Yêu cầu nhập kho vụ mới");
+            ps.setString(3, "[RestockRequest: customer=" + customerId + ", product=" + productId + "] Khách hàng quan tâm và yêu cầu nhập kho vụ mới cho sản phẩm: " + productName);
+            ps.setString(4, "/shop/inventory");
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Kiểm tra xem khách hàng đã gửi yêu cầu nhập kho cho sản phẩm này trong ngày hôm nay chưa.
+     */
+    public boolean hasRequestedRestockToday(int ownerId, int customerId, int productId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM notifications "
+                   + "WHERE user_id = ? AND type = 'SYSTEM' "
+                   + "AND message LIKE ? "
+                   + "AND CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setString(2, "%[RestockRequest: customer=" + customerId + ", product=" + productId + "]%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void autoDeactivateExpiredProducts() throws SQLException {
+        String sql = "UPDATE products SET status = 'OUT_OF_SEASON', updated_at = GETDATE() "
+                   + "WHERE status = 'ACTIVE' AND harvest_date IS NOT NULL AND shelf_life_days IS NOT NULL AND shelf_life_days > 0 "
+                   + "AND DATEADD(day, shelf_life_days, harvest_date) <= CAST(GETDATE() AS DATE)";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.executeUpdate();
+        }
+    }
+
+
+    /**
+     * Thực hiện xóa mềm sản phẩm (soft delete) một cách an toàn và triệt để:
+     * 1. Cập nhật status của sản phẩm thành 'DELETED'
+     * 2. Hủy kích hoạt tất cả các biến thể của sản phẩm (is_active = 0)
+     * 3. Xóa các biến thể này khỏi giỏ hàng của tất cả khách hàng (cart_items)
+     */
+    public void deleteProduct(int productId) throws SQLException {
+        String updateProductSql = "UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?";
+        String updateVariantsSql = "UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?";
+        String deleteCartSql = "DELETE FROM cart_items WHERE variant_id IN (SELECT variant_id FROM product_variants WHERE product_id = ?)";
+        String updatePromotionsSql = "UPDATE promotions SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?";
+        
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement psCart = conn.prepareStatement(deleteCartSql);
+                 PreparedStatement psVar = conn.prepareStatement(updateVariantsSql);
+                 PreparedStatement psProm = conn.prepareStatement(updatePromotionsSql);
+                 PreparedStatement psProd = conn.prepareStatement(updateProductSql)) {
+                
+                // 1. Xóa các cart items của sản phẩm này
+                psCart.setInt(1, productId);
+                psCart.executeUpdate();
+                
+                // 2. Tắt các biến thể
+                psVar.setInt(1, productId);
+                psVar.executeUpdate();
+                
+                // 3. Tắt các khuyến mãi áp dụng riêng cho sản phẩm này
+                psProm.setInt(1, productId);
+                psProm.executeUpdate();
+                
+                // 4. Cập nhật status sản phẩm thành DELETED
+                psProd.setInt(1, productId);
+                psProd.executeUpdate();
+                
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    /**
      * Tăng số lượng lượt xem của sản phẩm.
      */
     public void incrementViewCount(int productId) throws SQLException {
@@ -431,6 +544,25 @@ public class ProductDAO extends BaseDAO {
         }
         return list;
     }
+
+    /** Đếm số lượng biến thể sản phẩm có số lượng tồn kho <= threshold của chủ cửa hàng. */
+    public int getLowStockCountByOwner(int ownerId, int threshold) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM product_variants pv "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "WHERE p.owner_id = ? AND pv.stock_quantity <= ? AND pv.is_active = 1 AND p.status = 'ACTIVE'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, threshold);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
 
 
     /** Ánh xạ ResultSet -> Product — gọi trong mọi query SELECT */

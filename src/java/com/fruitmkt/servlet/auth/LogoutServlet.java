@@ -18,7 +18,7 @@ import java.sql.SQLException;
  *
  * @author fruitmkt-team
  */
-@WebServlet("/auth/logout")
+@WebServlet(urlPatterns = {"/auth/logout", "/logout"})
 public class LogoutServlet extends HttpServlet {
 
     private final AuthService authService = new AuthService();

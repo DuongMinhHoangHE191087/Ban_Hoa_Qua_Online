@@ -3,11 +3,15 @@ package com.fruitmkt.servlet.shop;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.SettlementService;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.entity.ShopSettlement;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * SettlementServlet — Controller cho chức năng: Xem settlement summary và chi tiết kỳ
@@ -16,34 +20,34 @@ import java.io.IOException;
  * GET : Xem settlement summary và chi tiết kỳ
  * POST: -
  *
- * QUY TẮC SERVLET:
- *   1. Không viết SQL ở đây — gọi Service
- *   2. Sau POST thành công dùng PRG pattern (sendRedirect)
- *   3. Lưu flash message vào session trước redirect
- *   4. Forward đến /WEB-INF/jsp/shop/... (không để truy cập trực tiếp)
- *   5. Kiểm tra quyền bằng SessionUtil trước khi xử lý
- *
  * @author fruitmkt-team
  */
 @WebServlet("/shop/settlement")
 public class SettlementServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final SettlementService settlementService = new SettlementService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/shop/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: SettlementServlet");
-    }
+        req.setCharacterEncoding("UTF-8");
+        resp.setContentType("text/html;charset=UTF-8");
 
+        HttpSession session = req.getSession();
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        try {
+            List<ShopSettlement> settlements = settlementService.getSettlementsByOwner(currentUser.getUserId());
+            req.setAttribute("settlements", settlements);
+            req.getRequestDispatcher("/WEB-INF/jsp/shop/settlement.jsp").forward(req, resp);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            SessionUtil.flashError(session, "Lỗi khi tải lịch sử đối soát: " + e.getMessage());
+            resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
+        }
+    }
 }

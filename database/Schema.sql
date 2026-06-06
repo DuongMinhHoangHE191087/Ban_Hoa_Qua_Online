@@ -91,7 +91,7 @@ CREATE TABLE products (
     harvest_date DATE NULL,
     shelf_life_days INT NULL,
     storage_instruction NVARCHAR(300) NULL,
-    status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','DELETED')),
+    status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','DELETED','OUT_OF_SEASON')),
     view_count INT NOT NULL DEFAULT 0,
     rating DECIMAL(3,2) NOT NULL DEFAULT 0,
     sold_quantity INT NOT NULL DEFAULT 0,
@@ -135,6 +135,18 @@ CREATE TABLE inventory_logs (
     note NVARCHAR(300) NULL,
     changed_at DATETIME NOT NULL DEFAULT GETDATE()
 );
+
+-- 9b. replenishment_logs
+CREATE TABLE replenishment_logs (
+    log_id INT IDENTITY(1,1) PRIMARY KEY,
+    variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id) ON DELETE CASCADE,
+    replenished_by INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
+    quantity INT NOT NULL CHECK (quantity > 0),
+    supplier_details NVARCHAR(500) NULL,
+    replenishment_date DATE NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
 
 -- 10. promotions [cite: 93]
 CREATE TABLE promotions (
@@ -387,6 +399,16 @@ CREATE TABLE system_config (
     changed_by INT NULL FOREIGN KEY REFERENCES users(user_id),
     changed_at DATETIME NOT NULL DEFAULT GETDATE(),
     updated_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
+CREATE TABLE replenishment_logs (
+    log_id INT IDENTITY(1,1) PRIMARY KEY,
+    variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id) ON DELETE CASCADE,
+    replenished_by INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
+    quantity INT NOT NULL CHECK (quantity > 0),
+    supplier_details NVARCHAR(500) NULL,
+    replenishment_date DATE NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
 CREATE INDEX IX_orders_acceptance_auto_cancel
