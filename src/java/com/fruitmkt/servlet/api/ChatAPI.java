@@ -1,7 +1,6 @@
 package com.fruitmkt.servlet.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.dao.ChatDAO;
 import com.fruitmkt.model.entity.ChatMessage;
 import com.fruitmkt.model.entity.User;
@@ -23,7 +22,6 @@ import java.util.Map;
 public class ChatAPI extends HttpServlet {
 
     private final ChatDAO chatDAO = new ChatDAO();
-    private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -37,7 +35,7 @@ public class ChatAPI extends HttpServlet {
             if (currentUser == null) {
                 result.put("success", false);
                 result.put("message", "Vui lòng đăng nhập");
-                out.print(mapper.writeValueAsString(result));
+                out.print(JsonUtil.toJson(result));
                 return;
             }
 
@@ -54,14 +52,18 @@ public class ChatAPI extends HttpServlet {
                 result.put("success", false);
                 result.put("message", "Hành động không hợp lệ");
             }
+            out.print(JsonUtil.toJson(result));
         } catch (Exception e) {
             e.printStackTrace();
+            result.clear();
             result.put("success", false);
             result.put("message", "Lỗi server: " + e.getMessage());
+            try {
+                out.print(JsonUtil.toJson(result));
+            } catch (Exception ignored) {}
+        } finally {
+            out.flush();
         }
-
-        out.print(mapper.writeValueAsString(result));
-        out.flush();
     }
 
     @Override
@@ -76,7 +78,7 @@ public class ChatAPI extends HttpServlet {
             if (currentUser == null) {
                 result.put("success", false);
                 result.put("message", "Vui lòng đăng nhập");
-                out.print(mapper.writeValueAsString(result));
+                out.print(JsonUtil.toJson(result));
                 return;
             }
 
@@ -103,13 +105,17 @@ public class ChatAPI extends HttpServlet {
                 result.put("success", false);
                 result.put("message", "Hành động không hợp lệ");
             }
+            out.print(JsonUtil.toJson(result));
         } catch (Exception e) {
             e.printStackTrace();
+            result.clear();
             result.put("success", false);
             result.put("message", "Lỗi server: " + e.getMessage());
+            try {
+                out.print(JsonUtil.toJson(result));
+            } catch (Exception ignored) {}
+        } finally {
+            out.flush();
         }
-
-        out.print(mapper.writeValueAsString(result));
-        out.flush();
     }
 }
