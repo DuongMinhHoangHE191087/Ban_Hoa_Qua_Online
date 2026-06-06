@@ -79,7 +79,7 @@ public class UserDAO extends BaseDAO {
    }
 
     public User registerExternalUser(String email, String fullName) throws SQLException {
-     String sql = "INSERT INTO users (full_name, email, password_hash, role, status, is_email_verified) VALUES (?, ?, ?, 'CUSTOMER', 'ACTIVE', 1)";
+     String sql = "INSERT INTO users (full_name, email, password_hash, role, status, is_email_verified, avatar_url) VALUES (?, ?, ?, 'CUSTOMER', 'ACTIVE', 1, 'assets/images/default-avatar.svg')";
     try (Connection conn = getConnection();
          PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
          
@@ -102,6 +102,7 @@ public class UserDAO extends BaseDAO {
                 newUser.setEmail(email);
                 newUser.setRole("CUSTOMER");
                 newUser.setStatus("ACTIVE");
+                newUser.setAvatarUrl("assets/images/default-avatar.svg");
                 return newUser;
             }
         }
@@ -184,12 +185,15 @@ public class UserDAO extends BaseDAO {
      * TODO: Implement — save(User user)
      */
     public int saveNewCustomer(String fullName, String email, String passwordHash, String phone, String role) throws SQLException {
-        return saveNewCustomer(fullName, email, passwordHash, phone, role, AppConfig.ACCOUNT_STATUS_INACTIVE, false);
+        return saveNewCustomer(fullName, email, passwordHash, phone, role, AppConfig.ACCOUNT_STATUS_INACTIVE, false, "assets/images/default-avatar.svg");
     }
 
     public int saveNewCustomer(String fullName, String email, String passwordHash, String phone, String role, String status, boolean emailVerified) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        String sql = "INSERT INTO users (full_name, email, password_hash, phone, role, status, is_email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        return saveNewCustomer(fullName, email, passwordHash, phone, role, status, emailVerified, "assets/images/default-avatar.svg");
+    }
+
+    public int saveNewCustomer(String fullName, String email, String passwordHash, String phone, String role, String status, boolean emailVerified, String avatarUrl) throws SQLException {
+        String sql = "INSERT INTO users (full_name, email, password_hash, phone, role, status, is_email_verified, avatar_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection(); 
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, fullName);
@@ -199,6 +203,7 @@ public class UserDAO extends BaseDAO {
             stmt.setString(5, role);
             stmt.setString(6, status);
             stmt.setBoolean(7, emailVerified);
+            stmt.setString(8, avatarUrl != null ? avatarUrl : "assets/images/default-avatar.svg");
             
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -219,13 +224,14 @@ public class UserDAO extends BaseDAO {
      * Cập nhật thông tin cơ bản của User
      */
     public void update(User user) throws SQLException {
-        String sql = "UPDATE users SET full_name = ?, phone = ?, user_address = ?, updated_at = GETDATE() WHERE user_id = ?";
+        String sql = "UPDATE users SET full_name = ?, phone = ?, user_address = ?, avatar_url = ?, updated_at = GETDATE() WHERE user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, user.getFullName());
             stmt.setString(2, user.getPhone());
             stmt.setString(3, user.getUserAddress());
-            stmt.setInt(4, user.getUserId());
+            stmt.setString(4, user.getAvatarUrl());
+            stmt.setInt(5, user.getUserId());
             stmt.executeUpdate();
         }
     }
@@ -343,6 +349,7 @@ public class UserDAO extends BaseDAO {
         user.setRole(rs.getString("role"));
         user.setStatus(rs.getString("status"));
         user.setUserAddress(rs.getString("user_address"));
+        user.setAvatarUrl(rs.getString("avatar_url"));
         user.setEmailVerified(rs.getBoolean("is_email_verified"));
         user.setFailedLoginCount(rs.getInt("failed_login_count"));
 
@@ -484,6 +491,34 @@ public class UserDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    public void updateAvatar(int userId, String avatarUrl) throws SQLException {
+        String sql = "UPDATE users SET avatar_url = ?, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, avatarUrl);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
+    }
+
+    public boolean isPhoneExists(String phone, int excludeUserId) throws SQLException {
+        if (phone == null || phone.trim().isEmpty()) {
+            return false;
+        }
+        String sql = "SELECT COUNT(*) FROM users WHERE phone = ? AND user_id != ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phone.trim());
+            stmt.setInt(2, excludeUserId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
     }
 }
 

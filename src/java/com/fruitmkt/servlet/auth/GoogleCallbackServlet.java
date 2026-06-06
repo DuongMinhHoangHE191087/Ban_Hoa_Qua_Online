@@ -58,6 +58,7 @@ public class GoogleCallbackServlet extends HttpServlet {
             Map<String, Object> profileMap = fetchGoogleUserProfile(accessToken);
             String email = (String) profileMap.get("email");
             String fullName = (String) profileMap.get("name");
+            String pictureUrl = (String) profileMap.get("picture");
 
             if (email == null || email.trim().isEmpty()) {
                 throw new Exception("Không thể lấy địa chỉ Email từ tài khoản Google của bạn.");
@@ -67,7 +68,7 @@ public class GoogleCallbackServlet extends HttpServlet {
             }
 
             // 4. Xử lý logic đăng nhập hoặc tự động đăng ký mới ở DB thông qua AuthService
-            User user = authService.processGoogleLogin(email, fullName);
+            User user = authService.processGoogleLogin(email, fullName, pictureUrl);
 
             // 5. Chống tấn công Session Fixation: Hủy session cũ, tạo session mới sạch sẽ
             req.getSession().invalidate();

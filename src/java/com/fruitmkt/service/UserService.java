@@ -27,4 +27,8 @@ public class UserService {
     public boolean updateUserStatus(int userId, String status) throws SQLException {
         return userDAO.updateUserStatus(userId, status);
     }
+
+    public boolean isPhoneTakenByAnother(String phone, int userId) throws SQLException {
+        return userDAO.isPhoneExists(phone, userId);
+    }
 }

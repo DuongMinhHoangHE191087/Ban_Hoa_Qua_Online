@@ -37,6 +37,7 @@ public class User {
     private LocalDateTime  emailVerificationExpiresAt;
     private LocalDateTime  emailVerificationResendAt;
     private LocalDateTime  emailVerificationSentAt;
+    private String         avatarUrl;
 
     public User() {}
 
@@ -92,6 +93,9 @@ public class User {
 
     public LocalDateTime getEmailVerificationSentAt()    { return emailVerificationSentAt; }
     public void setEmailVerificationSentAt(LocalDateTime t) { this.emailVerificationSentAt = t; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     // ---- Helper Methods ---------------------------------------------
 

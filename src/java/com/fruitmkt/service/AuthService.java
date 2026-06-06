@@ -285,11 +285,23 @@ public class AuthService {
         throw new UnsupportedOperationException("Not implemented: isEmailTaken(String email)");
     }
     public User processGoogleLogin(String email, String fullName) throws Exception {
+        return processGoogleLogin(email, fullName, "assets/images/default-avatar.svg");
+    }
+
+    public User processGoogleLogin(String email, String fullName, String pictureUrl) throws Exception {
         User existingUser = userDAO.findByEmail(email);
         if (existingUser != null) {
             if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(existingUser.getStatus()) || !existingUser.isEmailVerified()) {
                 userDAO.activateVerifiedEmail(existingUser.getUserId());
                 existingUser = userDAO.findByEmail(email);
+            }
+            // Sync/update Google avatar if current avatar is null, default or if Google avatar was updated
+            if (pictureUrl != null && !pictureUrl.trim().isEmpty()) {
+                String currentAvatar = existingUser.getAvatarUrl();
+                if (currentAvatar == null || currentAvatar.equals("assets/images/default-avatar.svg") || currentAvatar.startsWith("https://lh3.googleusercontent.com")) {
+                    userDAO.updateAvatar(existingUser.getUserId(), pictureUrl);
+                    existingUser.setAvatarUrl(pictureUrl);
+                }
             }
             return existingUser; 
         } else {
@@ -298,7 +310,7 @@ public class AuthService {
             String hashedPass = HashUtil.hashPassword(randomPass);
 
             // Insert role mặc định CUSTOMER qua DAO
-            int newId = userDAO.saveNewCustomer(fullName, email, hashedPass, null, "CUSTOMER", AppConfig.ACCOUNT_STATUS_ACTIVE, true);
+            int newId = userDAO.saveNewCustomer(fullName, email, hashedPass, null, "CUSTOMER", AppConfig.ACCOUNT_STATUS_ACTIVE, true, pictureUrl);
             
             // Tự động khởi tạo giỏ hàng cho tài khoản Google mới
             com.fruitmkt.dao.CartDAO cartDAO = new com.fruitmkt.dao.CartDAO();
