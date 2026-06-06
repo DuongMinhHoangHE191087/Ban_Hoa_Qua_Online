@@ -92,18 +92,12 @@ public class ShopOrderServlet extends HttpServlet {
                 String estimateStr = req.getParameter("estimatedDeliveryTime");
                 orderService.dispatchOrder(orderId, user.getUserId());
                 
-                // Add to deliveries table (assign to a default shipper for now or leave unassigned)
-                com.fruitmkt.model.entity.Delivery delivery = new com.fruitmkt.model.entity.Delivery();
-                delivery.setOrderId(orderId);
-                // default delivery status
-                delivery.setStatus("ASSIGNED");
-                
+                // B2 Fix: staffId=0 maps to NULL in DAO (unassigned) — delivery staff can self-pick from dashboard
+                java.time.LocalDateTime estimatedTime = null;
                 if (estimateStr != null && !estimateStr.trim().isEmpty()) {
-                    // Expect format: yyyy-MM-dd'T'HH:mm
-                    delivery.setEstimatedDeliveryTime(java.time.LocalDateTime.parse(estimateStr));
+                    estimatedTime = java.time.LocalDateTime.parse(estimateStr);
                 }
-                // Call delivery service to save
-                deliveryService.assignShipper(orderId, -1, delivery.getEstimatedDeliveryTime()); // dummy assign
+                deliveryService.assignShipper(orderId, 0, estimatedTime);
                 
                 SessionUtil.setFlashMessage(req.getSession(), "Đã giao đơn hàng cho vận chuyển!", "success");
             }
