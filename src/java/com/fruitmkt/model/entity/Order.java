@@ -11,7 +11,8 @@ public class Order {
     private int customerId;
     private int ownerId;
     private String deliveryAddress;
-    private String userAddress;
+    private String recipientName;
+    private String recipientPhone;
     private String deliveryTimeSlot;
     private String notes;
     private java.time.LocalDateTime cancelledAt;
@@ -44,8 +45,11 @@ public class Order {
     public String getDeliveryAddress() { return deliveryAddress; }
     public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
 
-    public String getUserAddress() { return userAddress; }
-    public void setUserAddress(String userAddress) { this.userAddress = userAddress; }
+    public String getRecipientName() { return recipientName; }
+    public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
+
+    public String getRecipientPhone() { return recipientPhone; }
+    public void setRecipientPhone(String recipientPhone) { this.recipientPhone = recipientPhone; }
 
     public String getDeliveryTimeSlot() { return deliveryTimeSlot; }
     public void setDeliveryTimeSlot(String deliveryTimeSlot) { this.deliveryTimeSlot = deliveryTimeSlot; }
