@@ -17,9 +17,9 @@ import javax.crypto.spec.SecretKeySpec;
  * @author fruitmkt-team
  */
 public final class TokenUtil {
-    private static final String SECRET_KEY = "fruitmkt-super-secret-key-2026-secure-sha256";
-    private static final long ACCESS_TOKEN_EXPIRY_MS = 15L * 60 * 1000; // 15 phút
-    public static final int REFRESH_TOKEN_EXPIRY_SECS = 7 * 24 * 60 * 60; // 7 ngày
+    private static final String SECRET_KEY = com.fruitmkt.config.AppConfig.SECRET_KEY;
+    private static final long ACCESS_TOKEN_EXPIRY_MS = com.fruitmkt.config.AppConfig.ACCESS_TOKEN_EXPIRY_MS;
+    public static final int REFRESH_TOKEN_EXPIRY_SECS = com.fruitmkt.config.AppConfig.REFRESH_TOKEN_EXPIRY_SECS;
 
     /**
      * Tạo Access Token dạng: userId.expiresAt.signature
@@ -74,39 +74,40 @@ public final class TokenUtil {
      * Gắn Access Token Cookie (HttpOnly)
      */
     public static void addAccessTokenCookie(HttpServletRequest request, HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("accessToken", token);
-        cookie.setPath(request.getContextPath() + "/");
-        cookie.setMaxAge((int)(ACCESS_TOKEN_EXPIRY_MS / 1000));
-        cookie.setHttpOnly(true);
-        response.addCookie(cookie);
+        addCookie(response, request, "accessToken", token, (int) (ACCESS_TOKEN_EXPIRY_MS / 1000));
     }
 
     /**
      * Gắn Refresh Token Cookie (HttpOnly)
      */
     public static void addRefreshTokenCookie(HttpServletRequest request, HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("refreshToken", token);
-        cookie.setPath(request.getContextPath() + "/");
-        cookie.setMaxAge(REFRESH_TOKEN_EXPIRY_SECS);
-        cookie.setHttpOnly(true);
-        response.addCookie(cookie);
+        addCookie(response, request, "refreshToken", token, REFRESH_TOKEN_EXPIRY_SECS);
     }
 
     /**
      * Xóa sạch Token Cookies
      */
     public static void clearTokens(HttpServletRequest request, HttpServletResponse response) {
-        Cookie ac = new Cookie("accessToken", "");
-        ac.setPath(request.getContextPath() + "/");
-        ac.setMaxAge(0);
-        ac.setHttpOnly(true);
-        response.addCookie(ac);
+        addCookie(response, request, "accessToken", "", 0);
+        addCookie(response, request, "refreshToken", "", 0);
+    }
 
-        Cookie rc = new Cookie("refreshToken", "");
-        rc.setPath(request.getContextPath() + "/");
-        rc.setMaxAge(0);
-        rc.setHttpOnly(true);
-        response.addCookie(rc);
+    private static void addCookie(HttpServletResponse response, HttpServletRequest request,
+                                  String name, String value, int maxAgeSeconds) {
+        boolean secure = request.isSecure()
+                || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
+
+        StringBuilder cookie = new StringBuilder();
+        cookie.append(name).append('=').append(value == null ? "" : value);
+        cookie.append("; Path=").append(request.getContextPath()).append('/');
+        cookie.append("; Max-Age=").append(maxAgeSeconds);
+        cookie.append("; HttpOnly");
+        if (secure) {
+            cookie.append("; Secure");
+        }
+        cookie.append("; SameSite=Lax");
+
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     /**

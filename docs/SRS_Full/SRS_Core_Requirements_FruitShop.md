@@ -131,15 +131,16 @@ Below are the **11 Core Domain Entities** of the Online Fruit Shopping Platform 
 | --- | --- | --- | --- | --- |
 | 01 | `users` | **Strong** | **User** | All actors on the platform (Customers, Shop Owners, Delivery Staff, Admins). Central entity — referenced directly by products, orders, deliveries, reviews, and chat. |
 | 02 | `shop_owner_profiles` | **Weak** (of User) | **Shop** | Registered vendor storefront. Depends on `users` (1:1). Carries business state: shop_name, approval_status (PENDING→APPROVED→REJECTED→SUSPENDED), rating. |
-| 03 | `categories` | **Strong** | **Category** | Classifications for fresh fruits and agricultural goods. Referenced by `products.category_id`. |
-| 04 | `products` | **Strong** | **Product** | Agricultural listings owned by a Shop Owner User, classified by Category. Has variants and images as sub-entities. |
-| 05 | `product_variants` | **Weak** (of Product) | **Variant** | Packaging configurations (e.g., Box 1kg, Crate 10kg) with price and stock. `order_items.variant_id` references this — not `products`. |
-| 06 | `promotions` | **Strong** | **Promotion** | Voucher campaigns and coupon codes with lifecycle (valid_from → valid_until). Linked to orders via hidden junction `order_promotions`. |
-| 07 | `orders` | **Strong** | **Order** | Core purchase transactions between a Customer and a Shop Owner. Lifecycle: PENDING_PAYMENT → CONFIRMED → PREPARING → DISPATCHED → DELIVERED / CANCELLED. |
-| 08 | `payment_transactions` | **Weak** (of Order) | **Payment** | Digital payment record (SePay QR or COD). 1:1 with Order. State: pending → completed / failed / refunded / expired. |
-| 09 | `deliveries` | **Weak** (of Order) | **Delivery** | Shipping dispatch assigned to a Delivery Staff User. 1:1 with Order. State: ASSIGNED → PICKED_UP → IN_TRANSIT → DELIVERED / FAILED. |
-| 10 | `reviews` | **Weak** (of Order + User) | **Review** | Star rating and text feedback written by a Customer after order completion. Constrained to 1 review per customer per order item. |
-| 11 | `chat_sessions` | **Weak** (of User × 2) | **Chat** | Support conversation thread between a Customer and a Shop Owner. Encapsulates `chat_messages` as a sub-entity. State: ACTIVE → CLOSED. |
+| 03 | `user_addresses` | **Weak** (of User) | **Address** | Multiple shipping addresses and default recipients for registered customers. Depends on `users` (1:N). |
+| 04 | `categories` | **Strong** | **Category** | Classifications for fresh fruits and agricultural goods. Referenced by `products.category_id`. |
+| 05 | `products` | **Strong** | **Product** | Agricultural listings owned by a Shop Owner User, classified by Category. Has variants and images as sub-entities. |
+| 06 | `product_variants` | **Weak** (of Product) | **Variant** | Packaging configurations (e.g., Box 1kg, Crate 10kg) with price and stock. `order_items.variant_id` references this — not `products`. |
+| 07 | `promotions` | **Strong** | **Promotion** | Voucher campaigns and coupon codes with lifecycle (valid_from → valid_until). Linked to orders via hidden junction `order_promotions`. |
+| 08 | `orders` | **Strong** | **Order** | Core purchase transactions between a Customer and a Shop Owner. Lifecycle: PENDING_PAYMENT → CONFIRMED → PREPARING → DISPATCHED → DELIVERED / CANCELLED. |
+| 09 | `payment_transactions` | **Weak** (of Order) | **Payment** | Digital payment record (SePay QR or COD). 1:1 with Order. State: pending → completed / failed / refunded / expired. |
+| 10 | `deliveries` | **Weak** (of Order) | **Delivery** | Shipping dispatch assigned to a Delivery Staff User. 1:1 with Order. State: ASSIGNED → PICKED_UP → IN_TRANSIT → DELIVERED / FAILED. |
+| 11 | `reviews` | **Weak** (of Order + User) | **Review** | Star rating and text feedback written by a Customer after order completion. Constrained to 1 review per customer per order item. |
+| 12 | `chat_sessions` | **Weak** (of User × 2) | **Chat** | Support conversation thread between a Customer and a Shop Owner. Encapsulates `chat_messages` as a sub-entity. State: ACTIVE → CLOSED. |
 
 **Deferred entities** (physical schema phase only):
 
@@ -306,7 +307,9 @@ Description: Creates an order for exactly one shop owner. Related UC-07 and UC-0
 
 | Field Name | Description |
 | --- | --- |
-| Delivery Address | Address for receiving the order. |
+| Recipient Name | Required; name of the person receiving the order (min 3 characters). |
+| Recipient Phone | Required; contact phone number (must be a valid 10-digit VN mobile format). |
+| Delivery Address | Detailed delivery address (min 5 characters). Can be prefilled from the Address Book. |
 | Time Slot | Preferred delivery time window. |
 | Notes | Special instructions from the customer. |
 | Payment Method | Bank transfer or COD. |

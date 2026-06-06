@@ -13,6 +13,10 @@ public class SettlementService {
         return settlementDAO.findAll(status, page, pageSize);
     }
 
+    public List<ShopSettlement> getSettlementsByOwner(int ownerId) throws SQLException {
+        return settlementDAO.findByOwner(ownerId);
+    }
+
     public int countAllSettlements(String status) throws SQLException {
         return settlementDAO.countAll(status);
     }

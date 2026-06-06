@@ -21,6 +21,8 @@ public class ShopProfile {
     private String businessEmail;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
+    private String logoUrl;
+    private String coverUrl;
 
     public ShopProfile() {}
 
@@ -65,5 +67,11 @@ public class ShopProfile {
 
     public String getBusinessEmail() { return businessEmail; }
     public void setBusinessEmail(String businessEmail) { this.businessEmail = businessEmail; }
+
+    public String getLogoUrl() { return logoUrl; }
+    public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+
+    public String getCoverUrl() { return coverUrl; }
+    public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
 
 }

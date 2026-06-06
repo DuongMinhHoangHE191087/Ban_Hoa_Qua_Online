@@ -248,10 +248,19 @@
 
     <%-- Footer --%>
     <div class="sb-footer">
+        <div class="flex items-center gap-2 px-2 py-1 mb-1">
+            <div class="w-7 h-7 rounded-full bg-[#edf7f2] text-[#4d661c] flex items-center justify-center text-xs font-bold shrink-0">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-[#0f172a] truncate" style="margin: 0;"><c:out value="${sessionScope.currentUser.fullName}"/></p>
+                <p class="text-[10px] text-gray-400 truncate" style="margin: 0;">Quản trị viên</p>
+            </div>
+        </div>
         <a href="${pageContext.request.contextPath}/" class="sb-footer-btn sb-btn-home">
             <i class="fa-solid fa-house"></i> Về trang chủ
         </a>
-        <a href="${pageContext.request.contextPath}/logout" class="sb-footer-btn sb-btn-logout">
+        <a href="${pageContext.request.contextPath}/auth/logout" class="sb-footer-btn sb-btn-logout">
             <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
         </a>
     </div>

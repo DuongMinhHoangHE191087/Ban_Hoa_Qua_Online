@@ -34,6 +34,7 @@ BEGIN
         role NVARCHAR(20) NOT NULL CONSTRAINT CK_users_role DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER', 'SHOP_OWNER', 'DELIVERY', 'ADMIN')),
         status NVARCHAR(20) NOT NULL CONSTRAINT CK_users_status DEFAULT 'INACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'LOCKED', 'SUSPENDED')),
         user_address NVARCHAR(500) NULL,
+        avatar_url NVARCHAR(500) NULL,
         is_email_verified BIT NOT NULL CONSTRAINT DF_users_is_email_verified DEFAULT 0,
         email_verification_code_hash NVARCHAR(255) NULL,
         email_verification_expires_at DATETIME NULL,
@@ -56,6 +57,22 @@ BEGIN
         expires_at DATETIME NOT NULL,
         CONSTRAINT FK_user_sessions_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id) ON DELETE CASCADE
     );
+END
+GO
+
+IF OBJECT_ID(N'dbo.user_addresses', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.user_addresses (
+        address_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_user_addresses PRIMARY KEY,
+        user_id INT NOT NULL,
+        recipient_name NVARCHAR(100) NOT NULL,
+        recipient_phone NVARCHAR(15) NOT NULL,
+        address_detail NVARCHAR(500) NOT NULL,
+        is_default BIT NOT NULL CONSTRAINT DF_user_addresses_is_default DEFAULT 0,
+        created_at DATETIME NOT NULL CONSTRAINT DF_user_addresses_created_at DEFAULT GETDATE(),
+        CONSTRAINT FK_user_addresses_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id) ON DELETE CASCADE
+    );
+    PRINT 'Created user_addresses table.';
 END
 GO
 
@@ -119,7 +136,7 @@ BEGIN
         harvest_date DATE NULL,
         shelf_life_days INT NULL,
         storage_instruction NVARCHAR(300) NULL,
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED')),
+        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED', 'OUT_OF_SEASON')),
         view_count INT NOT NULL CONSTRAINT DF_products_view_count DEFAULT 0,
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
         sold_quantity INT NOT NULL CONSTRAINT DF_products_sold_quantity DEFAULT 0,
@@ -179,6 +196,23 @@ BEGIN
     );
 END
 GO
+
+IF OBJECT_ID(N'dbo.replenishment_logs', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.replenishment_logs (
+        log_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_replenishment_logs PRIMARY KEY,
+        variant_id INT NOT NULL,
+        replenished_by INT NOT NULL,
+        quantity INT NOT NULL CONSTRAINT CK_replenishment_logs_quantity CHECK (quantity > 0),
+        supplier_details NVARCHAR(500) NULL,
+        replenishment_date DATE NOT NULL,
+        created_at DATETIME NOT NULL CONSTRAINT DF_replenishment_logs_created_at DEFAULT GETDATE(),
+        CONSTRAINT FK_replenishment_logs_variants FOREIGN KEY (variant_id) REFERENCES dbo.product_variants(variant_id) ON DELETE CASCADE,
+        CONSTRAINT FK_replenishment_logs_users FOREIGN KEY (replenished_by) REFERENCES dbo.users(user_id)
+    );
+END
+GO
+
 
 IF OBJECT_ID(N'dbo.promotions', N'U') IS NULL
 BEGIN
@@ -241,7 +275,8 @@ BEGIN
         customer_id INT NOT NULL,
         owner_id INT NOT NULL,
         delivery_address NVARCHAR(500) NOT NULL,
-        user_address NVARCHAR(500) NOT NULL,
+        recipient_name NVARCHAR(100) NULL,
+        recipient_phone NVARCHAR(15) NULL,
         delivery_time_slot NVARCHAR(100) NULL,
         notes NVARCHAR(300) NULL,
         cancelled_at DATETIME NULL,
@@ -558,231 +593,231 @@ GO
 -- Indexes for hot DAO paths
 -- =========================================================
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_owner_profiles_approval_status_profile_id' AND object_id = OBJECT_ID(N'dbo.shop_owner_profiles'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_owner_profiles_approval_status_profile_id')
 BEGIN
     CREATE INDEX IX_shop_owner_profiles_approval_status_profile_id
         ON dbo.shop_owner_profiles (approval_status, profile_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_owner_id_product_id_desc' AND object_id = OBJECT_ID(N'dbo.products'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_owner_id_product_id_desc')
 BEGIN
     CREATE INDEX IX_products_owner_id_product_id_desc
         ON dbo.products (owner_id, product_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_category_id_product_id_desc' AND object_id = OBJECT_ID(N'dbo.products'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_category_id_product_id_desc')
 BEGIN
     CREATE INDEX IX_products_category_id_product_id_desc
         ON dbo.products (category_id, product_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_images_product_id_display_order' AND object_id = OBJECT_ID(N'dbo.product_images'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_images_product_id_display_order')
 BEGIN
     CREATE INDEX IX_product_images_product_id_display_order
         ON dbo.product_images (product_id, display_order ASC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_variants_product_id_is_active_price' AND object_id = OBJECT_ID(N'dbo.product_variants'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_product_variants_product_id_is_active_price')
 BEGIN
     CREATE INDEX IX_product_variants_product_id_is_active_price
         ON dbo.product_variants (product_id, is_active, price);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id')
 BEGIN
     CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_id
         ON dbo.cart_items (cart_id, variant_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_cart_items_cart_id_added_at' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_cart_items_cart_id_added_at')
 BEGIN
     CREATE INDEX IX_cart_items_cart_id_added_at
         ON dbo.cart_items (cart_id, added_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_customer_id_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_customer_id_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_customer_id_order_id_desc
         ON dbo.orders (customer_id, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_status_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_status_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_owner_id_status_order_id_desc
         ON dbo.orders (owner_id, status, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_owner_id_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_owner_id_order_id_desc
         ON dbo.orders (owner_id, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_status_order_id_desc' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_status_order_id_desc')
 BEGIN
     CREATE INDEX IX_orders_status_order_id_desc
         ON dbo.orders (status, order_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_order_id' AND object_id = OBJECT_ID(N'dbo.order_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_order_id')
 BEGIN
     CREATE INDEX IX_order_items_order_id
         ON dbo.order_items (order_id, order_item_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_variant_id' AND object_id = OBJECT_ID(N'dbo.order_items'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_order_items_variant_id')
 BEGIN
     CREATE INDEX IX_order_items_variant_id
         ON dbo.order_items (variant_id, order_item_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_created_by_is_deleted_promo_id_desc' AND object_id = OBJECT_ID(N'dbo.promotions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_created_by_is_deleted_promo_id_desc')
 BEGIN
     CREATE INDEX IX_promotions_created_by_is_deleted_promo_id_desc
         ON dbo.promotions (created_by, is_deleted, promo_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_product_scope_active_validity' AND object_id = OBJECT_ID(N'dbo.promotions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_promotions_product_scope_active_validity')
 BEGIN
     CREATE INDEX IX_promotions_product_scope_active_validity
         ON dbo.promotions (product_id, scope, is_active, is_deleted, valid_from, valid_until);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_inventory_logs_variant_id_changed_at_desc' AND object_id = OBJECT_ID(N'dbo.inventory_logs'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_inventory_logs_variant_id_changed_at_desc')
 BEGIN
     CREATE INDEX IX_inventory_logs_variant_id_changed_at_desc
         ON dbo.inventory_logs (variant_id, changed_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_order_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_order_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_return_requests_order_id_created_at_desc
         ON dbo.return_requests (order_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_customer_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_customer_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_return_requests_customer_id_created_at_desc
         ON dbo.return_requests (customer_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status_created_at_desc' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status_created_at_desc')
 BEGIN
     CREATE INDEX IX_return_requests_status_created_at_desc
         ON dbo.return_requests (status, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_owner_id_settlement_id_desc' AND object_id = OBJECT_ID(N'dbo.shop_settlements'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_owner_id_settlement_id_desc')
 BEGIN
     CREATE INDEX IX_shop_settlements_owner_id_settlement_id_desc
         ON dbo.shop_settlements (owner_id, settlement_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_status_settlement_id_desc' AND object_id = OBJECT_ID(N'dbo.shop_settlements'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlements_status_settlement_id_desc')
 BEGIN
     CREATE INDEX IX_shop_settlements_status_settlement_id_desc
         ON dbo.shop_settlements (status, settlement_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlement_orders_settlement_id_order_id' AND object_id = OBJECT_ID(N'dbo.shop_settlement_orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_shop_settlement_orders_settlement_id_order_id')
 BEGIN
     CREATE INDEX IX_shop_settlement_orders_settlement_id_order_id
         ON dbo.shop_settlement_orders (settlement_id, order_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_status_delivery_id_desc' AND object_id = OBJECT_ID(N'dbo.deliveries'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_status_delivery_id_desc')
 BEGIN
     CREATE INDEX IX_deliveries_staff_id_status_delivery_id_desc
         ON dbo.deliveries (staff_id, status, delivery_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_delivery_id_desc' AND object_id = OBJECT_ID(N'dbo.deliveries'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_delivery_id_desc')
 BEGIN
     CREATE INDEX IX_deliveries_staff_id_delivery_id_desc
         ON dbo.deliveries (staff_id, delivery_id DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_reviews_order_item_id' AND object_id = OBJECT_ID(N'dbo.reviews'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_reviews_order_item_id')
 BEGIN
     CREATE INDEX IX_reviews_order_item_id
         ON dbo.reviews (order_item_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_owner' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_owner')
 BEGIN
     CREATE INDEX IX_chat_sessions_customer_owner
         ON dbo.chat_sessions (customer_id, owner_id);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_id_updated_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_customer_id_updated_at_desc')
 BEGIN
     CREATE INDEX IX_chat_sessions_customer_id_updated_at_desc
         ON dbo.chat_sessions (customer_id, updated_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_owner_id_updated_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_sessions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_sessions_owner_id_updated_at_desc')
 BEGIN
     CREATE INDEX IX_chat_sessions_owner_id_updated_at_desc
         ON dbo.chat_sessions (owner_id, updated_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_is_read_created_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_messages'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_is_read_created_at_desc')
 BEGIN
     CREATE INDEX IX_chat_messages_session_id_is_read_created_at_desc
         ON dbo.chat_messages (session_id, is_read, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.chat_messages'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_chat_messages_session_id_created_at_desc
         ON dbo.chat_messages (session_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_is_read_created_at_desc' AND object_id = OBJECT_ID(N'dbo.notifications'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_is_read_created_at_desc')
 BEGIN
     CREATE INDEX IX_notifications_user_id_is_read_created_at_desc
         ON dbo.notifications (user_id, is_read, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_created_at_desc' AND object_id = OBJECT_ID(N'dbo.notifications'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_notifications_user_id_created_at_desc')
 BEGIN
     CREATE INDEX IX_notifications_user_id_created_at_desc
         ON dbo.notifications (user_id, created_at DESC);
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_payment_transactions_sepay_transaction_id' AND object_id = OBJECT_ID(N'dbo.payment_transactions'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_payment_transactions_sepay_transaction_id')
 BEGIN
     CREATE INDEX IX_payment_transactions_sepay_transaction_id
         ON dbo.payment_transactions (sepay_transaction_id);
@@ -800,28 +835,30 @@ BEGIN TRY
     BEGIN TRAN;
 
     SET IDENTITY_INSERT dbo.users ON;
-    INSERT INTO dbo.users (user_id, full_name, email, password_hash, phone, role, status, user_address, is_email_verified, email_verification_code_hash, email_verification_expires_at, email_verification_resend_at, email_verification_sent_at, failed_login_count, locked_until, created_at, updated_at)
+    INSERT INTO dbo.users (user_id, full_name, email, password_hash, phone, role, status, user_address, avatar_url, is_email_verified, email_verification_code_hash, email_verification_expires_at, email_verification_resend_at, email_verification_sent_at, failed_login_count, locked_until, created_at, updated_at)
     VALUES
-        (1, N'Admin System', N'admin@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
-        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
-        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
-        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
-        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
-        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
-        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
-        (10, N'Nguyễn Văn Hùng', N'hungnv@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345601', N'CUSTOMER', N'ACTIVE', N'12 Phố Cổ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (11, N'Phạm Minh Tuấn', N'tuanpm@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345602', N'CUSTOMER', N'ACTIVE', N'85 Xuân Thủy, Cầu Giấy', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (12, N'Trần Thị Mai', N'maitt@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bà Trưng', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (8, N'Lê Minh Tuấn', N'customer3@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000008', N'CUSTOMER', N'ACTIVE', N'18 Nguyễn Du, District 1, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (9, N'Nguyễn Thị Lan', N'customer4@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0900000009', N'CUSTOMER', N'ACTIVE', N'45 Lê Lợi, Bến Nghé, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$TdYdbaa66zOmAFdnTEruxuEZBPssSiRHLxuXcZfMtTXuLotrJdOxC', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
+        (1, N'Admin System', N'admin@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
+        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
+        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
+        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
+        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
+        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
+        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
+        (10, N'Nguyễn Văn Hùng', N'hungnv@gmail.com', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0912345601', N'CUSTOMER', N'ACTIVE', N'12 Phố Cổ, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (11, N'Phạm Minh Tuấn', N'tuanpm@gmail.com', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0912345602', N'CUSTOMER', N'ACTIVE', N'85 Xuân Thủy, Cầu Giấy', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (12, N'Trần Thị Mai', N'maitt@gmail.com', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bà Trưng', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (8, N'Lê Minh Tuấn', N'customer3@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000008', N'CUSTOMER', N'ACTIVE', N'18 Nguyễn Du, District 1, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (9, N'Nguyễn Thị Lan', N'customer4@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0900000009', N'CUSTOMER', N'ACTIVE', N'45 Lê Lợi, Bến Nghé, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (27, N'Nguyễn Văn Đăng Ký', N'pending_shop1@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0911223344', N'CUSTOMER', N'ACTIVE', NULL, N'assets/images/default-avatar.svg', 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (28, N'Trần Thị Chờ Duyệt', N'pending_shop2@fruitshop.local', N'$2a$10$j81o9.j.iQO0VwW04yWjOeM5v2G2Bihg.U1Beb1rF7u6nS7gq7m.rre', N'0988776655', N'CUSTOMER', N'ACTIVE', NULL, N'assets/images/default-avatar.svg', 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -839,7 +876,9 @@ BEGIN TRY
         (1, 3, N'An Phu Orchard', N'Premium citrus and banana supplier', N'APPROVED', NULL, '2026-05-02T10:00:00', N'12 Le Loi, District 1, HCMC', 4.88, N'[1,2,3]', N'["uploads/shop-docs/3/doc1.pdf"]', '2026-05-02T10:00:00', '2026-05-16T08:00:00'),
         (2, 4, N'Mekong Fresh Farm', N'Mango, berries, and grapes specialist', N'APPROVED', NULL, '2026-05-03T10:00:00', N'88 Nguyen Trai, District 5, HCMC', 4.76, N'[2,3,6]', N'["uploads/shop-docs/4/doc1.pdf"]', '2026-05-03T10:00:00', '2026-05-16T08:00:00'),
         (3, 7, N'Klever Premium Fruits', N'Imported fruits, gift boxes, and seasonal premium selections', N'APPROVED', NULL, '2026-05-04T10:00:00', N'52 Vo Thi Sau, District 3, HCMC', 4.91, N'[4,10]', N'["uploads/shop-docs/7/doc1.pdf"]', '2026-05-04T10:00:00', '2026-05-16T08:00:00'),
-        (4, 21, N'MetaFruit Test Shop', N'Cửa hàng hoa quả tươi sạch phục vụ kiểm thử', N'APPROVED', NULL, GETDATE(), N'100 Láng Hạ, Hà Nội', 5.00, N'[1,2,5]', N'["uploads/shop-docs/21/doc1.pdf"]', GETDATE(), GETDATE());
+        (4, 21, N'MetaFruit Test Shop', N'Cửa hàng hoa quả tươi sạch phục vụ kiểm thử', N'APPROVED', NULL, GETDATE(), N'100 Láng Hạ, Hà Nội', 5.00, N'[1,2,5]', N'["uploads/shop-docs/21/doc1.pdf"]', GETDATE(), GETDATE()),
+        (5, 27, N'Trái Cây Sạch Hữu Cơ', N'Cung cấp trái cây chuẩn VietGAP', N'PENDING', NULL, NULL, N'123 Đường VietGAP, Quận 1', 0, NULL, N'["uploads/docs/doc1.pdf"]', GETDATE(), GETDATE()),
+        (6, 28, N'Đặc Sản Trái Cây Vùng Miền', N'Tất cả đặc sản trái cây 3 miền', N'PENDING', NULL, NULL, N'456 Vùng Miền, Quận 3', 0, NULL, N'["uploads/docs/doc2.pdf"]', GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.shop_owner_profiles OFF;
 
     SET IDENTITY_INSERT dbo.categories ON;
@@ -886,7 +925,58 @@ BEGIN TRY
         -- Category 5: Apples (Táo cao cấp)
         (16, 7, 5, N'Táo Envy Mỹ Nhập Khẩu Premium', N'Táo Envy Mỹ giòn ngọt vượt trội, thịt táo trắng tinh khiết ít bị thâm khi cắt, hương thơm nồng nàn quyến rũ đặc trưng khó quên.', N'Hoa Kỳ', N'Washington', '2026-05-18', 15, N'Bảo quản mát ở nhiệt độ 2-4 độ C', N'ACTIVE', 1520, 4.88, 125, '2026-05-03T09:35:00', GETDATE()),
         -- Category 8: Kiwi (Kiwi tươi)
-        (17, 7, 8, N'Kiwi Vàng New Zealand Zespri', N'Kiwi vàng Zespri thượng hạng từ New Zealand, vỏ mịn không lông, thịt quả màu vàng óng ả mọng nước, vị ngọt lịm như mật ong xen lẫn chua dịu thanh khiết.', N'New Zealand', N'Bay of Plenty', '2026-05-19', 14, N'Bảo quản mát tủ lạnh, ăn ngon hơn khi chín mềm tay', N'ACTIVE', 1380, 4.90, 110, '2026-05-03T09:36:00', GETDATE());
+        (17, 7, 8, N'Kiwi Vàng New Zealand Zespri', N'Kiwi vàng Zespri thượng hạng từ New Zealand, vỏ mịn không lông, thịt quả màu vàng óng ả mọng nước, vị ngọt lịm như mật ong xen lẫn chua dịu thanh khiết.', N'New Zealand', N'Bay of Plenty', '2026-05-19', 14, N'Bảo quản mát tủ lạnh, ăn ngon hơn khi chín mềm tay', N'ACTIVE', 1380, 4.90, 110, '2026-05-03T09:36:00', GETDATE()),
+
+        -- Category 1: Citrus (IDs 18-21)
+        (18, 3, 1, N'Cam Vàng Navel Úc Nhập Khẩu', N'Cam vàng Navel nhập khẩu trực tiếp từ Úc, không hạt, quả to tròn láng mịn, vị ngọt lịm đậm đà mọng nước.', N'Australia', N'Mildura', '2026-05-18', 15, N'Bảo quản mát 2-4 độ C', N'ACTIVE', 620, 4.80, 45, GETDATE(), GETDATE()),
+        (19, 3, 1, N'Chanh Không Hạt Vườn Long An', N'Chanh xanh không hạt trồng theo chuẩn VietGAP tại Long An. Vỏ mỏng, cực kỳ nhiều nước, vị chua thanh khiết đặc trưng.', N'Việt Nam', N'Bến Lức, Long An', '2026-05-20', 10, N'Bảo quản tủ mát', N'ACTIVE', 320, 4.65, 80, GETDATE(), GETDATE()),
+        (20, 3, 1, N'Quất Đường Ngọt Hưng Yên', N'Quất ngọt (tắc ngọt) ăn cả vỏ ngọt lịm thơm mát, không đắng, ruột chua nhẹ giải nhiệt tiêu độc cực tốt.', N'Việt Nam', N'Khoái Châu, Hưng Yên', '2026-05-19', 8, N'Giữ lạnh tủ mát', N'ACTIVE', 450, 4.70, 35, GETDATE(), GETDATE()),
+        (21, 3, 1, N'Bưởi Năm Roi Vĩnh Long Đậm Vị', N'Bưởi Năm Roi tép bưởi màu vàng nhạt, ráo nước, múi róc, vị chua ngọt hài hòa dễ ăn, quả càng héo ăn càng ngọt đậm.', N'Việt Nam', N'Bình Minh, Vĩnh Long', '2026-05-15', 30, N'Nơi khô ráo thoáng mát', N'ACTIVE', 780, 4.75, 92, GETDATE(), GETDATE()),
+
+        -- Category 2: Tropical (IDs 22-39)
+        (22, 3, 2, N'Sầu Riêng Ri6 Chín Hóa Bến Tre', N'Sầu riêng Ri6 cơm vàng hạt lép đệ nhất miền Tây. Cơm sầu riêng khô ráo, ngọt đậm đà béo ngậy ngây ngất lòng người.', N'Việt Nam', N'Chợ Lách, Bến Tre', '2026-05-22', 5, N'Nhiệt độ thường khi chưa khui, trữ lạnh cơm sầu riêng trong hộp kín', N'ACTIVE', 2500, 4.95, 230, GETDATE(), GETDATE()),
+        (23, 4, 2, N'Măng Cụt Chín Đỏ Lái Thiêu', N'Măng cụt Lái Thiêu vỏ màu tím đỏ sẫm óng ả, múi măng cụt trắng ngần như hoa tuyết, vị chua ngọt thanh mát cực kỳ lôi cuốn.', N'Việt Nam', N'Thuận An, Bình Dương', '2026-05-21', 6, N'Bảo quản mát sau khi chín', N'ACTIVE', 1800, 4.88, 145, GETDATE(), GETDATE()),
+        (24, 4, 2, N'Vải Thiều Lục Ngạn Bắc Giang loại 1', N'Vải thiều Lục Ngạn chính gốc, cùi dày giòn, hạt nhỏ lọt thỏm, vị ngọt sắc nước thơm đậm đà đặc trưng không đâu có được.', N'Việt Nam', N'Lục Ngạn, Bắc Giang', '2026-05-20', 4, N'Giữ lạnh ngăn mát tránh ẩm ướt để vỏ không thâm', N'ACTIVE', 1650, 4.92, 195, GETDATE(), GETDATE()),
+        (25, 4, 2, N'Nhãn Xuồng Cơm Vàng Vũng Tàu', N'Nhãn xuồng cơm vàng trái to, vỏ mỏng màu da bò, cơm nhãn dày màu vàng nhạt, giòn tan vị ngọt mát thơm đậm đà.', N'Việt Nam', N'Đất Đỏ, Vũng Tàu', '2026-05-18', 6, N'Nơi thoáng mát hoặc trữ lạnh ăn dần', N'ACTIVE', 920, 4.78, 110, GETDATE(), GETDATE()),
+        (26, 4, 2, N'Chôm Chôm Nhãn Bến Tre Giòn Ngọt', N'Chôm chôm nhãn (chôm chôm đường) quả nhỏ râu ngắn, vỏ đỏ pha vàng, cơm giòn tróc hạt, vị ngọt lịm đậm đà thơm mùi nhãn nhẹ.', N'Việt Nam', N'Mỏ Cày Bắc, Bến Tre', '2026-05-19', 5, N'Giữ ngăn mát tủ lạnh', N'ACTIVE', 850, 4.70, 130, GETDATE(), GETDATE()),
+        (27, 4, 2, N'Thanh Long Ruột Đỏ Bình Thuận', N'Thanh long ruột đỏ vỏ hồng đậm mịn màng tai xanh mướt, ruột đỏ sậm mọng nước ngọt đậm đà giàu dinh dưỡng chống oxy hóa.', N'Việt Nam', N'Hàm Thuận Nam, Bình Thuận', '2026-05-17', 8, N'Bảo quản ngăn mát 6-8 độ C', N'ACTIVE', 1050, 4.82, 160, GETDATE(), GETDATE()),
+        (28, 4, 2, N'Đu Đủ Ruột Đỏ Đài Loan Cần Thơ', N'Đu đủ giống Đài Loan ruột đỏ cam ngọt lịm không xơ, quả thuôn dài, giàu enzyme tiêu hóa tốt cho sức khỏe dạ dày.', N'Việt Nam', N'Phong Điền, Cần Thơ', '2026-05-16', 5, N'Nhiệt độ phòng khi chín, giữ lạnh sau khi gọt vỏ', N'ACTIVE', 580, 4.68, 75, GETDATE(), GETDATE()),
+        (29, 3, 2, N'Dừa Xiêm Xanh Bến Tre Ngọt Mát', N'Dừa xiêm xanh nước ngọt lịm sảng khoái mát lành tự nhiên, cơm dừa non dẻo mềm bùi béo giải nhiệt mùa hè tuyệt đỉnh.', N'Việt Nam', N'Châu Thành, Bến Tre', '2026-05-15', 20, N'Trữ nơi khô ráo thoáng mát hoặc ướp lạnh nguyên quả', N'ACTIVE', 1450, 4.88, 310, GETDATE(), GETDATE()),
+        (30, 3, 2, N'Mít Thái Ruột Đỏ Đắk Lắk Nguyên Khay', N'Mít Thái ruột đỏ xơ đỏ giòn sần sật ngọt lịm vị mật ong, hương thơm ngào ngạt đầy kích thích, đóng khay sạch sẽ tiện lợi.', N'Việt Nam', N'Buôn Ma Thuột, Đắk Lắk', '2026-05-16', 4, N'Giữ lạnh khay kín 4-6 độ C', N'ACTIVE', 960, 4.76, 85, GETDATE(), GETDATE()),
+        (31, 3, 2, N'Vú Sữa Lò Rèn Vĩnh Kim Tiền Giang', N'Vú sữa Lò Rèn da láng mịn xanh trắng, ruột trắng sữa ngọt lịm thơm mát ngào ngạt như dòng sữa mẹ. Tinh hoa quả Việt.', N'Việt Nam', N'Vĩnh Kim, Tiền Giang', '2026-05-14', 6, N'Bảo quản mát, tránh xếp đè gây dập nát', N'ACTIVE', 890, 4.90, 68, GETDATE(), GETDATE()),
+        (32, 4, 2, N'Na Dai Đông Triều Quảng Ninh', N'Na dai quả to đều mắt nở, cùi dày trắng tinh ít hạt, dai ngọt thơm nồng nàn. Đạt tiêu chuẩn an toàn VietGAP.', N'Việt Nam', N'Đông Triều, Quảng Ninh', '2026-05-13', 5, N'Nhiệt độ phòng cho chín mềm hẳn rồi trữ mát', N'ACTIVE', 740, 4.81, 52, GETDATE(), GETDATE()),
+        (33, 4, 2, N'Dứa Mật Đơn Dương Lâm Đồng', N'Dứa mật Đơn Dương nhiều mật ngọt lịm không rát lưỡi, cùi dầy thơm nức phù hợp ăn trực tiếp hoặc ép nước uống giải độc.', N'Việt Nam', N'Đơn Dương, Lâm Đồng', '2026-05-14', 8, N'Nhiệt độ phòng, trữ mát sau khi gọt mắt', N'ACTIVE', 610, 4.70, 95, GETDATE(), GETDATE()),
+        (34, 3, 2, N'Ổi Nữ Hoàng Sạch Long An Giòn Ngọt', N'Ổi Nữ Hoàng ruột nhỏ ít hạt giòn rau ráu thơm nhẹ thanh mát, giàu vitamin C vượt trội gấp nhiều lần cam chanh.', N'Việt Nam', N'Tân Thạnh, Long An', '2026-05-18', 7, N'Bảo quản mát tủ lạnh', N'ACTIVE', 530, 4.60, 140, GETDATE(), GETDATE()),
+        (35, 3, 2, N'Cóc Non Ngọt Giòn Miền Tây Không Hạt', N'Cóc bao tử không hạt chua ngọt nhẹ giòn tan, ăn kèm muối ớt tây ninh cay nồng kích thích vị giác cực đỉnh.', N'Việt Nam', N'Vĩnh Long', '2026-05-16', 10, N'Giữ ngăn mát tủ lạnh ăn kèm muối ớt', N'ACTIVE', 480, 4.65, 115, GETDATE(), GETDATE()),
+        (36, 7, 2, N'Bơ Sáp 034 Đắk Lắk Dẻo Bùi', N'Bơ sáp 034 hình dáng dài thon hạt cực nhỏ, thịt bơ vàng đậm dẻo quánh béo ngậy không xơ sơ chế sinh tố cực ngon.', N'Việt Nam', N'Cư M''gar, Đắk Lắk', '2026-05-18', 6, N'Ủ chín nhiệt độ thường, trữ lạnh sau khi bổ đôi bơ', N'ACTIVE', 1250, 4.83, 105, GETDATE(), GETDATE()),
+        (37, 7, 2, N'Chanh Leo Ruột Vàng Đà Lạt Đậm Vị', N'Chanh leo ruột vàng (chanh dây) da trơn, dịch ruột vàng ươm thơm lừng chua ngọt đậm đà pha nước uống mùa hè mát lịm.', N'Việt Nam', N'Đức Trọng, Lâm Đồng', '2026-05-19', 15, N'Tránh ánh nắng, giữ tủ lạnh mát', N'ACTIVE', 670, 4.72, 88, GETDATE(), GETDATE()),
+        (38, 7, 2, N'Mận Hậu Sơn La Giòn Chua Cay', N'Mận hậu Sơn La quả to đỏ mọng bao phủ phấn trắng cùi dầy giòn chua ngọt đậm đà đốn tim tín đồ ăn vặt.', N'Việt Nam', N'Mộc Châu, Sơn La', '2026-05-20', 12, N'Rửa sạch giữ lạnh ăn kèm muối tôm', N'ACTIVE', 1580, 4.85, 290, GETDATE(), GETDATE()),
+        (39, 7, 2, N'Hồng Xiêm Xuân Đỉnh Ngọt Mát', N'Hồng xiêm (xa pô chê) cát mịn ngọt lịm mát lành, thơm dịu quý phái đặc trưng vùng đất tổ Xuân Đỉnh Hà Nội.', N'Việt Nam', N'Xuân Đỉnh, Hà Nội', '2026-05-17', 8, N'Để chín mềm hẳn sờ tay thấy mềm đều mới gọt vỏ ăn', N'ACTIVE', 420, 4.62, 40, GETDATE(), GETDATE()),
+
+        -- Category 3: Berries (IDs 40-42)
+        (40, 7, 3, N'Việt Quất Xanh Mỹ Hộp Lớn', N'Việt quất xanh (Blueberries) nhập khẩu Mỹ quả to tròn căng bóng phủ lớp phấn tự nhiên, vị ngọt thanh chứa nhiều chất bổ não.', N'Hoa Kỳ', N'Oregon', '2026-05-15', 8, N'Giữ lạnh liên tục 2-4 độ C trong hộp nhựa', N'ACTIVE', 930, 4.88, 62, GETDATE(), GETDATE()),
+        (41, 7, 3, N'Dâu Tây Bạch Tuyết Nhật Bản VIP', N'Dâu tây trắng (Dâu Bạch Tuyết) giống Nhật Bản đắt đỏ bậc nhất thế giới. Hương vị thơm ngọt như dứa, cùi giòn trắng tuyết độc đáo.', N'Nhật Bản', N'Nara', '2026-05-16', 4, N'Nâng niu giữ mát hộp xốp tránh dập nát', N'ACTIVE', 1100, 4.96, 25, GETDATE(), GETDATE()),
+        (42, 7, 3, N'Mâm Xôi Đỏ Đà Lạt VietGAP', N'Quả mâm xôi đỏ (Raspberry) Đà Lạt tơi xốp đỏ hồng mọng nước chua ngọt mát lạnh giàu dinh dưỡng làm kem mứt sang xịn.', N'Việt Nam', N'Đà Lạt, Lâm Đồng', '2026-05-17', 4, N'Giữ khay lạnh ăn ngay hoặc làm mứt đông lạnh', N'ACTIVE', 490, 4.70, 30, GETDATE(), GETDATE()),
+
+        -- Category 5: Apples (IDs 43-44)
+        (43, 7, 5, N'Táo Gala Pháp Giòn Ngọt Nhẹ', N'Táo Gala nhập khẩu chính ngạch từ Pháp vỏ sọc đỏ vàng bắt mắt cùi giòn ngọt vừa phải thanh mát thích hợp ăn hàng ngày.', N'Pháp', N'Val de Loire', '2026-05-18', 25, N'Giữ mát 2-6 độ C', N'ACTIVE', 690, 4.64, 78, GETDATE(), GETDATE()),
+        (44, 7, 5, N'Táo Fuji Nhật Bản Quà Tặng VIP', N'Táo đỏ Fuji Nhật Bản trái siêu to tròn đẹp, vị ngọt đậm đà cùi chắc giòn tan thích hợp làm quà tặng ngoại giao đẳng cấp.', N'Nhật Bản', N'Aomori', '2026-05-20', 30, N'Giữ mát liên tục tủ lạnh', N'ACTIVE', 1250, 4.90, 38, GETDATE(), GETDATE()),
+
+        -- Category 6: Grapes (IDs 45-46)
+        (45, 7, 6, N'Nho Đen Ngón Tay Mỹ Sweet Sapphire', N'Nho đen ngón tay Sweet Sapphire Mỹ giống nho dài độc lạ giòn tan ngọt đậm lịm không hạt thơm thoang thoảng quý tộc.', N'Hoa Kỳ', N'California', '2026-05-19', 14, N'Trữ tủ mát tránh đè nén làm rụng quả', N'ACTIVE', 1450, 4.91, 85, GETDATE(), GETDATE()),
+        (46, 7, 6, N'Nho Đỏ Không Hạt Úc Giòn Ngọt', N'Nho đỏ không hạt Úc chùm to khít quả tròn giòn đôm đốp vị ngọt dịu xen chút chua mát kích thích vị giác giải nhiệt cực tốt.', N'Australia', N'Sunraysia', '2026-05-18', 12, N'Giữ mát tủ lạnh không rửa trước khi cất trữ', N'ACTIVE', 890, 4.74, 94, GETDATE(), GETDATE()),
+
+        -- Category 7: Melons (ID 47)
+        (47, 7, 7, N'Dưa Hấu Không Hạt Mặt Trời Đỏ', N'Dưa hấu không hạt Mặt Trời Đỏ giống chất lượng vỏ sọc xanh ruột đỏ tươi ngọt lịm mọng nước giải nhiệt giải khát hè cực đã.', N'Việt Nam', N'Long An', '2026-05-19', 20, N'Trữ mát tủ lạnh ăn ngon hơn', N'ACTIVE', 1340, 4.80, 165, GETDATE(), GETDATE()),
+
+        -- Category 8: Kiwi (ID 48)
+        (48, 7, 8, N'Kiwi Xanh New Zealand Zespri Giòn Chua', N'Kiwi xanh Zespri nhiều lông tơ thịt quả xanh ngọc chấm hạt đen giòn giòn chua thanh đậm vị giàu chất xơ hỗ trợ giảm cân hiệu quả.', N'New Zealand', N'Bay of Plenty', '2026-05-18', 15, N'Giữ mát ăn ngon hơn khi chín hơi mềm tay', N'ACTIVE', 760, 4.70, 112, GETDATE(), GETDATE()),
+
+        -- Category 9: Cherries (ID 49)
+        (49, 7, 9, N'Cherry Vàng Rainier Mỹ Orchard View', N'Cherry vàng Rainier được ví như nữ hoàng cherry trái màu vàng ửng hồng cùi giòn chắc ngọt đậm đà bậc nhất thế giới.', N'Hoa Kỳ', N'Washington', '2026-05-18', 6, N'Trữ mát liên tục trong hộp kín', N'ACTIVE', 1050, 4.94, 32, GETDATE(), GETDATE()),
+
+        -- Category 4: Gift Boxes (ID 50)
+        (50, 7, 4, N'Hộp Quà Trái Cây Phú Quý Cát Tường', N'Hộp quà gỗ thắt nơ đỏ cao cấp kết hợp táo Envy, nho ngón tay và lê Hàn Quốc. Lựa chọn quà biếu tặng hoàn hảo nhất.', N'Nhiều nước', N'Lắp ráp VIP', '2026-05-19', 5, N'Giữ mát toàn bộ hộp quà tránh va đập', N'ACTIVE', 880, 4.92, 29, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.products OFF;
 
     SET IDENTITY_INSERT dbo.product_images ON;
@@ -915,7 +1005,74 @@ BEGIN TRY
         -- Táo Envy Mỹ (16)
         (21, 16, N'assets/images/tao_envy.png', 1, 1, GETDATE()),
         -- Kiwi Vàng (17)
-        (22, 17, N'assets/images/kiwi_vang.png', 1, 1, GETDATE());
+        (22, 17, N'assets/images/kiwi_vang.png', 1, 1, GETDATE()),
+
+        -- Cam Vàng Navel Úc (18) -> Use local cam_sanh.png
+        (23, 18, N'assets/images/cam_sanh.png', 1, 1, GETDATE()),
+        -- Chanh Không Hạt (19) -> Use local chanh_khong_hat.png
+        (24, 19, N'assets/images/chanh_khong_hat.png', 1, 1, GETDATE()),
+        -- Quất Đường (20) -> Use local quat_duong.png
+        (25, 20, N'assets/images/quat_duong.png', 1, 1, GETDATE()),
+        -- Bưởi Năm Roi (21) -> Use local buoi_da_xanh.png
+        (26, 21, N'assets/images/buoi_da_xanh.png', 1, 1, GETDATE()),
+        -- Sầu Riêng Ri6 (22) -> Use generated sau_rieng_ri6.png
+        (27, 22, N'assets/images/sau_rieng_ri6.png', 1, 1, GETDATE()),
+        -- Măng Cụt (23) -> Use generated mang_cut.png
+        (28, 23, N'assets/images/mang_cut.png', 1, 1, GETDATE()),
+        -- Vải Thiều (24) -> Use local vai_thieu.png
+        (29, 24, N'assets/images/vai_thieu.png', 1, 1, GETDATE()),
+        -- Nhãn Xuồng (25) -> Use local nhan_xuong.png
+        (30, 25, N'assets/images/nhan_xuong.png', 1, 1, GETDATE()),
+        -- Chôm Chôm (26) -> Use local chom_chom.png
+        (31, 26, N'assets/images/chom_chom.png', 1, 1, GETDATE()),
+        -- Thanh Long (27) -> Use local thanh_long.png
+        (32, 27, N'assets/images/thanh_long.png', 1, 1, GETDATE()),
+        -- Đu Đủ (28) -> Use local du_du.png
+        (33, 28, N'assets/images/du_du.png', 1, 1, GETDATE()),
+        -- Dừa Xiêm (29) -> Use local chuoi_laba.png
+        (34, 29, N'assets/images/chuoi_laba.png', 1, 1, GETDATE()),
+        -- Mít Thái (30) -> Use local mit_thai.png
+        (35, 30, N'assets/images/mit_thai.png', 1, 1, GETDATE()),
+        -- Vú Sữa (31) -> Use local vu_sua.png
+        (36, 31, N'assets/images/vu_sua.png', 1, 1, GETDATE()),
+        -- Na Dai (32) -> Use local na_dai.png
+        (37, 32, N'assets/images/na_dai.png', 1, 1, GETDATE()),
+        -- Dứa Mật (33) -> Use local dua_mat.png
+        (38, 33, N'assets/images/dua_mat.png', 1, 1, GETDATE()),
+        -- Ổi Nữ Hoàng (34) -> Use local oi_nu_hoang.png
+        (39, 34, N'assets/images/oi_nu_hoang.png', 1, 1, GETDATE()),
+        -- Cóc Non (35) -> Use local coc_non.png
+        (40, 35, N'assets/images/coc_non.png', 1, 1, GETDATE()),
+        -- Bơ Sáp (36) -> Use local bo_sap.png
+        (41, 36, N'assets/images/bo_sap.png', 1, 1, GETDATE()),
+        -- Chanh Leo (37) -> Use local chanh_leo.png
+        (42, 37, N'assets/images/chanh_leo.png', 1, 1, GETDATE()),
+        -- Mận Hậu (38) -> Use local man_hau.png
+        (43, 38, N'assets/images/man_hau.png', 1, 1, GETDATE()),
+        -- Hồng Xiêm (39) -> Use local hong_xiem.png
+        (44, 39, N'assets/images/hong_xiem.png', 1, 1, GETDATE()),
+        -- Việt Quất (40) -> Use local nho_xanh.png
+        (45, 40, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        -- Dâu Tây Bạch Tuyết (41) -> Use local dau_tay.png
+        (46, 41, N'assets/images/dau_tay.png', 1, 1, GETDATE()),
+        -- Mâm Xôi Đỏ (42) -> Use local dau_tay.png
+        (47, 42, N'assets/images/dau_tay.png', 1, 1, GETDATE()),
+        -- Táo Gala (43) -> Use local tao_envy.png
+        (48, 43, N'assets/images/tao_envy.png', 1, 1, GETDATE()),
+        -- Táo Fuji (44) -> Use local tao_envy.png
+        (49, 44, N'assets/images/tao_envy.png', 1, 1, GETDATE()),
+        -- Nho Đen Ngón Tay (45) -> Use local nho_xanh.png
+        (50, 45, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        -- Nho Đỏ (46) -> Use local nho_xanh.png
+        (51, 46, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        -- Dưa Hấu Không Hạt (47) -> Use local dua_hau_vuong.png
+        (52, 47, N'assets/images/dua_hau_vuong.png', 1, 1, GETDATE()),
+        -- Kiwi Xanh (48) -> Use local kiwi_vang.png
+        (53, 48, N'assets/images/kiwi_vang.png', 1, 1, GETDATE()),
+        -- Cherry Vàng (49) -> Use local cherry_do.png
+        (54, 49, N'assets/images/cherry_do.png', 1, 1, GETDATE()),
+        -- Hộp Quà Phú Quý (50) -> Use local hop_qua_tet.png
+        (55, 50, N'assets/images/hop_qua_tet.png', 1, 1, GETDATE());
     SET IDENTITY_INSERT dbo.product_images OFF;
 
     SET IDENTITY_INSERT dbo.product_variants ON;
@@ -949,7 +1106,77 @@ BEGIN TRY
         (25, 16, N'TAO-ENVY-3KG', N'Combo 3kg', 329000.00, 50, 1, GETDATE(), GETDATE()),
         -- Kiwi Vàng (17)
         (26, 17, N'KIWI-VANG-1KG', N'Hộp 1kg', 145000.00, 90, 1, GETDATE(), GETDATE()),
-        (27, 17, N'KIWI-VANG-3KG', N'Combo 3kg', 399000.00, 40, 1, GETDATE(), GETDATE());
+        (27, 17, N'KIWI-VANG-3KG', N'Combo 3kg', 399000.00, 40, 1, GETDATE(), GETDATE()),
+
+        -- Cam Vàng Navel Úc (18)
+        (28, 18, N'CAM-NAV-1KG', N'Hộp 1kg', 85000.00, 90, 1, GETDATE(), GETDATE()),
+        (29, 18, N'CAM-NAV-3KG', N'Combo 3kg', 240000.00, 40, 1, GETDATE(), GETDATE()),
+        -- Chanh Không Hạt (19)
+        (30, 19, N'CHANH-KH-1KG', N'Túi lưới 1kg', 22000.00, 300, 1, GETDATE(), GETDATE()),
+        -- Quất Đường (20)
+        (31, 20, N'QUAT-D-1KG', N'Hộp 1kg', 45000.00, 150, 1, GETDATE(), GETDATE()),
+        -- Bưởi Năm Roi (21)
+        (32, 21, N'BUOI-5R-1QT', N'Quả 1kg - 1.2kg', 55000.00, 110, 1, GETDATE(), GETDATE()),
+        -- Sầu Riêng Ri6 (22)
+        (33, 22, N'SAU-RIENG-RI6-QA', N'Quả nguyên trái 3kg - 4kg', 360000.00, 85, 1, GETDATE(), GETDATE()),
+        (34, 22, N'SAU-RIENG-RI6-BOX', N'Khay cơm khui sẵn 500g', 185000.00, 60, 1, GETDATE(), GETDATE()),
+        -- Măng Cụt (23)
+        (35, 23, N'MANG-CUT-LT-1KG', N'Túi 1kg', 75000.00, 120, 1, GETDATE(), GETDATE()),
+        (36, 23, N'MANG-CUT-LT-3KG', N'Hộp 3kg Quà tặng', 210000.00, 50, 1, GETDATE(), GETDATE()),
+        -- Vải Thiều (24)
+        (37, 24, N'VAI-THIEU-1KG', N'Chùm 1kg', 42000.00, 400, 1, GETDATE(), GETDATE()),
+        -- Nhãn Xuồng (25)
+        (38, 25, N'NHAN-XUONG-1KG', N'Chùm 1kg', 68000.00, 180, 1, GETDATE(), GETDATE()),
+        -- Chôm Chôm (26)
+        (39, 26, N'CHOM-CHOM-1KG', N'Túi 1kg', 35000.00, 250, 1, GETDATE(), GETDATE()),
+        -- Thanh Long (27)
+        (40, 27, N'THANH-LONG-RD-1KG', N'Hộp 2 quả ~1.2kg', 40000.00, 190, 1, GETDATE(), GETDATE()),
+        -- Đu Đủ (28)
+        (41, 28, N'DU-DU-RD-1QT', N'Quả 1.5kg', 30000.00, 140, 1, GETDATE(), GETDATE()),
+        -- Dừa Xiêm (29)
+        (42, 29, N'DUA-XIEM-5QT', N'Combo 5 quả gọt trọc', 110000.00, 120, 1, GETDATE(), GETDATE()),
+        -- Mít Thái (30)
+        (43, 30, N'MIT-THAI-RD-500G', N'Khay bóc sẵn 500g', 60000.00, 90, 1, GETDATE(), GETDATE()),
+        -- Vú Sữa (31)
+        (44, 31, N'VU-SUA-LR-1KG', N'Hộp 1kg (3-4 quả)', 75000.00, 110, 1, GETDATE(), GETDATE()),
+        -- Na Dai (32)
+        (45, 32, N'NA-DAI-DT-1KG', N'Hộp 1kg', 60000.00, 95, 1, GETDATE(), GETDATE()),
+        -- Dứa Mật (33)
+        (46, 33, N'DUA-MAT-1QT', N'Quả gọt sẵn', 35000.00, 130, 1, GETDATE(), GETDATE()),
+        -- Ổi Nữ Hoàng (34)
+        (47, 34, N'OI-NH-1KG', N'Túi 1kg', 25000.00, 220, 1, GETDATE(), GETDATE()),
+        -- Cóc Non (35)
+        (48, 35, N'COC-NON-500G', N'Hộp 500g kèm muối', 30000.00, 180, 1, GETDATE(), GETDATE()),
+        -- Bơ Sáp (36)
+        (49, 36, N'BO-SAP-034-1KG', N'Túi 1kg', 55000.00, 160, 1, GETDATE(), GETDATE()),
+        -- Chanh Leo (37)
+        (50, 37, N'CHANH-LEO-1KG', N'Túi 1kg', 35000.00, 200, 1, GETDATE(), GETDATE()),
+        -- Mận Hậu (38)
+        (51, 38, N'MAN-HAU-MC-1KG', N'Hộp 1kg', 65000.00, 320, 1, GETDATE(), GETDATE()),
+        -- Hồng Xiêm (39)
+        (52, 39, N'HONG-XIEM-XD-1KG', N'Túi 1kg', 48000.00, 140, 1, GETDATE(), GETDATE()),
+        -- Việt Quất (40)
+        (53, 40, N'VIET-QUAT-125G', N'Hộp 125g', 69000.00, 150, 1, GETDATE(), GETDATE()),
+        -- Dâu Tây Bạch Tuyết (41)
+        (54, 41, N'DAU-TUYET-300G', N'Hộp xốp VIP 300g', 380000.00, 30, 1, GETDATE(), GETDATE()),
+        -- Mâm Xôi Đỏ (42)
+        (55, 42, N'MAM-XOI-150G', N'Hộp 150g', 65000.00, 80, 1, GETDATE(), GETDATE()),
+        -- Táo Gala (43)
+        (56, 43, N'TAO-GALA-1KG', N'Túi 1kg', 59000.00, 190, 1, GETDATE(), GETDATE()),
+        -- Táo Fuji (44)
+        (57, 44, N'TAO-FUJI-JP-1KG', N'Hộp 1kg VIP', 169000.00, 70, 1, GETDATE(), GETDATE()),
+        -- Nho Đen Ngón Tay (45)
+        (58, 45, N'NHO-SAPPHIRE-500G', N'Khay 500g', 189000.00, 110, 1, GETDATE(), GETDATE()),
+        -- Nho Đỏ (46)
+        (59, 46, N'NHO-DO-UC-1KG', N'Hộp 1kg', 135000.00, 140, 1, GETDATE(), GETDATE()),
+        -- Dưa Hấu Không Hạt (47)
+        (60, 47, N'DUA-HAU-KH-1QT', N'Quả 3kg - 4kg', 45000.00, 210, 1, GETDATE(), GETDATE()),
+        -- Kiwi Xanh (48)
+        (61, 48, N'KIWI-XANH-1KG', N'Hộp 1kg', 95000.00, 160, 1, GETDATE(), GETDATE()),
+        -- Cherry Vàng (49)
+        (62, 49, N'CHERRY-VANG-500G', N'Hộp 500g Orchard', 450000.00, 40, 1, GETDATE(), GETDATE()),
+        -- Hộp Quà Phú Quý (50)
+        (63, 50, N'HQ-PHU-QUY', N'Hộp gỗ VIP thắt nơ', 799000.00, 45, 1, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.product_variants OFF;
 
     SET IDENTITY_INSERT dbo.inventory_logs ON;
@@ -961,7 +1188,15 @@ BEGIN TRY
         (4, 12, 7, N'MANUAL_ADJUST', 85, 85, N'Nhập container Cherry Chile', '2026-05-15T10:00:00'),
         (5, 19, 7, N'MANUAL_ADJUST', 35, 35, N'Đóng hộp quà tết', '2026-05-14T18:00:00'),
         (6, 24, 7, N'MANUAL_ADJUST', 120, 120, N'Nhập kho táo Envy Mỹ', '2026-05-18T09:00:00'),
-        (7, 26, 7, N'MANUAL_ADJUST', 90, 90, N'Nhập kho Kiwi Vàng', '2026-05-19T09:00:00');
+        (7, 26, 7, N'MANUAL_ADJUST', 90, 90, N'Nhập kho Kiwi Vàng', '2026-05-19T09:00:00'),
+
+        (8, 28, 3, N'MANUAL_ADJUST', 90, 90, N'Nhập kho Cam Navel', GETDATE()),
+        (9, 30, 3, N'MANUAL_ADJUST', 300, 300, N'Nhập kho Chanh Long An', GETDATE()),
+        (10, 33, 3, N'MANUAL_ADJUST', 85, 85, N'Nhập kho sầu riêng Ri6 quả', GETDATE()),
+        (11, 35, 4, N'MANUAL_ADJUST', 120, 120, N'Nhập kho Măng Cụt', GETDATE()),
+        (12, 37, 4, N'MANUAL_ADJUST', 400, 400, N'Nhập kho Vải Thiều Bắc Giang', GETDATE()),
+        (13, 54, 7, N'MANUAL_ADJUST', 30, 30, N'Nhập kho Dâu Bạch Tuyết Nhật', GETDATE()),
+        (14, 58, 7, N'MANUAL_ADJUST', 110, 110, N'Nhập kho Nho sapphire ngón tay', GETDATE());
     SET IDENTITY_INSERT dbo.inventory_logs OFF;
 
     SET IDENTITY_INSERT dbo.promotions ON;
@@ -1011,17 +1246,17 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.cart_items OFF;
 
     SET IDENTITY_INSERT dbo.orders ON;
-    INSERT INTO dbo.orders (order_id, customer_id, owner_id, delivery_address, user_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at)
+    INSERT INTO dbo.orders (order_id, customer_id, owner_id, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at)
     VALUES
-        (1, 5, 3, N'15 Pasteur, District 3, HCMC', N'15 Pasteur, District 3, HCMC', N'08:00-12:00', N'Leave at reception', NULL, NULL, NULL, N'DELIVERED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-15T09:10:00', '2026-05-16T12:30:00'),
-        (2, 6, 4, N'90 Truong Chinh, Tan Binh, HCMC', N'90 Truong Chinh, Tan Binh, HCMC', N'14:00-18:00', N'Call on arrival', NULL, NULL, NULL, N'DELIVERED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'COD', N'NONE', '2026-05-15T10:20:00', '2026-05-16T13:10:00'),
-        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00'),
-        (10, 10, 3, N'12 Phố Cổ, Hà Nội', N'12 Phố Cổ, Hà Nội', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-18T08:00:00', '2026-05-18T14:00:00'),
-        (11, 11, 3, N'85 Xuân Thủy, Cầu Giấy', N'85 Xuân Thủy, Cầu Giấy', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-19T09:00:00', '2026-05-19T15:00:00'),
-        (12, 12, 3, N'45 Chùa Bộc, Đống Đa', N'45 Chùa Bộc, Đống Đa', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'CK', N'NONE', '2026-05-20T10:00:00', '2026-05-20T16:00:00'),
-        (13, 13, 3, N'102 Nguyễn Trãi, Thanh Xuân', N'102 Nguyễn Trãi, Thanh Xuân', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-21T11:00:00', '2026-05-21T17:00:00'),
-        (14, 14, 3, N'56 Bạch Mai, Hai Bà Trưng', N'56 Bạch Mai, Hai Bà Trưng', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'CK', N'NONE', '2026-05-22T13:00:00', '2026-05-22T19:00:00'),
-        (15, 15, 3, N'29 Lạc Long Quân, Tây Hồ', N'29 Lạc Long Quân, Tây Hồ', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'COD', N'NONE', '2026-05-23T08:00:00', '2026-05-23T12:00:00');
+        (1, 5, 3, N'15 Pasteur, District 3, HCMC', N'08:00-12:00', N'Leave at reception', NULL, NULL, NULL, N'DELIVERED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-15T09:10:00', '2026-05-16T12:30:00'),
+        (2, 6, 4, N'90 Truong Chinh, Tan Binh, HCMC', N'14:00-18:00', N'Call on arrival', NULL, NULL, NULL, N'DELIVERED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'COD', N'NONE', '2026-05-15T10:20:00', '2026-05-16T13:10:00'),
+        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00'),
+        (10, 10, 3, N'12 Phố Cổ, Hà Nội', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-18T08:00:00', '2026-05-18T14:00:00'),
+        (11, 11, 3, N'85 Xuân Thủy, Cầu Giấy', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-19T09:00:00', '2026-05-19T15:00:00'),
+        (12, 12, 3, N'45 Chùa Bộc, Đống Đa', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'CK', N'NONE', '2026-05-20T10:00:00', '2026-05-20T16:00:00'),
+        (13, 13, 3, N'102 Nguyễn Trãi, Thanh Xuân', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-21T11:00:00', '2026-05-21T17:00:00'),
+        (14, 14, 3, N'56 Bạch Mai, Hai Bà Trưng', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'CK', N'NONE', '2026-05-22T13:00:00', '2026-05-22T19:00:00'),
+        (15, 15, 3, N'29 Lạc Long Quân, Tây Hồ', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'COD', N'NONE', '2026-05-23T08:00:00', '2026-05-23T12:00:00');
     SET IDENTITY_INSERT dbo.orders OFF;
 
     SET IDENTITY_INSERT dbo.order_items ON;
@@ -1133,6 +1368,19 @@ BEGIN TRY
         (6, 1, N'SYSTEM', N'Settlement batch complete', N'Daily settlement snapshots were created successfully.', N'/admin/settlements', 0, '2026-05-16T20:05:00');
     SET IDENTITY_INSERT dbo.notifications OFF;
 
+    SET IDENTITY_INSERT dbo.user_addresses ON;
+    INSERT INTO dbo.user_addresses (address_id, user_id, recipient_name, recipient_phone, address_detail, is_default, created_at)
+    VALUES
+        (1, 5, N'Trần Minh', N'0900000005', N'15 Pasteur, Quận 3, TP. Hồ Chí Minh', 1, GETDATE()),
+        (2, 5, N'Trần Minh (Công ty)', N'0909999888', N'Tòa nhà Bitexco, 2 Hải Triều, Bến Nghé, Quận 1, TP. Hồ Chí Minh', 0, GETDATE()),
+        (3, 6, N'Lê Thu', N'0900000006', N'90 Trường Chinh, Tân Bình, TP. Hồ Chí Minh', 1, GETDATE()),
+        (4, 23, N'Test Customer', N'0988888004', N'300 Tây Sơn, Ngã Tư Sở, Đống Đa, Hà Nội', 1, GETDATE()),
+        (5, 23, N'Test Customer (Nhà riêng)', N'0988123456', N'Ngõ 10 Láng Hạ, Ba Đình, Hà Nội', 0, GETDATE()),
+        (6, 8, N'Lê Minh Tuấn', N'0900000008', N'18 Nguyễn Du, District 1, HCMC', 1, GETDATE()),
+        (7, 9, N'Nguyễn Thị Lan', N'0900000009', N'45 Lê Lợi, Bến Nghé, HCMC', 1, GETDATE()),
+        (8, 26, N'Khách Hàng VIP', N'0988888005', N'50 Lý Tự Trọng, HCMC', 1, GETDATE());
+    SET IDENTITY_INSERT dbo.user_addresses OFF;
+
     COMMIT;
 END TRY
 BEGIN CATCH
@@ -1196,7 +1444,7 @@ VALUES (
     GETDATE()
 );
 GO
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_acceptance_auto_cancel' AND object_id = OBJECT_ID(N'dbo.orders'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_acceptance_auto_cancel')
 BEGIN
     CREATE INDEX IX_orders_acceptance_auto_cancel
     ON dbo.orders (status, shop_acceptance_deadline)
@@ -1204,7 +1452,7 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status' AND object_id = OBJECT_ID(N'dbo.return_requests'))
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_return_requests_status')
 BEGIN
     CREATE INDEX IX_return_requests_status ON dbo.return_requests(status, created_at);
 END
@@ -1244,6 +1492,32 @@ PRINT '  * ANPHU-GIAM30K (An Phu):   Giảm cố định 30k cho đơn từ 200k
 PRINT '  * MEKONG-GIAM20K (Mekong):  Giảm cố định 20k cho đơn từ 150k'
 PRINT '  * KLEVER-GIAM50K (Klever):  Giảm cố định 50k cho đơn từ 400k'
 PRINT '========================================================================='
+
+-- Dynamic Test Data Seed Overwrites (Relative Dates)
+-- Loại A: Chưa hết hạn (Vẫn giữ ACTIVE trên shop)
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 1;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -2, GETDATE()) AS DATE), shelf_life_days = 7, status = 'ACTIVE' WHERE product_id = 3;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -3, GETDATE()) AS DATE), shelf_life_days = 10, status = 'ACTIVE' WHERE product_id = 6;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -1, GETDATE()) AS DATE), shelf_life_days = 7, status = 'ACTIVE' WHERE product_id = 8;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -2, GETDATE()) AS DATE), shelf_life_days = 12, status = 'ACTIVE' WHERE product_id = 10;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -1, GETDATE()) AS DATE), shelf_life_days = 5, status = 'ACTIVE' WHERE product_id = 12;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -3, GETDATE()) AS DATE), shelf_life_days = 4, status = 'ACTIVE' WHERE product_id = 14;
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 16;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -5, GETDATE()) AS DATE), shelf_life_days = 14, status = 'ACTIVE' WHERE product_id = 17;
+
+-- Loại B: Đã hết hạn thực tế (Tự động chuyển thành OUT_OF_SEASON khi load trang)
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -45, GETDATE()) AS DATE), shelf_life_days = 20, status = 'ACTIVE' WHERE product_id = 2;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -10, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 4;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -50, GETDATE()) AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 7;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -15, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 9;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -20, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 13;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -10, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 15;
+
+-- Loại C: Không có hạn sử dụng (shelf_life_days = 0 hoặc NULL, luôn giữ ACTIVE)
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 0, status = 'ACTIVE' WHERE product_id = 5;
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = NULL, status = 'ACTIVE' WHERE product_id = 11;
+
+
 
 
 

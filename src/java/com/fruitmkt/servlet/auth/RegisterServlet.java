@@ -79,28 +79,6 @@ public class RegisterServlet extends HttpServlet {
 
         req.setCharacterEncoding("UTF-8");
 
-        // DEBUG LOGGING
-        getServletContext().log("DEBUG RegisterServlet: Content-Type = " + req.getContentType());
-        getServletContext().log("DEBUG RegisterServlet: Character-Encoding = " + req.getCharacterEncoding());
-        java.util.Enumeration<String> paramNames = req.getParameterNames();
-        while (paramNames.hasMoreElements()) {
-            String paramName = paramNames.nextElement();
-            getServletContext().log("DEBUG RegisterServlet parameter: " + paramName + " = " + req.getParameter(paramName));
-        }
-        try {
-            java.util.Collection<Part> parts = req.getParts();
-            if (parts != null) {
-                for (Part part : parts) {
-                    getServletContext().log("DEBUG RegisterServlet part: name=" + part.getName() 
-                        + ", size=" + part.getSize() + ", contentType=" + part.getContentType());
-                }
-            } else {
-                getServletContext().log("DEBUG RegisterServlet parts is NULL");
-            }
-        } catch (Exception ex) {
-            getServletContext().log("DEBUG RegisterServlet error reading parts: " + ex.getMessage(), ex);
-        }
-
         // 1. Kiểm tra CSRF token thủ công nghiêm ngặt vì /auth/* bị CsrfFilter bỏ qua
         String sessionCsrf = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
         String reqCsrf = req.getParameter("_csrf");

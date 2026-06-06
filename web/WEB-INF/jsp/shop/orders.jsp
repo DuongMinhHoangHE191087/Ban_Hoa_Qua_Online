@@ -6,235 +6,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý đơn hàng | Kênh Người Bán</title>
+    <title>Quản lý Đơn hàng | Kênh Người Bán</title>
+    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <style>
-        body { background-color: var(--color-background); font-family: var(--font-primary); margin: 0; }
-        .shop-layout { display: flex; min-height: 100vh; }
-        
-        /* Sidebar */
-        .sidebar { width: 250px; background-color: white; border-right: 1px solid var(--color-gray-200); padding: 1.5rem 0; flex-shrink: 0; }
-        .sidebar-brand { font-size: 1.25rem; font-weight: 700; color: var(--color-primary); padding: 0 1.5rem 1.5rem; border-bottom: 1px solid var(--color-gray-200); margin-bottom: 1rem; }
-        .nav-item { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: var(--color-gray-600); text-decoration: none; transition: all 0.2s; }
-        .nav-item:hover, .nav-item.active { background-color: var(--color-primary-light); color: var(--color-primary); }
-        .nav-item i { width: 20px; margin-right: 10px; }
-        
-        /* Main Content */
-        .main-content { flex: 1; padding: 2rem; overflow-y: auto; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .page-title { font-size: 1.5rem; font-weight: 700; color: var(--color-gray-900); }
-        
-        /* Filters */
-        .filter-bar { display: flex; gap: 10px; margin-bottom: 1.5rem; }
-        .filter-btn { padding: 8px 16px; border: 1px solid var(--color-gray-300); border-radius: 20px; background: white; color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem; transition: 0.2s; }
-        .filter-btn:hover, .filter-btn.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
-        
-        /* Table */
-        .card { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
-        .table-responsive { width: 100%; overflow-x: auto; }
-        .table { width: 100%; border-collapse: collapse; text-align: left; }
-        .table th, .table td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--color-gray-200); }
-        .table th { background-color: var(--color-gray-50); font-weight: 600; color: var(--color-gray-700); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .table tr:last-child td { border-bottom: none; }
-        .table tr:hover { background-color: var(--color-gray-50); }
-        
-        /* Badges */
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-        .badge-pending { background-color: #fef3c7; color: #d97706; }
-        .badge-confirmed { background-color: #dbeafe; color: #2563eb; }
-        .badge-preparing { background-color: #e0e7ff; color: #4f46e5; }
-        .badge-approved { background-color: #e0e7ff; color: #4f46e5; }
-        .badge-dispatched { background-color: #fce7f3; color: #db2777; }
-        .badge-delivered { background-color: #dcfce3; color: #16a34a; }
-        .badge-cancelled { background-color: #fee2e2; color: #dc2626; }
-        
-        /* Modal */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background-color: white; padding: 2rem; border-radius: var(--radius-lg); width: 100%; max-width: 500px; box-shadow: var(--shadow-lg); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .modal-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
-        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-gray-500); }
-        
-        /* Form Controls */
-        .form-group { margin-bottom: 1.5rem; }
-        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--color-gray-700); }
-        .form-control { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-family: inherit; font-size: 1rem; box-sizing: border-box; }
-        .form-control:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1); }
-    </style>
-</head>
-<body>
-    <div class="shop-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">Kênh Người Bán</div>
-            <a href="${pageContext.request.contextPath}/shop/dashboard" class="nav-item"><i class="fa-solid fa-chart-line"></i> Tổng quan</a>
-            <a href="${pageContext.request.contextPath}/shop/products" class="nav-item"><i class="fa-solid fa-box"></i> Sản phẩm</a>
-            <a href="${pageContext.request.contextPath}/shop/orders" class="nav-item active"><i class="fa-solid fa-clipboard-list"></i> Đơn hàng</a>
-            <a href="${pageContext.request.contextPath}/shop/promotions" class="nav-item"><i class="fa-solid fa-tags"></i> Khuyến mãi</a>
-            <a href="${pageContext.request.contextPath}/shop/inventory" class="nav-item"><i class="fa-solid fa-warehouse"></i> Tồn kho</a>
-            <a href="${pageContext.request.contextPath}/shop/settlement" class="nav-item"><i class="fa-solid fa-wallet"></i> Tài chính</a>
-            <a href="${pageContext.request.contextPath}/shop/profile" class="nav-item"><i class="fa-solid fa-store"></i> Hồ sơ Shop</a>
-            <a href="${pageContext.request.contextPath}/auth/logout" class="nav-item" style="margin-top: auto; color: var(--color-danger);"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <c:if test="${not empty sessionScope.flashMsg}">
-                <div class="alert alert-${sessionScope.flashType} alert-dismissible" role="alert">
-                    ${sessionScope.flashMsg}
-                    <button type="button" class="btn-close" aria-label="Close" onclick="this.parentElement.style.display='none';"></button>
-                </div>
-                <c:remove var="flashMsg" scope="session"/>
-                <c:remove var="flashType" scope="session"/>
-            </c:if>
-
-            <div class="page-header">
-                <h1 class="page-title">Quản lý Đơn hàng</h1>
-            </div>
-
-            <!-- Filters -->
-            <div class="filter-bar">
-                <a href="?status=" class="filter-btn ${empty status ? 'active' : ''}">Tất cả</a>
-                <a href="?status=PENDING_PAYMENT" class="filter-btn ${status == 'PENDING_PAYMENT' ? 'active' : ''}">Chờ thanh toán</a>
-                <a href="?status=CONFIRMED" class="filter-btn ${status == 'CONFIRMED' ? 'active' : ''}">Chờ duyệt</a>
-                <a href="?status=APPROVED" class="filter-btn ${status == 'APPROVED' ? 'active' : ''}">Đã duyệt (Chờ đóng gói)</a>
-                <a href="?status=DISPATCHED" class="filter-btn ${status == 'DISPATCHED' ? 'active' : ''}">Đang giao</a>
-                <a href="?status=DELIVERED" class="filter-btn ${status == 'DELIVERED' ? 'active' : ''}">Hoàn thành</a>
-                <a href="?status=CANCELLED" class="filter-btn ${status == 'CANCELLED' ? 'active' : ''}">Đã hủy</a>
-            </div>
-
-            <!-- Orders Table -->
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Mã ĐH</th>
-                                <th>Khách hàng</th>
-                                <th>Ngày tạo</th>
-                                <th>Tổng tiền</th>
-                                <th>Thanh toán</th>
-                                <th>Trạng thái</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <c:forEach var="order" items="${orders}">
-                                <tr>
-                                    <td>#${order.orderId}</td>
-                                    <td>Khách ID: ${order.customerId}</td>
-                                    <td>${order.createdAt}</td>
-                                    <td class="text-danger fw-bold"><ft:currency value="${order.finalAmount}" /></td>
-                                    <td>${order.paymentMethod}</td>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${order.status == 'PENDING_PAYMENT'}"><span class="badge badge-pending">Chờ TT</span></c:when>
-                                            <c:when test="${order.status == 'CONFIRMED'}"><span class="badge badge-confirmed">Chờ Duyệt</span></c:when>
-                                            <c:when test="${order.status == 'PREPARING'}"><span class="badge badge-preparing">Chuẩn bị</span></c:when>
-                                            <c:when test="${order.status == 'APPROVED'}"><span class="badge badge-approved">Đã Duyệt</span></c:when>
-                                            <c:when test="${order.status == 'DISPATCHED'}"><span class="badge badge-dispatched">Đang giao</span></c:when>
-                                            <c:when test="${order.status == 'DELIVERED'}"><span class="badge badge-delivered">Đã giao</span></c:when>
-                                            <c:when test="${order.status == 'CANCELLED'}"><span class="badge badge-cancelled">Đã hủy</span></c:when>
-                                            <c:otherwise><span class="badge">${order.status}</span></c:otherwise>
-                                        </c:choose>
-                                    </td>
-                                    <td>
-                                        <c:if test="${order.status == 'CONFIRMED' || order.status == 'PENDING_PAYMENT'}">
-                                            <form action="${pageContext.request.contextPath}/shop/orders" method="POST" style="display:inline;">
-                                                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                <input type="hidden" name="action" value="approve">
-                                                <input type="hidden" name="orderId" value="${order.orderId}">
-                                                <button type="submit" class="btn btn-primary btn-sm">Duyệt</button>
-                                            </form>
-                                        </c:if>
-                                        <c:if test="${order.status == 'APPROVED' || order.status == 'PREPARING'}">
-                                            <button type="button" class="btn btn-success btn-sm" onclick="openDispatchModal('${order.orderId}')">Giao hàng</button>
-                                        </c:if>
-                                        <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED' && order.status != 'DISPATCHED'}">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal('${order.orderId}')">Hủy</button>
-                                        </c:if>
-                                    </td>
-                                </tr>
-                            </c:forEach>
-                            <c:if test="${empty orders}">
-                                <tr>
-                                    <td colspan="7" class="text-center py-4" style="text-align: center; color: var(--color-gray-500);">Không có đơn hàng nào!</td>
-                                </tr>
-                            </c:if>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal Hủy Đơn -->
-    <div id="rejectModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Lý do hủy đơn hàng</h2>
-                <button class="close-btn" onclick="closeModal('rejectModal')">&times;</button>
-            </div>
-            <form action="${pageContext.request.contextPath}/shop/orders" method="POST">
-                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                <input type="hidden" name="action" value="reject">
-                <input type="hidden" name="orderId" id="rejectOrderId">
-                <div class="form-group">
-                    <label class="form-label">Vui lòng cho biết lý do hủy đơn này:</label>
-                    <textarea name="reason" class="form-control" rows="4" required placeholder="Hết hàng, khách đổi ý..."></textarea>
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('rejectModal')">Đóng</button>
-                    <button type="submit" class="btn btn-danger">Xác nhận Hủy</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal Giao Hàng -->
-    <div id="dispatchModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Giao cho đơn vị vận chuyển</h2>
-                <button class="close-btn" onclick="closeModal('dispatchModal')">&times;</button>
-            </div>
-            <form action="${pageContext.request.contextPath}/shop/orders" method="POST">
-                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                <input type="hidden" name="action" value="dispatch">
-                <input type="hidden" name="orderId" id="dispatchOrderId">
-                <div class="form-group">
-                    <label class="form-label">Dự kiến thời gian giao đến khách (Tùy chọn):</label>
-                    <input type="datetime-local" name="estimatedDeliveryTime" class="form-control">
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('dispatchModal')">Đóng</button>
-                    <button type="submit" class="btn btn-success">Bàn giao</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Tailwind & SweetAlert -->
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
     <script>
-        function openRejectModal(orderId) {
-            document.getElementById('rejectOrderId').value = orderId;
-            document.getElementById('rejectModal').classList.add('active');
-        }
-        function openDispatchModal(orderId) {
-            document.getElementById('dispatchOrderId').value = orderId;
-            document.getElementById('dispatchModal').classList.add('active');
-        }
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.classList.remove('active');
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary:          '#4d661c',
+                        'primary-hover':  '#364e03',
+                        'primary-lt':     '#f0f7e6',
+                        border:           '#e2ece7',
+                        'txt':            '#0f172a',
+                        'txt-2':          '#475569',
+                        'txt-3':          '#94a3b8',
+                    },
+                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
+                }
             }
         }
     </script>
+
+    <style>
+        body { background-color: #f4fbf7; font-family: 'Lexend', sans-serif; }
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid #e2ece7;
+            box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px -4px rgba(20,83,45,.06);
+        }
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+    </style>
+</head>
+<body class="antialiased text-[#0f172a]">
+<div class="flex min-h-screen">
+
+    <!-- Shared Sidebar -->
+    <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
+        <jsp:param name="activePage" value="orders"/>
+    </jsp:include>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+
+        <!-- Page Header -->
+        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+            <div>
+                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản lý Đơn hàng</h1>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Duyệt đơn, bàn giao giao vận, theo dõi trạng thái từng đơn hàng.</p>
+            </div>
+            <div class="hidden md:flex items-center gap-2 bg-white/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                <i class="fa-solid fa-clipboard-list text-primary"></i>
+                <span class="text-xs font-bold uppercase tracking-wider">Đơn hàng</span>
+            </div>
+        </div>
+
+        <!-- Flash Message -->
+        <c:if test="${not empty sessionScope.flashMsg}">
+            <div id="flash-alert" class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 shadow-sm text-sm font-semibold
+                 ${sessionScope.flashType == 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-500 text-red-800'}">
+                <i class="fa-solid ${sessionScope.flashType == 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
+                <span class="flex-1"><c:out value="${sessionScope.flashMsg}"/></span>
+                <button onclick="document.getElementById('flash-alert').remove()" class="opacity-60 hover:opacity-100 transition-opacity">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <c:remove var="flashMsg" scope="session"/>
+            <c:remove var="flashType" scope="session"/>
+        </c:if>
+
+        <!-- Status Filter Pills -->
+        <div class="flex flex-wrap gap-2 mb-6">
+            <a href="?status=" class="px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200
+               ${empty status ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-txt-2 border-border hover:border-primary hover:text-primary'}">
+                <i class="fa-solid fa-list-ul mr-1"></i>Tất cả
+            </a>
+            <a href="?status=PENDING_PAYMENT" class="px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200
+               ${status == 'PENDING_PAYMENT' ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-white text-txt-2 border-border hover:border-amber-400 hover:text-amber-600'}">
+                <i class="fa-solid fa-clock mr-1"></i>Chờ thanh toán
+            </a>
+            <a href="?status=CONFIRMED" class="px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200
+               ${status == 'CONFIRMED' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-txt-2 border-border hover:border-blue-400 hover:text-blue-600'}">
+                <i class="fa-solid fa-bell mr-1"></i>Chờ duyệt
+            </a>
+            <a href="?status=APPROVED" class="px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200
+               ${status == 'APPROVED' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-txt-2 border-border hover:border-indigo-400 hover:text-indigo-600'}">
+                <i class="fa-solid fa-check-double mr-1"></i>Đã duyệt
+            </a>
+            <a href="?status=DISPATCHED" class="px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200
+               ${status == 'DISPATCHED' ? 'bg-pink-600 text-white border-pink-600 shadow-sm' : 'bg-white text-txt-2 border-border hover:border-pink-400 hover:text-pink-600'}">
+                <i class="fa-solid fa-truck mr-1"></i>Đang giao
+            </a>
+            <a href="?status=DELIVERED" class="px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200
+               ${status == 'DELIVERED' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white text-txt-2 border-border hover:border-emerald-400 hover:text-emerald-600'}">
+                <i class="fa-solid fa-circle-check mr-1"></i>Hoàn thành
+            </a>
+            <a href="?status=CANCELLED" class="px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200
+               ${status == 'CANCELLED' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white text-txt-2 border-border hover:border-red-400 hover:text-red-600'}">
+                <i class="fa-solid fa-ban mr-1"></i>Đã hủy
+            </a>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-[#f0faf3] border-b border-[#e2ece7] text-xs font-bold text-[#4d661c] uppercase tracking-wider">
+                            <th class="py-3.5 px-5">Mã ĐH</th>
+                            <th class="py-3.5 px-4">Khách hàng</th>
+                            <th class="py-3.5 px-4">Ngày tạo</th>
+                            <th class="py-3.5 px-4">Tổng tiền</th>
+                            <th class="py-3.5 px-4">Thanh toán</th>
+                            <th class="py-3.5 px-4">Trạng thái</th>
+                            <th class="py-3.5 px-5 text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#f0f4f0] text-sm">
+                        <c:forEach var="order" items="${orders}">
+                            <tr class="hover:bg-[#f9fdf9] transition-colors duration-150">
+                                <td class="py-3.5 px-5 font-bold text-[#364e03]">#${order.orderId}</td>
+                                <td class="py-3.5 px-4 text-txt-2 text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-full bg-[#edf7f2] text-[#4d661c] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                            <i class="fa-solid fa-user"></i>
+                                        </div>
+                                        <span>KH #${order.customerId}</span>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 text-xs text-txt-3">${order.createdAt}</td>
+                                <td class="py-3.5 px-4 font-bold text-primary"><ft:currency value="${order.finalAmount}"/></td>
+                                <td class="py-3.5 px-4 text-xs text-txt-2">
+                                    <span class="px-2 py-1 rounded-lg bg-gray-100 text-gray-600 font-medium">${order.paymentMethod}</span>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <c:choose>
+                                        <c:when test="${order.status == 'PENDING_PAYMENT'}">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <i class="fa-solid fa-clock text-[8px]"></i>Chờ TT
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'CONFIRMED'}">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <i class="fa-solid fa-bell text-[8px]"></i>Chờ Duyệt
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'PREPARING'}">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                                <i class="fa-solid fa-box text-[8px]"></i>Chuẩn bị
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'APPROVED'}">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                <i class="fa-solid fa-check-double text-[8px]"></i>Đã Duyệt
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'DISPATCHED'}">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200">
+                                                <i class="fa-solid fa-truck text-[8px]"></i>Đang giao
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'DELIVERED'}">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <i class="fa-solid fa-circle-check text-[8px]"></i>Đã giao
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.status == 'CANCELLED'}">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                                <i class="fa-solid fa-ban text-[8px]"></i>Đã hủy
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-50 text-gray-600 border border-gray-200">${order.status}</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td class="py-3.5 px-5 text-right">
+                                    <div class="inline-flex items-center gap-2">
+                                        <c:if test="${order.status == 'CONFIRMED' || order.status == 'PENDING_PAYMENT'}">
+                                            <form action="${pageContext.request.contextPath}/shop/orders" method="POST" class="inline">
+                                                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                <input type="hidden" name="action" value="approve">
+                                                <input type="hidden" name="orderId" value="${order.orderId}">
+                                                <button type="submit" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-hover transition-colors shadow-sm">
+                                                    <i class="fa-solid fa-check mr-1"></i>Duyệt
+                                                </button>
+                                            </form>
+                                        </c:if>
+                                        <c:if test="${order.status == 'APPROVED' || order.status == 'PREPARING'}">
+                                            <button type="button" onclick="openDispatchModal('${order.orderId}')"
+                                                    class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition-colors shadow-sm">
+                                                <i class="fa-solid fa-truck mr-1"></i>Giao hàng
+                                            </button>
+                                        </c:if>
+                                        <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED' && order.status != 'DISPATCHED'}">
+                                            <button type="button" onclick="openRejectModal('${order.orderId}')"
+                                                    class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold hover:bg-red-600 hover:text-white transition-colors">
+                                                <i class="fa-solid fa-ban mr-1"></i>Hủy
+                                            </button>
+                                        </c:if>
+                                    </div>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                        <c:if test="${empty orders}">
+                            <tr>
+                                <td colspan="7" class="py-16 text-center text-txt-3">
+                                    <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-200 block"></i>
+                                    <p class="text-sm font-medium">Không có đơn hàng nào!</p>
+                                    <p class="text-xs mt-1">Chưa có đơn hàng phù hợp với bộ lọc đang chọn.</p>
+                                </td>
+                            </tr>
+                        </c:if>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal: Hủy Đơn -->
+<div id="rejectModal" class="modal-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-base font-bold text-txt flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+                    <i class="fa-solid fa-ban text-sm"></i>
+                </span>
+                Lý do hủy đơn hàng
+            </h2>
+            <button onclick="closeModal('rejectModal')" class="w-8 h-8 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form action="${pageContext.request.contextPath}/shop/orders" method="POST">
+            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+            <input type="hidden" name="action" value="reject">
+            <input type="hidden" name="orderId" id="rejectOrderId">
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-txt-2 mb-2">Vui lòng cho biết lý do hủy đơn này:</label>
+                <textarea name="reason" rows="4" required placeholder="Hết hàng, khách đổi ý..."
+                          class="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 resize-none"></textarea>
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button type="button" onclick="closeModal('rejectModal')"
+                        class="px-5 py-2.5 rounded-xl border border-border text-xs font-bold text-txt-2 hover:bg-gray-50 transition-colors">
+                    Đóng
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors shadow-sm">
+                    <i class="fa-solid fa-ban mr-1"></i>Xác nhận Hủy
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Giao Hàng -->
+<div id="dispatchModal" class="modal-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-base font-bold text-txt flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <i class="fa-solid fa-truck text-sm"></i>
+                </span>
+                Bàn giao vận chuyển
+            </h2>
+            <button onclick="closeModal('dispatchModal')" class="w-8 h-8 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form action="${pageContext.request.contextPath}/shop/orders" method="POST">
+            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+            <input type="hidden" name="action" value="dispatch">
+            <input type="hidden" name="orderId" id="dispatchOrderId">
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-txt-2 mb-2">Dự kiến thời gian giao đến khách <span class="font-normal text-txt-3">(Tùy chọn)</span></label>
+                <input type="datetime-local" name="estimatedDeliveryTime"
+                       class="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button type="button" onclick="closeModal('dispatchModal')"
+                        class="px-5 py-2.5 rounded-xl border border-border text-xs font-bold text-txt-2 hover:bg-gray-50 transition-colors">
+                    Đóng
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-colors shadow-sm">
+                    <i class="fa-solid fa-truck mr-1"></i>Bàn giao
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openRejectModal(orderId) {
+        document.getElementById('rejectOrderId').value = orderId;
+        document.getElementById('rejectModal').classList.add('active');
+    }
+    function openDispatchModal(orderId) {
+        document.getElementById('dispatchOrderId').value = orderId;
+        document.getElementById('dispatchModal').classList.add('active');
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+    // Close modal on backdrop click
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+        el.addEventListener('click', function(e) {
+            if (e.target === this) closeModal(this.id);
+        });
+    });
+</script>
 </body>
 </html>

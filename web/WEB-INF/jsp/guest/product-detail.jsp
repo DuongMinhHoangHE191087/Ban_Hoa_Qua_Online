@@ -18,8 +18,24 @@
     <jsp:param name="pageTitle" value="${product.name}"/>
 </jsp:include>
 
-<!-- Custom Premium CSS for Product Detail Page -->
-<style>
+<!-- Load Tailwind CSS dynamically to sync container layout with Home page -->
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#4D661C',
+                    'primary-dark': '#364E03',
+                    'primary-light': '#D9F99D',
+                }
+            }
+        }
+    }
+</script>
+
+<!-- Custom Premium CSS for Product Detail Page using Tailwind directives -->
+<style type="text/tailwindcss">
     /* ============================================================
        PREMIUM PAGE DESIGN TOKENS
     ============================================================ */
@@ -1126,11 +1142,25 @@
                 <!-- Badges Row -->
                 <div class="flex items-center space-x-2 mb-3 gap-2">
                     <c:choose>
+                        <c:when test="${isExpiredProduct}">
+                            <span id="variant-status-badge" class="badge-stock badge-outstock" style="background: #fecaca; color: #b91c1c;">
+                                <i class="fa-solid fa-clock-rotate-left mr-1"></i> Hết vụ thu hoạch
+                            </span>
+                        </c:when>
                         <c:when test="${product.status == 'ACTIVE'}">
-                            <span class="badge-stock badge-instock"><i class="fa-solid fa-circle-check mr-1"></i> Còn hàng</span>
+                            <span id="variant-status-badge" class="badge-stock ${not empty variants && variants[0].stockQuantity > 0 ? 'badge-instock' : 'badge-outstock'}">
+                                <c:choose>
+                                    <c:when test="${not empty variants && variants[0].stockQuantity > 0}">
+                                        <i class="fa-solid fa-circle-check mr-1"></i> Còn hàng
+                                    </c:when>
+                                    <c:otherwise>
+                                        <i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng
+                                    </c:otherwise>
+                                </c:choose>
+                            </span>
                         </c:when>
                         <c:otherwise>
-                            <span class="badge-stock badge-outstock"><i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng</span>
+                            <span id="variant-status-badge" class="badge-stock badge-outstock"><i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng</span>
                         </c:otherwise>
                     </c:choose>
                     <span class="badge-rating-top">
@@ -1144,6 +1174,32 @@
                 <h1 class="font-bold text-3xl mb-2 text-[#00210D] font-headline-lg" style="letter-spacing: -0.5px;">
                     <c:out value="${product.name}"/>
                 </h1>
+
+                <c:if test="${isExpiredProduct}">
+                    <div class="expired-product-banner" style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="background: #ef4444; color: white; min-width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0; color: #991b1b; font-weight: bold; font-size: 14px;">Sản phẩm đã hết hạn vụ thu hoạch</h4>
+                                <p style="margin: 4px 0 0 0; color: #7f1d1d; font-size: 12px;">Sản phẩm hiện đang tạm dừng bán. Bạn có thể gửi yêu cầu nhập kho vụ mới để thông báo cho chủ cửa hàng.</p>
+                            </div>
+                        </div>
+                        <c:choose>
+                            <c:when test="${hasRequestedToday}">
+                                <button type="button" id="btn-request-restock" disabled style="background: #cbd5e1; color: #64748b; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: not-allowed; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                                    <i class="fa-solid fa-check"></i> Đã Yêu Cầu Hôm Nay
+                                </button>
+                            </c:when>
+                            <c:otherwise>
+                                <button type="button" id="btn-request-restock" onclick="requestRestock()" style="background: var(--color-primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: transform 0.2s; white-space: nowrap;">
+                                    <i class="fa-solid fa-paper-plane"></i> Yêu Cầu Nhập Kho
+                                </button>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                </c:if>
 
                 <!-- Origin -->
                 <p class="text-sm text-[#44483B] mb-4 flex items-center">
@@ -1213,24 +1269,36 @@
 
                 <!-- Stock Indicator -->
                 <div class="stock-indicator" id="variant-stock-hint">
-                    <c:if test="${not empty variants}">
-                        <i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i>
-                        Tồn kho: <strong style="color:#14532d;"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
-                        <div class="stock-bar-bg">
-                            <div class="stock-bar-fill" style="width: min(100%, calc(${variants[0].stockQuantity} * 100% / 200));"></div>
-                        </div>
-                    </c:if>
+                    <c:choose>
+                        <c:when test="${isExpiredProduct}">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-xmark" style="color:#ef4444;"></i>
+                                Trạng thái: <strong style="color:#b91c1c;">Hết vụ thu hoạch</strong>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <c:if test="${not empty variants}">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i>
+                                    Tồn kho: <strong id="stock-qty-val" style="color:#14532d;"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
+                                </div>
+                                <div class="stock-bar-bg">
+                                    <div class="stock-bar-fill" id="stock-bar-fill-indicator" data-initial-stock="${variants[0].stockQuantity}"></div>
+                                </div>
+                            </c:if>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
 
                 <!-- Cart Action Row -->
                 <c:if test="${not empty variants && product.status == 'ACTIVE'}">
-                    <div class="cart-action-row">
-                        <div class="qty-selector">
+                    <div class="cart-action-row" id="cart-action-controls">
+                        <div class="qty-selector" id="purchase-qty-selector">
                             <button type="button" class="qty-btn" onclick="adjustQuantity(-1)"><i class="fa-solid fa-minus"></i></button>
                             <input type="number" id="purchase-qty" class="qty-input" value="1" min="1" readonly>
                             <button type="button" class="qty-btn" onclick="adjustQuantity(1)"><i class="fa-solid fa-plus"></i></button>
                         </div>
-                        <button type="button" class="btn-add-to-cart-large" onclick="handleAddToCart()">
+                        <button type="button" id="btn-add-to-cart" class="btn-add-to-cart-large" onclick="handleAddToCart()">
                             <i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng
                         </button>
                     </div>
@@ -1264,7 +1332,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="${pageContext.request.contextPath}/products?ownerId=${product.ownerId}" class="btn-visit-shop-hero">
+                    <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" class="btn-visit-shop-hero">
                         <i class="fa-solid fa-store"></i> Ghé Thăm Shop
                     </a>
                 </div>
@@ -1343,7 +1411,7 @@
                                                 </div>
                                                 <div class="voucher-expire">Còn <c:out value="${pv.maxUses - pv.usedCount}"/> lượt dùng</div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${pv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${pv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1364,7 +1432,7 @@
                                                     <c:if test="${sv.minOrderValue > 0}"> • Đơn tối thiểu <ft:currency value="${sv.minOrderValue}"/></c:if>
                                                 </div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${sv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${sv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1385,7 +1453,7 @@
                                                     <c:if test="${syv.minOrderValue > 0}"> • Đơn tối thiểu <ft:currency value="${syv.minOrderValue}"/></c:if>
                                                 </div>
                                             </div>
-                                            <button class="voucher-copy-btn" onclick="copyVoucher(this, '<c:out value="${syv.code}"/>')">SAO CHÉP</button>
+                                            <button class="voucher-copy-btn" data-code="${syv.code}" onclick="copyVoucher(this)">SAO CHÉP</button>
                                         </div>
                                     </c:forEach>
 
@@ -1400,7 +1468,7 @@
                     <div class="shop-body-section">
                         <div class="shop-section-label" style="justify-content: space-between;">
                             <span><i class="fa-solid fa-layer-group"></i> Xem thêm sản phẩm từ cửa hàng này</span>
-                            <a href="${pageContext.request.contextPath}/products?ownerId=${product.ownerId}" 
+                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" 
                                style="font-size:10px; color:var(--color-primary); font-weight:700; text-transform:none; letter-spacing:0;">
                                 Xem tất cả <i class="fa-solid fa-arrow-right ml-1"></i>
                             </a>
@@ -1409,7 +1477,7 @@
                             <c:forEach var="sp" items="${shopOtherProducts}">
                                 <a href="${pageContext.request.contextPath}/products/detail?id=${sp.productId}" 
                                    class="shop-product-mini" style="text-decoration:none; color:inherit;">
-                                    <img src="${sp.image}" class="shop-product-mini-img" alt="<c:out value='${sp.name}'/>" onerror="handleImageError(this)">
+                                    <img src="${sp.image}" class="shop-product-mini-img" alt="${sp.name}" onerror="handleImageError(this)">
                                     <div class="shop-product-mini-info">
                                         <div class="shop-product-mini-name"><c:out value="${sp.name}"/></div>
                                         <div class="shop-product-mini-price"><ft:currency value="${sp.price}"/></div>
@@ -1484,7 +1552,7 @@
                         <div class="rating-bar-row">
                             <div class="bar-stars">${starIndex} <i class="fa-solid fa-star text-[#F59E0B]"></i></div>
                             <div class="progress-bar-bg">
-                                <div class="progress-bar-fill" style="width: ${starPercent}%"></div>
+                                <div class="progress-bar-fill" data-percent="${starPercent}"></div>
                             </div>
                             <div class="bar-count-percent">
                                 <fmt:formatNumber value="${starPercent}" maxFractionDigits="0"/>% (${starCount})
@@ -1625,7 +1693,32 @@
     <i class="fa-solid fa-copy mr-2"></i> Đã sao chép mã: <strong id="copy-toast-code"></strong>
 </div>
 
+<c:set var="firstVariantPrice" value="${not empty variants ? variants[0].price : 0}" />
+<c:set var="escapedProductName" value="${fn:escapeXml(product.name)}" />
 <script>
+    // Define server-side variables safely in JS scope
+    const currentProductId = parseInt('${product.productId}') || 0;
+    const csrfToken = '${sessionScope._csrfToken}';
+
+    // Add to recently viewed in localStorage
+    try {
+        const productInfo = {
+            id: currentProductId,
+            name: '${escapedProductName}',
+            price: '${firstVariantPrice}',
+            image: document.getElementById('main-product-img')?.src || ''
+        };
+        if (productInfo.id > 0) {
+            let recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+            recentlyViewed = recentlyViewed.filter(item => item.id !== productInfo.id);
+            recentlyViewed.unshift(productInfo);
+            recentlyViewed = recentlyViewed.slice(0, 5);
+            localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+        }
+    } catch(e) {
+        console.error("Error storing recently viewed", e);
+    }
+
     // Image fallback
     window.handleImageError = function(img) {
         if (!img.dataset.errorStage) {
@@ -1645,7 +1738,81 @@
         element.classList.add('active');
     }
 
-    // 2. Variant change — update price, unit, stock
+    // 2. Helper to update Out of Stock UI elements
+    function updateStockUI(stock) {
+        const badge = document.getElementById('variant-status-badge');
+        const btnAdd = document.getElementById('btn-add-to-cart');
+        const qtySelector = document.getElementById('purchase-qty-selector');
+
+        const isExpired = '${isExpiredProduct}' === 'true';
+        if (isExpired) {
+            if (badge) {
+                badge.className = 'badge-stock badge-outstock';
+                badge.style.background = '#fecaca';
+                badge.style.color = '#b91c1c';
+                badge.innerHTML = '<i class="fa-solid fa-clock-rotate-left mr-1"></i> Hết vụ thu hoạch';
+            }
+            if (btnAdd) {
+                btnAdd.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                btnAdd.setAttribute('disabled', 'true');
+                btnAdd.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Hết hạn vụ';
+            }
+            if (qtySelector) {
+                qtySelector.classList.add('opacity-50', 'pointer-events-none');
+            }
+            return;
+        }
+
+        if (stock <= 0) {
+            // Update badge to Out of Stock
+            if (badge) {
+                badge.className = 'badge-stock badge-outstock';
+                badge.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng';
+            }
+            // Disable and dim the Add to Cart button
+            if (btnAdd) {
+                btnAdd.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                btnAdd.setAttribute('disabled', 'true');
+                btnAdd.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Hết Hàng';
+            }
+            // Dim quantity selector controls
+            if (qtySelector) {
+                qtySelector.classList.add('opacity-50', 'pointer-events-none');
+            }
+        } else {
+            // Update badge to In Stock
+            if (badge) {
+                badge.className = 'badge-stock badge-instock';
+                badge.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Còn hàng';
+            }
+            // Enable and restore the Add to Cart button
+            if (btnAdd) {
+                btnAdd.classList.remove('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+                btnAdd.removeAttribute('disabled');
+                btnAdd.innerHTML = '<i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng';
+            }
+            // Restore quantity selector controls
+            if (qtySelector) {
+                qtySelector.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+    }
+
+    // 2a. Dynamic Stock indicator progress updater
+    function updateStockIndicator(stock) {
+        const isExpired = '${isExpiredProduct}' === 'true';
+        if (isExpired) return;
+
+        const qtyVal = document.getElementById('stock-qty-val');
+        if (qtyVal) qtyVal.textContent = stock;
+        const fillBar = document.getElementById('stock-bar-fill-indicator');
+        if (fillBar) {
+            const fillPercent = (stock * 100) / 200;
+            fillBar.style.width = Math.min(100, fillPercent) + '%';
+        }
+    }
+
+    // 2b. Variant change — update price, unit, stock, and check stock-out states
     function onVariantChange(radioElement) {
         const price = parseFloat(radioElement.getAttribute('data-price'));
         const label = radioElement.getAttribute('data-label');
@@ -1658,11 +1825,14 @@
         const unitDisplay = document.getElementById('displayed-unit');
         if (unitDisplay) unitDisplay.textContent = ' / ' + label;
 
-        const stockHint = document.getElementById('variant-stock-hint');
-        if (stockHint) stockHint.innerHTML = 'Tồn kho: <strong>' + stock + '</strong> sản phẩm khả dụng';
+        // Dynamic stock indicator update
+        updateStockIndicator(stock);
 
         const qtyInput = document.getElementById('purchase-qty');
         if (qtyInput) qtyInput.value = 1;
+
+        // Apply Out of Stock UI check
+        updateStockUI(stock);
     }
 
     // 3. Quantity adjustment
@@ -1692,7 +1862,20 @@
         const quantity = parseInt(qtyInput ? qtyInput.value : 1);
         const name = "<c:out value='${product.name}'/> - " + checkedVariant.getAttribute('data-label');
         const price = parseFloat(checkedVariant.getAttribute('data-price'));
-        const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 99;
+        const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 0;
+
+        // CRITICAL: Block out-of-stock actions and display Red Alert
+        if (stockQuantity <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Hết hàng!',
+                text: 'Sản phẩm này hiện tại đã hết hàng, không thể thêm vào giỏ hàng.',
+                confirmButtonText: 'Đồng ý',
+                confirmButtonColor: '#B71C1C',
+                background: '#ffffff'
+            });
+            return;
+        }
 
         let imagePath = 'assets/img/placeholder.png';
         const mainImg = document.getElementById('main-product-img');
@@ -1703,7 +1886,7 @@
         }
 
         if (window.addCartItem) {
-            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, ${product.productId});
+            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, currentProductId);
         } else {
             console.warn('window.addCartItem not defined globally, falling back to Local Storage only.');
             if (typeof GuestCart !== 'undefined') {
@@ -1721,6 +1904,88 @@
         if (toast) {
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+    }
+
+    // 5b. Request restock AJAX helper
+    async function requestRestock() {
+        const isUserLoggedIn = '${not empty sessionScope.currentUser}' === 'true';
+        if (!isUserLoggedIn) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Yêu cầu đăng nhập',
+                text: 'Bạn cần đăng nhập để thực hiện gửi yêu cầu nhập kho.',
+                confirmButtonText: 'Đăng nhập ngay',
+                showCancelButton: true,
+                cancelButtonText: 'Đóng',
+                confirmButtonColor: 'var(--color-primary)',
+                cancelButtonColor: '#ef4444'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '${pageContext.request.contextPath}/login';
+                }
+            });
+            return;
+        }
+
+        const btn = document.getElementById('btn-request-restock');
+        if (!btn) return;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
+        
+        try {
+            const resp = await fetch('${pageContext.request.contextPath}/products/detail?id=' + currentProductId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': csrfToken
+                }
+            });
+            const data = await resp.json();
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Gửi yêu cầu thành công!',
+                    text: data.message || 'Yêu cầu nhập kho vụ mới đã được gửi tới chủ cửa hàng.',
+                    confirmButtonColor: 'var(--color-primary)'
+                });
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã Yêu Cầu Hôm Nay';
+                btn.style.background = '#cbd5e1'; // gray out
+                btn.style.color = '#64748b';
+                btn.style.cursor = 'not-allowed';
+                btn.onclick = null;
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: data.message || 'Không thể gửi yêu cầu nhập kho.',
+                    confirmButtonColor: '#ef4444'
+                });
+                if (data.message && data.message.includes("đăng nhập")) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Yêu Cầu Nhập Kho';
+                } else if (data.message && data.message.includes("đã gửi")) {
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã Yêu Cầu Hôm Nay';
+                    btn.style.background = '#cbd5e1'; // gray out
+                    btn.style.color = '#64748b';
+                    btn.style.cursor = 'not-allowed';
+                    btn.onclick = null;
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Yêu Cầu Nhập Kho';
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Không thể kết nối máy chủ để gửi yêu cầu.',
+                confirmButtonColor: '#ef4444'
+            });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Yêu Cầu Nhập Kho';
         }
     }
 
@@ -1822,7 +2087,8 @@
     }
 
     // 9. Copy voucher code
-    function copyVoucher(btn, code) {
+    function copyVoucher(btn) {
+        const code = btn.getAttribute('data-code');
         if (navigator.clipboard) {
             navigator.clipboard.writeText(code).catch(() => {});
         } else {
@@ -1847,6 +2113,12 @@
 
     // 10. Auto-update similar product images from seeded Unsplash fallback map
     document.addEventListener('DOMContentLoaded', () => {
+        // Initialize star rating progress bars style
+        document.querySelectorAll('.progress-bar-fill').forEach(el => {
+            const pct = el.getAttribute('data-percent');
+            if (pct) el.style.width = pct + '%';
+        });
+
         const fruitImages = {
             1: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=600&auto=format&fit=crop&q=80',
             2: 'https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&auto=format&fit=crop&q=80',
@@ -1870,6 +2142,17 @@
             const label = firstVariant.getAttribute('data-label');
             const unitEl = document.getElementById('displayed-unit');
             if (unitEl && label) unitEl.textContent = ' / ' + label;
+            
+            // Apply initial stock-out UI check
+            const initialStock = parseInt(firstVariant.getAttribute('data-stock')) || 0;
+            updateStockUI(initialStock);
+            updateStockIndicator(initialStock);
+        } else {
+            const fillIndicator = document.getElementById('stock-bar-fill-indicator');
+            if (fillIndicator) {
+                const initialStock = parseInt(fillIndicator.getAttribute('data-initial-stock')) || 0;
+                updateStockIndicator(initialStock);
+            }
         }
     });
 </script>

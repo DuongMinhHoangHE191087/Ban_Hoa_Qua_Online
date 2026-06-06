@@ -8,6 +8,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đối soát Thanh toán – Admin MetaFruit</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -28,7 +32,7 @@
                         'txt-3':      '#94a3b8',
                     },
                     fontFamily: {
-                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
+                        sans: ['Lexend', 'sans-serif'],
                     },
                     boxShadow: {
                         card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
@@ -38,7 +42,7 @@
         }
     </script>
     <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
+        body { background:#f4fbf7; font-family:'Lexend', sans-serif; }
         .glass-card {
             background:#fff;
             border:1px solid #e2ece7;
@@ -83,7 +87,7 @@
         <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Đối Soát &amp; Thanh Toán Shop</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Tính toán platforms fee,平台 refunds, và chuyển khoản doanh thu cho chủ shop.</p>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Tính toán phí nền tảng, hoàn tiền, và chuyển khoản doanh thu cho chủ shop.</p>
             </div>
             <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
                 <i class="fa-solid fa-file-invoice-dollar text-[#84cc16]"></i>

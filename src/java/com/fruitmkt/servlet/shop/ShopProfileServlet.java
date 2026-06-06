@@ -65,6 +65,7 @@ public class ShopProfileServlet extends HttpServlet {
                 profile.setShopDescription(req.getParameter("shopDescription"));
                 profile.setDeliveryAddress(req.getParameter("deliveryAddress"));
                 profile.setPreferredCategories(req.getParameter("preferredCategories"));
+                profile.setBusinessEmail(req.getParameter("businessEmail"));
                 // Note: shopName update might be restricted, but let's allow it for now
                 String newName = req.getParameter("shopName");
                 if (newName != null && !newName.trim().isEmpty()) {

@@ -239,40 +239,39 @@ public class OrderDAO extends BaseDAO {
      * Lưu đơn hàng mới vào DB và trả về ID đơn hàng tự sinh.
      */
     public int save(Order order) throws SQLException {
-        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, user_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, order.getCustomerId());
             ps.setInt(2, order.getOwnerId());
             ps.setString(3, order.getDeliveryAddress());
-            ps.setString(4, order.getUserAddress());
-            ps.setString(5, order.getDeliveryTimeSlot());
-            ps.setString(6, order.getNotes());
+            ps.setString(4, order.getDeliveryTimeSlot());
+            ps.setString(5, order.getNotes());
             
             if (order.getCancelledAt() != null) {
-                ps.setTimestamp(7, Timestamp.valueOf(order.getCancelledAt()));
+                ps.setTimestamp(6, Timestamp.valueOf(order.getCancelledAt()));
             } else {
-                ps.setNull(7, Types.TIMESTAMP);
+                ps.setNull(6, Types.TIMESTAMP);
             }
             
             if (order.getCancelledBy() != null) {
-                ps.setInt(8, order.getCancelledBy());
+                ps.setInt(7, order.getCancelledBy());
             } else {
-                ps.setNull(8, Types.INTEGER);
+                ps.setNull(7, Types.INTEGER);
             }
             
-            ps.setString(9, order.getCancellationReason());
-            ps.setString(10, order.getStatus() != null ? order.getStatus() : "PENDING_PAYMENT");
-            ps.setBigDecimal(11, order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(12, order.getDeliveryFee() != null ? order.getDeliveryFee() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(13, order.getDiscountAmount() != null ? order.getDiscountAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(14, order.getSystemDiscountAmount() != null ? order.getSystemDiscountAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(15, order.getShopDiscountAmount() != null ? order.getShopDiscountAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(16, order.getPlatformFee() != null ? order.getPlatformFee() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(17, order.getFinalAmount() != null ? order.getFinalAmount() : java.math.BigDecimal.ZERO);
-            ps.setString(18, order.getPaymentMethod() != null ? order.getPaymentMethod() : "COD");
-            ps.setString(19, order.getRefundStatus() != null ? order.getRefundStatus() : "NONE");
+            ps.setString(8, order.getCancellationReason());
+            ps.setString(9, order.getStatus() != null ? order.getStatus() : "PENDING_PAYMENT");
+            ps.setBigDecimal(10, order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(11, order.getDeliveryFee() != null ? order.getDeliveryFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(12, order.getDiscountAmount() != null ? order.getDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(13, order.getSystemDiscountAmount() != null ? order.getSystemDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(14, order.getShopDiscountAmount() != null ? order.getShopDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(15, order.getPlatformFee() != null ? order.getPlatformFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(16, order.getFinalAmount() != null ? order.getFinalAmount() : java.math.BigDecimal.ZERO);
+            ps.setString(17, order.getPaymentMethod() != null ? order.getPaymentMethod() : "COD");
+            ps.setString(18, order.getRefundStatus() != null ? order.getRefundStatus() : "NONE");
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -469,6 +468,23 @@ public class OrderDAO extends BaseDAO {
         return 0;
     }
 
+    /** Tính tổng doanh thu của shop owner (chỉ các đơn hàng DELIVERED). */
+    public java.math.BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
+        String sql = "SELECT SUM(final_amount) FROM orders WHERE owner_id = ? AND status = 'DELIVERED'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.math.BigDecimal revenue = rs.getBigDecimal(1);
+                    return revenue != null ? revenue : java.math.BigDecimal.ZERO;
+                }
+            }
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+
+
     /** Ánh xạ ResultSet -> Order — gọi trong mọi query SELECT */
     private Order mapRow(ResultSet rs) throws SQLException {
         Order o = new Order();
@@ -476,7 +492,8 @@ public class OrderDAO extends BaseDAO {
         o.setCustomerId(rs.getInt("customer_id"));
         o.setOwnerId(rs.getInt("owner_id"));
         o.setDeliveryAddress(rs.getString("delivery_address"));
-        o.setUserAddress(rs.getString("user_address"));
+        o.setRecipientName(rs.getString("recipient_name"));
+        o.setRecipientPhone(rs.getString("recipient_phone"));
         o.setDeliveryTimeSlot(rs.getString("delivery_time_slot"));
         o.setNotes(rs.getString("notes"));
         

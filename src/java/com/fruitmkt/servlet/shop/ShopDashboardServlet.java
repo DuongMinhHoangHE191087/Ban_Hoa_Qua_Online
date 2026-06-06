@@ -29,8 +29,8 @@ import java.io.IOException;
 @WebServlet("/shop/dashboard")
 public class ShopDashboardServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final com.fruitmkt.service.OrderService orderService = new com.fruitmkt.service.OrderService();
+    private final com.fruitmkt.service.ProductService productService = new com.fruitmkt.service.ProductService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -45,12 +45,25 @@ public class ShopDashboardServlet extends HttpServlet {
             return;
         }
 
-        // Tạm thời chỉ hiển thị giao diện mẫu, chưa tính toán số liệu thật
-        req.setAttribute("revenue", 0);
-        req.setAttribute("orderCount", 0);
-        req.setAttribute("lowStock", 0);
+        try {
+            int ownerId = user.getUserId();
+            java.math.BigDecimal revenue = orderService.getRevenueByOwner(ownerId);
+            int orderCount = orderService.getOrderCountByOwner(ownerId);
+            int lowStock = productService.getLowStockCountByOwner(ownerId, 10);
+            java.util.List<com.fruitmkt.model.entity.Order> recentOrders = orderService.getRecentOrdersByOwner(ownerId, 5);
+
+            req.setAttribute("revenue", revenue);
+            req.setAttribute("orderCount", orderCount);
+            req.setAttribute("lowStock", lowStock);
+            req.setAttribute("recentOrders", recentOrders);
+        } catch (Exception e) {
+            e.printStackTrace();
+            req.setAttribute("revenue", java.math.BigDecimal.ZERO);
+            req.setAttribute("orderCount", 0);
+            req.setAttribute("lowStock", 0);
+            req.setAttribute("recentOrders", new java.util.ArrayList<>());
+        }
 
         req.getRequestDispatcher("/WEB-INF/jsp/shop/dashboard.jsp").forward(req, resp);
     }
-
 }

@@ -38,4 +38,8 @@ public class ShopService {
     public void updateShopProfile(ShopProfile profile) throws SQLException {
         shopProfileDAO.update(profile);
     }
+
+    public ShopProfile getShopById(int profileId) throws SQLException {
+        return shopProfileDAO.findById(profileId);
+    }
 }

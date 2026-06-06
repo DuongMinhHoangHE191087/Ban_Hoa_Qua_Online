@@ -51,6 +51,9 @@ public class ProductListServlet extends HttpServlet {
 
         int page       = parseIntParam(req, "page", 1);
         String keyword = req.getParameter("keyword");
+        if (keyword != null) {
+            keyword = keyword.replaceAll("<[^>]*>", "").trim();
+        }
         Integer categoryId = parseIntegerParam(req, "categoryId");
         BigDecimal minPrice = parseDecimalParam(req, "minPrice");
         BigDecimal maxPrice = parseDecimalParam(req, "maxPrice");
@@ -91,16 +94,23 @@ public class ProductListServlet extends HttpServlet {
                     }
                     item.put("image", imagePath);
 
+                    item.put("categoryId", p.getCategoryId());
+
                     // Lấy biến thể rẻ nhất làm giá đại diện và đơn vị
                     List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
                     BigDecimal basePrice = new BigDecimal("45000");
                     String unit = "kg";
+                    int totalStock = 0;
                     if (variants != null && !variants.isEmpty()) {
                         ProductVariant cheapestVariant = variants.get(0);
                         basePrice = cheapestVariant.getPrice();
                         unit = cheapestVariant.getVariantLabel();
+                        for (ProductVariant v : variants) {
+                            totalStock += v.getStockQuantity();
+                        }
                     }
                     item.put("unit", unit);
+                    item.put("inStock", totalStock > 0);
 
                     // Kiểm tra khuyến mãi đang hoạt động
                     List<Promotion> activePromos = promotionDAO.findActivePromotionsByProduct(p.getProductId());

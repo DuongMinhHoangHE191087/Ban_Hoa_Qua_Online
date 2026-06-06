@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
     <script>
         tailwind.config = {
@@ -55,7 +55,7 @@
     <!-- Header -->
     <header class="flex justify-between items-center w-full px-6 md:px-12 py-4 z-50 fixed top-0 left-0 right-0 border-b border-white/30 bg-white/60 backdrop-blur-md shadow-sm">
         <a href="${pageContext.request.contextPath}/" class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-3xl">eco</span>
+            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
             <span class="text-2xl font-bold text-primary tracking-wide">MetaFruit</span>
         </a>
         <div class="flex items-center gap-3">

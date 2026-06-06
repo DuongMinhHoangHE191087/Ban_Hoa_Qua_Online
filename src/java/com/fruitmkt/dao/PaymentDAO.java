@@ -212,4 +212,25 @@ public class PaymentDAO extends BaseDAO {
         tx.setIpAddress(rs.getString("ip_address"));
         return tx;
     }
+
+    /**
+     * Tìm tất cả giao dịch thanh toán của khách hàng.
+     */
+    public List<PaymentTransaction> findByCustomer(int customerId) throws SQLException {
+        List<PaymentTransaction> list = new ArrayList<>();
+        String sql = "SELECT pt.* FROM payment_transactions pt "
+                   + "JOIN orders o ON pt.order_id = o.order_id "
+                   + "WHERE o.customer_id = ? "
+                   + "ORDER BY pt.initiated_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
 }
