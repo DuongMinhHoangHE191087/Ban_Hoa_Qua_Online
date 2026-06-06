@@ -15,6 +15,7 @@ CREATE TABLE users (
     role NVARCHAR(20) NOT NULL DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER','SHOP_OWNER','DELIVERY','ADMIN')),
     status NVARCHAR(20) NOT NULL DEFAULT 'INACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','LOCKED','SUSPENDED')),
     user_address NVARCHAR(500) NULL,
+    avatar_url NVARCHAR(500) NULL,
 
     is_email_verified BIT NOT NULL DEFAULT 0,
     email_verification_code_hash NVARCHAR(255) NULL,
