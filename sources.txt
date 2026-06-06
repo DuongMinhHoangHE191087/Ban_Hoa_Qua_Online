@@ -28,6 +28,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\filter\RoleFi
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\filter\SessionRestoreFilter.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\CartSummaryDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\CheckoutDTO.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\DeliveryWithOrderDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\OrderSummaryDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\PagedResultDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\ProductListDTO.java
