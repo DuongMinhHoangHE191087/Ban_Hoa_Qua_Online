@@ -248,20 +248,20 @@ The system utilizes six distinct human actors and two system-triggered external 
 | ID and Name | UC-07 Place Order |
 | :---- | :---- |
 | **Created By** | Duong Minh Hoang |
-| **Date Created** | 2026-05-27 |
+| **Date Created** | 2026-05-27 (Updated 2026-06-06) |
 | **Feature** | Checkout -> Inventory holding |
 | **Primary Actors** | Customer |
 | **Secondary Actors** | System |
-| **Description** | The critical checkout step. Re-validates prices, allocates vouchers, reserves stock for exactly 15 minutes, splits multi-shop items into individual Child Orders, and generates payment targets. |
-| **Preconditions** | - PRE-1: Delivery address is selected and validated (UC-27/28).<br>- PRE-2: Cart is not empty. |
+| **Description** | The critical checkout step. Validates recipient details, selects/inputs shipping address, re-validates prices, allocates vouchers, reserves stock for exactly 15 minutes, splits multi-shop items into individual Child Orders, and generates payment targets. |
+| **Preconditions** | - PRE-1: Delivery address is selected from Address Book (UC-23) or manually filled, and validated.<br>- PRE-2: Cart is not empty. |
 | **Trigger** | The Customer clicks the "Place Order" button. |
-| **Postconditions** | - POST-1: Parent and Child orders are persisted in `PENDING_PAYMENT` state.<br>- POST-2: Stock is reserved for exactly 15 minutes (INV-01). |
-| **Normal Flow** | 1. The Customer clicks "Place Order" on the Checkout Page.<br>2. The system opens a **Database Transaction**:<br>   - Checks stock availability (CHK-01/06).<br>   - Locks variant stock in the `product_variants` table, timestamping the lock (INV-01).<br>   - If multi-shop items exist, splits the checkout into 1 Parent Order and multiple Child Orders grouped by Shop (CHK-02).<br>   - Allocates platform coupon discounts proportionally to each Child Order (CHK-04).<br>   - Computes total invoice (ORD-02 - minimum 0 VND).<br>3. The system saves the orders, triggers a background 15-minute expiration timer (INV-01), and redirects the Customer to the Payment Page. |
+| **Postconditions** | - POST-1: Parent and Child orders are persisted in `PENDING_PAYMENT` state with recipient details (`recipient_name`, `recipient_phone`, `delivery_address`).<br>- POST-2: Stock is reserved for exactly 15 minutes (INV-01). |
+| **Normal Flow** | 1. The Customer selects a shipping address from their Address Book (UC-23) or manually enters new recipient details (Họ tên, Số điện thoại, Địa chỉ giao hàng chi tiết) on the Checkout Page.<br>2. The Customer clicks "Place Order" on the Checkout Page.<br>3. The system validates the recipient input fields:<br>   - Recipient Name: Must be at least 3 characters.<br>   - Recipient Phone: Must be a valid Vietnamese mobile number (10 digits).<br>   - Delivery Address: Must be at least 5 characters.<br>4. The system opens a **Database Transaction**:<br>   - Checks stock availability (CHK-01/06).<br>   - Locks variant stock in the `product_variants` table, timestamping the lock (INV-01).<br>   - If multi-shop items exist, splits the checkout into 1 Parent Order and multiple Child Orders grouped by Shop (CHK-02).<br>   - Allocates platform coupon discounts proportionally to each Child Order (CHK-04).<br>   - Computes total invoice (ORD-02 - minimum 0 VND).<br>5. The system saves the orders (storing `recipient_name`, `recipient_phone`, and `delivery_address` formatted as "Name | Phone | Detail"), triggers a background 15-minute expiration timer (INV-01), clears the checked-out items from the cart, and redirects the Customer to the Payment Page. |
 | **Alternative Flows** | **4.1. Cart Stock Shortage (Transactional Rollback)**<br>1. If stock is insufficient, the system cancels order creation under rule CHK-06.<br>2. The system rolls back the transaction, updates cart items, and displays: "Stock shortage occurred. Please reduce quantity to checkout." |
-| **Exceptions** | **2.E1 Stock Lock Expiry**<br>1. The Customer fails to pay within 15 minutes.<br>2. The background timer fires, releases the stock (INV-01), cancels the transaction, and sets order status to `CANCELLED`. |
+| **Exceptions** | **2.E1 Invalid Recipient Name**<br>1. At step 3, Customer enters a recipient name shorter than 3 characters.<br>2. The system blocks checkout and displays: "Họ và tên người nhận phải từ 3 ký tự trở lên."<br><br>**2.E2 Invalid Recipient Phone**<br>1. At step 3, Customer enters an invalid phone format.<br>2. The system blocks checkout and displays: "Số điện thoại không hợp lệ."<br><br>**2.E3 Invalid Delivery Address**<br>1. At step 3, Customer enters an address shorter than 5 characters.<br>2. The system blocks checkout and displays: "Địa chỉ giao hàng chi tiết phải từ 5 ký tự trở lên."<br><br>**4.E1 Stock Lock Expiry**<br>1. The Customer fails to pay within 15 minutes.<br>2. The background timer fires, releases the stock (INV-01), cancels the transaction, and sets order status to `CANCELLED`. |
 | **Priority** | High (P0 - Key Transactional Path) |
 | **Frequency of Use** | Extremely High. Synced on every checkout. |
-| **Business Rules** | - INV-01: Dynamic stock reservation for exactly 15 minutes.<br>- ORD-02: Total calculations must align exactly and never become negative.<br>- CHK-02: Multi-shop cart must split into Parent and Child orders.<br>- CHK-04: platform vouchers must allocate proportionally to Child Orders.<br>- CHK-06: Blocks order creation if available stock is lower than requested. |
+| **Business Rules** | - INV-01: Dynamic stock reservation for exactly 15 minutes.<br>- ORD-02: Total calculations must align exactly and never become negative.<br>- CHK-02: Multi-shop cart must split into Parent and Child orders.<br>- CHK-04: Platform vouchers must allocate proportionally to Child Orders.<br>- CHK-06: Blocks order creation if available stock is lower than requested. |
 | **Other Information** | Implemented using strict transaction isolation to prevent race conditions. |
 | **Assumptions** | None |
 
@@ -634,17 +634,17 @@ The system utilizes six distinct human actors and two system-triggered external 
 | ID and Name | UC-23 Manage Delivery Addresses |
 | :---- | :---- |
 | **Created By** | Duong Minh Hoang |
-| **Date Created** | 2026-05-27 |
+| **Date Created** | 2026-05-27 (Updated 2026-06-06) |
 | **Feature** | User Profile -> Addresses |
 | **Primary Actors** | Customer |
-| **Secondary Actors** | Google Maps API |
-| **Description** | Allows Customers to save a maximum of 5 delivery addresses. Addresses are geocoded via Google Maps API to register precise coordinates for proximity checks. |
-| **Preconditions** | - PRE-1: Customer is authenticated.<br>- PRE-2: Map Service API is online. |
-| **Trigger** | The Customer navigates to "Manage Addresses" in their Profile settings. |
-| **Postconditions** | - POST-1: Stores the address with geocoded coordinates in the database. |
-| **Normal Flow** | 1. The Customer enters the Address page, displaying saved locations.<br>2. The Customer clicks "Add Address".<br>3. The Customer types their street address. Autocomplete suggestions render.<br>4. The Customer selects their location. The system geocodes the address, retrieving latitude and longitude (USR-03).<br>5. The Customer sets the address as default, and clicks "Save".<br>6. The system marks this address default (unchecking previous default) and saves. |
-| **Alternative Flows** | None |
-| **Exceptions** | **2.E1 Address Limit Reached**<br>1. Customer already has 5 addresses.<br>2. Under rule USR-02, the system blocks form access: "Please delete an existing address to add a new one." |
+| **Secondary Actors** | None |
+| **Description** | Allows Customers to manage an address book of up to 5 shipping addresses containing recipient name, contact phone number, and detailed address, with exactly 1 marked as default. |
+| **Preconditions** | - PRE-1: Customer is authenticated. |
+| **Trigger** | The Customer clicks "Quản lý địa chỉ nhận hàng" in their Profile settings. |
+| **Postconditions** | - POST-1: Stores the address details (`recipient_name`, `recipient_phone`, `address_detail`, `is_default`) in the `user_addresses` table. |
+| **Normal Flow** | 1. The Customer enters the Address page, displaying their saved address list.<br>2. The Customer clicks "Thêm địa chỉ mới".<br>3. The Customer enters recipient name (min 3 chars), recipient phone (valid VN mobile number), and detailed address (min 5 chars).<br>4. The Customer checks "Đặt làm mặc định" if they want this to be their default address.<br>5. The Customer clicks "Lưu địa chỉ".<br>6. The system validates fields, clears other default flags for this user if marked default, saves the new address, and renders it dynamically on the list via Ajax. |
+| **Alternative Flows** | **4.1. Update Address**<br>1. Customer clicks "Chỉnh sửa" next to a saved address.<br>2. System populates the form with existing data.<br>3. Customer modifies the details and clicks "Cập nhật".<br>4. The system validates and saves updates via Ajax.<br><br>**4.2. Delete Address**<br>1. Customer clicks "Xóa" next to a saved address.<br>2. System prompts for confirmation, then removes the record via Ajax. |
+| **Exceptions** | **2.E1 Address Limit Reached**<br>1. Customer already has 5 addresses.<br>2. Under rule USR-02, the system blocks adding more addresses: "Bạn chỉ được lưu tối đa 5 địa chỉ giao hàng." |
 | **Priority** | High (P0) |
 | **Frequency of Use** | Medium. |
 | **Business Rules** | - USR-02: Maximum 5 delivery addresses per Customer account. Exactly 1 must be Default.<br>- USR-03: Address must be validated via map API to retrieve exact coordinates. |
