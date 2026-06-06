@@ -1,4 +1,4 @@
-﻿SET NOCOUNT ON;
+SET NOCOUNT ON;
 GO
 USE [master];
 GO
@@ -57,6 +57,22 @@ BEGIN
         expires_at DATETIME NOT NULL,
         CONSTRAINT FK_user_sessions_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id) ON DELETE CASCADE
     );
+END
+GO
+
+IF OBJECT_ID(N'dbo.user_addresses', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.user_addresses (
+        address_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_user_addresses PRIMARY KEY,
+        user_id INT NOT NULL,
+        recipient_name NVARCHAR(100) NOT NULL,
+        recipient_phone NVARCHAR(15) NOT NULL,
+        address_detail NVARCHAR(500) NOT NULL,
+        is_default BIT NOT NULL CONSTRAINT DF_user_addresses_is_default DEFAULT 0,
+        created_at DATETIME NOT NULL CONSTRAINT DF_user_addresses_created_at DEFAULT GETDATE(),
+        CONSTRAINT FK_user_addresses_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id) ON DELETE CASCADE
+    );
+    PRINT 'Created user_addresses table.';
 END
 GO
 
@@ -259,7 +275,8 @@ BEGIN
         customer_id INT NOT NULL,
         owner_id INT NOT NULL,
         delivery_address NVARCHAR(500) NOT NULL,
-        user_address NVARCHAR(500) NOT NULL,
+        recipient_name NVARCHAR(100) NULL,
+        recipient_phone NVARCHAR(15) NULL,
         delivery_time_slot NVARCHAR(100) NULL,
         notes NVARCHAR(300) NULL,
         cancelled_at DATETIME NULL,
@@ -1229,17 +1246,17 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.cart_items OFF;
 
     SET IDENTITY_INSERT dbo.orders ON;
-    INSERT INTO dbo.orders (order_id, customer_id, owner_id, delivery_address, user_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at)
+    INSERT INTO dbo.orders (order_id, customer_id, owner_id, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at)
     VALUES
-        (1, 5, 3, N'15 Pasteur, District 3, HCMC', N'15 Pasteur, District 3, HCMC', N'08:00-12:00', N'Leave at reception', NULL, NULL, NULL, N'DELIVERED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-15T09:10:00', '2026-05-16T12:30:00'),
-        (2, 6, 4, N'90 Truong Chinh, Tan Binh, HCMC', N'90 Truong Chinh, Tan Binh, HCMC', N'14:00-18:00', N'Call on arrival', NULL, NULL, NULL, N'DELIVERED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'COD', N'NONE', '2026-05-15T10:20:00', '2026-05-16T13:10:00'),
-        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00'),
-        (10, 10, 3, N'12 Phố Cổ, Hà Nội', N'12 Phố Cổ, Hà Nội', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-18T08:00:00', '2026-05-18T14:00:00'),
-        (11, 11, 3, N'85 Xuân Thủy, Cầu Giấy', N'85 Xuân Thủy, Cầu Giấy', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-19T09:00:00', '2026-05-19T15:00:00'),
-        (12, 12, 3, N'45 Chùa Bộc, Đống Đa', N'45 Chùa Bộc, Đống Đa', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'CK', N'NONE', '2026-05-20T10:00:00', '2026-05-20T16:00:00'),
-        (13, 13, 3, N'102 Nguyễn Trãi, Thanh Xuân', N'102 Nguyễn Trãi, Thanh Xuân', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-21T11:00:00', '2026-05-21T17:00:00'),
-        (14, 14, 3, N'56 Bạch Mai, Hai Bà Trưng', N'56 Bạch Mai, Hai Bà Trưng', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'CK', N'NONE', '2026-05-22T13:00:00', '2026-05-22T19:00:00'),
-        (15, 15, 3, N'29 Lạc Long Quân, Tây Hồ', N'29 Lạc Long Quân, Tây Hồ', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'COD', N'NONE', '2026-05-23T08:00:00', '2026-05-23T12:00:00');
+        (1, 5, 3, N'15 Pasteur, District 3, HCMC', N'08:00-12:00', N'Leave at reception', NULL, NULL, NULL, N'DELIVERED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-15T09:10:00', '2026-05-16T12:30:00'),
+        (2, 6, 4, N'90 Truong Chinh, Tan Binh, HCMC', N'14:00-18:00', N'Call on arrival', NULL, NULL, NULL, N'DELIVERED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'COD', N'NONE', '2026-05-15T10:20:00', '2026-05-16T13:10:00'),
+        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00'),
+        (10, 10, 3, N'12 Phố Cổ, Hà Nội', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-18T08:00:00', '2026-05-18T14:00:00'),
+        (11, 11, 3, N'85 Xuân Thủy, Cầu Giấy', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-19T09:00:00', '2026-05-19T15:00:00'),
+        (12, 12, 3, N'45 Chùa Bộc, Đống Đa', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'CK', N'NONE', '2026-05-20T10:00:00', '2026-05-20T16:00:00'),
+        (13, 13, 3, N'102 Nguyễn Trãi, Thanh Xuân', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-21T11:00:00', '2026-05-21T17:00:00'),
+        (14, 14, 3, N'56 Bạch Mai, Hai Bà Trưng', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'CK', N'NONE', '2026-05-22T13:00:00', '2026-05-22T19:00:00'),
+        (15, 15, 3, N'29 Lạc Long Quân, Tây Hồ', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'COD', N'NONE', '2026-05-23T08:00:00', '2026-05-23T12:00:00');
     SET IDENTITY_INSERT dbo.orders OFF;
 
     SET IDENTITY_INSERT dbo.order_items ON;
@@ -1350,6 +1367,19 @@ BEGIN TRY
         (5, 4, N'PROMOTION', N'New promotion active', N'MANGO15 is ready for your product page.', N'/shop/promotions', 0, '2026-05-16T07:10:00'),
         (6, 1, N'SYSTEM', N'Settlement batch complete', N'Daily settlement snapshots were created successfully.', N'/admin/settlements', 0, '2026-05-16T20:05:00');
     SET IDENTITY_INSERT dbo.notifications OFF;
+
+    SET IDENTITY_INSERT dbo.user_addresses ON;
+    INSERT INTO dbo.user_addresses (address_id, user_id, recipient_name, recipient_phone, address_detail, is_default, created_at)
+    VALUES
+        (1, 5, N'Trần Minh', N'0900000005', N'15 Pasteur, Quận 3, TP. Hồ Chí Minh', 1, GETDATE()),
+        (2, 5, N'Trần Minh (Công ty)', N'0909999888', N'Tòa nhà Bitexco, 2 Hải Triều, Bến Nghé, Quận 1, TP. Hồ Chí Minh', 0, GETDATE()),
+        (3, 6, N'Lê Thu', N'0900000006', N'90 Trường Chinh, Tân Bình, TP. Hồ Chí Minh', 1, GETDATE()),
+        (4, 23, N'Test Customer', N'0988888004', N'300 Tây Sơn, Ngã Tư Sở, Đống Đa, Hà Nội', 1, GETDATE()),
+        (5, 23, N'Test Customer (Nhà riêng)', N'0988123456', N'Ngõ 10 Láng Hạ, Ba Đình, Hà Nội', 0, GETDATE()),
+        (6, 8, N'Lê Minh Tuấn', N'0900000008', N'18 Nguyễn Du, District 1, HCMC', 1, GETDATE()),
+        (7, 9, N'Nguyễn Thị Lan', N'0900000009', N'45 Lê Lợi, Bến Nghé, HCMC', 1, GETDATE()),
+        (8, 26, N'Khách Hàng VIP', N'0988888005', N'50 Lý Tự Trọng, HCMC', 1, GETDATE());
+    SET IDENTITY_INSERT dbo.user_addresses OFF;
 
     COMMIT;
 END TRY

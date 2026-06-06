@@ -36,6 +36,17 @@ CREATE TABLE user_sessions (
     expires_at DATETIME NOT NULL
 );
 
+-- 3. user_addresses
+CREATE TABLE user_addresses (
+    address_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    recipient_name NVARCHAR(100) NOT NULL,
+    recipient_phone NVARCHAR(15) NOT NULL,
+    address_detail NVARCHAR(500) NOT NULL,
+    is_default BIT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
 
 
 -- 4. shop_owner_profiles [cite: 47]
@@ -195,7 +206,8 @@ CREATE TABLE orders (
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     owner_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     delivery_address NVARCHAR(500) NOT NULL,
-    user_address NVARCHAR(500) NOT NULL,
+    recipient_name NVARCHAR(100) NULL,
+    recipient_phone NVARCHAR(15) NULL,
     delivery_time_slot NVARCHAR(100) NULL,
     notes NVARCHAR(300) NULL,
     cancelled_at DATETIME NULL,
