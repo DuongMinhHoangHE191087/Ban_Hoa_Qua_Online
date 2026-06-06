@@ -173,6 +173,19 @@ public class ProductVariantDAO extends BaseDAO {
         throw new SQLException("Biến thể sản phẩm không tồn tại hoặc không hoạt động.");
     }
 
+    public int getProductId(Connection conn, int variantId) throws SQLException {
+        String sql = "SELECT product_id FROM product_variants WHERE variant_id = ? AND is_active = 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("product_id");
+                }
+            }
+        }
+        throw new SQLException("Không tìm thấy sản phẩm của biến thể này hoặc biến thể không hoạt động.");
+    }
+
     /** Ánh xạ ResultSet -> ProductVariant */
     private ProductVariant mapRow(ResultSet rs) throws SQLException {
         ProductVariant pv = new ProductVariant();

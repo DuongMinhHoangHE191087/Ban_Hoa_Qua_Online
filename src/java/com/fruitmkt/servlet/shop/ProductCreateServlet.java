@@ -45,30 +45,7 @@ public class ProductCreateServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        req.setCharacterEncoding("UTF-8");
-        resp.setContentType("text/html;charset=UTF-8");
-        resp.setCharacterEncoding("UTF-8");
-
-        // 1. Kiểm tra đăng nhập
-        HttpSession session = req.getSession();
-        User currentUser = SessionUtil.getCurrentUser(session);
-        if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
-            return;
-        }
-
-        try {
-            // 2. Tải danh sách Categories
-            List<Category> categories = categoryDAO.findAllActive();
-            req.setAttribute("categories", categories);
-
-            // 3. Hiển thị form tạo sản phẩm
-            req.getRequestDispatcher("/WEB-INF/jsp/shop/shop-product-create.jsp").forward(req, resp);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            SessionUtil.flashError(session, "Không thể tải dữ liệu danh mục.");
-            resp.sendRedirect(req.getContextPath() + "/shop/products");
-        }
+        resp.sendRedirect(req.getContextPath() + "/shop/products");
     }
 
     @Override
@@ -94,9 +71,11 @@ public class ProductCreateServlet extends HttpServlet {
         String shelfLifeStr = req.getParameter("shelfLifeDays");
         String storageInstruction = req.getParameter("storageInstruction");
         String categoryIdStr = req.getParameter("categoryId");
-        String priceStr = req.getParameter("price");
-        String stockStr = req.getParameter("stock");
-        String unit = req.getParameter("unit");
+        
+        // Đọc danh sách biến thể
+        String[] variantLabels = req.getParameterValues("variantLabel");
+        String[] variantPrices = req.getParameterValues("variantPrice");
+        String[] variantStocks = req.getParameterValues("variantStock");
 
         // Giữ lại giá trị cũ phòng khi validate thất bại
         req.setAttribute("oldName", name);
@@ -107,18 +86,12 @@ public class ProductCreateServlet extends HttpServlet {
         req.setAttribute("oldShelfLife", shelfLifeStr);
         req.setAttribute("oldStorageInstruction", storageInstruction);
         req.setAttribute("oldCategoryId", categoryIdStr);
-        req.setAttribute("oldPrice", priceStr);
-        req.setAttribute("oldStock", stockStr);
-        req.setAttribute("oldUnit", unit);
 
         List<String> errors = new ArrayList<>();
 
         // 2. Validate dữ liệu cơ bản
         if (name == null || name.trim().isEmpty()) {
             errors.add("Tên sản phẩm không được để trống.");
-        }
-        if (unit == null || unit.trim().isEmpty()) {
-            errors.add("Đơn vị tính không được để trống.");
         }
 
         int categoryId = 0;
@@ -128,30 +101,46 @@ public class ProductCreateServlet extends HttpServlet {
             errors.add("Vui lòng chọn danh mục hợp lệ.");
         }
 
-        BigDecimal price = BigDecimal.ZERO;
-        try {
-            price = new BigDecimal(priceStr);
-            if (price.compareTo(BigDecimal.ZERO) <= 0) {
-                errors.add("Giá bán phải lớn hơn 0.");
+        // Validate danh sách biến thể
+        if (variantLabels == null || variantLabels.length == 0) {
+            errors.add("Sản phẩm phải có ít nhất một phân loại/biến thể.");
+        } else {
+            for (int i = 0; i < variantLabels.length; i++) {
+                String label = variantLabels[i];
+                if (label == null || label.trim().isEmpty()) {
+                    errors.add("Tên phân loại tại vị trí thứ " + (i + 1) + " không được để trống.");
+                }
+                
+                String pStr = (variantPrices != null && variantPrices.length > i) ? variantPrices[i] : null;
+                BigDecimal price = BigDecimal.ZERO;
+                try {
+                    price = new BigDecimal(pStr);
+                    if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                        errors.add("Giá bán phân loại '" + (label != null ? label : "") + "' phải lớn hơn 0.");
+                    }
+                } catch (Exception e) {
+                    errors.add("Giá bán phân loại '" + (label != null ? label : "") + "' không đúng định dạng số.");
+                }
+                
+                String sStr = (variantStocks != null && variantStocks.length > i) ? variantStocks[i] : null;
+                try {
+                    int stock = Integer.parseInt(sStr);
+                    if (stock < 0) {
+                        errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' không được âm.");
+                    }
+                } catch (NumberFormatException e) {
+                    errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' phải là số nguyên.");
+                }
             }
-        } catch (Exception e) {
-            errors.add("Giá bán không đúng định dạng số.");
-        }
-
-        int stock = 0;
-        try {
-            stock = Integer.parseInt(stockStr);
-            if (stock < 0) {
-                errors.add("Số lượng tồn kho không được âm.");
-            }
-        } catch (NumberFormatException e) {
-            errors.add("Số lượng tồn kho phải là số nguyên.");
         }
 
         LocalDate harvestDate = null;
         if (harvestDateStr != null && !harvestDateStr.trim().isEmpty()) {
             try {
                 harvestDate = LocalDate.parse(harvestDateStr);
+                if (harvestDate.isAfter(LocalDate.now())) {
+                    errors.add("Ngày thu hoạch không được vượt quá ngày hiện tại.");
+                }
             } catch (DateTimeParseException e) {
                 errors.add("Ngày thu hoạch không đúng định dạng YYYY-MM-DD.");
             }
@@ -190,13 +179,15 @@ public class ProductCreateServlet extends HttpServlet {
 
         // 4. Nếu có lỗi, chuyển ngược lại form
         if (!errors.isEmpty()) {
-            try {
-                req.setAttribute("errors", errors);
-                req.setAttribute("categories", categoryDAO.findAllActive());
-                req.getRequestDispatcher("/WEB-INF/jsp/shop/shop-product-create.jsp").forward(req, resp);
-            } catch (SQLException e) {
-                e.printStackTrace();
+            if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
+                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
+                responseData.put("success", false);
+                responseData.put("errors", errors);
+                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                return;
             }
+            SessionUtil.flashError(session, String.join("<br>", errors));
+            resp.sendRedirect(req.getContextPath() + "/shop/products");
             return;
         }
 
@@ -233,28 +224,57 @@ public class ProductCreateServlet extends HttpServlet {
                 }
             }
 
-            // Lưu biến thể sản phẩm mặc định (để hiển thị giá và số lượng trên trang home/shop)
-            ProductVariant variant = new ProductVariant();
-            variant.setProductId(productId);
-            variant.setSku("SP-" + productId + "-DF");
-            variant.setVariantLabel(unit.trim());
-            variant.setPrice(price);
-            variant.setStockQuantity(stock);
-            variant.setIsActive(true);
-            productVariantDAO.save(variant);
+            // Lưu danh sách các biến thể sản phẩm
+            if (variantLabels != null) {
+                for (int i = 0; i < variantLabels.length; i++) {
+                    ProductVariant variant = new ProductVariant();
+                    variant.setProductId(productId);
+                    variant.setSku("SP-" + productId + "-" + (i + 1));
+                    variant.setVariantLabel(variantLabels[i].trim());
+                    
+                    BigDecimal vPrice = BigDecimal.ZERO;
+                    if (variantPrices != null && variantPrices.length > i && variantPrices[i] != null) {
+                        try {
+                            vPrice = new BigDecimal(variantPrices[i].trim());
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    variant.setPrice(vPrice);
+
+                    int vStock = 0;
+                    if (variantStocks != null && variantStocks.length > i && variantStocks[i] != null) {
+                        try {
+                            vStock = Integer.parseInt(variantStocks[i].trim());
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    variant.setStockQuantity(vStock);
+
+                    variant.setIsActive(true);
+                    productVariantDAO.save(variant);
+                }
+            }
+
+            if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
+                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
+                responseData.put("success", true);
+                responseData.put("message", "Thêm sản phẩm mới thành công!");
+                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                return;
+            }
 
             SessionUtil.flashSuccess(session, "Thêm sản phẩm mới thành công!");
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
             e.printStackTrace();
-            req.setAttribute("errors", List.of("Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage()));
-            try {
-                req.setAttribute("categories", categoryDAO.findAllActive());
-                req.getRequestDispatcher("/WEB-INF/jsp/shop/shop-product-create.jsp").forward(req, resp);
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+            if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
+                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
+                responseData.put("success", false);
+                responseData.put("errors", List.of("Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage()));
+                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                return;
             }
+            SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage());
+            resp.sendRedirect(req.getContextPath() + "/shop/products");
         }
     }
 }

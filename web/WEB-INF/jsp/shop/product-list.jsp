@@ -1,90 +1,117 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft"  uri="/WEB-INF/tld/fruitmkt.tld" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý sản phẩm | Kênh Người Bán</title>
+    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
-<jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Quản lý sản phẩm - Kênh người bán"/>
-</jsp:include>
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-<!-- Google Fonts & Tailwind isolated engine to match Premium HomeUI -->
-<link href="https://fonts.googleapis.com" rel="preconnect">
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <!-- Tailwind & SweetAlert -->
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-<script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    "primary": "#4d661c",          // Emerald Green
-                    "primary-hover": "#364e03",
-                    "primary-light": "#d9f99d",
-                    "secondary": "#31694b",        // Deep Forest Green
-                    "surface-bright": "#eaffea",   // Warm Mint Light
-                    "surface-container-low": "#d1ffd8",
-                    "on-surface": "#00210d",
-                    "on-surface-variant": "#44483b",
-                    "tertiary": "#486554",
-                    "tertiary-container": "#d5f5e0"
-                },
-                fontFamily: {
-                    sans: ["Lexend", "sans-serif"]
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary:         '#4d661c',
+                        'primary-hover': '#364e03',
+                        'primary-lt':    '#f0f7e6',
+                        border:          '#e2ece7',
+                        'txt':           '#0f172a',
+                        'txt-2':         '#475569',
+                        'txt-3':         '#94a3b8',
+                    },
+                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
                 }
             }
         }
-    }
-</script>
+    </script>
 
-<style>
-    .glass-card {
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-    }
-    .ambient-shadow {
-        box-shadow: 0 10px 40px rgba(20, 83, 45, 0.05);
-    }
-    .navbar {
-        font-family: 'Lexend', sans-serif !important;
-    }
-    /* Simple dynamic fadeout row style */
-    .row-fadeout {
-        transition: all 0.5s ease-out;
-        opacity: 0;
-        transform: scale(0.95) translateY(10px);
-    }
-</style>
+    <style>
+        body { background-color: #f4fbf7; font-family: 'Lexend', sans-serif; }
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid #e2ece7;
+            box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px -4px rgba(20,83,45,.06);
+        }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; text-align: left; }
+        .table th, .table td { padding: 1rem 1.25rem; border-bottom: 1px solid #e2ece7; font-size: 0.9rem; }
+        .table th { background-color: #f8fcf9; font-weight: 600; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; }
+        .table tr:hover { background-color: rgba(77, 102, 28, 0.015); }
+        .row-fadeout {
+            transition: all 0.5s ease-out;
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+        }
+        .form-control-custom {
+            width: 100%;
+            padding: 0.65rem 0.85rem;
+            border: 1.5px solid #e2ece7;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            background-color: #ffffff;
+            transition: all 0.2s;
+            outline: none;
+        }
+        .form-control-custom:focus {
+            border-color: #4d661c;
+            box-shadow: 0 0 0 3px rgba(77, 102, 28, 0.1);
+        }
+        /* Image drag-drop styles */
+        .img-card { cursor: grab; user-select: none; transition: transform 0.15s, box-shadow 0.15s; }
+        .img-card.dragging { opacity: 0.45; transform: scale(0.97); box-shadow: 0 8px 24px rgba(0,0,0,0.18); cursor: grabbing; }
+        .img-card.drag-over { outline: 2px dashed #4d661c; outline-offset: 2px; transform: scale(1.03); }
+        .img-card-fadeout { transition: all 0.3s ease-out; opacity: 0; transform: scale(0.9); }
+        /* New-upload file card */
+        .new-img-card { position: relative; border-radius: 0.75rem; overflow: hidden; aspect-ratio: 1; border: 1px solid #e2ece7; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+        .new-img-card .badge-primary { position: absolute; top: 6px; left: 6px; font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #4d661c; color: #fff; }
+        .new-img-card .badge-secondary { position: absolute; top: 6px; left: 6px; font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.45); color: #fff; }
+        .new-img-card .btn-rm { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%; background: #dc2626; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; font-size: 12px; }
+        .new-img-card .btn-rm:hover { background: #b91c1c; }
+    </style>
+</head>
+<body class="antialiased text-[#0f172a]">
+<div class="flex min-h-screen">
 
-<!-- Main Wrapper -->
-<div class="bg-gradient-to-br from-surface-bright via-white to-surface-container-low min-h-screen text-on-surface antialiased font-sans pt-24 pb-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <!-- Breadcrumb & Header Title -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <!-- Shared Sidebar -->
+    <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
+        <jsp:param name="activePage" value="products"/>
+    </jsp:include>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+
+        <!-- Page Header -->
+        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <div class="flex items-center gap-2 text-xs text-on-surface-variant/70 mb-2">
-                    <a href="${pageContext.request.contextPath}/shop/dashboard" class="hover:text-primary transition-colors">Kênh người bán</a>
-                    <span class="material-symbols-outlined text-[12px]">chevron_right</span>
-                    <span class="font-semibold text-primary">Sản phẩm</span>
-                </div>
-                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">📦 QUẢN LÝ SẢN PHẨM CỬA HÀNG</h1>
-                <p class="text-xs text-on-surface-variant font-light mt-1">Xem, thêm mới, sửa thông tin, ẩn/hiện hoặc xóa các sản phẩm hoa quả sạch của bạn.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản lý Sản phẩm</h1>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Xem, thêm mới, sửa thông tin, ẩn/hiện hoặc xóa các sản phẩm hoa quả sạch của bạn.</p>
             </div>
             
-            <a href="${pageContext.request.contextPath}/shop/product-create" 
-               class="bg-primary hover:bg-primary-hover text-white font-semibold text-sm px-5 py-3 rounded-2xl transition-all shadow-md hover:shadow-lg flex items-center gap-2 active:scale-95 duration-200 cursor-pointer">
+            <button onclick="openCreateModal()" 
+               class="bg-gradient-to-r from-primary to-[#5b7a22] hover:from-[#435919] hover:to-primary-hover text-white font-bold text-sm px-5 py-3 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2 active:scale-95 duration-200 cursor-pointer border-0">
                 <span class="material-symbols-outlined text-[18px]">add_box</span>
                 <span>Thêm sản phẩm mới</span>
-            </a>
+            </button>
         </div>
 
         <!-- Dynamic Flash Message Alert -->
         <c:if test="${not empty sessionScope.flashMsg}">
-            <div id="flash-alert-container" class="mb-6 p-4 rounded-2xl glass-card flex items-center gap-3 border-l-4 ${sessionScope.flashType == 'success' ? 'border-primary text-secondary' : 'border-red-500 text-red-700'} shadow-sm animate-pulse">
+            <div id="flash-alert-container" class="mb-6 p-4 rounded-2xl glass-card flex items-center gap-3 border-l-4 ${sessionScope.flashType == 'success' ? 'border-primary text-primary' : 'border-red-500 text-red-700'} shadow-sm">
                 <span class="material-symbols-outlined text-[24px]">
                     <c:choose>
                         <c:when test="${sessionScope.flashType == 'success'}">check_circle</c:when>
@@ -92,62 +119,59 @@
                     </c:choose>
                 </span>
                 <div class="flex-grow font-semibold text-sm"><c:out value="${sessionScope.flashMsg}"/></div>
-                <button onclick="document.getElementById('flash-alert-container').remove();" class="text-on-surface-variant/60 hover:text-on-surface">
+                <button onclick="document.getElementById('flash-alert-container').remove();" class="text-txt-2 hover:text-txt cursor-pointer">
                     <span class="material-symbols-outlined text-[18px]">close</span>
                 </button>
             </div>
-            <%
-                // Clear flash messages after displaying
-                session.removeAttribute("flashMsg");
-                session.removeAttribute("flashType");
-            %>
+            <c:remove var="flashMsg" scope="session"/>
+            <c:remove var="flashType" scope="session"/>
         </c:if>
 
         <!-- Product Table Grid -->
-        <div class="glass-card rounded-3xl overflow-hidden ambient-shadow bg-white/70">
+        <div class="glass-card rounded-2xl overflow-hidden mb-8">
             <c:choose>
                 <c:when test="${empty products}">
                     <div class="text-center py-20 px-4">
-                        <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce mb-4">box_edit</span>
+                        <span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">box_edit</span>
                         <h3 class="text-lg font-bold">Cửa hàng của bạn chưa có sản phẩm nào</h3>
-                        <p class="text-xs text-on-surface-variant/80 mt-1 max-w-md mx-auto font-light">Bắt đầu đưa trái cây sạch, hữu cơ tươi ngon của bạn tiếp cận hàng ngàn khách hàng bằng cách bấm nút thêm sản phẩm!</p>
-                        <a href="${pageContext.request.contextPath}/shop/product-create" 
-                           class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-6 transition-all shadow-sm">
+                        <p class="text-xs text-txt-2 mt-1 max-w-md mx-auto font-light">Bắt đầu đưa trái cây sạch, hữu cơ tươi ngon của bạn tiếp cận hàng ngàn khách hàng bằng cách bấm nút thêm sản phẩm!</p>
+                        <button onclick="openCreateModal()" 
+                           class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-6 transition-all shadow-sm border-0 cursor-pointer">
                             <span class="material-symbols-outlined text-[16px]">add</span>
                             Thêm sản phẩm đầu tiên
-                        </a>
+                        </button>
                     </div>
                 </c:when>
                 <c:otherwise>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                    <div class="table-responsive">
+                        <table class="table">
                             <thead>
-                                <tr class="bg-primary/5 text-primary text-xs font-bold uppercase tracking-wider border-b border-primary/10">
-                                    <th class="py-4 px-6">Sản phẩm</th>
-                                    <th class="py-4 px-4">Danh mục</th>
-                                    <th class="py-4 px-4">Giá bán</th>
-                                    <th class="py-4 px-4 text-center">Tồn kho</th>
-                                    <th class="py-4 px-4 text-center">Tương tác</th>
-                                    <th class="py-4 px-4 text-center">Trạng thái bán</th>
-                                    <th class="py-4 px-6 text-right">Thao tác</th>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>Danh mục</th>
+                                    <th>Giá bán</th>
+                                    <th class="text-center">Tồn kho</th>
+                                    <th class="text-center">Tương tác</th>
+                                    <th class="text-center">Trạng thái bán</th>
+                                    <th class="text-right">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100 text-sm">
+                            <tbody>
                                 <c:forEach var="item" items="${products}">
-                                    <tr id="product-row-${item.productId}" class="hover:bg-white/40 transition-colors duration-150">
+                                    <tr id="product-row-${item.productId}">
                                         <!-- Product Detail Thumbnail & Origin -->
-                                        <td class="py-4 px-6 flex items-center gap-4">
+                                        <td class="flex items-center gap-4">
                                             <div class="w-12 h-12 rounded-xl overflow-hidden bg-emerald-50 border border-gray-150 shrink-0 shadow-sm relative group">
                                                 <img src="${item.image}" alt="${item.name}" 
                                                      class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                                      onerror="this.src='https://images.unsplash.com/photo-1610832958506-ee5633619144?w=100&auto=format&fit=crop&q=80'">
                                             </div>
                                             <div>
-                                                <h4 class="font-bold text-on-surface line-clamp-1 hover:text-primary transition-colors cursor-pointer" 
+                                                <h4 class="font-bold text-txt hover:text-primary transition-colors cursor-pointer" 
                                                     onclick="window.location.href='${pageContext.request.contextPath}/products/detail?id=${item.productId}'">
                                                     <c:out value="${item.name}"/>
                                                 </h4>
-                                                <div class="flex items-center gap-1.5 text-xs text-on-surface-variant/60 font-light mt-0.5">
+                                                <div class="flex items-center gap-1.5 text-xs text-txt-3 font-light mt-0.5">
                                                     <span class="material-symbols-outlined text-[14px] text-primary/70">location_on</span>
                                                     <span><c:out value="${item.originRegion}"/>, <c:out value="${item.originCountry}"/></span>
                                                 </div>
@@ -155,31 +179,39 @@
                                         </td>
                                         
                                         <!-- Category -->
-                                        <td class="py-4 px-4 text-on-surface-variant/80 font-medium">
+                                        <td class="text-txt-2 font-medium">
                                             <c:out value="${item.categoryName}"/>
                                         </td>
                                         
                                         <!-- Price -->
-                                        <td class="py-4 px-4 font-bold text-primary">
-                                            <ft:currency value="${item.price}"/>
-                                            <span class="text-[10px] text-on-surface-variant/50 font-normal"> / <c:out value="${item.unit}"/></span>
+                                        <td class="font-bold text-primary">
+                                            <c:choose>
+                                                <c:when test="${item.hasMultipleVariants}">
+                                                    <ft:currency value="${item.minPrice}"/> - <ft:currency value="${item.maxPrice}"/>
+                                                    <span class="block text-[10px] text-txt-3 font-normal">(${item.unit})</span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <ft:currency value="${item.price}"/>
+                                                    <span class="text-[10px] text-txt-3 font-normal"> / <c:out value="${item.unit}"/></span>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </td>
                                         
                                         <!-- Stock Status Badge -->
-                                        <td class="py-4 px-4 text-center">
+                                        <td class="text-center">
                                             <c:choose>
                                                 <c:when test="${item.stock > 10}">
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 shadow-sm">
-                                                        ${item.stock} ${item.unit}
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        ${item.stock} <c:out value="${item.hasMultipleVariants ? 'sản phẩm' : item.unit}"/>
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${item.stock > 0}">
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 shadow-sm">
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                                                         Còn ít: ${item.stock}
                                                     </span>
                                                 </c:when>
                                                 <c:otherwise>
-                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 shadow-sm animate-pulse">
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200 animate-pulse">
                                                         Hết hàng
                                                     </span>
                                                 </c:otherwise>
@@ -187,20 +219,23 @@
                                         </td>
                                         
                                         <!-- Interactive counts -->
-                                        <td class="py-4 px-4 text-center text-xs text-on-surface-variant/70 font-light">
+                                        <td class="text-center text-xs text-txt-2 font-light">
                                             <div class="flex flex-col items-center">
                                                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">visibility</span> Lượt xem: ${item.viewCount}</span>
-                                                <span class="flex items-center gap-1 mt-1 font-semibold text-secondary"><span class="material-symbols-outlined text-[14px]">shopping_cart</span> Đã bán: ${item.soldQuantity}</span>
+                                                <span class="flex items-center gap-1 mt-1 font-semibold text-primary"><span class="material-symbols-outlined text-[14px]">shopping_cart</span> Đã bán: ${item.soldQuantity}</span>
                                             </div>
                                         </td>
 
                                         <!-- AJAX Toggle Sale Switch -->
-                                        <td class="py-4 px-4 text-center">
-                                            <div class="flex items-center justify-center">
+                                        <td class="text-center">
+                                            <div class="flex flex-col items-center justify-center gap-1">
+                                                <c:if test="${item.status == 'OUT_OF_SEASON'}">
+                                                    <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Hết vụ</span>
+                                                </c:if>
                                                 <label class="relative inline-flex items-center cursor-pointer select-none">
                                                     <input type="checkbox" id="toggle-status-${item.productId}" 
                                                            class="sr-only peer" 
-                                                           ${item.status == 'ACTIVE' ? 'checked' : ''} 
+                                                           ${item.status == 'ACTIVE' || item.status == 'OUT_OF_SEASON' ? 'checked' : ''} 
                                                            onchange="toggleSaleStatus('${item.productId}', this)">
                                                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
                                                 </label>
@@ -208,19 +243,19 @@
                                         </td>
                                         
                                         <!-- Actions (Edit/Delete) -->
-                                        <td class="py-4 px-6 text-right">
+                                        <td class="text-right">
                                             <div class="inline-flex items-center gap-2">
                                                 <!-- Edit button -->
-                                                <a href="${pageContext.request.contextPath}/shop/product-edit?id=${item.productId}" 
-                                                   class="w-9 h-9 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer" 
+                                                <button onclick="openEditModal('${item.productId}')" 
+                                                   class="w-9 h-9 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer border-0" 
                                                    title="Sửa thông tin">
                                                     <span class="material-symbols-outlined text-[18px]">edit</span>
-                                                </a>
+                                                </button>
                                                 <!-- Delete button -->
                                                 <button data-product-id="${item.productId}" 
                                                         data-product-name="<c:out value='${item.name}'/>"
                                                         onclick="confirmSoftDelete(this)" 
-                                                        class="w-9 h-9 rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer" 
+                                                        class="w-9 h-9 rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer border-0" 
                                                         title="Xóa mềm">
                                                     <span class="material-symbols-outlined text-[18px]">delete</span>
                                                 </button>
@@ -235,6 +270,181 @@
             </c:choose>
         </div>
 
+    </main>
+</div>
+
+<!-- Unified Product Modal (Create & Edit) -->
+<div id="productModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="closeProductModal()"></div>
+
+    <!-- Modal Box -->
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-3xl glass-card flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-5 border-b border-border bg-[#f9fdf9]">
+                <h3 id="productModalTitle" class="text-base font-bold text-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[24px]">add_box</span>
+                    Đăng bán sản phẩm mới
+                </h3>
+                <button onclick="closeProductModal()" class="text-txt-2 hover:text-txt cursor-pointer border-0 bg-transparent">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Form Body (Scrollable) -->
+            <form id="productForm" onsubmit="submitProductForm(event)" enctype="multipart/form-data" class="overflow-y-auto p-6 md:p-8 space-y-6">
+                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                <input type="hidden" name="id" id="modal-productId">
+
+                <!-- 1. Basic Information Component -->
+                <div>
+                    <h2 class="text-xs font-bold text-primary border-b border-primary/10 pb-1.5 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+                        <span class="material-symbols-outlined text-[16px]">info</span>
+                        Thông tin cơ bản
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <!-- Product Name -->
+                        <div>
+                            <label for="modal-name" class="block text-xs font-bold text-txt-2 mb-1.5">Tên sản phẩm hoa quả <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" id="modal-name" required placeholder="Ví dụ: Sầu Riêng Ri6 Chín Hóa"
+                                   class="form-control-custom">
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label for="modal-description" class="block text-xs font-bold text-txt-2 mb-1.5">Mô tả sản phẩm</label>
+                            <textarea name="description" id="modal-description" rows="3" placeholder="Nhập câu chuyện sản phẩm, hương vị, chứng chỉ..."
+                                      class="form-control-custom"></textarea>
+                        </div>
+
+                        <!-- Category & Status -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="modal-categoryId" class="block text-xs font-bold text-txt-2 mb-1.5">Danh mục sản phẩm <span class="text-red-500">*</span></label>
+                                <select name="categoryId" id="modal-categoryId" required
+                                        class="form-control-custom py-[0.55rem]">
+                                    <option value="">-- Chọn danh mục --</option>
+                                    <c:forEach var="cat" items="${categories}">
+                                        <option value="${cat.categoryId}">
+                                            <c:out value="${cat.name}"/>
+                                        </option>
+                                    </c:forEach>
+                                </select>
+                            </div>
+                            <div id="modal-status-container" class="hidden">
+                                <label for="modal-status" class="block text-xs font-bold text-txt-2 mb-1.5">Trạng thái bán hàng <span class="text-red-500">*</span></label>
+                                <select name="status" id="modal-status" required class="form-control-custom py-[0.55rem]">
+                                    <option value="ACTIVE">Công khai bán (ACTIVE)</option>
+                                    <option value="INACTIVE">Tạm ẩn hiển thị (INACTIVE)</option>
+                                    <option value="OUT_OF_SEASON">Hết vụ thu hoạch (OUT_OF_SEASON)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Dynamic Variants Component -->
+                <div>
+                    <div class="flex items-center justify-between border-b border-primary/10 pb-1.5 mb-4">
+                        <h2 class="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
+                            <span class="material-symbols-outlined text-[16px]">layers</span>
+                            Biến thể / Phân loại bán <span class="text-red-500">*</span>
+                        </h2>
+                        <button type="button" onclick="addVariantRow()"
+                                class="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-hover bg-primary-lt hover:bg-primary/10 px-2.5 py-1.5 rounded-lg border-0 cursor-pointer transition-colors">
+                            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                            Thêm phân loại
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3" id="modal-variants-container">
+                        <!-- Variant rows dynamically appended here -->
+                    </div>
+                </div>
+
+                <!-- 3. Quality & Expiry Metadata Component -->
+                <div>
+                    <h2 class="text-xs font-bold text-primary border-b border-primary/10 pb-1.5 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+                        <span class="material-symbols-outlined text-[16px]">verified_user</span>
+                        Xuất xứ & Hạn sử dụng
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="modal-originCountry" class="block text-xs font-bold text-txt-2 mb-1.5">Quốc gia</label>
+                                <input type="text" name="originCountry" id="modal-originCountry" value="Việt Nam"
+                                       class="form-control-custom">
+                            </div>
+                            <div>
+                                <label for="modal-originRegion" class="block text-xs font-bold text-txt-2 mb-1.5">Vùng sản xuất</label>
+                                <input type="text" name="originRegion" id="modal-originRegion" placeholder="Ví dụ: Đắk Lắk, Đà Lạt..."
+                                       class="form-control-custom">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="modal-harvestDate" class="block text-xs font-bold text-txt-2 mb-1.5">Ngày thu hoạch</label>
+                                <input type="date" name="harvestDate" id="modal-harvestDate"
+                                       class="form-control-custom">
+                            </div>
+                            <div>
+                                <label for="modal-shelfLifeDays" class="block text-xs font-bold text-txt-2 mb-1.5">Hạn sử dụng (Số ngày)</label>
+                                <input type="number" name="shelfLifeDays" id="modal-shelfLifeDays" min="1" placeholder="Ví dụ: 7"
+                                       class="form-control-custom">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="modal-storageInstruction" class="block text-xs font-bold text-txt-2 mb-1.5">Hướng dẫn bảo quản</label>
+                            <input type="text" name="storageInstruction" id="modal-storageInstruction" placeholder="Ví dụ: Bảo quản ngăn mát..."
+                                   class="form-control-custom">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Existing Images (Edit Only) -->
+                <div id="modal-existing-images-section" class="hidden">
+                    <h2 class="text-xs font-bold text-primary border-b border-primary/10 pb-1.5 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+                        <span class="material-symbols-outlined text-[16px]">collections</span>
+                        Album hình ảnh hiện tại
+                        <span class="text-[10px] text-txt-3 font-normal normal-case ml-1">(kéo thả để sắp xếp · nhấn ⭐ để đặt ảnh chính)</span>
+                    </h2>
+                    <div id="modal-existing-images" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+                </div>
+
+                <!-- 5. Upload New Images Component -->
+                <div>
+                    <h2 class="text-xs font-bold text-primary border-b border-primary/10 pb-1.5 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+                        <span class="material-symbols-outlined text-[16px]">photo_library</span>
+                        Thêm hình ảnh mới <span class="text-red-500" id="modal-image-required-star">*</span>
+                    </h2>
+                    
+                    <label for="modal-images-input" class="flex flex-col items-center justify-center relative border-2 border-dashed border-primary/30 hover:border-primary rounded-xl p-6 text-center transition-all bg-emerald-50/20 hover:bg-emerald-50/40 cursor-pointer group">
+                        <input type="file" name="images" id="modal-images-input" multiple accept="image/*" class="hidden" onchange="addNewImagePreviews(this)">
+                        <span class="material-symbols-outlined text-[36px] text-primary/50 group-hover:scale-110 transition-transform mb-2">cloud_upload</span>
+                        <h4 class="text-xs font-bold text-txt">Kéo thả hoặc nhấp để chọn ảnh (có thể chọn nhiều lần, ảnh cũ không bị mất)</h4>
+                    </label>
+
+                    <div id="modal-file-list-preview" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 hidden"></div>
+                </div>
+
+                <!-- Footer / Buttons -->
+                <div class="flex justify-end gap-3 pt-6 border-t border-[#e2ece7]">
+                    <button type="button" onclick="closeProductModal()"
+                       class="border border-gray-300 hover:bg-gray-50 text-txt-2 font-bold text-xs px-6 py-3 rounded-xl transition-all active:scale-95 duration-200 cursor-pointer">
+                        Hủy bỏ
+                    </button>
+                    <button type="submit" id="modal-submit-btn"
+                            class="bg-primary hover:bg-primary-hover text-white font-bold text-xs px-8 py-3 rounded-xl transition-all shadow-md active:scale-95 duration-200 cursor-pointer border-0">
+                        Đăng bán ngay
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -246,6 +456,23 @@
 <script>
     const CTX = document.getElementById('js-ctx').value;
     const CSRF = document.getElementById('js-csrf').value;
+    window.csrfToken = CSRF;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const harvestDateInput = document.getElementById('modal-harvestDate');
+        if (harvestDateInput) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            harvestDateInput.setAttribute('max', todayStr);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const harvestDateInput = document.getElementById('modal-harvestDate');
+        if (harvestDateInput) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            harvestDateInput.setAttribute('max', todayStr);
+        }
+    });
 
     function handleJSONResponse(response) {
         const contentType = response.headers.get("content-type");
@@ -255,9 +482,34 @@
                     throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
                 });
             }
+            if (response.status === 403) {
+                throw new Error('CSRF_ERROR');
+            }
             throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
         }
         return response.json();
+    }
+
+    function handleAjaxError(err, defaultMessage) {
+        console.error(err);
+        if (err.message === 'CSRF_ERROR' || err.message.includes('CSRF')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Phiên làm việc hết hạn',
+                text: 'Phiên làm việc của bạn đã hết hạn hoặc được làm mới. Vui lòng làm mới trang.',
+                confirmButtonText: 'Làm mới ngay',
+                confirmButtonColor: '#4d661c'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: err.message || defaultMessage || "Lỗi kết nối máy chủ.",
+                confirmButtonColor: '#4d661c'
+            });
+        }
     }
 
     /**
@@ -267,7 +519,6 @@
         const isChecked = checkbox.checked;
         const newStatus = isChecked ? 'ACTIVE' : 'INACTIVE';
         
-        // Prevent clicking while requesting
         checkbox.disabled = true;
 
         const params = new URLSearchParams();
@@ -280,7 +531,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-Token': '${sessionScope._csrfToken}',
+                'X-CSRF-Token': window.csrfToken || CSRF,
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
@@ -289,18 +540,29 @@
         .then(data => {
             checkbox.disabled = false;
             if (data.success) {
-                // Show dynamic mini toast style alert on header if needed
-                console.log('Product ' + productId + ' toggled to ' + newStatus + ' successfully.');
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Đã cập nhật trạng thái bán thành công!',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                });
             } else {
-                checkbox.checked = !isChecked; // Rollback check state
-                alert("Lỗi: " + (data.message || "Không thể cập nhật trạng thái."));
+                checkbox.checked = !isChecked; // Rollback
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Thất bại',
+                    text: data.message || "Không thể cập nhật trạng thái.",
+                    confirmButtonColor: '#4d661c'
+                });
             }
         })
         .catch(err => {
             checkbox.disabled = false;
             checkbox.checked = !isChecked; // Rollback
-            console.error(err);
-            alert(err.message || "Lỗi kết nối máy chủ khi cập nhật trạng thái.");
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi cập nhật trạng thái.");
         });
     }
 
@@ -310,10 +572,25 @@
     function confirmSoftDelete(button) {
         const productId = button.getAttribute('data-product-id');
         const productName = button.getAttribute('data-product-name');
-        const confirmation = confirm('Bạn có chắc chắn muốn xóa sản phẩm "' + productName + '"?\nLưu ý: Sản phẩm sẽ bị ẩn khỏi gian hàng nhưng các đơn hàng cũ vẫn hiển thị bình thường.');
-        if (confirmation) {
-            executeSoftDelete(productId);
-        }
+        
+        Swal.fire({
+            title: 'Xác nhận xóa?',
+            text: 'Bạn có chắc chắn muốn xóa sản phẩm "' + productName + '"? Lưu ý: Sản phẩm sẽ bị ẩn khỏi gian hàng nhưng các đơn hàng cũ vẫn hiển thị bình thường.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4d661c',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy bỏ',
+            background: '#ffffff',
+            customClass: {
+                popup: 'rounded-2xl font-sans'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                executeSoftDelete(productId);
+            }
+        });
     }
 
     /**
@@ -332,7 +609,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-Token': '${sessionScope._csrfToken}',
+                'X-CSRF-Token': window.csrfToken || CSRF,
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: params
@@ -340,25 +617,583 @@
         .then(handleJSONResponse)
         .then(data => {
             if (data.success) {
-                // Fade out row beautifully with micro-animations
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã xóa!',
+                    text: 'Sản phẩm đã được ẩn và xóa thành công.',
+                    confirmButtonColor: '#4d661c',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                
                 row.classList.add('row-fadeout');
                 setTimeout(() => {
                     row.remove();
-                    // If no rows left, reload window to show empty state
                     const tbody = document.querySelector('tbody');
                     if (tbody && tbody.children.length === 0) {
                         window.location.reload();
                     }
                 }, 500);
             } else {
-                alert("Lỗi: " + (data.message || "Không thể xóa sản phẩm."));
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: data.message || "Không thể xóa sản phẩm.",
+                    confirmButtonColor: '#4d661c'
+                });
+            }
+        })
+        .catch(err => {
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi thực hiện xóa sản phẩm.");
+        });
+    }
+
+    /* Modal Operations */
+    function openCreateModal() {
+        const form = document.getElementById('productForm');
+        form.reset();
+        
+        document.getElementById('modal-productId').value = '';
+        document.getElementById('productModalTitle').innerHTML = `
+            <span class="material-symbols-outlined text-[24px]">add_box</span>
+            Đăng bán sản phẩm mới
+        `;
+        document.getElementById('modal-submit-btn').textContent = 'Đăng bán ngay';
+        
+        // Hide edit-only sections
+        document.getElementById('modal-status-container').classList.add('hidden');
+        document.getElementById('modal-existing-images-section').classList.add('hidden');
+        document.getElementById('modal-existing-images').innerHTML = '';
+        
+        // Reset new image state
+        newImageFiles = new DataTransfer();
+        document.getElementById('modal-file-list-preview').innerHTML = '';
+        document.getElementById('modal-file-list-preview').classList.add('hidden');
+        
+        // Make image file input required for new products
+        const imageInput = document.getElementById('modal-images-input');
+        imageInput.value = '';
+        imageInput.required = true;
+        document.getElementById('modal-image-required-star').classList.remove('hidden');
+        
+        // Initialize with one empty variant row
+        document.getElementById('modal-variants-container').innerHTML = '';
+        addVariantRow({ variantLabel: 'kg', price: '', stockQuantity: '' });
+        
+        document.getElementById('productModal').classList.remove('hidden');
+    }
+
+    function openEditModal(productId) {
+        Swal.fire({
+            title: 'Đang tải thông tin...',
+            text: 'Vui lòng chờ trong giây lát',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch(CTX + '/shop/product-edit?id=' + productId, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(handleJSONResponse)
+        .then(data => {
+            Swal.close();
+            if (data.success) {
+                const form = document.getElementById('productForm');
+                form.reset();
+                
+                document.getElementById('modal-productId').value = data.product.productId;
+                document.getElementById('productModalTitle').innerHTML = `
+                    <span class="material-symbols-outlined text-[24px]">edit</span>
+                    Chỉnh sửa thông tin sản phẩm
+                `;
+                document.getElementById('modal-submit-btn').textContent = 'Lưu thay đổi';
+                
+                // Show edit-only sections
+                document.getElementById('modal-status-container').classList.remove('hidden');
+                document.getElementById('modal-status').value = data.product.status || 'ACTIVE';
+                document.getElementById('modal-existing-images-section').classList.remove('hidden');
+                
+                // Populate fields
+                document.getElementById('modal-name').value = data.product.name;
+                document.getElementById('modal-description').value = data.product.description || '';
+                document.getElementById('modal-categoryId').value = data.product.categoryId;
+                document.getElementById('modal-originCountry').value = data.product.originCountry || '';
+                document.getElementById('modal-originRegion').value = data.product.originRegion || '';
+                document.getElementById('modal-harvestDate').value = data.product.harvestDate || '';
+                document.getElementById('modal-shelfLifeDays').value = data.product.shelfLifeDays || '';
+                document.getElementById('modal-storageInstruction').value = data.product.storageInstruction || '';
+                
+                // Image file input not required since images already exist
+                const imageInput = document.getElementById('modal-images-input');
+                imageInput.value = '';
+                imageInput.required = false;
+                document.getElementById('modal-image-required-star').classList.add('hidden');
+                
+                // Reset new file accumulator
+                newImageFiles = new DataTransfer();
+                document.getElementById('modal-file-list-preview').innerHTML = '';
+                document.getElementById('modal-file-list-preview').classList.add('hidden');
+
+                // Render existing images with drag-drop reorder + set-primary + delete
+                const existingImagesContainer = document.getElementById('modal-existing-images');
+                existingImagesContainer.innerHTML = '';
+                if (data.images && data.images.length > 0) {
+                    data.images.forEach(img => {
+                        appendExistingImageCard(img, data.product.productId);
+                    });
+                    // Init once via event delegation — handles future DOM changes too
+                    initImageDragDrop(existingImagesContainer);
+                } else {
+                    existingImagesContainer.innerHTML = '<p class="text-xs text-txt-3 italic py-4">Sản phẩm hiện chưa có hình ảnh nào.</p>';
+                }
+
+                // Render variants list
+                const variantsContainer = document.getElementById('modal-variants-container');
+                variantsContainer.innerHTML = '';
+                if (data.variants && data.variants.length > 0) {
+                    data.variants.forEach(variant => {
+                        addVariantRow(variant);
+                    });
+                } else {
+                    addVariantRow({ variantLabel: 'kg', price: '', stockQuantity: '' });
+                }
+
+                document.getElementById('productModal').classList.remove('hidden');
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: data.message || 'Không thể tải thông tin sản phẩm.',
+                    confirmButtonColor: '#4d661c'
+                });
             }
         })
         .catch(err => {
             console.error(err);
-            alert(err.message || "Lỗi kết nối máy chủ khi thực hiện xóa.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: err.message || 'Lỗi kết nối máy chủ.',
+                confirmButtonColor: '#4d661c'
+            });
+        });
+    }
+
+    function closeProductModal() {
+        document.getElementById('productModal').classList.add('hidden');
+    }
+
+    // ─── Image management helpers ───────────────────────────────────────────
+
+    function appendExistingImageCard(img, productId) {
+        const container = document.getElementById('modal-existing-images');
+        const card = document.createElement('div');
+        card.id = 'image-card-modal-' + img.imageId;
+        card.className = 'img-card relative rounded-xl overflow-hidden aspect-square border bg-white p-1 group shadow-sm ' + (img.isPrimary ? 'border-primary' : 'border-gray-200');
+        card.setAttribute('draggable', 'true');
+        card.dataset.imageId = img.imageId;
+
+        let path = img.filePath || '';
+        if (path.startsWith('build/')) path = path.substring(6);
+
+        const altText = img.isPrimary ? 'Ảnh chính' : 'Ảnh phụ';
+        const badgeClass = img.isPrimary ? 'bg-primary text-white' : 'bg-white/90 text-txt-2';
+        
+        let primaryBtnHtml = '';
+        if (!img.isPrimary) {
+            primaryBtnHtml = '<button type="button" title="Đặt làm ảnh chính" ' +
+                'onclick="setExistingImagePrimary(' + img.imageId + ', ' + productId + ')" ' +
+                'class="w-8 h-8 rounded-full bg-amber-400 hover:bg-amber-500 text-white flex items-center justify-center shadow active:scale-90 transition-transform cursor-pointer border-0 text-[13px]">' +
+                '⭐' +
+                '</button>';
+        }
+
+        card.innerHTML = 
+            '<img src="' + CTX + '/' + path + '" alt="' + altText + '" class="w-full h-full object-cover rounded-lg">' +
+            '<div class="absolute top-1.5 left-1.5 z-10">' +
+                '<span class="text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm ' + badgeClass + '">' +
+                    altText +
+                '</span>' +
+            '</div>' +
+            '<div class="absolute inset-1 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">' +
+                primaryBtnHtml +
+                '<button type="button" title="Xóa ảnh" ' +
+                        'onclick="deleteExistingImageModal(' + img.imageId + ')" ' +
+                        'class="w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow active:scale-90 transition-transform cursor-pointer border-0">' +
+                    '<span class="material-symbols-outlined text-[16px]">delete</span>' +
+                '</button>' +
+            '</div>';
+
+        container.appendChild(card);
+    }
+
+    function setExistingImagePrimary(imageId, productId) {
+        const params = new URLSearchParams();
+        params.append('action', 'set-primary');
+        params.append('imageId', imageId);
+        params.append('productId', productId);
+        params.append('_csrf', window.csrfToken || CSRF);
+
+        fetch(CTX + '/shop/product-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-Token': window.csrfToken || CSRF,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params
+        })
+        .then(handleJSONResponse)
+        .then(data => {
+            if (data.success) {
+                // Re-render all existing image cards with updated primary state
+                const container = document.getElementById('modal-existing-images');
+                container.querySelectorAll('.img-card').forEach(c => {
+                    const cid = parseInt(c.dataset.imageId);
+                    const isPrimary = cid === imageId;
+                    const badge = c.querySelector('.absolute.top-1\.5.left-1\.5 span');
+                    if (badge) {
+                        badge.textContent = isPrimary ? '\u2b50 \u1ea2nh ch\u00ednh' : '\u1ea2nh ph\u1ee5';
+                        badge.className = 'text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm ' + (isPrimary ? 'bg-primary text-white' : 'bg-white/90 text-txt-2');
+                    }
+                    c.className = c.className.replace(/border-primary|border-gray-200/g, isPrimary ? 'border-primary' : 'border-gray-200');
+                });
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã đặt làm ảnh chính!', showConfirmButton: false, timer: 1800, timerProgressBar: true });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message || 'Không thể cập nhật.', confirmButtonColor: '#4d661c' });
+            }
+        })
+        .catch(err => {
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi cập nhật ảnh chính.");
+        });
+    }
+
+    function initImageDragDrop(container) {
+        // Use event delegation — works even after DOM mutations (delete/add)
+        let dragSrc = null;
+
+        container.addEventListener('dragstart', function(e) {
+            const card = e.target.closest('.img-card');
+            if (!card) return;
+            dragSrc = card;
+            card.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        container.addEventListener('dragend', function(e) {
+            const card = e.target.closest('.img-card');
+            if (!card) return;
+            card.classList.remove('dragging');
+            container.querySelectorAll('.img-card').forEach(c => c.classList.remove('drag-over'));
+            // Persist new order after drag ends
+            const ids = Array.from(container.querySelectorAll('.img-card'))
+                .map(c => c.dataset.imageId).filter(Boolean);
+            if (ids.length === 0) return;
+            const params = new URLSearchParams();
+            params.append('action', 'reorder-images');
+            params.append('imageIds', ids.join(','));
+            params.append('_csrf', window.csrfToken || CSRF);
+            fetch(CTX + '/shop/product-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.csrfToken || CSRF, 'X-Requested-With': 'XMLHttpRequest' },
+                body: params
+            }).catch(err => console.warn('Reorder save failed:', err));
+        });
+        container.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const card = e.target.closest('.img-card');
+            if (card && card !== dragSrc) {
+                container.querySelectorAll('.img-card').forEach(c => c.classList.remove('drag-over'));
+                card.classList.add('drag-over');
+            }
+        });
+        container.addEventListener('dragleave', function(e) {
+            const card = e.target.closest('.img-card');
+            if (card) card.classList.remove('drag-over');
+        });
+        container.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const targetCard = e.target.closest('.img-card');
+            if (!targetCard) return;
+            targetCard.classList.remove('drag-over');
+            if (dragSrc && targetCard !== dragSrc) {
+                const allCards = Array.from(container.querySelectorAll('.img-card'));
+                const srcIdx = allCards.indexOf(dragSrc);
+                const tgtIdx = allCards.indexOf(targetCard);
+                if (srcIdx < tgtIdx) container.insertBefore(dragSrc, targetCard.nextSibling);
+                else container.insertBefore(dragSrc, targetCard);
+            }
+        });
+    }
+
+    // ─── New image file previews (accumulates; individual delete) ─────────────
+    // We store selected files in a DataTransfer object to allow removing individual files
+    let newImageFiles = new DataTransfer();
+
+    function addNewImagePreviews(input) {
+        // Accumulate new files without clearing existing ones
+        Array.from(input.files).forEach(f => newImageFiles.items.add(f));
+        input.value = ''; // reset so same file can be selected again if needed
+
+        // Sync the actual input files
+        const realInput = document.getElementById('modal-images-input');
+        realInput.files = newImageFiles.files;
+
+        renderNewImagePreviews();
+    }
+
+    function removeNewImage(index) {
+        const newDT = new DataTransfer();
+        Array.from(newImageFiles.files).forEach((f, i) => {
+            if (i !== index) newDT.items.add(f);
+        });
+        newImageFiles = newDT;
+        const realInput = document.getElementById('modal-images-input');
+        realInput.files = newImageFiles.files;
+        renderNewImagePreviews();
+    }
+
+    function renderNewImagePreviews() {
+        const previewContainer = document.getElementById('modal-file-list-preview');
+        previewContainer.innerHTML = '';
+        const files = newImageFiles.files;
+        if (files.length === 0) {
+            previewContainer.classList.add('hidden');
+            return;
+        }
+        previewContainer.classList.remove('hidden');
+        // Check if there are existing images to determine if the first new image will be primary
+        const existingCount = document.querySelectorAll('#modal-existing-images .img-card').length;
+        Array.from(files).forEach((file, index) => {
+            const isPrimary = existingCount === 0 && index === 0;
+            const card = document.createElement('div');
+            card.className = 'new-img-card';
+            const reader = new FileReader();
+            reader.onload = e => {
+                const resultSrc = e.target.result;
+                const fname = file.name;
+                const badgeClass = isPrimary ? 'badge-primary' : 'badge-secondary';
+                const badgeText = isPrimary ? '\u2b50 Ch\u00ednh' : 'Ph\u1ee5 ' + (index + 1);
+                card.innerHTML = '<img src="' + resultSrc + '" alt="' + fname + '" style="width:100%;height:100%;object-fit:cover;">'
+                    + '<span class="' + badgeClass + '">' + badgeText + '</span>'
+                    + '<button class="btn-rm" type="button" onclick="removeNewImage(' + index + ')" title="X\u00f3a \u1ea3nh n\u00e0y">\u2715</button>';
+            };
+            reader.readAsDataURL(file);
+            previewContainer.appendChild(card);
+        });
+    }
+
+    // ─── Variant rows ─────────────────────────────────────────────────────────
+    function addVariantRow(data = {}) {
+        const container = document.getElementById('modal-variants-container');
+        const isEditMode = !!document.getElementById('modal-productId').value;
+        const row = document.createElement('div');
+        row.className = "variant-row bg-slate-50/70 border border-border p-4 rounded-xl relative group flex flex-col md:flex-row gap-3 items-end transition-all hover:bg-slate-50";
+        
+        const variantId = data.variantId || '';
+        const variantLabel = data.variantLabel || '';
+        const price = data.price !== undefined ? data.price : '';
+        const stock = data.stockQuantity !== undefined ? data.stockQuantity : '';
+
+        row.innerHTML = `
+            <input type="hidden" name="variantId" value="\${variantId}">
+            
+            <!-- Variant Name/Label -->
+            <div class="flex-grow w-full">
+                <label class="block text-[10px] font-bold text-txt-2 mb-1">Tên phân loại / Đơn vị <span class="text-red-500">*</span></label>
+                <input type="text" name="variantLabel" required placeholder="Ví dụ: kg, Hộp 500g, Thùng 5kg" 
+                       value="\${variantLabel}"
+                       class="form-control-custom py-1.5 text-xs">
+            </div>
+            
+            <!-- Price -->
+            <div class="w-full md:w-48">
+                <label class="block text-[10px] font-bold text-txt-2 mb-1">Giá bán lẻ (VND) <span class="text-red-500">*</span></label>
+                <div class="relative rounded-xl">
+                    <input type="number" name="variantPrice" required min="1000" step="1000" placeholder="50000" 
+                           value="\${price}"
+                           class="form-control-custom py-1.5 text-xs pr-10">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">VND</span>
+                </div>
+            </div>
+        `;
+
+        // Stock: shown as read-only 0 on CREATE (managed via Inventory)
+        if (!isEditMode) {
+            row.innerHTML += '<input type="hidden" name="variantStock" value="0">'
+                + '<div class="w-full md:w-36">'
+                + '<label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Số lượng ban đầu</label>'
+                + '<div class="form-control-custom py-1.5 text-xs bg-slate-50 text-txt-2 cursor-not-allowed">0</div>'
+                + '<p class="text-[9px] text-txt-3 mt-0.5">Cập nhật tại Quản lý Tồn kho</p>'
+                + '</div>';
+        } else {
+            row.innerHTML += '<input type="hidden" name="variantStock" value="' + stock + '">'
+                + '<div class="w-full md:w-36">'
+                + '<label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Tồn kho hiện tại</label>'
+                + '<div class="form-control-custom py-1.5 text-xs bg-slate-50 text-txt-2 cursor-not-allowed">' + (stock !== '' ? stock : '—') + '</div>'
+                + '<p class="text-[9px] text-txt-3 mt-0.5">Cập nhật tại Quản lý Tồn kho</p>'
+                + '</div>';
+        }
+
+        // Delete button
+        row.innerHTML += '<div class="flex shrink-0 items-center justify-center pb-0.5">'
+            + '<button type="button" onclick="removeVariantRow(this)" class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center border-0 cursor-pointer transition-colors active:scale-95">'
+            + '<span class="material-symbols-outlined text-[16px]">delete</span>'
+            + '</button></div>';
+        
+        container.appendChild(row);
+        updateVariantDeleteButtons();
+    }
+
+    function removeVariantRow(button) {
+        const row = button.closest('.variant-row');
+        row.remove();
+        updateVariantDeleteButtons();
+    }
+
+    function updateVariantDeleteButtons() {
+        const rows = document.querySelectorAll('.variant-row');
+        rows.forEach(row => {
+            const deleteBtn = row.querySelector('button[onclick="removeVariantRow(this)"]');
+            if (deleteBtn) {
+                deleteBtn.style.display = rows.length <= 1 ? 'none' : 'flex';
+            }
+        });
+    }
+
+    function deleteExistingImageModal(imageId) {
+        Swal.fire({
+            title: 'Xác nhận xóa?',
+            text: 'Bạn có chắc chắn muốn xóa bức ảnh này? Tệp ảnh sẽ bị xóa vĩnh viễn khỏi máy chủ.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#4d661c',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy bỏ',
+            background: '#ffffff',
+            customClass: {
+                popup: 'rounded-2xl font-sans'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const card = document.getElementById('image-card-modal-' + imageId);
+                if (!card) return;
+
+                const params = new URLSearchParams();
+                params.append('action', 'delete-image');
+                params.append('imageId', imageId);
+                params.append('_csrf', window.csrfToken || CSRF);
+
+                fetch(CTX + '/shop/product-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-Token': window.csrfToken || CSRF,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: params
+                })
+                .then(handleJSONResponse)
+                .then(data => {
+                    if (data.success) {
+                        card.classList.add('img-card-fadeout');
+                        setTimeout(() => {
+                            card.remove();
+                        }, 400);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã xóa!',
+                            text: 'Hình ảnh đã được xóa thành công.',
+                            confirmButtonColor: '#4d661c',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: data.message || "Không thể xóa ảnh.",
+                            confirmButtonColor: '#4d661c'
+                        });
+                    }
+                })
+                .catch(err => {
+                    handleAjaxError(err, "Lỗi kết nối máy chủ khi xóa hình ảnh.");
+                });
+            }
+        });
+    }
+
+    function submitProductForm(event) {
+        event.preventDefault();
+        const form = document.getElementById('productForm');
+        const formData = new FormData(form);
+
+        const productId = document.getElementById('modal-productId').value;
+        const isEdit = !!productId;
+        const url = CTX + (isEdit ? '/shop/product-edit' : '/shop/product-create');
+
+        Swal.fire({
+            title: isEdit ? 'Đang lưu thay đổi...' : 'Đang lưu sản phẩm...',
+            text: 'Vui lòng chờ trong giây lát',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Ensure CSRF token is in formData (for multipart, req.getParameter won't find it)
+        const token = window.csrfToken || CSRF;
+        formData.set('_csrf', token);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': token
+            },
+            body: formData
+        })
+        .then(handleJSONResponse)
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công!',
+                    text: data.message || (isEdit ? 'Thông tin sản phẩm đã được cập nhật.' : 'Sản phẩm mới đã được đăng bán.'),
+                    confirmButtonColor: '#4d661c'
+                }).then(() => {
+                    closeProductModal();
+                    window.location.reload();
+                });
+            } else {
+                let errorHtml = '<ul class="list-disc list-inside text-left text-xs font-semibold text-red-600 space-y-1">';
+                if (data.errors) {
+                    data.errors.forEach(err => {
+                        errorHtml += '<li>' + err + '</li>';
+                    });
+                } else {
+                    errorHtml += '<li>' + (data.message || 'Lỗi không xác định') + '</li>';
+                }
+                errorHtml += '</ul>';
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi thông tin',
+                    html: errorHtml,
+                    confirmButtonColor: '#4d661c'
+                });
+            }
+        })
+        .catch(err => {
+            handleAjaxError(err, "Lỗi kết nối máy chủ khi lưu sản phẩm.");
         });
     }
 </script>
-
-<jsp:include page="/WEB-INF/jsp/common/footer.jsp"/>
+</body>
+</html>

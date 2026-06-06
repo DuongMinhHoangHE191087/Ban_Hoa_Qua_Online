@@ -1,4 +1,4 @@
-﻿SET NOCOUNT ON;
+SET NOCOUNT ON;
 GO
 USE [master];
 GO
@@ -119,7 +119,7 @@ BEGIN
         harvest_date DATE NULL,
         shelf_life_days INT NULL,
         storage_instruction NVARCHAR(300) NULL,
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED')),
+        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED', 'OUT_OF_SEASON')),
         view_count INT NOT NULL CONSTRAINT DF_products_view_count DEFAULT 0,
         rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
         sold_quantity INT NOT NULL CONSTRAINT DF_products_sold_quantity DEFAULT 0,
@@ -1265,6 +1265,31 @@ PRINT '  * ANPHU-GIAM30K (An Phu):   Giảm cố định 30k cho đơn từ 200k
 PRINT '  * MEKONG-GIAM20K (Mekong):  Giảm cố định 20k cho đơn từ 150k'
 PRINT '  * KLEVER-GIAM50K (Klever):  Giảm cố định 50k cho đơn từ 400k'
 PRINT '========================================================================='
+
+-- Dynamic Test Data Seed Overwrites (Relative Dates)
+-- Loại A: Chưa hết hạn (Vẫn giữ ACTIVE trên shop)
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 1;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -2, GETDATE()) AS DATE), shelf_life_days = 7, status = 'ACTIVE' WHERE product_id = 3;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -3, GETDATE()) AS DATE), shelf_life_days = 10, status = 'ACTIVE' WHERE product_id = 6;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -1, GETDATE()) AS DATE), shelf_life_days = 7, status = 'ACTIVE' WHERE product_id = 8;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -2, GETDATE()) AS DATE), shelf_life_days = 12, status = 'ACTIVE' WHERE product_id = 10;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -1, GETDATE()) AS DATE), shelf_life_days = 5, status = 'ACTIVE' WHERE product_id = 12;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -3, GETDATE()) AS DATE), shelf_life_days = 4, status = 'ACTIVE' WHERE product_id = 14;
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 16;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -5, GETDATE()) AS DATE), shelf_life_days = 14, status = 'ACTIVE' WHERE product_id = 17;
+
+-- Loại B: Đã hết hạn thực tế (Tự động chuyển thành OUT_OF_SEASON khi load trang)
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -45, GETDATE()) AS DATE), shelf_life_days = 20, status = 'ACTIVE' WHERE product_id = 2;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -10, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 4;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -50, GETDATE()) AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id = 7;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -15, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 9;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -20, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 13;
+UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -10, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 15;
+
+-- Loại C: Không có hạn sử dụng (shelf_life_days = 0 hoặc NULL, luôn giữ ACTIVE)
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 0, status = 'ACTIVE' WHERE product_id = 5;
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = NULL, status = 'ACTIVE' WHERE product_id = 11;
+
 
 
 
