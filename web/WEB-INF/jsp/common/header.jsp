@@ -1,4 +1,4 @@
-<%-- header.jsp — Include vào đầu mỗi JSP page.
+﻿<%-- header.jsp — Include vào đầu mỗi JSP page.
      Khai báo taglib, set content type, include alert và navbar.
 
      CÁCH DÙNG:
@@ -27,7 +27,7 @@
 
     <!-- FontAwesome Icons & Material Symbols -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
 
     <!-- Core CSS -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">

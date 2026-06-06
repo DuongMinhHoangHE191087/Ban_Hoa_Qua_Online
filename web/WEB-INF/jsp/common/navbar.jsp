@@ -78,8 +78,15 @@
                     </li>
                     
                     <li class="navbar__user-profile">
-                        <div class="user-avatar">
-                            <i class="fa-solid fa-user-circle"></i>
+                        <div class="user-avatar" style="overflow: hidden;">
+                            <c:choose>
+                                <c:when test="${not empty sessionScope.currentUser.avatarUrl}">
+                                    <img src="${sessionScope.currentUser.avatarUrl.startsWith('http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                                </c:when>
+                                <c:otherwise>
+                                    <i class="fa-solid fa-user-circle"></i>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
                         <span class="user-greeting">
                             Chào, <a href="${pageContext.request.contextPath}/profile" class="user-name text-decoration-none" style="color: var(--color-primary-dark);"><c:out value="${sessionScope.currentUser.fullName}"/></a>
