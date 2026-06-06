@@ -433,11 +433,22 @@ public class UserDAO extends BaseDAO {
     /**
      * Xóa Refresh Token khi logout hoặc thu hồi
      */
-    public void deleteUserSession(String token) throws SQLException {
+    public void deleteSessionToken(String token) throws SQLException {
         String sql = "DELETE FROM user_sessions WHERE token = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, token);
+            stmt.executeUpdate();
+        }
+    }
+
+    /**
+     * Xóa toàn bộ phiên đăng nhập của TẤT CẢ người dùng (Dùng khi bảo trì hệ thống)
+     */
+    public void deleteAllSessions() throws SQLException {
+        String sql = "DELETE FROM user_sessions";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.executeUpdate();
         }
     }

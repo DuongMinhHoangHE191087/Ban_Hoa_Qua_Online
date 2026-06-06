@@ -120,9 +120,23 @@
                             <td><c:out value="${req.requestedQuantity}"/></td>
                             <td style="color:#d32f2f; font-weight:700;"><c:out value="${req.refundAmount}"/>đ</td>
                             <td>
-                                <span class="status-badge ${req.status == 'REQUESTED' ? 'status-requested' : (req.status == 'APPROVED' ? 'status-approved' : 'status-rejected')}">
-                                    <c:out value="${req.status}"/>
-                                </span>
+                                <c:choose>
+                                    <c:when test="${req.status == 'REQUESTED'}">
+                                        <span class="status-badge status-requested">Chưa duyệt</span>
+                                    </c:when>
+                                    <c:when test="${req.status == 'PROCESSING'}">
+                                        <span class="status-badge" style="background:#e0f2fe; color:#0284c7;">Đang xử lý</span>
+                                    </c:when>
+                                    <c:when test="${req.status == 'APPROVED'}">
+                                        <span class="status-badge status-approved">Đã duyệt</span>
+                                    </c:when>
+                                    <c:when test="${req.status == 'COMPLETED'}">
+                                        <span class="status-badge" style="background:#d1fae5; color:#059669;">Đã hoàn tiền</span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="status-badge status-rejected">Từ chối</span>
+                                    </c:otherwise>
+                                </c:choose>
                             </td>
                             <td><c:out value="${req.createdAt}"/></td>
                             <td>
@@ -130,6 +144,9 @@
                                     <c:when test="${req.status == 'REQUESTED'}">
                                         <button onclick="openDecisionModal('${req.returnRequestId}', 'APPROVED')" class="btn btn-sm btn-success mr-1">Duyệt</button>
                                         <button onclick="openDecisionModal('${req.returnRequestId}', 'REJECTED')" class="btn btn-sm btn-danger">Từ chối</button>
+                                    </c:when>
+                                    <c:when test="${req.status == 'PROCESSING'}">
+                                        <button class="btn btn-sm btn-info" disabled>Đang xử lý</button>
                                     </c:when>
                                     <c:otherwise>
                                         <small style="color: #666; font-style:italic;">Đã quyết định bởi Admin #${req.decidedBy}</small>

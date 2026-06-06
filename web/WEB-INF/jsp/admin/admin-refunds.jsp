@@ -104,7 +104,9 @@
                     <select name="status" class="rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none px-4 py-2 text-xs bg-white transition-all cursor-pointer">
                         <option value="" ${empty paramStatus ? 'selected' : ''}>Tất cả trạng thái</option>
                         <option value="PENDING" ${paramStatus == 'PENDING' ? 'selected' : ''}>Chờ duyệt (PENDING)</option>
+                        <option value="PROCESSING" ${paramStatus == 'PROCESSING' ? 'selected' : ''}>Đang xử lý (PROCESSING)</option>
                         <option value="APPROVED" ${paramStatus == 'APPROVED' ? 'selected' : ''}>Đã duyệt (APPROVED)</option>
+                        <option value="COMPLETED" ${paramStatus == 'COMPLETED' ? 'selected' : ''}>Hoàn tất (COMPLETED)</option>
                         <option value="REJECTED" ${paramStatus == 'REJECTED' ? 'selected' : ''}>Đã từ chối (REJECTED)</option>
                     </select>
                     <button type="submit" class="bg-primary hover:bg-primary-dk text-white font-bold px-4 py-2 rounded-xl text-xs shadow active:scale-95 cursor-pointer">
@@ -154,12 +156,22 @@
                                             <c:choose>
                                                 <c:when test="${r.status == 'PENDING' || r.status == 'REQUESTED'}">
                                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold">
-                                                        <i class="fa-solid fa-clock text-[10px]"></i> Chờ Duyệt
+                                                        <i class="fa-solid fa-clock text-[10px]"></i> Chưa Duyệt
+                                                    </span>
+                                                </c:when>
+                                                <c:when test="${r.status == 'PROCESSING'}">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-xs font-bold animate-pulse">
+                                                        <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Đang Xử Lý
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${r.status == 'APPROVED'}">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-teal-50 border border-teal-100 text-teal-800 text-xs font-bold">
+                                                        <i class="fa-solid fa-check text-[10px]"></i> Đã Duyệt Hoàn Tiền
+                                                    </span>
+                                                </c:when>
+                                                <c:when test="${r.status == 'COMPLETED'}">
                                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold">
-                                                        <i class="fa-solid fa-check-circle text-[10px]"></i> Đã Duyệt
+                                                        <i class="fa-solid fa-check-circle text-[10px]"></i> Đã Hoàn Tiền
                                                     </span>
                                                 </c:when>
                                                 <c:otherwise>
@@ -172,33 +184,53 @@
                                         <td class="px-6 py-4 text-center">
                                             <c:choose>
                                                 <c:when test="${r.status == 'PENDING' || r.status == 'REQUESTED'}">
-                                                    <div class="flex items-center justify-center gap-2">
-                                                        <%-- Approve Form --%>
-                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" 
-                                                              onsubmit="return confirmApprove(event, '${r.returnRequestId}')" class="inline">
+                                                    <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" class="w-full">
+                                                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                            <input type="hidden" name="action" value="process">
+                                                            <input type="hidden" name="requestId" value="${r.returnRequestId}">
+                                                            <input type="hidden" name="orderId" value="${r.orderId}">
+                                                            <input type="hidden" name="decisionReason" value="Đang xem xét">
+                                                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg text-xs transition-all shadow-sm">
+                                                                Đang xử lý
+                                                            </button>
+                                                        </form>
+                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" onsubmit="return confirmReject(event, '${r.returnRequestId}')" class="w-full">
+                                                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                            <input type="hidden" name="action" value="reject">
+                                                            <input type="hidden" name="requestId" value="${r.returnRequestId}">
+                                                            <input type="hidden" name="orderId" value="${r.orderId}">
+                                                            <input type="hidden" name="decisionReason" value="Từ chối">
+                                                            <button type="submit" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-1.5 rounded-lg text-xs transition-all">
+                                                                Từ chối
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </c:when>
+                                                <c:when test="${r.status == 'PROCESSING'}">
+                                                    <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" onsubmit="return confirmApprove(event, '${r.returnRequestId}')" class="w-full">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                             <input type="hidden" name="action" value="approve">
                                                             <input type="hidden" name="requestId" value="${r.returnRequestId}">
                                                             <input type="hidden" name="orderId" value="${r.orderId}">
                                                             <input type="hidden" name="decisionReason" value="Hợp lệ">
-                                                            <button type="submit" 
-                                                                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-2 rounded-lg text-xs transition-all cursor-pointer" 
-                                                                    title="Chấp nhận hoàn tiền">
-                                                                <i class="fa-solid fa-check"></i>
+                                                            <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-1.5 rounded-lg text-xs transition-all shadow-sm">
+                                                                Duyệt hoàn
                                                             </button>
                                                         </form>
-                                                        <%-- Reject Form --%>
-                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" 
-                                                              onsubmit="return confirmReject(event, '${r.returnRequestId}')" class="inline">
+                                                    </div>
+                                                </c:when>
+                                                <c:when test="${r.status == 'APPROVED'}">
+                                                    <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" class="w-full" onsubmit="return confirm('Xác nhận đã chuyển khoản / hoàn tiền thành công?');">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                            <input type="hidden" name="action" value="reject">
+                                                            <input type="hidden" name="action" value="complete">
                                                             <input type="hidden" name="requestId" value="${r.returnRequestId}">
                                                             <input type="hidden" name="orderId" value="${r.orderId}">
-                                                            <input type="hidden" name="decisionReason" value="Không hợp lệ">
-                                                            <button type="submit" 
-                                                                    class="bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded-lg text-xs transition-all cursor-pointer" 
-                                                                    title="Từ chối hoàn tiền">
-                                                                <i class="fa-solid fa-xmark"></i>
+                                                            <input type="hidden" name="decisionReason" value="Hoàn tiền thành công">
+                                                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-xs transition-all shadow-sm">
+                                                                Đã hoàn tiền
                                                             </button>
                                                         </form>
                                                     </div>

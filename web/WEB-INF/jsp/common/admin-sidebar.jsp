@@ -165,8 +165,15 @@
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/shops"
                    class="sb-nav-link ${param.activeMenu == 'shops' ? 'active' : ''}">
-                    <span class="sb-icon"><i class="fa-solid fa-store"></i></span>
+                    <span class="sb-icon"><i class="fa-solid fa-store-slash"></i></span>
                     <span>Phê duyệt Cửa hàng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/shops/manage"
+                   class="sb-nav-link ${param.activeMenu == 'manage-shops' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-store"></i></span>
+                    <span>Quản lý Cửa hàng</span>
                 </a>
             </li>
             <li class="sb-nav-item">
@@ -217,6 +224,23 @@
                    class="sb-nav-link ${param.activeMenu == 'notifications' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-bell"></i></span>
                     <span>Gửi Thông báo</span>
+                </a>
+            </li>
+        </ul>
+        <div class="sb-section-label">Hệ thống</div>
+        <ul class="sb-nav-list">
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/config"
+                   class="sb-nav-link ${param.activeMenu == 'config' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-cogs"></i></span>
+                    <span>Cấu hình Hệ thống</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/profile"
+                   class="sb-nav-link ${param.activeMenu == 'profile' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-user-shield"></i></span>
+                    <span>Hồ sơ Cá nhân</span>
                 </a>
             </li>
         </ul>
