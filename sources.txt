@@ -150,6 +150,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\test\ErrorCat
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\test\HashGen.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\test\TestCategory.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\test\TestDB.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\test\TestDelivery.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\util\DateUtil.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\util\FileUploadUtil.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\util\HashUtil.java
