@@ -31,3 +31,12 @@ Danh sách toàn bộ các task được giao cho Duong (cập nhật theo file 
 - [x] **Rate Products Stars** (Customer) - *Đã hoàn thành*
 - [x] **Average Rating Calculation** (System) - *Đã hoàn thành*
 - [x] **Approve/Reject Reviews** (Admin) - *Đã hoàn thành*
+
+## Phase 5: Advanced Admin & Shop Management
+- [ ] **Category Management** (Admin)
+- [ ] **System Config (Fee, Logo)** (Admin)
+- [ ] **Detailed Order & Refund Status** (System/Admin)
+- [ ] **Chat with Customer** (Customer, Shop Owner)
+- [ ] **Refund Approval** (Admin)
+- [ ] **Global Shop Management** (Admin)
+- [ ] **Admin Profile** (Admin)

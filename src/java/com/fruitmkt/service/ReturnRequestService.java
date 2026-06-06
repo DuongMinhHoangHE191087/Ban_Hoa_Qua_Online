@@ -19,8 +19,12 @@ public class ReturnRequestService {
     }
 
     public void processRequest(int requestId, String action, String reason, int adminId, int orderId) throws SQLException {
-        if ("approve".equals(action)) {
+        if ("process".equals(action)) {
+            returnRequestDAO.updateStatus(requestId, "PROCESSING", reason, adminId);
+        } else if ("approve".equals(action)) {
             returnRequestDAO.updateStatus(requestId, "APPROVED", reason, adminId);
+        } else if ("complete".equals(action)) {
+            returnRequestDAO.updateStatus(requestId, "COMPLETED", reason, adminId);
             orderDAO.updateStatus(orderId, "REFUNDED");
             // Could also add refund transaction logic here if real payment gateway was integrated
         } else if ("reject".equals(action)) {
