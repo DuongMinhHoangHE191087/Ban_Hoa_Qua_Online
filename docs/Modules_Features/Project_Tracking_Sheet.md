@@ -79,15 +79,15 @@ Tài liệu này được thiết kế để các bạn sinh viên có thể **c
 | 55 | Checkout Process | Order Confirmation | Customer | Order confirmation page with order ID and payment instructions. |  | II.34 | To Do | 2 | 90 |  |
 | 56 | Order Placement | Create Order | Customer | Customer checkout: Transactional order and order items creation. |  | II.35 | To Do | 5 | 180 |  |
 | 57 | Order Placement | Reservate Inventory | System | System: Hold stock during checkout and rollback if stock is insufficient. |  | II.36 | To Do | 4 | 150 |  |
-| 58 | Customer Order Tracking | Reorder Previous Purchase | Customer | Customer: Quick reordering of items from historical purchases. |  | II.37 | To Do | 3 | 120 |  |
-| 59 | Customer Order Tracking | Track Order Status | Customer | Customer: Track live order delivery status using visual timeline. |  | II.38 | To Do | 3 | 120 |  |
-| 60 | Customer Order Tracking | Estimated Delivery Time | Customer / Shop Owner / Delivery | Display estimated delivery time set by the Shop Owner. |  | II.39 | To Do | 1 | 60 |  |
-| 61 | Customer Order Tracking | Order Delivery Confirmation | Customer | Customer: Confirm receipt of order to update status to DELIVERED. |  | II.40 | To Do | 2 | 90 |  |
-| 62 | Delivery Staff Flow | View Orders for Delivery | Delivery | Delivery Staff: Dashboard with pending delivery jobs and location filters. |  | II.41 | To Do | 3 | 120 |  |
-| 63 | Delivery Staff Flow | Update Shipping Status | Delivery | Delivery Staff: Update delivery status to Shipped, Delivered, or Failed. |  | II.42 | To Do | 2 | 90 |  |
-| 64 | Shop Owner Order Processing | Approve Order Shop Owner | Shop Owner | Shop Owner: Approve orders and trigger packing process. |  | II.43 | To Do | 3 | 120 |  |
-| 65 | Shop Owner Order Processing | Reject Order Shop Owner | Shop Owner | Shop Owner: Cancel orders with a mandatory reason and restock items. |  | II.44 | To Do | 3 | 120 |  |
-| 66 | Shop Owner Order Processing | Mark Order as Delivered | Shop Owner / Delivery | Shop Owner/Delivery: Manually mark orders as delivered to close sale. |  | II.45 | To Do | 2 | 90 |  |
+| 58 | Customer Order Tracking | Reorder Previous Purchase | Customer | Customer: Quick reordering of items from historical purchases. |  | II.37 | Completed | 3 | 120 |  |
+| 59 | Customer Order Tracking | Track Order Status | Customer | Customer: Track live order delivery status using visual timeline. |  | II.38 | Completed | 3 | 120 |  |
+| 60 | Customer Order Tracking | Estimated Delivery Time | Customer / Shop Owner / Delivery | Display estimated delivery time set by the Shop Owner. |  | II.39 | Completed | 1 | 60 |  |
+| 61 | Customer Order Tracking | Order Delivery Confirmation | Customer | Customer: Confirm receipt of order to update status to DELIVERED. |  | II.40 | Completed | 2 | 90 |  |
+| 62 | Delivery Staff Flow | View Orders for Delivery | Delivery | Delivery Staff: Dashboard with pending delivery jobs and location filters. |  | II.41 | Completed | 3 | 120 |  |
+| 63 | Delivery Staff Flow | Update Shipping Status | Delivery | Delivery Staff: Update delivery status to Shipped, Delivered, or Failed. |  | II.42 | Completed | 2 | 90 |  |
+| 64 | Shop Owner Order Processing | Approve Order Shop Owner | Shop Owner | Shop Owner: Approve orders and trigger packing process. |  | II.43 | Completed | 3 | 120 |  |
+| 65 | Shop Owner Order Processing | Reject Order Shop Owner | Shop Owner | Shop Owner: Cancel orders with a mandatory reason and restock items. |  | II.44 | Completed | 3 | 120 |  |
+| 66 | Shop Owner Order Processing | Mark Order as Delivered | Shop Owner / Delivery | Shop Owner/Delivery: Manually mark orders as delivered to close sale. |  | II.45 | Completed | 2 | 90 |  |
 | 67 | Content Moderation & Categories | Approve Products | Admin | Admin: Review and approve new product listings to active status. |  | II.46 | To Do | 3 | 120 |  |
 | 68 | Content Moderation & Categories | Remove Inappropriate Products | Admin | Admin: Block or hide violating product listings from the public. |  | II.47 | To Do | 2 | 90 |  |
 | 69 | Content Moderation & Categories | Manage Categories CRUD | Admin | Admin: CRUD operations for managing product categories. |  | II.48 | To Do | 4 | 150 |  |
