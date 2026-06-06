@@ -11,9 +11,9 @@ tailwind.config = {
     theme: {
         extend: {
             colors: {
-                primary: '#0284C7', 'primary-hover': '#0369A1', 'primary-light': '#E0F2FE',
+                primary: '#16A34A', 'primary-hover': '#15803D', 'primary-light': '#DCFCE7',
                 'txt': '#0F172A', 'txt-2': '#475569', 'txt-3': '#94A3B8',
-                'border-c': '#BAE6FD', 'bg-page': '#F0F9FF'
+                'border-c': '#BBF7D0', 'bg-page': '#F0FDF4'
             },
             fontFamily: { sans: ['Lexend', 'sans-serif'] }
         }
@@ -22,8 +22,8 @@ tailwind.config = {
 </script>
 
 <style>
-body { background: #F0F9FF; }
-.glass-card { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); border: 1px solid rgba(186,230,253,0.6); box-shadow: 0 4px 24px -6px rgba(2,132,199,0.08); }
+body { background: #F0FDF4; }
+.glass-card { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); border: 1px solid rgba(187,247,208,0.6); box-shadow: 0 4px 24px -6px rgba(22,163,74,0.08); }
 .info-row { display: flex; flex-direction: column; gap: 2px; }
 .info-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; }
 .info-value { font-size: 14px; font-weight: 600; color: #0F172A; }
@@ -42,7 +42,7 @@ body { background: #F0F9FF; }
                 <i class="fa-solid fa-truck-fast text-white text-lg"></i>
             </div>
             <div>
-                <h1 class="text-2xl font-extrabold text-[#0C4A6E] tracking-tight">Chi tiết giao hàng #${delivery.deliveryId}</h1>
+                <h1 class="text-2xl font-extrabold text-[#14532D] tracking-tight">Chi tiết giao hàng #${delivery.deliveryId}</h1>
                 <p class="text-txt-3 text-xs">Mã đơn hàng: #${delivery.orderId}</p>
             </div>
         </div>
@@ -76,7 +76,7 @@ body { background: #F0F9FF; }
 
                 <%-- Status Card --%>
                 <div class="glass-card rounded-3xl p-6">
-                    <h2 class="font-bold text-[#0C4A6E] text-base mb-4 flex items-center gap-2">
+                    <h2 class="font-bold text-[#14532D] text-base mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-route text-primary"></i> Hành trình giao hàng
                     </h2>
                     <%-- Status Steps --%>

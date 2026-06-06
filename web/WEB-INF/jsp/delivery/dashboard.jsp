@@ -11,15 +11,15 @@ tailwind.config = {
     theme: {
         extend: {
             colors: {
-                primary: '#0284C7',
-                'primary-hover': '#0369A1',
-                'primary-light': '#E0F2FE',
-                'primary-mid': '#38BDF8',
+                primary: '#16A34A',
+                'primary-hover': '#15803D',
+                'primary-light': '#DCFCE7',
+                'primary-mid': '#4ADE80',
                 'txt': '#0F172A',
                 'txt-2': '#475569',
                 'txt-3': '#94A3B8',
-                'border-c': '#BAE6FD',
-                'bg-page': '#F0F9FF',
+                'border-c': '#BBF7D0',
+                'bg-page': '#F0FDF4',
             },
             fontFamily: { sans: ['Lexend', 'sans-serif'] }
         }
@@ -28,12 +28,12 @@ tailwind.config = {
 </script>
 
 <style>
-body { background: #F0F9FF; }
+body { background: #F0FDF4; }
 .glass-card {
     background: rgba(255,255,255,0.88);
     backdrop-filter: blur(14px);
-    border: 1px solid rgba(186,230,253,0.6);
-    box-shadow: 0 4px 24px -6px rgba(2,132,199,0.08);
+    border: 1px solid rgba(187,247,208,0.6);
+    box-shadow: 0 4px 24px -6px rgba(22,163,74,0.08);
 }
 .status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:9999px; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
 .tab-pill { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:9999px; font-size:12px; font-weight:700; transition:all .18s; cursor:pointer; }
@@ -48,7 +48,7 @@ body { background: #F0F9FF; }
                 <div class="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md">
                     <i class="fa-solid fa-truck-fast text-white text-lg"></i>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-extrabold text-[#0C4A6E] tracking-tight">Dashboard Giao Hàng</h1>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-[#14532D] tracking-tight">Dashboard Giao Hàng</h1>
             </div>
             <p class="text-txt-2 text-sm ml-1">Quản lý và cập nhật trạng thái các đơn hàng được phân công</p>
         </div>
