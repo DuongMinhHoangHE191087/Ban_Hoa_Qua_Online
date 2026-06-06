@@ -29,6 +29,26 @@ public class RoleFilter implements Filter {
 
         HttpSession session = req.getSession(false);
         User user = SessionUtil.getCurrentUser(session);
+
+        // Đồng bộ hóa trạng thái/vai trò của người dùng từ Database để tránh lệch session khi Admin duyệt shop
+        if (user != null) {
+            try {
+                User dbUser = new com.fruitmkt.dao.UserDAO().findUserById(user.getUserId());
+                if (dbUser != null) {
+                    if (!"ACTIVE".equals(dbUser.getStatus())) {
+                        session.invalidate();
+                        user = null;
+                    } else if (!dbUser.getRole().equals(user.getRole()) 
+                            || !java.util.Objects.equals(dbUser.getPhone(), user.getPhone())) {
+                        SessionUtil.setCurrentUser(session, dbUser);
+                        user = dbUser;
+                    }
+                }
+            } catch (Exception e) {
+                req.getServletContext().log("Lỗi đồng bộ session trong RoleFilter: " + e.getMessage(), e);
+            }
+        }
+
         String uri = req.getRequestURI();
         String ctx = req.getContextPath();
 

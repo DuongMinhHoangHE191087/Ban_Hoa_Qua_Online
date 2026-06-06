@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -187,6 +187,26 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Yêu cầu bổ sung Số điện thoại liên hệ -->
+                        <c:if test="${empty sessionScope.currentUser.phone}">
+                            <div class="bg-amber-50/80 p-5 rounded-xl border border-amber-200/60 space-y-3 shadow-sm">
+                                <h3 class="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-[16px] text-amber-700">phone</span>
+                                    Yêu cầu bổ sung Số điện thoại liên hệ *
+                                </h3>
+                                <p class="text-[11px] text-amber-700 font-medium">Tài khoản liên kết của bạn chưa có số điện thoại. Vui lòng cập nhật số điện thoại để thực hiện đăng ký gian hàng.</p>
+                                <div>
+                                    <label class="text-xs font-semibold text-primary" for="userPhone">Số điện thoại di động *</label>
+                                    <div class="relative mt-1">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">phone</span>
+                                        <input class="w-full pl-9 pr-4 py-2.5 bg-white border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
+                                               id="userPhone" name="userPhone"
+                                               placeholder="VD: 0987654321" type="tel" required pattern="^(0|\+84)(3[2-9]|5[689]|7[06-9]|8[1-689]|9[0-9])[0-9]{7}$">
+                                    </div>
+                                </div>
+                            </div>
+                        </c:if>
 
                         <!-- Thông tin cửa hàng -->
                         <div class="bg-white/40 p-5 rounded-xl border border-white/60 space-y-4">
