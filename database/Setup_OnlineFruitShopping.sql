@@ -837,28 +837,28 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.users ON;
     INSERT INTO dbo.users (user_id, full_name, email, password_hash, phone, role, status, user_address, avatar_url, is_email_verified, email_verification_code_hash, email_verification_expires_at, email_verification_resend_at, email_verification_sent_at, failed_login_count, locked_until, created_at, updated_at)
     VALUES
-        (1, N'Admin System', N'admin@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
-        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
-        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
-        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
-        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
-        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
-        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
-        (10, N'Nguyễn Văn Hùng', N'hungnv@gmail.com', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0912345601', N'CUSTOMER', N'ACTIVE', N'12 Phố Cổ, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (11, N'Phạm Minh Tuấn', N'tuanpm@gmail.com', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0912345602', N'CUSTOMER', N'ACTIVE', N'85 Xuân Thủy, Cầu Giấy', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (12, N'Trần Thị Mai', N'maitt@gmail.com', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bà Trưng', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (8, N'Lê Minh Tuấn', N'customer3@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000008', N'CUSTOMER', N'ACTIVE', N'18 Nguyễn Du, District 1, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (9, N'Nguyễn Thị Lan', N'customer4@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0900000009', N'CUSTOMER', N'ACTIVE', N'45 Lê Lợi, Bến Nghé, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (27, N'Nguyễn Văn Đăng Ký', N'pending_shop1@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0911223344', N'CUSTOMER', N'ACTIVE', NULL, N'assets/images/default-avatar.svg', 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
-        (28, N'Trần Thị Chờ Duyệt', N'pending_shop2@fruitshop.local', N'$2a$10$VF1Mn8hZC0IlW13DiuIYwuJ0iV/4B871I37pOCuZEujbOA.iG.gae', N'0988776655', N'CUSTOMER', N'ACTIVE', NULL, N'assets/images/default-avatar.svg', 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
+        (1, N'Admin System', N'admin@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000001', N'ADMIN', N'ACTIVE', N'Central admin office', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:00:00', '2026-05-01T09:00:00'),
+        (2, N'Delivery Nguyen', N'delivery@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000002', N'DELIVERY', N'ACTIVE', N'Delivery hub, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:05:00', '2026-05-01T09:05:00'),
+        (3, N'An Phu Orchard Owner', N'owner1@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000003', N'SHOP_OWNER', N'ACTIVE', N'12 Le Loi, District 1, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:10:00', '2026-05-01T09:10:00'),
+        (4, N'Mekong Fresh Owner', N'owner2@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000004', N'SHOP_OWNER', N'ACTIVE', N'88 Nguyen Trai, District 5, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:15:00', '2026-05-01T09:15:00'),
+        (5, N'Tran Minh Customer', N'customer1@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000005', N'CUSTOMER', N'ACTIVE', N'15 Pasteur, District 3, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:20:00', '2026-05-01T09:20:00'),
+        (6, N'Le Thu Customer', N'customer2@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000006', N'CUSTOMER', N'ACTIVE', N'90 Truong Chinh, Tan Binh, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:25:00', '2026-05-01T09:25:00'),
+        (7, N'Klever Premium Owner', N'owner3@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000007', N'SHOP_OWNER', N'ACTIVE', N'52 Vo Thi Sau, District 3, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, '2026-05-01T09:30:00', '2026-05-01T09:30:00'),
+        (10, N'Nguyễn Văn Hùng', N'hungnv@gmail.com', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0912345601', N'CUSTOMER', N'ACTIVE', N'12 Phố Cổ, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (11, N'Phạm Minh Tuấn', N'tuanpm@gmail.com', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0912345602', N'CUSTOMER', N'ACTIVE', N'85 Xuân Thủy, Cầu Giấy', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (12, N'Trần Thị Mai', N'maitt@gmail.com', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0912345603', N'CUSTOMER', N'ACTIVE', N'45 Chùa Bộc, Đống Đa', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (13, N'Lê Hoàng Nam', N'namlh@gmail.com', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0912345604', N'CUSTOMER', N'ACTIVE', N'102 Nguyễn Trãi, Thanh Xuân', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (14, N'Đỗ Thùy Chi', N'chidt@gmail.com', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0912345605', N'CUSTOMER', N'ACTIVE', N'56 Bạch Mai, Hai Bạch Trưng', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (15, N'Vũ Quốc Anh', N'anhvq@gmail.com', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0912345606', N'CUSTOMER', N'ACTIVE', N'29 Lạc Long Quân, Tây Hồ', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (20, N'Test Admin', N'admin@metafruit.vn', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0988888001', N'ADMIN', N'ACTIVE', N'MetaFruit Office', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (21, N'Test Shop Owner', N'shop@metafruit.vn', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0988888002', N'SHOP_OWNER', N'ACTIVE', N'100 Láng Hạ, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (22, N'Test Delivery', N'delivery@metafruit.vn', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0988888003', N'DELIVERY', N'ACTIVE', N'200 Cầu Giấy, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (23, N'Test Customer', N'customer@metafruit.vn', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0988888004', N'CUSTOMER', N'ACTIVE', N'300 Tây Sơn, Hà Nội', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (8, N'Lê Minh Tuấn', N'customer3@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000008', N'CUSTOMER', N'ACTIVE', N'18 Nguyễn Du, District 1, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (9, N'Nguyễn Thị Lan', N'customer4@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0900000009', N'CUSTOMER', N'ACTIVE', N'45 Lê Lợi, Bến Nghé, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (26, N'Khách Hàng VIP', N'vipcustomer@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0988888005', N'CUSTOMER', N'ACTIVE', N'50 Lý Tự Trọng, HCMC', N'assets/images/default-avatar.svg', 1, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (27, N'Nguyễn Văn Đăng Ký', N'pending_shop1@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0911223344', N'CUSTOMER', N'ACTIVE', NULL, N'assets/images/default-avatar.svg', 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE()),
+        (28, N'Trần Thị Chờ Duyệt', N'pending_shop2@fruitshop.local', N'$2a$10$eJtSBoFU9dxFcylt020R/.ZGPp7ngnFUZJ6haG9bHNCzGPzPyzryK', N'0988776655', N'CUSTOMER', N'ACTIVE', NULL, N'assets/images/default-avatar.svg', 0, NULL, NULL, NULL, NULL, 0, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.users OFF;
 
     SET IDENTITY_INSERT dbo.user_sessions ON;
@@ -1465,20 +1465,20 @@ PRINT '=========================================================================
 PRINT '                      ONLINE FRUIT SHOPPING SEED DATA                     '
 PRINT '========================================================================='
 PRINT '--- USERS & ACCOUNTS ---'
-PRINT '  * ADMIN:           admin@fruitshop.local       / mật khẩu: admin123'
-PRINT '  * TEST ADMIN:      admin@metafruit.vn          / mật khẩu: admin123'
-PRINT '  * SHOP OWNER 1:    owner1@fruitshop.local      / mật khẩu: admin123  (An Phu Orchard)'
-PRINT '  * SHOP OWNER 2:    owner2@fruitshop.local      / mật khẩu: admin123  (Mekong Fresh Farm)'
-PRINT '  * SHOP OWNER 3:    owner3@fruitshop.local      / mật khẩu: admin123  (Klever Premium Fruits)'
-PRINT '  * TEST SHOP OWNER: shop@metafruit.vn           / mật khẩu: admin123  (MetaFruit Test Shop)'
-PRINT '  * DELIVERY STAFF:  delivery@fruitshop.local    / mật khẩu: admin123'
-PRINT '  * TEST DELIVERY:   delivery@metafruit.vn       / mật khẩu: admin123'
-PRINT '  * CUSTOMER 1:      customer1@fruitshop.local   / mật khẩu: admin123'
-PRINT '  * CUSTOMER 2:      customer2@fruitshop.local   / mật khẩu: admin123'
-PRINT '  * TEST CUSTOMER:   customer@metafruit.vn       / mật khẩu: admin123'
-PRINT '  * CUSTOMER 3 (NEW):customer3@fruitshop.local   / mật khẩu: admin123'
-PRINT '  * CUSTOMER 4 (NEW):customer4@fruitshop.local   / mật khẩu: admin123'
-PRINT '  * CUSTOMER VIP:    vipcustomer@fruitshop.local / mật khẩu: admin123'
+PRINT '  * ADMIN:           admin@fruitshop.local       / mật khẩu: 123456'
+PRINT '  * TEST ADMIN:      admin@metafruit.vn          / mật khẩu: 123456'
+PRINT '  * SHOP OWNER 1:    owner1@fruitshop.local      / mật khẩu: 123456  (An Phu Orchard)'
+PRINT '  * SHOP OWNER 2:    owner2@fruitshop.local      / mật khẩu: 123456  (Mekong Fresh Farm)'
+PRINT '  * SHOP OWNER 3:    owner3@fruitshop.local      / mật khẩu: 123456  (Klever Premium Fruits)'
+PRINT '  * TEST SHOP OWNER: shop@metafruit.vn           / mật khẩu: 123456  (MetaFruit Test Shop)'
+PRINT '  * DELIVERY STAFF:  delivery@fruitshop.local    / mật khẩu: 123456'
+PRINT '  * TEST DELIVERY:   delivery@metafruit.vn       / mật khẩu: 123456'
+PRINT '  * CUSTOMER 1:      customer1@fruitshop.local   / mật khẩu: 123456'
+PRINT '  * CUSTOMER 2:      customer2@fruitshop.local   / mật khẩu: 123456'
+PRINT '  * TEST CUSTOMER:   customer@metafruit.vn       / mật khẩu: 123456'
+PRINT '  * CUSTOMER 3 (NEW):customer3@fruitshop.local   / mật khẩu: 123456'
+PRINT '  * CUSTOMER 4 (NEW):customer4@fruitshop.local   / mật khẩu: 123456'
+PRINT '  * CUSTOMER VIP:    vipcustomer@fruitshop.local / mật khẩu: 123456'
 PRINT ''
 PRINT '--- ACTIVE COUPONS & PROMOTIONS ---'
 PRINT '  * SHOP10 (Shop 7 - Klever): Giảm 10% (Tối đa 50k) cho đơn từ 100k'
