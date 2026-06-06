@@ -25,6 +25,7 @@ C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\filter\
 C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\filter\LoggingFilter.java
 C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\filter\RoleFilter.java
 C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\filter\SessionRestoreFilter.java
+C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\listener\AutoSettlementListener.java
 C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\CartSummaryDTO.java
 C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\CheckoutDTO.java
 C:\Users\admin\Documents\GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\OrderSummaryDTO.java
