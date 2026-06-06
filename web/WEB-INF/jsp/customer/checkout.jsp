@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -226,7 +226,7 @@
                 </a>
             </div>
 
-            <form action="${pageContext.request.contextPath}/checkout" method="post" class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+            <form id="checkoutForm" action="${pageContext.request.contextPath}/checkout" method="post" onsubmit="return validateCheckoutForm()" class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 <input type="hidden" name="variantIds" value="<c:out value="${param.variantIds}"/>">
 
@@ -239,13 +239,32 @@
                             <h2 class="font-headline-md text-headline-md font-bold">Thông tin giao hàng</h2>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <%-- Saved Addresses Dropdown --%>
+                            <c:if test="${not empty userAddresses}">
+                                <div class="flex flex-col gap-2 md:col-span-2 mb-2">
+                                    <label class="font-label-md text-label-md text-[#14532D] font-bold" for="savedAddressSelect">Chọn từ sổ địa chỉ của bạn</label>
+                                    <select id="savedAddressSelect" class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" onchange="onAddressSelectChange(this)">
+                                        <option value="">-- Chọn một địa chỉ đã lưu --</option>
+                                        <c:forEach var="addr" items="${userAddresses}">
+                                            <option value="${addr.addressId}" 
+                                                    data-name="<c:out value='${addr.recipientName}'/>" 
+                                                    data-phone="<c:out value='${addr.recipientPhone}'/>" 
+                                                    data-detail="<c:out value='${addr.addressDetail}'/>"
+                                                    ${addr.default ? 'selected' : ''}>
+                                                <c:out value="${addr.recipientName}"/> - <c:out value="${addr.recipientPhone}"/> (<c:out value="${addr.addressDetail}"/>) ${addr.default ? '[Mặc định]' : ''}
+                                            </option>
+                                        </c:forEach>
+                                    </select>
+                                </div>
+                            </c:if>
+
                             <div class="flex flex-col gap-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="fullName">Họ và tên</label>
+                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="fullName">Họ và tên người nhận</label>
                                 <input class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="fullName" name="fullName"
                                        value="<c:out value="${sessionScope.currentUser.fullName}"/>" placeholder="Nhập họ và tên" required type="text">
                             </div>
                             <div class="flex flex-col gap-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="phone">Số điện thoại</label>
+                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="phone">Số điện thoại người nhận</label>
                                 <input class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="phone" name="phone"
                                        value="<c:out value="${sessionScope.currentUser.phone}"/>" placeholder="Nhập số điện thoại" required type="tel">
                             </div>
@@ -413,7 +432,7 @@
                             </div>
                             <span class="block text-right text-xs text-on-surface-variant mt-1">(Đã bao gồm VAT & Cước bảo ôn cold-chain)</span>
                         </div>
-                        <button type="submit" class="w-full py-4 rounded-lg bg-[#14532D] text-white font-label-md text-label-md flex justify-center items-center gap-2 hover:bg-opacity-90 transition-all font-bold cursor-pointer active:scale-95 shadow-md">
+                        <button id="submitBtn" type="submit" class="w-full py-4 rounded-lg bg-[#14532D] text-white font-label-md text-label-md flex justify-center items-center gap-2 hover:bg-opacity-90 transition-all font-bold cursor-pointer active:scale-95 shadow-md">
                             Đặt hàng ngay
                             <span class="material-symbols-outlined">arrow_forward</span>
                         </button>
@@ -641,6 +660,88 @@ document.getElementById('couponInput').addEventListener('keydown', e => {
         e.preventDefault();
         applyCoupon(); 
     } 
+});
+
+// Saved address select logic
+function onAddressSelectChange(selectElem) {
+    const selectedOption = selectElem.options[selectElem.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+        document.getElementById('fullName').value = selectedOption.getAttribute('data-name') || '';
+        document.getElementById('phone').value = selectedOption.getAttribute('data-phone') || '';
+        document.getElementById('deliveryAddress').value = selectedOption.getAttribute('data-detail') || '';
+    }
+}
+
+// Client-side checkout validation
+function validateCheckoutForm() {
+    const fullNameElem = document.getElementById('fullName');
+    const phoneElem = document.getElementById('phone');
+    const addressElem = document.getElementById('deliveryAddress');
+
+    // Remove old error alert if exists
+    const existingAlert = document.getElementById('js-validation-alert');
+    if (existingAlert) {
+        existingAlert.remove();
+    }
+
+    const fullName = fullNameElem.value.trim();
+    const phone = phoneElem.value.trim();
+    const address = addressElem.value.trim();
+
+    let errors = [];
+
+    if (fullName.length < 3) {
+        errors.push("Họ và tên người nhận phải từ 3 ký tự trở lên.");
+    }
+
+    const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
+    if (!phoneRegex.test(phone)) {
+        errors.push("Số điện thoại không hợp lệ (phải bắt đầu bằng 0 hoặc +84 và theo sau là 9 chữ số thuộc nhà mạng VN).");
+    }
+
+    if (address.length < 5) {
+        errors.push("Địa chỉ giao hàng chi tiết phải từ 5 ký tự trở lên.");
+    }
+
+    if (errors.length > 0) {
+        let errorListHtml = "";
+        for (let i = 0; i < errors.length; i++) {
+            errorListHtml += "<li>" + errors[i] + "</li>";
+        }
+        const alertHtml = 
+            '<div id="js-validation-alert" class="mb-6 p-4 rounded-2xl bg-red-50 flex flex-col gap-2 border-l-4 border-red-500 text-red-700 shadow-md">' +
+                '<div class="flex items-center gap-3">' +
+                    '<span class="material-symbols-outlined text-red-500">error</span>' +
+                    '<strong class="text-sm">Vui lòng sửa các lỗi sau trước khi thanh toán:</strong>' +
+                '</div>' +
+                '<ul class="list-disc pl-9 text-xs font-semibold space-y-1">' +
+                    errorListHtml +
+                '</ul>' +
+            '</div>';
+        
+        const form = document.getElementById('checkoutForm');
+        form.insertAdjacentHTML('beforebegin', alertHtml);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return false;
+    }
+
+    // Disable submit button to prevent double-submit
+    const btn = document.getElementById('submitBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = 'Đang xử lý đơn hàng...';
+    }
+
+    return true;
+}
+
+// Prefill default address on load if available
+document.addEventListener('DOMContentLoaded', () => {
+    const selectElem = document.getElementById('savedAddressSelect');
+    if (selectElem && selectElem.value) {
+        onAddressSelectChange(selectElem);
+    }
 });
 </script>
 
