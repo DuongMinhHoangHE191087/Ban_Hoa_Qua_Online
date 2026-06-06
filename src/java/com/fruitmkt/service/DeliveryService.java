@@ -61,6 +61,9 @@ public class DeliveryService {
         if (del.getStaffId() == null || !del.getStaffId().equals(staffId)) {
             throw new IllegalArgumentException("Bạn không có quyền cập nhật thời gian dự kiến cho đơn giao hàng này.");
         }
+        if ("DELIVERED".equals(del.getStatus()) || "FAILED".equals(del.getStatus())) {
+            throw new IllegalArgumentException("Không thể cập nhật thời gian dự kiến cho đơn hàng đã hoàn tất hoặc thất bại.");
+        }
         deliveryDAO.updateEstimatedTime(deliveryId, estimatedTime);
     }
 

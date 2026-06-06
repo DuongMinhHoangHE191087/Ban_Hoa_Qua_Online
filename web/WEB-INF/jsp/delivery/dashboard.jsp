@@ -114,7 +114,11 @@ body { background: #F0FDF4; }
                 <div class="px-5 py-4 border-b border-border-c bg-gradient-to-r from-[#EFF6FF] to-[#F0F9FF] flex justify-between items-center">
                     <div>
                         <span class="text-xs text-txt-3 font-medium">Đơn hàng</span>
-                        <h3 class="font-extrabold text-[#0C4A6E] text-base">#${dto.orderId}</h3>
+                        <h3 class="font-extrabold text-[#0C4A6E] text-base">
+                            <a href="${pageContext.request.contextPath}/delivery/detail?id=${dto.deliveryId}" class="hover:underline hover:text-primary flex items-center gap-1.5">
+                                #${dto.orderId} <i class="fa-regular fa-eye text-xs text-txt-3"></i>
+                            </a>
+                        </h3>
                     </div>
                     <%-- Status Badge --%>
                     <c:choose>
@@ -198,7 +202,7 @@ body { background: #F0FDF4; }
                                     <span class="text-txt-3 italic text-xs">Chưa thiết lập</span>
                                 </c:otherwise>
                             </c:choose>
-                            <c:if test="${not empty dto.delivery.staffId}">
+                            <c:if test="${not empty dto.delivery.staffId && dto.deliveryStatus != 'DELIVERED' && dto.deliveryStatus != 'FAILED'}">
                                 <button type="button" onclick="openEstimateModal('${dto.deliveryId}')"
                                     class="ml-2 text-primary hover:text-primary-hover underline text-[11px] font-bold cursor-pointer bg-none border-none">Cập nhật</button>
                             </c:if>

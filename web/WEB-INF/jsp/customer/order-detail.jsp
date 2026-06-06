@@ -155,7 +155,10 @@
             <!-- Timeline connectors background -->
             <div class="absolute top-[50px] left-0 right-0 h-1.5 bg-outline-variant/30 rounded-full z-0"></div>
             <!-- Timeline active progress bar -->
-            <div class="absolute top-[50px] left-0 h-1.5 bg-primary rounded-full z-0 transition-all duration-500" style="width: ${stepNum == -1 ? '100%' : (stepNum - 1) * 25}%"></div>
+            <div id="timeline-active-bar" class="absolute top-[50px] left-0 h-1.5 bg-primary rounded-full z-0 transition-all duration-500" style="width: 0%"></div>
+            <script>
+                document.getElementById('timeline-active-bar').style.width = "${stepNum == -1 ? 100 : (stepNum - 1) * 25}%";
+            </script>
             
             <div class="flex justify-between items-center z-10 relative">
                 <c:choose>
@@ -352,6 +355,26 @@
                         <c:when test="${not empty delivery}">
                             <div class="flex flex-col gap-5 text-sm">
                                 <div>
+                                    <span class="text-on-surface-variant block text-xs font-semibold mb-1.5 uppercase tracking-wider">Xác nhận của bạn</span>
+                                    <c:choose>
+                                        <c:when test="${order.receivedStatus == 'RECEIVED'}">
+                                            <span class="bg-emerald-100 text-emerald-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+                                                <span class="material-symbols-outlined text-sm font-bold">done_all</span> Bạn đã xác nhận nhận hàng
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.receivedStatus == 'NOT_RECEIVED'}">
+                                            <span class="bg-red-100 text-red-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+                                                <span class="material-symbols-outlined text-sm font-bold">report_problem</span> Bạn đã báo cáo chưa nhận được hàng
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="bg-amber-100 text-amber-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+                                                <span class="material-symbols-outlined text-sm font-bold">hourglass_empty</span> Chờ bạn xác nhận
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                                <div>
                                     <span class="text-on-surface-variant block text-xs font-semibold mb-1.5 uppercase tracking-wider">Trạng thái vận chuyển</span>
                                     <c:choose>
                                         <c:when test="${delivery.status == 'DELIVERED'}">
@@ -493,17 +516,28 @@
                     </div>
                 </c:if>
 
-                <!-- Nút xác nhận nhận hàng hỏa tốc -->
-                <c:if test="${order.status == 'DISPATCHED' || order.status == 'SHIPPED'}">
-                    <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
-                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                        <input type="hidden" name="action" value="confirmDelivery">
-                        <input type="hidden" name="orderId" value="${order.orderId}">
-                        <button type="submit" class="w-full bg-primary text-on-primary hover:bg-inverse-surface py-4 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Nhấn xác nhận khi bạn đã nhận được gói hàng tươi ngon và kiểm tra đúng số lượng.');">
-                            <span class="material-symbols-outlined">verified</span> Đã nhận được hàng
-                        </button>
-                    </form>
-                    <p class="text-[10px] text-on-surface-variant text-center opacity-85 mt-1">Vui lòng chỉ bấm khi đã kiểm tra chất lượng trái cây.</p>
+                <!-- Nút xác nhận nhận hàng hỏa tốc hoặc báo chưa nhận được hàng -->
+                <c:if test="${(order.status == 'DISPATCHED' || order.status == 'DELIVERED') && (empty order.receivedStatus || order.receivedStatus == 'PENDING')}">
+                    <div class="flex flex-col gap-3 w-full">
+                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                            <input type="hidden" name="action" value="confirmDelivery">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+                            <button type="submit" class="w-full bg-primary text-on-primary hover:bg-inverse-surface py-3.5 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Nhấn xác nhận khi bạn đã nhận được gói hàng tươi ngon và kiểm tra đúng số lượng.');">
+                                <span class="material-symbols-outlined text-lg">verified</span> Đã nhận được hàng
+                            </button>
+                        </form>
+                        
+                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                            <input type="hidden" name="action" value="reportNotReceived">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+                            <button type="submit" class="w-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white py-3 rounded-xl font-bold transition-all border border-red-200 flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Bạn xác nhận chưa nhận được hàng? Hệ thống sẽ báo cáo lên quản trị viên để giải quyết tranh chấp.');">
+                                <span class="material-symbols-outlined text-lg">report_problem</span> Chưa nhận được hàng
+                            </button>
+                        </form>
+                        <p class="text-[10px] text-on-surface-variant text-center opacity-85 mt-1">Vui lòng kiểm tra kỹ trước khi bấm xác nhận.</p>
+                    </div>
                 </c:if>
 
                 <!-- Đã giao hàng thành công (DELIVERED) -> Khách hàng được quyền đánh giá hoặc yêu cầu đổi trả -->

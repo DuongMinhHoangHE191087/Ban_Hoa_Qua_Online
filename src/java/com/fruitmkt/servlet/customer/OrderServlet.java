@@ -182,6 +182,15 @@ public class OrderServlet extends HttpServlet {
                 }
                 orderService.customerConfirmDelivery(orderId, user.getUserId());
                 SessionUtil.setFlashMessage(req.getSession(), "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
+            } else if ("reportNotReceived".equals(action)) {
+                // RBAC: chỉ chủ đơn mới được báo cáo
+                com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
+                if (ord == null) {
+                    resp.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động này.");
+                    return;
+                }
+                orderDAO.updateReceivedStatus(orderId, "NOT_RECEIVED");
+                SessionUtil.setFlashMessage(req.getSession(), "Bạn đã báo cáo chưa nhận được hàng. Ban quản trị sẽ tiến hành xác minh đơn hàng.", "warning");
             } else if ("cancel".equals(action)) {
                 // [FIX B6] RBAC: chỉ chủ đơn mới được hủy
                 com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());

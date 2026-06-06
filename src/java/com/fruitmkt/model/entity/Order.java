@@ -28,10 +28,14 @@ public class Order {
     private java.math.BigDecimal finalAmount;
     private String paymentMethod;
     private String refundStatus;
+    private String receivedStatus; // PENDING, RECEIVED, NOT_RECEIVED
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
     public Order() {}
+
+    public String getReceivedStatus() { return receivedStatus; }
+    public void setReceivedStatus(String receivedStatus) { this.receivedStatus = receivedStatus; }
 
     public int getOrderId() { return orderId; }
     public void setOrderId(int orderId) { this.orderId = orderId; }
