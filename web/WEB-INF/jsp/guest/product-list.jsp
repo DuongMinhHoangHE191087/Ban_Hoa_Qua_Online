@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -115,6 +115,18 @@
                 </h2>
                 
                 <form action="${pageContext.request.contextPath}/products" method="get" class="space-y-6">
+                    <!-- Sắp xếp -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-primary" for="sortSelector">Sắp xếp hiển thị</label>
+                        <select id="sortSelector" name="sort"
+                                class="w-full px-4 py-2.5 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none">
+                            <option value="newest" selected>Mới nhất</option>
+                            <option value="price_asc">Giá: Thấp đến Cao</option>
+                            <option value="price_desc">Giá: Cao đến Thấp</option>
+                            <option value="best_seller">Số lượt bán</option>
+                        </select>
+                    </div>
+
                     <!-- Keyword search field -->
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-bold text-primary" for="searchKeyword">Tìm kiếm từ khóa</label>
@@ -144,23 +156,43 @@
                     <div class="flex flex-col gap-1.5">
                         <label class="text-xs font-bold text-primary">Khoảng giá (VNĐ)</label>
                         <div class="grid grid-cols-2 gap-2">
-                            <input type="number" name="minPrice" placeholder="Giá tối thiểu" value="${minPrice}" min="0"
+                            <input type="number" id="minPriceInput" name="minPrice" placeholder="Giá tối thiểu" value="${minPrice}" min="0"
                                    class="w-full px-3 py-2 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-xs outline-none">
-                            <input type="number" name="maxPrice" placeholder="Giá tối đa" value="${maxPrice}" min="0"
+                            <input type="number" id="maxPriceInput" name="maxPrice" placeholder="Giá tối đa" value="${maxPrice}" min="0"
                                    class="w-full px-3 py-2 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-xs outline-none">
                         </div>
                     </div>
 
-                    <!-- Sắp xếp (Dành cho nâng cấp tính năng tương lai) -->
+                    <!-- Filter Rating -->
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-primary" for="sortSelector">Sắp xếp hiển thị</label>
-                        <select id="sortSelector" name="sort"
-                                class="w-full px-4 py-2.5 bg-white border border-outline/20 focus:border-primary focus:ring-1 focus:ring-primary rounded-xl text-sm transition-all outline-none">
-                            <option value="newest">Sản phẩm mới nhất</option>
-                            <option value="best_seller">Bán chạy nhất</option>
-                            <option value="price_asc">Giá tăng dần</option>
-                            <option value="price_desc">Giá giảm dần</option>
-                        </select>
+                        <label class="text-xs font-bold text-primary">Đánh giá sản phẩm</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                                <input type="radio" name="ratingFilter" value="0" checked class="text-primary focus:ring-primary rounded">
+                                <span>Tất cả</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                                <input type="radio" name="ratingFilter" value="5" class="text-primary focus:ring-primary rounded">
+                                <span class="flex items-center gap-0.5">5 sao <span class="material-symbols-outlined text-[13px] text-amber-500">star</span></span>
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                                <input type="radio" name="ratingFilter" value="4" class="text-primary focus:ring-primary rounded">
+                                <span class="flex items-center gap-0.5">4 sao trở lên <span class="material-symbols-outlined text-[13px] text-amber-500">star</span></span>
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                                <input type="radio" name="ratingFilter" value="3" class="text-primary focus:ring-primary rounded">
+                                <span class="flex items-center gap-0.5">3 sao trở lên <span class="material-symbols-outlined text-[13px] text-amber-500">star</span></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Filter Availability -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-primary">Tình trạng kho hàng</label>
+                        <label class="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                            <input type="checkbox" id="inStockFilter" class="text-primary focus:ring-primary rounded">
+                            <span>Chỉ hiển thị còn hàng</span>
+                        </label>
                     </div>
 
                     <div class="pt-4 flex flex-col gap-2">
@@ -176,6 +208,15 @@
                         </a>
                     </div>
                 </form>
+
+                <!-- Recently Viewed Widget -->
+                <div class="mt-8 pt-6 border-t border-primary/10">
+                    <h3 class="font-bold text-sm text-primary mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">history</span>
+                        Đã Xem Gần Đây (Recently Viewed)
+                    </h3>
+                    <div id="recentlyViewedContainer"></div>
+                </div>
             </aside>
 
             <!-- Right Results Area -->
@@ -213,6 +254,11 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             <c:forEach var="p" items="${pagedResult.items}">
                                 <article data-product-id="${p.productId}"
+                                         data-price="${p.price}"
+                                         data-rating="${p.rating}"
+                                         data-sold="${p.soldQuantity}"
+                                         data-category-id="${p.categoryId}"
+                                         data-in-stock="${p.inStock}"
                                          class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                                     
                                     <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}"
@@ -261,7 +307,7 @@
                                             </span>
                                         </div>
 
-                                        <button type="button" onclick="quickAddProduct(event, ${p.productId})"
+                                        <button type="button" onclick="quickAddProduct(event, '${p.productId}')"
                                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                                 title="Thêm vào giỏ hàng">
                                             <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
@@ -349,5 +395,153 @@
         </div>
     </div>
 </div>
+
+<!-- Floating AI Support Assistant Button -->
+<div class="fixed bottom-6 right-6 z-50 group">
+    <button type="button" aria-label="AI Assistant"
+            class="relative w-14 h-14 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-emerald-500/20 active:scale-95 hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden border border-emerald-400/30">
+        <!-- Pulse effect -->
+        <span class="absolute inset-0 rounded-full bg-emerald-400/20 animate-ping opacity-75"></span>
+        <span class="material-symbols-outlined text-[28px] animate-pulse relative z-10">smart_toy</span>
+    </button>
+    <!-- Tooltip -->
+    <span class="absolute right-16 top-1/2 -translate-y-1/2 bg-on-surface text-white text-xs font-semibold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap shadow-md">
+        Trợ lý AI hỗ trợ 24/7
+    </span>
+</div>
+
+<script>
+    // Client-side Filter & Sort logic
+    function applyClientFilters() {
+        const minPriceInput = document.getElementById('minPriceInput');
+        const maxPriceInput = document.getElementById('maxPriceInput');
+        const minPrice = minPriceInput && minPriceInput.value.trim() !== '' ? parseFloat(minPriceInput.value) : 0;
+        const maxPrice = maxPriceInput && maxPriceInput.value.trim() !== '' ? parseFloat(maxPriceInput.value) : Infinity;
+        
+        const checkedRating = document.querySelector('input[name="ratingFilter"]:checked');
+        const minRating = checkedRating && checkedRating.value.trim() !== '' ? parseFloat(checkedRating.value) : 0;
+        
+        const inStockOnly = document.getElementById('inStockFilter')?.checked || false;
+        const sortVal = document.getElementById('sortSelector')?.value || 'newest';
+
+        const grid = document.querySelector('.grid');
+        if (!grid) return;
+        const items = Array.from(grid.querySelectorAll('article'));
+
+        let visibleCount = 0;
+        items.forEach(item => {
+            const price = parseFloat(item.getAttribute('data-price')) || 0;
+            const rating = parseFloat(item.getAttribute('data-rating')) || 0;
+            const inStock = item.getAttribute('data-in-stock') === 'true';
+
+            let show = true;
+            if (price < minPrice || price > maxPrice) show = false;
+            if (rating < minRating) show = false;
+            if (inStockOnly && !inStock) show = false;
+
+            if (show) {
+                item.style.setProperty('display', 'flex', 'important');
+                visibleCount++;
+            } else {
+                item.style.setProperty('display', 'none', 'important');
+            }
+        });
+
+        // Dynamic results count text update
+        const resultsCountEl = document.querySelector('strong.text-primary');
+        if (resultsCountEl) {
+            resultsCountEl.textContent = visibleCount;
+        }
+
+        // Show/hide empty fallback view if visibleCount is 0
+        let noProductsEl = document.getElementById('noProductsFallback');
+        if (visibleCount === 0) {
+            if (!noProductsEl) {
+                noProductsEl = document.createElement('div');
+                noProductsEl.id = 'noProductsFallback';
+                noProductsEl.className = 'glass-panel rounded-3xl p-16 text-center max-w-xl mx-auto ambient-shadow flex flex-col items-center gap-4 bg-white/60 mt-10';
+                noProductsEl.innerHTML = `
+                    <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce">sentiment_dissatisfied</span>
+                    <div>
+                        <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
+                        <p class="text-xs text-on-surface-variant font-light mt-1.5 leading-relaxed">
+                            Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng đặt lại bộ lọc.
+                        </p>
+                    </div>
+                `;
+                grid.parentNode.appendChild(noProductsEl);
+            }
+            noProductsEl.style.display = 'flex';
+        } else {
+            if (noProductsEl) {
+                noProductsEl.style.display = 'none';
+            }
+        }
+
+        // Sorting visible items
+        const visibleItems = items.filter(item => item.style.display !== 'none');
+        visibleItems.sort((a, b) => {
+            if (sortVal === 'price_asc') {
+                return (parseFloat(a.getAttribute('data-price')) || 0) - (parseFloat(b.getAttribute('data-price')) || 0);
+            } else if (sortVal === 'price_desc') {
+                return (parseFloat(b.getAttribute('data-price')) || 0) - (parseFloat(a.getAttribute('data-price')) || 0);
+            } else if (sortVal === 'best_seller') {
+                return (parseInt(b.getAttribute('data-sold')) || 0) - (parseInt(a.getAttribute('data-sold')) || 0);
+            } else {
+                // newest - sort by product ID descending
+                return (parseInt(b.getAttribute('data-product-id')) || 0) - (parseInt(a.getAttribute('data-product-id')) || 0);
+            }
+        });
+
+        // Re-append sorted items
+        visibleItems.forEach(item => grid.appendChild(item));
+    }
+
+    // Recently Viewed loader
+    function loadRecentlyViewed() {
+        const container = document.getElementById('recentlyViewedContainer');
+        if (!container) return;
+        const recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        if (recentlyViewed.length === 0) {
+            container.innerHTML = '<p class="text-xs text-outline italic">Chưa có sản phẩm nào đã xem</p>';
+            return;
+        }
+        let html = '<div class="space-y-3.5">';
+        recentlyViewed.slice(0, 5).forEach(item => {
+            const priceVal = parseFloat(item.price) || 0;
+            const detailUrl = '${pageContext.request.contextPath}/products/detail?id=' + item.id;
+            html += '<a href="' + detailUrl + '" class="flex items-center gap-3 p-2 bg-white/40 hover:bg-emerald-50/50 border border-transparent hover:border-primary/10 rounded-xl transition-all">' +
+                    '<img src="' + item.image + '" class="w-10 h-10 object-cover rounded-lg" onerror="this.src=\'https://images.unsplash.com/photo-1610832958506-ee5633619144?w=100&auto=format&fit=crop&q=80\'">' +
+                    '<div class="min-w-0 flex-1">' +
+                        '<div class="text-xs font-bold text-on-surface truncate">' + item.name + '</div>' +
+                        '<div class="text-[10px] text-primary font-bold">' + priceVal.toLocaleString() + ' ₫</div>' +
+                    '</div>' +
+                   '</a>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Submit handler for the filter form
+        const form = document.querySelector('aside form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                applyClientFilters();
+            });
+        }
+
+        // Automatic sort on change
+        const sortSelector = document.getElementById('sortSelector');
+        if (sortSelector) {
+            sortSelector.addEventListener('change', () => {
+                applyClientFilters();
+            });
+        }
+
+        loadRecentlyViewed();
+    });
+</script>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp"/>

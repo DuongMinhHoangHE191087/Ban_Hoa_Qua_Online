@@ -1332,7 +1332,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="${pageContext.request.contextPath}/products?ownerId=${product.ownerId}" class="btn-visit-shop-hero">
+                    <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" class="btn-visit-shop-hero">
                         <i class="fa-solid fa-store"></i> Ghé Thăm Shop
                     </a>
                 </div>
@@ -1468,7 +1468,7 @@
                     <div class="shop-body-section">
                         <div class="shop-section-label" style="justify-content: space-between;">
                             <span><i class="fa-solid fa-layer-group"></i> Xem thêm sản phẩm từ cửa hàng này</span>
-                            <a href="${pageContext.request.contextPath}/products?ownerId=${product.ownerId}" 
+                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" 
                                style="font-size:10px; color:var(--color-primary); font-weight:700; text-transform:none; letter-spacing:0;">
                                 Xem tất cả <i class="fa-solid fa-arrow-right ml-1"></i>
                             </a>
@@ -1693,10 +1693,31 @@
     <i class="fa-solid fa-copy mr-2"></i> Đã sao chép mã: <strong id="copy-toast-code"></strong>
 </div>
 
+<c:set var="firstVariantPrice" value="${not empty variants ? variants[0].price : 0}" />
+<c:set var="escapedProductName" value="${fn:escapeXml(product.name)}" />
 <script>
     // Define server-side variables safely in JS scope
     const currentProductId = parseInt('${product.productId}') || 0;
     const csrfToken = '${sessionScope._csrfToken}';
+
+    // Add to recently viewed in localStorage
+    try {
+        const productInfo = {
+            id: currentProductId,
+            name: '${escapedProductName}',
+            price: '${firstVariantPrice}',
+            image: document.getElementById('main-product-img')?.src || ''
+        };
+        if (productInfo.id > 0) {
+            let recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+            recentlyViewed = recentlyViewed.filter(item => item.id !== productInfo.id);
+            recentlyViewed.unshift(productInfo);
+            recentlyViewed = recentlyViewed.slice(0, 5);
+            localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
+        }
+    } catch(e) {
+        console.error("Error storing recently viewed", e);
+    }
 
     // Image fallback
     window.handleImageError = function(img) {
