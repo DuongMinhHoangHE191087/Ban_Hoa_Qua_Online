@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft"  uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -457,14 +457,6 @@
     const CTX = document.getElementById('js-ctx').value;
     const CSRF = document.getElementById('js-csrf').value;
     window.csrfToken = CSRF;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const harvestDateInput = document.getElementById('modal-harvestDate');
-        if (harvestDateInput) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            harvestDateInput.setAttribute('max', todayStr);
-        }
-    });
 
     document.addEventListener('DOMContentLoaded', function() {
         const harvestDateInput = document.getElementById('modal-harvestDate');
