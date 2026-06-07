@@ -158,6 +158,13 @@
                     <span>Quản lý người dùng</span>
                 </a>
             </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/chat"
+                   class="sb-nav-link ${param.activeMenu == 'chat' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-comments"></i></span>
+                    <span>Chat Hỗ trợ</span>
+                </a>
+            </li>
         </ul>
 
         <div class="sb-section-label">Thương mại</div>
@@ -174,6 +181,13 @@
                    class="sb-nav-link ${param.activeMenu == 'manage-shops' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-store"></i></span>
                     <span>Quản lý Cửa hàng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/products"
+                   class="sb-nav-link ${param.activeMenu == 'admin-products' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-clipboard-check"></i></span>
+                    <span>Phê duyệt Sản phẩm</span>
                 </a>
             </li>
             <li class="sb-nav-item">
