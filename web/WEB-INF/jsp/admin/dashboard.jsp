@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tổng quan – Admin MetaFruit</title>
+    <title>Tổng quan – Admin Verdant Market</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -64,7 +64,7 @@
             </div>
             <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
                 <i class="fa-solid fa-leaf text-[#84cc16]"></i>
-                <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
+                <span class="text-xs font-bold uppercase tracking-wider">Verdant Market Live</span>
             </div>
         </div>
 

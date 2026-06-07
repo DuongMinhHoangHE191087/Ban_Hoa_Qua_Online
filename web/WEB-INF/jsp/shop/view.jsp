@@ -139,7 +139,7 @@
                 <span class="material-symbols-outlined text-base">inventory_2</span> Sản phẩm
             </button>
             <button class="tab-item flex items-center gap-1.5 shrink-0" onclick="switchTab('promotions')">
-                <span class="material-symbols-outlined text-base">loyalty</span> Ưu đãi & Vouchers
+                <span class="material-symbols-outlined text-base">loyalty</span> Voucher shop
             </button>
             <button class="tab-item flex items-center gap-1.5 shrink-0" onclick="switchTab('reviews')">
                 <span class="material-symbols-outlined text-base">reviews</span> Đánh giá & Phản hồi

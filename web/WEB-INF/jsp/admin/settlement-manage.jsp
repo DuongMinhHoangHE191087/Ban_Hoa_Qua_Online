@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý settlement – Admin MetaFruit</title>
+    <title>Quản lý settlement – Admin Verdant Market</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -71,7 +71,7 @@
             <h2 class="text-lg md:text-xl font-black text-txt mb-3">Phase 4: Coming Soon</h2>
             
             <p class="text-xs md:text-sm text-txt-2 leading-relaxed max-w-sm mb-8">
-                Tính năng cấu hình nâng cao này thuộc về lộ trình **Phase 4** của dự án bán hàng nông sản MetaFruit và hiện đang trong quá trình xây dựng. Vui lòng quay lại sau!
+                Tính năng cấu hình nâng cao này thuộc về lộ trình **Phase 4** của dự án bán hàng nông sản Verdant Market và hiện đang trong quá trình xây dựng. Vui lòng quay lại sau!
             </p>
             
             <a href="${pageContext.request.contextPath}/admin/dashboard" 

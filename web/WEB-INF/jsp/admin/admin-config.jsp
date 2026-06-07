@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cấu hình Hệ thống – Admin MetaFruit</title>
+    <title>Cấu hình Hệ thống – Admin Verdant Market</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -46,7 +46,7 @@
         <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Cấu hình Hệ thống</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Thay đổi phí sàn, cấu hình logo, và các tham số vận hành chung của nền tảng.</p>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Thay đổi phí nền tảng, cấu hình logo, và các tham số vận hành chung của nền tảng.</p>
             </div>
             <div class="bg-white/60 px-4 py-2 rounded-xl border border-white/50 text-primary font-bold text-sm shadow-sm backdrop-blur-sm">
                 <i class="fa-solid fa-server mr-2 text-[#84cc16]"></i> Global Settings
@@ -94,8 +94,10 @@
                                                 <c:when test="${c.config_key == 'gemini_api_key' && not empty c.config_value}">
                                                     <span class="text-txt-3" title="API Key được ẩn vì lý do bảo mật">••••••••••••</span>
                                                 </c:when>
-                                                <c:when test="${c.data_type == 'DECIMAL' && c.config_key.contains('FEE')}">
-                                                    <span class="text-orange-600">${c.config_value}%</span>
+                                                <c:when test="${c.data_type == 'DECIMAL' && c.config_key == 'platform_fee_rate'}">
+                                                    <span class="text-orange-600">
+                                                        <fmt:formatNumber value="${c.config_value * 100}" pattern="#.##"/>%
+                                                    </span>
                                                 </c:when>
                                                 <c:otherwise>
                                                     ${c.config_value}
@@ -208,7 +210,19 @@
         document.getElementById('editDesc').innerText = desc || 'Không có mô tả.';
         
         let helper = document.getElementById('editHelper');
-        if (type === 'DECIMAL') {
+        if (key === 'platform_fee_rate') {
+            helper.innerHTML = '<i class="fa-solid fa-circle-info text-blue-500 mr-1"></i> Nhập tỷ lệ phí, ví dụ 5 hoặc 0.05 đều được. Hệ thống sẽ lưu theo dạng thập phân (0.05 = 5%).';
+            document.getElementById('editValue').type = 'number';
+            document.getElementById('editValue').step = '0.01';
+        } else if (key === 'WEBSITE_LOGO_URL') {
+            helper.innerHTML = '<i class="fa-solid fa-circle-info text-blue-500 mr-1"></i> Nhập URL ảnh hợp lệ hoặc đường dẫn tương đối bắt đầu bằng /.';
+            document.getElementById('editValue').type = 'text';
+            document.getElementById('editValue').removeAttribute('step');
+        } else if (key === 'gemini_api_key') {
+            helper.innerHTML = '<i class="fa-solid fa-circle-info text-blue-500 mr-1"></i> Có thể để trống để dùng biến môi trường GEMINI_API_KEY.';
+            document.getElementById('editValue').type = 'text';
+            document.getElementById('editValue').removeAttribute('step');
+        } else if (type === 'DECIMAL') {
             helper.innerHTML = '<i class="fa-solid fa-circle-info text-blue-500 mr-1"></i> Nhập số thập phân (ví dụ: 10.5 hoặc 5)';
             document.getElementById('editValue').type = 'number';
             document.getElementById('editValue').step = '0.01';

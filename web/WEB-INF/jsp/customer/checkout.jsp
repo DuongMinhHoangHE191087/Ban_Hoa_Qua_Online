@@ -317,13 +317,13 @@
                     <section class="glass-card rounded-xl p-6 md:p-8" id="coupon-section">
                         <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
                             <span class="material-symbols-outlined text-2xl">loyalty</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">Mã giảm giá</h2>
+                            <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sàn</h2>
                         </div>
                         <!-- Một ô nhập mã giảm giá duy nhất -->
                         <div>
-                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã giảm giá (Shop hoặc Sàn)</label>
+                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã voucher shop hoặc voucher sàn</label>
                             <div class="flex gap-2">
-                                <input type="text" id="couponInput" placeholder="Nhập mã giảm giá (VD: SHOP10, SAAN5, SALE20)"
+                                <input type="text" id="couponInput" placeholder="Nhập mã voucher (VD: SHOP10, SAAN5, SALE20)"
                                     class="form-input rounded-lg px-3 py-2.5 text-sm flex-1 uppercase font-semibold tracking-wider"
                                     style="text-transform:uppercase"/>
                                 <button type="button" onclick="applyCoupon()"
@@ -415,15 +415,19 @@
                         <h2 class="font-headline-md text-headline-md text-primary mb-6 font-bold border-b border-[#b1f2be] pb-3">Tổng kết đơn hàng</h2>
                         <div class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-6">
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">Tạm tính (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
+                                <span class="text-on-surface-variant">Tạm tính sau sale trực tiếp (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
                                 <span class="font-bold text-inverse-surface" id="summary-subtotal"><ft:currency value="${cartSummary.subtotal}"/></span>
                             </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-on-surface-variant">Sale trực tiếp</span>
+                                <span class="font-bold text-red-600" id="summary-direct-sale">- <ft:currency value="${directSaleAmount}"/></span>
+                            </div>
                             <div class="flex justify-between items-center" id="shop-discount-row" style="display:none!important">
-                                <span class="text-on-surface-variant">Giảm giá Shop</span>
+                                <span class="text-on-surface-variant">Voucher shop</span>
                                 <span class="font-bold text-red-600" id="summary-shop-discount">- 0 đ</span>
                             </div>
                             <div class="flex justify-between items-center" id="system-discount-row" style="display:none!important">
-                                <span class="text-on-surface-variant">Giảm giá Sàn</span>
+                                <span class="text-on-surface-variant">Voucher sàn</span>
                                 <span class="font-bold text-red-600" id="summary-system-discount">- 0 đ</span>
                             </div>
                             <div class="flex justify-between items-center">
@@ -483,7 +487,7 @@ function applyCoupon() {
 
     // Check if coupon is already applied
     if (code === shopCouponCode || code === systemCouponCode) {
-        showCouponMsg('Mã giảm giá này đã được áp dụng rồi.', 'text-red-600 font-bold');
+        showCouponMsg('Mã voucher này đã được áp dụng rồi.', 'text-red-600 font-bold');
         return;
     }
 
@@ -525,7 +529,7 @@ function applyCoupon() {
                             renderAppliedCoupons();
                         } else {
                             // If both failed, show error message
-                            showCouponMsg('✘ Mã giảm giá không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.', 'text-red-600 font-bold');
+                            showCouponMsg('✘ Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.', 'text-red-600 font-bold');
                             console.log('[Coupon Log] Shop check error:', data.message);
                             console.log('[Coupon Log] System check error:', sysData.message);
                         }
@@ -612,7 +616,7 @@ function renderAppliedCoupons() {
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
         item.innerHTML = '<div>' +
-            '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">SHOP</span>' +
+            '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">Voucher shop</span>' +
             '<span class="font-bold text-on-surface">' + shopCouponCode + '</span>' +
             '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(shopDiscount) + ')</span>' +
             '</div>' +
@@ -625,7 +629,7 @@ function renderAppliedCoupons() {
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
         item.innerHTML = '<div>' +
-            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">SÀN</span>' +
+            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sàn</span>' +
             '<span class="font-bold text-on-surface">' + systemCouponCode + '</span>' +
             '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(systemDiscount) + ')</span>' +
             '</div>' +

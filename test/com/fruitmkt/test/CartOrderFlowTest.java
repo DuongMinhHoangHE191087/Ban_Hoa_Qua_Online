@@ -5,7 +5,9 @@ import com.fruitmkt.dao.CategoryDAO;
 import com.fruitmkt.dao.OrderDAO;
 import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
+import com.fruitmkt.service.OrderService;
 import com.fruitmkt.dao.UserDAO;
+import com.fruitmkt.service.ReviewService;
 import com.fruitmkt.model.entity.Cart;
 import com.fruitmkt.model.entity.CartItem;
 import com.fruitmkt.model.entity.Category;
@@ -13,6 +15,7 @@ import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.OrderItem;
 import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.ProductVariant;
+import com.fruitmkt.model.entity.Review;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
@@ -54,6 +57,8 @@ public class CartOrderFlowTest {
     private ProductVariantDAO variantDAO;
     private CategoryDAO categoryDAO;
     private UserDAO    userDAO;
+    private OrderService orderService;
+    private ReviewService reviewService;
 
     // ---- IDs của dữ liệu tạm tạo trong test ----
     private int testOwnerId    = -1;
@@ -76,6 +81,8 @@ public class CartOrderFlowTest {
         variantDAO = new ProductVariantDAO();
         categoryDAO = new CategoryDAO();
         userDAO    = new UserDAO();
+        orderService = new OrderService();
+        reviewService = new ReviewService();
 
         // 1. Tạo shop owner test
         testOwnerId = userDAO.saveNewCustomer(
@@ -294,29 +301,23 @@ public class CartOrderFlowTest {
     }
 
     /**
-     * TC-ORDER-02: Luồng chuyển trạng thái đơn hàng — PENDING_PAYMENT → CONFIRMED → APPROVED → DELIVERING → DELIVERED.
-     * Nghiệp vụ: Mỗi bước chuyển trạng thái phải được ghi nhận chính xác.
+     * TC-ORDER-02: Luồng chuyển trạng thái đơn hàng hợp lệ theo SRS.
+     * Nghiệp vụ: PENDING_PAYMENT -> CONFIRMED -> DISPATCHED -> DELIVERED.
      */
     @Test
     public void test07_OrderStatusTransitionFlow() throws SQLException {
         Order order = buildTestOrder(testCustomerId, testOwnerId, VARIANT_PRICE);
         testOrderId = orderDAO.save(order);
 
-        // Bước 1: Xác nhận đơn hàng (chủ shop nhận đơn)
-        orderDAO.updateStatus(testOrderId, "CONFIRMED");
+        orderService.confirmOrder(testOrderId, testOwnerId);
         assertEquals("Sau CONFIRMED", "CONFIRMED", getOrderStatus(testOrderId));
 
-        // Bước 2: Shop duyệt đơn (chấp nhận giao)
-        orderDAO.updateStatus(testOrderId, "APPROVED");
-        assertEquals("Sau APPROVED", "APPROVED", getOrderStatus(testOrderId));
-
-        // Bước 3: Đang giao hàng
-        orderDAO.updateStatus(testOrderId, "DISPATCHED");
+        orderService.dispatchOrder(testOrderId, testOwnerId);
         assertEquals("Sau DISPATCHED", "DISPATCHED", getOrderStatus(testOrderId));
 
-        // Bước 4: Đã giao thành công
-        orderDAO.updateStatus(testOrderId, "DELIVERED");
+        orderService.customerConfirmDelivery(testOrderId, testCustomerId);
         assertEquals("Sau DELIVERED", "DELIVERED", getOrderStatus(testOrderId));
+        assertEquals("received_status phải được cập nhật", "RECEIVED", orderDAO.findById(testOrderId).get(0).getReceivedStatus());
     }
 
     /**
@@ -400,6 +401,42 @@ public class CartOrderFlowTest {
         // Cleanup thêm
         hardDeleteOrder(id1);
         hardDeleteOrder(id2);
+    }
+
+    /**
+     * TC-REVIEW-01: Gửi, sửa và xóa đánh giá phải tự động cập nhật rating trung bình của sản phẩm.
+     * Nghiệp vụ: Rating của product phải phản ánh tập review hợp lệ hiện tại.
+     */
+    @Test
+    public void test11_ReviewLifecycleRecalculatesProductRating() throws SQLException {
+        Order order = buildTestOrder(testCustomerId, testOwnerId, VARIANT_PRICE);
+        testOrderId = orderDAO.save(order);
+        insertOrderItem(testOrderId, testVariantId, 1, VARIANT_PRICE);
+        orderDAO.updateStatus(testOrderId, "DELIVERED");
+
+        int orderItemId = orderDAO.findItemsByOrderId(testOrderId).get(0).getOrderItemId();
+
+        Review review = new Review();
+        review.setOrderItemId(orderItemId);
+        review.setCustomerId(testCustomerId);
+        review.setRating(5);
+        review.setReviewText("Sản phẩm tươi, đóng gói tốt.");
+        review.setReviewImageUrl(null);
+
+        reviewService.submitReview(review);
+        BigDecimal ratingAfterCreate = productDAO.findById(testProductId).get(0).getRating();
+        assertNotNull("Rating phải được cập nhật sau khi tạo review", ratingAfterCreate);
+        assertEquals("Rating trung bình phải là 5 sau review đầu tiên", 0, ratingAfterCreate.compareTo(new BigDecimal("5.00")));
+
+        review.setRating(3);
+        review.setReviewText("Sản phẩm vẫn tốt nhưng giao hơi chậm.");
+        reviewService.updateReview(review);
+        BigDecimal ratingAfterEdit = productDAO.findById(testProductId).get(0).getRating();
+        assertEquals("Rating trung bình phải được cập nhật sau khi sửa review", 0, ratingAfterEdit.compareTo(new BigDecimal("3.00")));
+
+        reviewService.deleteReview(review.getReviewId());
+        BigDecimal ratingAfterDelete = productDAO.findById(testProductId).get(0).getRating();
+        assertEquals("Rating phải quay về 0 sau khi xóa review cuối cùng", 0, ratingAfterDelete.compareTo(BigDecimal.ZERO));
     }
 
     // =========================================================

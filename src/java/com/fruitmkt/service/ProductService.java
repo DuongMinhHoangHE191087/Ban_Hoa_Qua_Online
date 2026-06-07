@@ -67,22 +67,29 @@ public class ProductService {
     }
 
     /**
-     * Lấy chi tiết 1 sản phẩm theo ID.
+     * Lấy chi tiết sản phẩm theo ID.
+     * Giữ tên method tương thích với servlet đang gọi trực tiếp.
      *
-     * @throws IllegalArgumentException nếu productId <= 0.
-     * @throws SQLException             nếu không tìm thấy sản phẩm.
+     * @param productId ID sản phẩm
+     * @return Product hoặc null nếu không tìm thấy
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
      */
     public Product getProductDetail(int productId) throws SQLException {
-        if (productId <= 0) {
-            throw new IllegalArgumentException("productId không hợp lệ.");
+        return getProductById(productId);
+    }
+
+    /**
+     * Lấy danh sách sản phẩm của một shop owner.
+     *
+     * @param ownerId ID chủ shop
+     * @return danh sách sản phẩm theo owner
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public List<Product> getProductsByOwner(int ownerId) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("ownerId không hợp lệ.");
         }
-        productDAO.autoDeactivateExpiredProducts();
-        List<Product> results = productDAO.findById(productId);
-        if (results == null || results.isEmpty()) {
-            throw new SQLException("Không tìm thấy sản phẩm với ID: " + productId);
-        }
-        productDAO.incrementViewCount(productId);
-        return results.get(0);
+        return productDAO.findByOwner(ownerId);
     }
 
     /**

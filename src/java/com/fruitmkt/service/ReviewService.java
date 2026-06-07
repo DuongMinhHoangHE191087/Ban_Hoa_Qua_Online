@@ -1,6 +1,7 @@
 package com.fruitmkt.service;
 
 import com.fruitmkt.dao.ReviewDAO;
+import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.model.dto.PagedResultDTO;
 import com.fruitmkt.model.entity.Review;
 import java.sql.SQLException;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class ReviewService {
 
     private final ReviewDAO reviewDAO = new ReviewDAO();
+    private final ProductDAO productDAO = new ProductDAO();
 
     /**
      * Gửi một đánh giá mới từ khách hàng sau khi đã xác thực đầy đủ điều kiện.
@@ -56,6 +58,55 @@ public class ReviewService {
 
         // Lưu đánh giá xuống database
         reviewDAO.save(review);
+        recalculateRatingAfterReviewChange(review.getReviewId());
+    }
+
+    /**
+     * Cập nhật một đánh giá hiện có.
+     *
+     * @param review đánh giá cần cập nhật
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public void updateReview(Review review) throws SQLException {
+        if (review == null) {
+            throw new IllegalArgumentException("Dữ liệu đánh giá không được để trống.");
+        }
+        if (review.getReviewId() <= 0) {
+            throw new IllegalArgumentException("Mã đánh giá không hợp lệ.");
+        }
+        if (review.getCustomerId() <= 0) {
+            throw new IllegalArgumentException("Mã khách hàng không hợp lệ.");
+        }
+        if (review.getOrderItemId() <= 0) {
+            throw new IllegalArgumentException("Mã dòng chi tiết đơn hàng không hợp lệ.");
+        }
+        if (review.getRating() < 1 || review.getRating() > 5) {
+            throw new IllegalArgumentException("Điểm đánh giá sao phải nằm trong khoảng từ 1 đến 5 sao.");
+        }
+        if (review.getReviewText() != null && review.getReviewText().length() > 1000) {
+            throw new IllegalArgumentException("Nội dung đánh giá không được vượt quá 1000 ký tự.");
+        }
+
+        reviewDAO.update(review);
+        recalculateRatingAfterReviewChange(review.getReviewId());
+    }
+
+    /**
+     * Xóa một đánh giá và cập nhật lại rating của sản phẩm liên quan.
+     *
+     * @param reviewId mã đánh giá
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public void deleteReview(int reviewId) throws SQLException {
+        if (reviewId <= 0) {
+            throw new IllegalArgumentException("Mã đánh giá không hợp lệ.");
+        }
+
+        int productId = productDAO.getProductIdByReview(reviewId);
+        reviewDAO.delete(reviewId);
+        if (productId != -1) {
+            productDAO.recalculateRating(productId);
+        }
     }
 
     /**
@@ -149,13 +200,35 @@ public class ReviewService {
     }
 
     /**
+     * Duyệt hoặc từ chối một đánh giá theo workflow rõ ràng.
+     */
+    public void moderateReview(int reviewId, String action) throws SQLException {
+        if (reviewId <= 0) {
+            throw new IllegalArgumentException("Mã đánh giá không hợp lệ.");
+        }
+        if (action == null || action.trim().isEmpty()) {
+            throw new IllegalArgumentException("Hành động kiểm duyệt không hợp lệ.");
+        }
+
+        String normalized = action.trim().toLowerCase();
+        if ("approve".equals(normalized) || "show".equals(normalized)) {
+            updateReviewVisibility(reviewId, false);
+        } else if ("reject".equals(normalized) || "hide".equals(normalized)) {
+            updateReviewVisibility(reviewId, true);
+        } else {
+            throw new IllegalArgumentException("Hành động kiểm duyệt không hợp lệ.");
+        }
+    }
+
+    /**
      * Cập nhật trạng thái ẩn/hiện của đánh giá.
      */
     public void updateReviewVisibility(int reviewId, boolean isHidden) throws SQLException {
         reviewDAO.updateVisibility(reviewId, isHidden);
-        
-        // Recalculate product rating
-        com.fruitmkt.dao.ProductDAO productDAO = new com.fruitmkt.dao.ProductDAO();
+        recalculateRatingAfterReviewChange(reviewId);
+    }
+
+    private void recalculateRatingAfterReviewChange(int reviewId) throws SQLException {
         int productId = productDAO.getProductIdByReview(reviewId);
         if (productId != -1) {
             productDAO.recalculateRating(productId);

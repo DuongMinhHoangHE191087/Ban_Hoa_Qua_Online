@@ -709,6 +709,7 @@ function Run-Tests {
         "com.fruitmkt.test.ProductApprovalTest",
         "com.fruitmkt.test.CategoryCRUDTest",
         "com.fruitmkt.test.CartOrderFlowTest",
+        "com.fruitmkt.test.CheckoutServletPricingRegressionTest",
         "com.fruitmkt.test.UserAuthFlowTest",
         "com.fruitmkt.test.PromotionVoucherTest",
         "com.fruitmkt.test.ProductBusinessRulesTest",

@@ -53,6 +53,23 @@ public class PromotionDAO extends BaseDAO {
     }
 
     /**
+     * Tìm khuyến mãi theo code bất kể trạng thái xóa/active.
+     */
+    public Promotion findAnyByCode(String code) throws SQLException {
+        String sql = "SELECT * FROM promotions WHERE code = ? ORDER BY promo_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, code);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Tìm khuyến mãi do chủ cửa hàng cụ thể tạo ra.
      */
     public List<Promotion> findByOwner(int ownerId) throws SQLException {
@@ -65,6 +82,22 @@ public class PromotionDAO extends BaseDAO {
                 while (rs.next()) {
                     list.add(mapRow(rs));
                 }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách khuyến mãi toàn cục (discount_scope = ALL).
+     */
+    public List<Promotion> findGlobalPromotions() throws SQLException {
+        List<Promotion> list = new ArrayList<>();
+        String sql = "SELECT * FROM promotions WHERE discount_scope = 'ALL' AND is_deleted = 0 ORDER BY promo_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
             }
         }
         return list;

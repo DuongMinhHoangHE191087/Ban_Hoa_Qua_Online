@@ -1,7 +1,8 @@
 package com.fruitmkt.servlet.admin;
 
-import com.fruitmkt.dao.SystemConfigDAO;
+import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.service.SystemConfigService;
 import com.fruitmkt.util.SessionUtil;
 
 import jakarta.servlet.ServletException;
@@ -12,21 +13,25 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 @WebServlet("/admin/config")
 public class AdminConfigServlet extends HttpServlet {
 
-    private final SystemConfigDAO systemConfigDAO = new SystemConfigDAO();
+    private final SystemConfigService systemConfigService = new SystemConfigService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        User admin = SessionUtil.getCurrentUser(request.getSession());
+        if (admin == null || !AppConfig.ROLE_ADMIN.equals(admin.getRole())) {
+            response.sendRedirect(request.getContextPath() + "/auth/login");
+            return;
+        }
+
         try {
-            List<Map<String, Object>> configs = systemConfigDAO.findAll();
+            List<Map<String, Object>> configs = systemConfigService.findAll();
             request.setAttribute("configs", configs);
             request.getRequestDispatcher("/WEB-INF/jsp/admin/admin-config.jsp").forward(request, response);
         } catch (SQLException e) {
@@ -38,8 +43,8 @@ public class AdminConfigServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpSession session = request.getSession();
-        User admin = (User) session.getAttribute("loggedInUser");
-        if (admin == null || !"ADMIN".equals(admin.getRole())) {
+        User admin = SessionUtil.getCurrentUser(session);
+        if (admin == null || !AppConfig.ROLE_ADMIN.equals(admin.getRole())) {
             response.sendRedirect(request.getContextPath() + "/auth/login");
             return;
         }
@@ -54,19 +59,14 @@ public class AdminConfigServlet extends HttpServlet {
                 reason = "Cập nhật bởi Admin " + admin.getFullName();
             }
 
-            try (Connection conn = systemConfigDAO.openConnection()) {
-                conn.setAutoCommit(false);
-                try {
-                    systemConfigDAO.updateConfigWithHistory(conn, configKey, configValue, LocalDateTime.now(), admin.getUserId(), reason);
-                    conn.commit();
-                    SessionUtil.setFlashMessage(session, "Cập nhật cấu hình [" + configKey + "] thành công!", "success");
-                } catch (SQLException ex) {
-                    conn.rollback();
-                    throw ex;
-                }
+            try {
+                systemConfigService.updateConfig(configKey, configValue, null, admin.getUserId(), reason);
+                SessionUtil.setFlashMessage(session, "Cập nhật cấu hình [" + configKey + "] thành công!", "success");
             } catch (SQLException e) {
                 e.printStackTrace();
                 SessionUtil.setFlashMessage(session, "Lỗi khi cập nhật cấu hình: " + e.getMessage(), "danger");
+            } catch (IllegalArgumentException e) {
+                SessionUtil.setFlashMessage(session, e.getMessage(), "danger");
             }
         } else if ("clearAllSessions".equals(action)) {
             try {

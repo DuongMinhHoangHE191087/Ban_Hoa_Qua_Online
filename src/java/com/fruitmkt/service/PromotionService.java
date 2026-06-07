@@ -1,6 +1,8 @@
 package com.fruitmkt.service;
 
+import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.PromotionDAO;
+import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.Promotion;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -8,71 +10,32 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * PromotionService — Business logic cho mã giảm giá.
- *
- * Công thức tính tiền chuẩn TMĐT:
- *   shop_discount   = min(subtotal × shopRate, shopMax) [PERCENT]
- *                   | min(shopFixed, subtotal)           [FIXED]
- *   system_discount = min((subtotal - shopDisc) × sysRate, sysMax) [PERCENT]
- *                   | min(sysFixed, subtotal - shopDisc)            [FIXED]
- *   final_amount    = subtotal - shop_discount - system_discount + delivery_fee
- *
- * @author fruitmkt-team
+ * PromotionService - business logic for promotions / vouchers.
  */
 public class PromotionService {
 
     private final PromotionDAO promotionDAO = new PromotionDAO();
+    private final ProductDAO productDAO = new ProductDAO();
 
-    // ─── Mock coupon data (dùng khi chưa có dữ liệu thật trong DB) ─────────
-    // Để tắt mock: set ENABLE_MOCK_COUPONS = false
     private static final boolean ENABLE_MOCK_COUPONS = true;
 
-    /**
-     * Validate mã giảm giá SHOP — trả về Promotion nếu hợp lệ, null nếu không.
-     *
-     * @param code       mã giảm giá do khách nhập
-     * @param ownerId    ID chủ shop (để đảm bảo mã thuộc đúng shop)
-     * @param subtotal   tổng tiền sản phẩm (trước phí giao)
-     */
-    public Promotion validateShopCoupon(String code, int ownerId,
-                                        BigDecimal subtotal) throws SQLException {
-        if (code == null || code.trim().isEmpty()) return null;
+    public Promotion validateShopCoupon(String code, int ownerId, BigDecimal subtotal) throws SQLException {
+        if (code == null || code.trim().isEmpty()) {
+            return null;
+        }
         code = code.trim().toUpperCase();
 
-        // Mock coupon check (DEV mode)
         if (ENABLE_MOCK_COUPONS) {
             Promotion mock = getMockShopCoupon(code, subtotal);
-            if (mock != null) return mock;
+            if (mock != null) {
+                return mock;
+            }
         }
 
         Promotion promo = promotionDAO.findValidShopCoupon(code, ownerId, subtotal);
-        if (promo == null) return null;
-
-        // Kiểm tra lượt dùng
-        if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
-            return null; // Mã đã hết lượt dùng
+        if (promo == null) {
+            return null;
         }
-        return promo;
-    }
-
-    /**
-     * Validate mã giảm giá SÀN — trả về Promotion nếu hợp lệ, null nếu không.
-     *
-     * @param code     mã giảm giá do khách nhập
-     * @param subtotal tổng tiền sản phẩm (trước khi áp mã shop)
-     */
-    public Promotion validateSystemCoupon(String code, BigDecimal subtotal) throws SQLException {
-        if (code == null || code.trim().isEmpty()) return null;
-        code = code.trim().toUpperCase();
-
-        // Mock coupon check (DEV mode)
-        if (ENABLE_MOCK_COUPONS) {
-            Promotion mock = getMockSystemCoupon(code, subtotal);
-            if (mock != null) return mock;
-        }
-
-        Promotion promo = promotionDAO.findValidSystemCoupon(code, subtotal);
-        if (promo == null) return null;
 
         if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
             return null;
@@ -80,97 +43,216 @@ public class PromotionService {
         return promo;
     }
 
-    /**
-     * Tính số tiền giảm thực tế từ một mã giảm giá.
-     *
-     * @param promo   Promotion đã validate
-     * @param base    Số tiền áp dụng giảm (subtotal hoặc subtotal sau shop)
-     * @return        Số tiền giảm (không âm, không vượt quá base)
-     */
+    public Promotion validateSystemCoupon(String code, BigDecimal subtotal) throws SQLException {
+        if (code == null || code.trim().isEmpty()) {
+            return null;
+        }
+        code = code.trim().toUpperCase();
+
+        if (ENABLE_MOCK_COUPONS) {
+            Promotion mock = getMockSystemCoupon(code, subtotal);
+            if (mock != null) {
+                return mock;
+            }
+        }
+
+        Promotion promo = promotionDAO.findValidSystemCoupon(code, subtotal);
+        if (promo == null) {
+            return null;
+        }
+
+        if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
+            return null;
+        }
+        return promo;
+    }
+
     public BigDecimal calculateDiscount(Promotion promo, BigDecimal base) {
         if (promo == null || base == null || base.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
         BigDecimal discount;
-        if ("PERCENT".equals(promo.getDiscountType())) {
-            // Phần trăm: discount = base × (discountValue / 100), capped by discountMax
+        if ("PERCENT".equalsIgnoreCase(promo.getDiscountType())) {
             discount = base.multiply(promo.getDiscountValue())
-                          .divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP);
-            if (promo.getDiscountMax() != null
-                    && promo.getDiscountMax().compareTo(BigDecimal.ZERO) > 0) {
+                           .divide(new BigDecimal("100"), 0, RoundingMode.HALF_UP);
+            if (promo.getDiscountMax() != null && promo.getDiscountMax().compareTo(BigDecimal.ZERO) > 0) {
                 discount = discount.min(promo.getDiscountMax());
             }
         } else {
-            // FIXED: trừ cố định, tối đa bằng base
             discount = promo.getDiscountValue().min(base);
         }
         return discount.max(BigDecimal.ZERO);
     }
 
-    /**
-     * Tính toán đầy đủ discount khi áp cả shop + sàn.
-     * Áp shop trước, sàn sau trên phần còn lại.
-     *
-     * @return mảng [shopDiscount, systemDiscount, totalDiscount, finalAmount]
-     */
     public BigDecimal[] calculateAllDiscounts(Promotion shopPromo, Promotion systemPromo,
                                               BigDecimal subtotal, BigDecimal deliveryFee) {
-        BigDecimal shopDiscount   = calculateDiscount(shopPromo, subtotal);
-        BigDecimal afterShop      = subtotal.subtract(shopDiscount).max(BigDecimal.ZERO);
+        BigDecimal shopDiscount = calculateDiscount(shopPromo, subtotal);
+        BigDecimal afterShop = subtotal.subtract(shopDiscount).max(BigDecimal.ZERO);
         BigDecimal systemDiscount = calculateDiscount(systemPromo, afterShop);
-        BigDecimal totalDiscount  = shopDiscount.add(systemDiscount);
-        BigDecimal finalAmount    = subtotal.subtract(totalDiscount)
-                                           .add(deliveryFee)
-                                           .max(BigDecimal.ZERO);
+        BigDecimal totalDiscount = shopDiscount.add(systemDiscount);
+        BigDecimal finalAmount = subtotal.subtract(totalDiscount).add(deliveryFee).max(BigDecimal.ZERO);
         return new BigDecimal[]{shopDiscount, systemDiscount, totalDiscount, finalAmount};
     }
 
-    /**
-     * Tạo mã giảm giá mới.
-     */
     public int createPromotion(Promotion promo) throws SQLException {
+        validatePromotion(promo);
+        return promotionDAO.save(promo);
+    }
+
+    public void updatePromotion(Promotion promo) throws SQLException {
+        validatePromotion(promo);
+        promotionDAO.update(promo);
+    }
+
+    public List<Promotion> getShopPromos(int ownerId) throws SQLException {
+        return promotionDAO.findByOwner(ownerId);
+    }
+
+    public List<Promotion> getGlobalPromotions() throws SQLException {
+        return promotionDAO.findGlobalPromotions();
+    }
+
+    public int createShopPromotion(Promotion promo, int ownerId) throws SQLException {
+        validateShopPromotion(promo, ownerId);
+        promo.setCreatedBy(ownerId);
+        return promotionDAO.save(promo);
+    }
+
+    public void updateShopPromotion(Promotion promo, int ownerId) throws SQLException {
+        validateShopPromotion(promo, ownerId);
+        promotionDAO.update(promo);
+    }
+
+    public int createGlobalPromotion(Promotion promo, int adminId) throws SQLException {
+        validateGlobalPromotion(promo, adminId);
+        promo.setCreatedBy(adminId);
+        return promotionDAO.save(promo);
+    }
+
+    public void updateGlobalPromotion(Promotion promo, int adminId) throws SQLException {
+        validateGlobalPromotion(promo, adminId);
+        promotionDAO.update(promo);
+    }
+
+    public Promotion getPromotionById(int promoId) throws SQLException {
+        if (promoId <= 0) {
+            throw new IllegalArgumentException("Mã khuyến mãi không hợp lệ.");
+        }
+        return promotionDAO.findById(promoId);
+    }
+
+    public List<Product> getPromotionProductsForAdmin() throws SQLException {
+        return productDAO.findAllAdminProducts(1, 1000, "APPROVED");
+    }
+
+    public void deactivate(int promoId) throws SQLException {
+        promotionDAO.deactivate(promoId);
+    }
+
+    public void softDelete(int promoId) throws SQLException {
+        promotionDAO.softDelete(promoId);
+    }
+
+    private void validatePromotion(Promotion promo) {
+        if (promo == null) {
+            throw new IllegalArgumentException("Dữ liệu khuyến mãi không hợp lệ.");
+        }
         if (promo.getCode() == null || promo.getCode().trim().isEmpty()) {
             throw new IllegalArgumentException("Mã giảm giá không được để trống.");
+        }
+        if (promo.getDiscountType() == null
+                || (!"PERCENT".equalsIgnoreCase(promo.getDiscountType())
+                && !"FIXED".equalsIgnoreCase(promo.getDiscountType()))) {
+            throw new IllegalArgumentException("Loại giảm giá không hợp lệ.");
+        }
+        if (promo.getDiscountScope() == null
+                || (!"SHOP".equalsIgnoreCase(promo.getDiscountScope())
+                && !"ALL".equalsIgnoreCase(promo.getDiscountScope()))) {
+            throw new IllegalArgumentException("Phạm vi giảm giá không hợp lệ.");
+        }
+        if (promo.getScope() == null
+                || (!"ORDER".equalsIgnoreCase(promo.getScope())
+                && !"PRODUCT".equalsIgnoreCase(promo.getScope()))) {
+            throw new IllegalArgumentException("Quy tắc áp dụng không hợp lệ.");
         }
         if (promo.getDiscountValue() == null
                 || promo.getDiscountValue().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Giá trị giảm giá phải lớn hơn 0.");
         }
+        if ("PERCENT".equalsIgnoreCase(promo.getDiscountType())
+                && promo.getDiscountValue().compareTo(new BigDecimal("100")) > 0) {
+            throw new IllegalArgumentException("Phần trăm giảm giá không được vượt quá 100%.");
+        }
+        if (promo.getDiscountMax() != null && promo.getDiscountMax().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Giá trị giảm tối đa không hợp lệ.");
+        }
+        if (promo.getMinOrderValue() != null && promo.getMinOrderValue().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Giá trị đơn hàng tối thiểu không hợp lệ.");
+        }
         if (promo.getValidFrom() == null || promo.getValidUntil() == null
                 || promo.getValidFrom().isAfter(promo.getValidUntil())) {
             throw new IllegalArgumentException("Thời gian hiệu lực không hợp lệ.");
         }
-        return promotionDAO.save(promo);
+        if ("PRODUCT".equalsIgnoreCase(promo.getScope()) && promo.getProductId() == null) {
+            throw new IllegalArgumentException("Khuyến mãi theo sản phẩm cần chọn sản phẩm áp dụng.");
+        }
     }
 
-    /**
-     * Lấy danh sách mã giảm giá active của shop.
-     */
-    @SuppressWarnings("unchecked")
-    public List<Promotion> getShopPromos(int ownerId) throws SQLException {
-        return promotionDAO.findByOwner(ownerId);
+    private void validateShopPromotion(Promotion promo, int ownerId) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("Chủ shop không hợp lệ.");
+        }
+        validatePromotion(promo);
+        enforceDiscountScope(promo, "SHOP");
+        validatePromotionProductOwnership(promo, ownerId, false);
+        ensureUniqueCode(promo);
     }
 
-    /**
-     * Hủy kích hoạt mã giảm giá.
-     */
-    public void deactivate(int promoId) throws SQLException {
-        promotionDAO.deactivate(promoId);
+    private void validateGlobalPromotion(Promotion promo, int adminId) throws SQLException {
+        if (adminId <= 0) {
+            throw new IllegalArgumentException("Quản trị viên không hợp lệ.");
+        }
+        validatePromotion(promo);
+        enforceDiscountScope(promo, "ALL");
+        validatePromotionProductOwnership(promo, adminId, true);
+        ensureUniqueCode(promo);
     }
 
-    /**
-     * Xóa mềm mã giảm giá.
-     */
-    public void softDelete(int promoId) throws SQLException {
-        promotionDAO.softDelete(promoId);
+    private void enforceDiscountScope(Promotion promo, String expectedScope) {
+        if (promo.getDiscountScope() == null || !expectedScope.equalsIgnoreCase(promo.getDiscountScope())) {
+            throw new IllegalArgumentException("Phạm vi voucher không hợp lệ cho ngữ cảnh này.");
+        }
+        promo.setDiscountScope(expectedScope);
     }
 
-    // ─── Mock coupons ────────────────────────────────────────────────────────
+    private void validatePromotionProductOwnership(Promotion promo, int ownerId, boolean globalMode)
+            throws SQLException {
+        if (!"PRODUCT".equalsIgnoreCase(promo.getScope())) {
+            return;
+        }
+        if (promo.getProductId() == null) {
+            throw new IllegalArgumentException("Khuyến mãi theo sản phẩm cần chọn sản phẩm áp dụng.");
+        }
 
-    /**
-     * Mock coupon SHOP — dùng cho DEV khi chưa có dữ liệu DB.
-     * SHOP10: Giảm 10%, max 50,000, min_order 100,000, scope SHOP
-     */
+        List<Product> products = productDAO.findById(promo.getProductId());
+        if (products == null || products.isEmpty()) {
+            throw new IllegalArgumentException("Sản phẩm áp dụng không tồn tại.");
+        }
+        Product product = products.get(0);
+        if (!globalMode && product.getOwnerId() != ownerId) {
+            throw new IllegalArgumentException("Sản phẩm áp dụng phải thuộc shop của bạn.");
+        }
+    }
+
+    private void ensureUniqueCode(Promotion promo) throws SQLException {
+        String normalized = promo.getCode().trim().toUpperCase();
+        Promotion existing = promotionDAO.findAnyByCode(normalized);
+        if (existing != null && existing.getPromoId() != promo.getPromoId()) {
+            throw new IllegalArgumentException("Mã giảm giá đã tồn tại.");
+        }
+        promo.setCode(normalized);
+    }
+
     private Promotion getMockShopCoupon(String code, BigDecimal subtotal) {
         if ("SHOP10".equals(code)) {
             if (subtotal.compareTo(new BigDecimal("100000")) < 0) return null;
@@ -180,11 +262,6 @@ public class PromotionService {
         return null;
     }
 
-    /**
-     * Mock coupon SÀN — dùng cho DEV khi chưa có dữ liệu DB.
-     * SAAN5: Giảm cố định 5,000, min_order 50,000, scope ALL
-     * SALE20: Giảm 20%, max 100,000, min_order 200,000, scope ALL
-     */
     private Promotion getMockSystemCoupon(String code, BigDecimal subtotal) {
         if ("SAAN5".equals(code)) {
             if (subtotal.compareTo(new BigDecimal("50000")) < 0) return null;

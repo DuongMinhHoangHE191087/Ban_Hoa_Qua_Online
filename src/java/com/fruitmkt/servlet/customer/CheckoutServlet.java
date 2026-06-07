@@ -222,9 +222,15 @@ public class CheckoutServlet extends HttpServlet {
             }
 
             if (cartSummary != null && cartSummary.getItems() != null && !cartSummary.getItems().isEmpty()) {
-                int firstProductId = cartSummary.getItems().get(0).getProductId();
-                int ownerId = orderDAO.getOwnerIdByProductId(firstProductId);
-                req.setAttribute("shopOwnerId", ownerId);
+                try {
+                    int ownerId = resolveSingleShopOwnerId(cartSummary.getItems(), null);
+                    req.setAttribute("shopOwnerId", ownerId);
+                    req.setAttribute("directSaleAmount", calculateDirectSaleAmount(cartSummary.getItems()));
+                } catch (IllegalArgumentException ex) {
+                    SessionUtil.flashError(session, ex.getMessage());
+                    resp.sendRedirect(req.getContextPath() + "/cart");
+                    return;
+                }
             }
 
             List<UserAddress> userAddresses = new UserAddressDAO().findByUser(user.getUserId());
@@ -409,14 +415,13 @@ public class CheckoutServlet extends HttpServlet {
                 BigDecimal deliveryFee = new BigDecimal("15000");
                 BigDecimal finalAmount = subtotal.add(deliveryFee);
 
-                // [FIX] Dùng DAO method trong package để tránh gọi getConnection() protected từ servlet
-                ProductVariant firstVariant = variantMap.get(checkoutItems.get(0).getVariantId());
-                if (firstVariant == null) {
-                    throw new IllegalStateException("Không thể xác định thông tin sản phẩm để tạo đơn hàng.");
-                }
-                int ownerId = orderDAO.getOwnerIdByProductId(firstVariant.getProductId());
-                if (ownerId == -1) {
-                    throw new IllegalStateException("Không tìm thấy owner_id cho product_id=" + firstVariant.getProductId());
+                int ownerId;
+                try {
+                    ownerId = resolveSingleShopOwnerId(checkoutItems, variantMap);
+                } catch (IllegalArgumentException ex) {
+                    SessionUtil.flashError(session, ex.getMessage());
+                    resp.sendRedirect(req.getContextPath() + "/cart");
+                    return;
                 }
 
                 // Chống tự mua hàng (Self-Buying Prevention)
@@ -465,8 +470,10 @@ public class CheckoutServlet extends HttpServlet {
                 }
 
                 // Platform fee calculation
-                BigDecimal platformFeeRate = new BigDecimal(String.valueOf(configDAO.getDouble("platform_fee_rate", 0.02)));
-                BigDecimal platformFee = subtotal.multiply(platformFeeRate).setScale(0, java.math.RoundingMode.HALF_UP);
+                BigDecimal platformFeeRate = new BigDecimal(String.valueOf(configDAO.getDouble(
+                        AppConfig.CONFIG_PLATFORM_FEE_RATE, AppConfig.PLATFORM_FEE_RATE_DEFAULT / 100.0)));
+                BigDecimal netMerchandiseAmount = subtotal.subtract(totalDiscount).max(BigDecimal.ZERO);
+                BigDecimal platformFee = netMerchandiseAmount.multiply(platformFeeRate).setScale(0, java.math.RoundingMode.HALF_UP);
 
                 int orderId = 0;
                 Connection conn = null;
@@ -621,7 +628,7 @@ public class CheckoutServlet extends HttpServlet {
 
     private int saveOrderWithConn(Connection conn, Order order) throws SQLException {
         String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, recipient_name, recipient_phone, notes, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, shop_acceptance_deadline, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NONE', ?, GETDATE(), GETDATE())";
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NONE', ?, GETDATE(), GETDATE())";
         try (PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, order.getCustomerId());
             ps.setInt(2, order.getOwnerId());
@@ -652,5 +659,46 @@ public class CheckoutServlet extends HttpServlet {
             }
         }
         throw new SQLException("Không lấy được mã Order tự tăng.");
+    }
+
+    private int resolveSingleShopOwnerId(List<CartItem> checkoutItems, java.util.Map<Integer, ProductVariant> variantMap) throws SQLException {
+        Integer resolvedOwnerId = null;
+        for (CartItem item : checkoutItems) {
+            int productId = item.getProductId();
+            if (productId <= 0 && variantMap != null) {
+                ProductVariant variant = variantMap.get(item.getVariantId());
+                if (variant != null) {
+                    productId = variant.getProductId();
+                }
+            }
+
+            if (productId <= 0) {
+                throw new IllegalStateException("Không thể xác định shop của sản phẩm trong giỏ hàng.");
+            }
+
+            int itemOwnerId = orderDAO.getOwnerIdByProductId(productId);
+            if (itemOwnerId == -1) {
+                throw new IllegalStateException("Không tìm thấy owner_id cho product_id=" + productId);
+            }
+
+            if (resolvedOwnerId == null) {
+                resolvedOwnerId = itemOwnerId;
+            } else if (resolvedOwnerId.intValue() != itemOwnerId) {
+                throw new IllegalArgumentException("Giỏ hàng chỉ hỗ trợ thanh toán cho một shop mỗi lần. Vui lòng tách đơn theo từng shop để áp dụng voucher shop chính xác.");
+            }
+        }
+        return resolvedOwnerId != null ? resolvedOwnerId : -1;
+    }
+
+    private BigDecimal calculateDirectSaleAmount(List<CartItem> items) {
+        long accumulativeDiscount = 0;
+        for (CartItem item : items) {
+            BigDecimal basePrice = item.getBasePrice() != null ? item.getBasePrice() : (item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO);
+            BigDecimal activePrice = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
+            BigDecimal unitDiscount = basePrice.subtract(activePrice).max(BigDecimal.ZERO);
+            long unitDiscountValue = unitDiscount.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            accumulativeDiscount += unitDiscountValue * item.getQuantity();
+        }
+        return new BigDecimal(accumulativeDiscount);
     }
 }
