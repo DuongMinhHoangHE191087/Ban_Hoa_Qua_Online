@@ -24,6 +24,15 @@ public class Product {
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
+    private boolean isOrganic;
+    private boolean isImported;
+    private Integer seasonStartMonth;
+    private Integer seasonEndMonth;
+
+    private String approvalStatus;
+    private String verificationDocPath;
+    private String rejectionReason;
+
     public Product() {}
 
     public int getProductId() { return productId; }
@@ -85,6 +94,26 @@ public class Product {
         }
         return harvestDate.plusDays(shelfLifeDays).isBefore(java.time.LocalDate.now()) ||
                harvestDate.plusDays(shelfLifeDays).isEqual(java.time.LocalDate.now());
-    }
+     }
+ 
+    public boolean getIsOrganic() { return isOrganic; }
+    public void setIsOrganic(boolean isOrganic) { this.isOrganic = isOrganic; }
 
+    public boolean getIsImported() { return isImported; }
+    public void setIsImported(boolean isImported) { this.isImported = isImported; }
+
+    public Integer getSeasonStartMonth() { return seasonStartMonth; }
+    public void setSeasonStartMonth(Integer seasonStartMonth) { this.seasonStartMonth = seasonStartMonth; }
+
+    public Integer getSeasonEndMonth() { return seasonEndMonth; }
+    public void setSeasonEndMonth(Integer seasonEndMonth) { this.seasonEndMonth = seasonEndMonth; }
+
+    public String getApprovalStatus() { return approvalStatus; }
+    public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
+
+    public String getVerificationDocPath() { return verificationDocPath; }
+    public void setVerificationDocPath(String verificationDocPath) { this.verificationDocPath = verificationDocPath; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 }

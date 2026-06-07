@@ -11,6 +11,8 @@ public class ChatMessage {
     private int sessionId;
     private int senderId;
     private String content;
+    private String mediaUrl;
+    private String mediaType;
     private boolean isRead;
     private java.time.LocalDateTime createdAt;
 
@@ -27,6 +29,12 @@ public class ChatMessage {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public String getMediaUrl() { return mediaUrl; }
+    public void setMediaUrl(String mediaUrl) { this.mediaUrl = mediaUrl; }
+
+    public String getMediaType() { return mediaType; }
+    public void setMediaType(String mediaType) { this.mediaType = mediaType; }
 
     public boolean getIsRead() { return isRead; }
     public void setIsRead(boolean isRead) { this.isRead = isRead; }

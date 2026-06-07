@@ -15,6 +15,8 @@ public class OrderItem {
     private int quantity;
     private java.math.BigDecimal unitPrice;
     private java.math.BigDecimal subtotal;
+    private String packagingLabelSnapshot;
+    private java.math.BigDecimal packagingPriceSnapshot;
 
     public OrderItem() {}
 
@@ -41,5 +43,11 @@ public class OrderItem {
 
     public java.math.BigDecimal getSubtotal() { return subtotal; }
     public void setSubtotal(java.math.BigDecimal subtotal) { this.subtotal = subtotal; }
+
+    public String getPackagingLabelSnapshot() { return packagingLabelSnapshot; }
+    public void setPackagingLabelSnapshot(String packagingLabelSnapshot) { this.packagingLabelSnapshot = packagingLabelSnapshot; }
+
+    public java.math.BigDecimal getPackagingPriceSnapshot() { return packagingPriceSnapshot; }
+    public void setPackagingPriceSnapshot(java.math.BigDecimal packagingPriceSnapshot) { this.packagingPriceSnapshot = packagingPriceSnapshot; }
 
 }
