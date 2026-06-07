@@ -11,7 +11,8 @@ public class Order {
     private int customerId;
     private int ownerId;
     private String deliveryAddress;
-    private String userAddress;
+    private String recipientName;
+    private String recipientPhone;
     private String deliveryTimeSlot;
     private String notes;
     private java.time.LocalDateTime cancelledAt;
@@ -27,10 +28,14 @@ public class Order {
     private java.math.BigDecimal finalAmount;
     private String paymentMethod;
     private String refundStatus;
+    private String receivedStatus; // PENDING, RECEIVED, NOT_RECEIVED
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
     public Order() {}
+
+    public String getReceivedStatus() { return receivedStatus; }
+    public void setReceivedStatus(String receivedStatus) { this.receivedStatus = receivedStatus; }
 
     public int getOrderId() { return orderId; }
     public void setOrderId(int orderId) { this.orderId = orderId; }
@@ -44,8 +49,11 @@ public class Order {
     public String getDeliveryAddress() { return deliveryAddress; }
     public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
 
-    public String getUserAddress() { return userAddress; }
-    public void setUserAddress(String userAddress) { this.userAddress = userAddress; }
+    public String getRecipientName() { return recipientName; }
+    public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
+
+    public String getRecipientPhone() { return recipientPhone; }
+    public void setRecipientPhone(String recipientPhone) { this.recipientPhone = recipientPhone; }
 
     public String getDeliveryTimeSlot() { return deliveryTimeSlot; }
     public void setDeliveryTimeSlot(String deliveryTimeSlot) { this.deliveryTimeSlot = deliveryTimeSlot; }

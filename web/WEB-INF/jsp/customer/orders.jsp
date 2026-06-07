@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
 
 <script id="tailwind-config">
     tailwind.config = {
@@ -241,6 +241,16 @@
                                 <a href="${pageContext.request.contextPath}/reviews?orderId=${order.orderId}" class="w-full bg-[#f5fdf9] text-primary hover:bg-primary hover:text-on-primary py-2.5 rounded-xl transition-all font-semibold border border-primary/20 text-center flex items-center justify-center gap-2 text-sm">
                                     <span class="material-symbols-outlined text-base">star</span> Viết đánh giá chất lượng
                                 </a>
+                                <%-- Reorder button --%>
+                                <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                    <input type="hidden" name="action" value="reorder">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+                                    <button type="submit"
+                                        class="w-full bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white py-2.5 rounded-xl transition-all font-semibold border border-sky-200 flex items-center justify-center gap-2 text-sm active:scale-95 transform">
+                                        <span class="material-symbols-outlined text-base">replay</span> Mua lại đơn hàng này
+                                    </button>
+                                </form>
                                 <a href="${pageContext.request.contextPath}/returns?orderId=${order.orderId}" class="w-full bg-[#fff5f5] text-error hover:bg-[#ba1a1a] hover:text-white py-2.5 rounded-xl transition-all font-semibold border border-error/20 text-center flex items-center justify-center gap-2 text-sm">
                                     <span class="material-symbols-outlined text-base">rotate_left</span> Yêu cầu Đổi / Trả hàng
                                 </a>

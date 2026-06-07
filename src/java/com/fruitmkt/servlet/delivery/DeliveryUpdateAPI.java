@@ -36,17 +36,24 @@ public class DeliveryUpdateAPI extends HttpServlet {
 
             Map<String, String> data = mapper.readValue(req.getInputStream(), Map.class);
             int deliveryId = Integer.parseInt(data.get("deliveryId"));
-            String action = data.get("action"); // "STATUS" or "ESTIMATE"
+            String action = data.get("action"); // "CLAIM", "STATUS" or "ESTIMATE"
 
-            if ("STATUS".equals(action)) {
+            if ("CLAIM".equals(action)) {
+                deliveryService.claimDelivery(currentUser.getUserId(), deliveryId);
+            } else if ("STATUS".equals(action)) {
                 String status = data.get("status");
                 String reason = data.get("failureReason");
                 String proofUrl = data.get("proofImageUrl");
-                deliveryService.updateStatusAndProof(currentUser.getUserId(), deliveryId, status, reason, proofUrl);
+                // B5 Fix: DELIVERED must sync orders.status too — use dedicated method
+                if ("DELIVERED".equals(status)) {
+                    deliveryService.markAsDelivered(currentUser.getUserId(), deliveryId, proofUrl);
+                } else {
+                    deliveryService.updateStatusAndProof(currentUser.getUserId(), deliveryId, status, reason, proofUrl);
+                }
             } else if ("ESTIMATE".equals(action)) {
                 String estTimeStr = data.get("estimatedTime");
                 if (estTimeStr != null && !estTimeStr.isEmpty()) {
-                    LocalDateTime est = LocalDateTime.parse(estTimeStr); // Expects ISO format like 2026-05-31T14:30
+                    LocalDateTime est = LocalDateTime.parse(estTimeStr);
                     deliveryService.updateEstimatedTime(currentUser.getUserId(), deliveryId, est);
                 }
             }

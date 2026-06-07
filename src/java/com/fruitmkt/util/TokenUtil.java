@@ -17,9 +17,9 @@ import javax.crypto.spec.SecretKeySpec;
  * @author fruitmkt-team
  */
 public final class TokenUtil {
-    private static final String SECRET_KEY = "fruitmkt-super-secret-key-2026-secure-sha256";
-    private static final long ACCESS_TOKEN_EXPIRY_MS = 15L * 60 * 1000; // 15 phút
-    public static final int REFRESH_TOKEN_EXPIRY_SECS = 7 * 24 * 60 * 60; // 7 ngày
+    private static final String SECRET_KEY = com.fruitmkt.config.AppConfig.SECRET_KEY;
+    private static final long ACCESS_TOKEN_EXPIRY_MS = com.fruitmkt.config.AppConfig.ACCESS_TOKEN_EXPIRY_MS;
+    public static final int REFRESH_TOKEN_EXPIRY_SECS = com.fruitmkt.config.AppConfig.REFRESH_TOKEN_EXPIRY_SECS;
 
     /**
      * Tạo Access Token dạng: userId.expiresAt.signature

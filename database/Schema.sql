@@ -15,6 +15,7 @@ CREATE TABLE users (
     role NVARCHAR(20) NOT NULL DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER','SHOP_OWNER','DELIVERY','ADMIN')),
     status NVARCHAR(20) NOT NULL DEFAULT 'INACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','LOCKED','SUSPENDED')),
     user_address NVARCHAR(500) NULL,
+    avatar_url NVARCHAR(500) NULL,
 
     is_email_verified BIT NOT NULL DEFAULT 0,
     email_verification_code_hash NVARCHAR(255) NULL,
@@ -33,6 +34,17 @@ CREATE TABLE user_sessions (
     user_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id) ON DELETE CASCADE,
     token NVARCHAR(100) NOT NULL UNIQUE,
     expires_at DATETIME NOT NULL
+);
+
+-- 3. user_addresses
+CREATE TABLE user_addresses (
+    address_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    recipient_name NVARCHAR(100) NOT NULL,
+    recipient_phone NVARCHAR(15) NOT NULL,
+    address_detail NVARCHAR(500) NOT NULL,
+    is_default BIT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
 
@@ -194,7 +206,8 @@ CREATE TABLE orders (
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     owner_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     delivery_address NVARCHAR(500) NOT NULL,
-    user_address NVARCHAR(500) NOT NULL,
+    recipient_name NVARCHAR(100) NULL,
+    recipient_phone NVARCHAR(15) NULL,
     delivery_time_slot NVARCHAR(100) NULL,
     notes NVARCHAR(300) NULL,
     cancelled_at DATETIME NULL,

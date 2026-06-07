@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
 
     <!-- Tailwind & SweetAlert -->
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -139,11 +139,23 @@
                             <tr class="hover:bg-[#f9fdf9] transition-colors duration-150">
                                 <td class="py-3.5 px-5 font-bold text-[#364e03]">#${order.orderId}</td>
                                 <td class="py-3.5 px-4 text-txt-2 text-xs">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-7 h-7 rounded-full bg-[#edf7f2] text-[#4d661c] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                    <div class="flex items-start gap-2">
+                                        <div class="w-7 h-7 rounded-full bg-[#edf7f2] text-[#4d661c] flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                                             <i class="fa-solid fa-user"></i>
                                         </div>
-                                        <span>KH #${order.customerId}</span>
+                                        <div>
+                                            <c:choose>
+                                                <c:when test="${not empty order.recipientName}">
+                                                    <span class="font-semibold text-txt block">${order.recipientName}</span>
+                                                    <c:if test="${not empty order.recipientPhone}">
+                                                        <span class="text-txt-3 text-[10px]">${order.recipientPhone}</span>
+                                                    </c:if>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span>KH #${order.customerId}</span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="py-3.5 px-4 text-xs text-txt-3">${order.createdAt}</td>

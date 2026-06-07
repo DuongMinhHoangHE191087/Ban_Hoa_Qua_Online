@@ -155,11 +155,11 @@ public class OrderService {
         if (order == null || order.getCustomerId() != customerId) {
             throw new RuntimeException("Đơn hàng không hợp lệ!");
         }
-        // [FIX B5] "SHIPPED" không tồn tại trong schema — chỉ check DISPATCHED
-        if (!com.fruitmkt.config.AppConfig.ORDER_DISPATCHED.equals(order.getStatus())) {
-            throw new RuntimeException("Chỉ có thể xác nhận nhận hàng đối với đơn đang giao (DISPATCHED)!");
+        if (!"DISPATCHED".equals(order.getStatus()) && !"DELIVERED".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể xác nhận nhận hàng đối với đơn đang giao (DISPATCHED) hoặc đã giao (DELIVERED)!");
         }
         orderDAO.updateStatus(orderId, "DELIVERED");
+        orderDAO.updateReceivedStatus(orderId, "RECEIVED");
     }
 
     /**

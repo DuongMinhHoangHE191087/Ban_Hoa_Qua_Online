@@ -101,6 +101,15 @@ public class ShopApplyServlet extends HttpServlet {
         String shopDescription = req.getParameter("shopDescription");
 
         try {
+            // Check and update user phone if missing
+            if (currentUser.getPhone() == null || currentUser.getPhone().trim().isEmpty()) {
+                String userPhone = req.getParameter("userPhone");
+                userPhone = com.fruitmkt.util.ValidationUtil.requireValidPhone(userPhone, "Số điện thoại");
+                currentUser.setPhone(userPhone);
+                new com.fruitmkt.dao.UserDAO().update(currentUser);
+                req.getSession().setAttribute(AppConfig.SESSION_USER, currentUser);
+            }
+
             // 1. Validate input cơ bản bằng ValidationUtil
             shopName = com.fruitmkt.util.ValidationUtil.requireValidShopName(shopName, "Tên cửa hàng");
             shopAddress = com.fruitmkt.util.ValidationUtil.requireValidAddress(shopAddress, "Địa chỉ kinh doanh");

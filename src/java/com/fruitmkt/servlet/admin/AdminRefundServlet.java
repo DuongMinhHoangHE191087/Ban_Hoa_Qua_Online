@@ -54,7 +54,11 @@ public class AdminRefundServlet extends HttpServlet {
             returnRequestService.processRequest(requestId, action, reason, admin.getUserId(), orderId);
             
             if ("approve".equals(action)) {
-                SessionUtil.flashSuccess(req.getSession(), "Đã chấp nhận hoàn tiền cho yêu cầu #" + requestId);
+                SessionUtil.flashSuccess(req.getSession(), "Đã duyệt yêu cầu hoàn tiền #" + requestId);
+            } else if ("process".equals(action)) {
+                SessionUtil.flashSuccess(req.getSession(), "Đang xử lý yêu cầu #" + requestId);
+            } else if ("complete".equals(action)) {
+                SessionUtil.flashSuccess(req.getSession(), "Đã hoàn tiền thành công cho yêu cầu #" + requestId);
             } else {
                 SessionUtil.flashSuccess(req.getSession(), "Đã từ chối yêu cầu hoàn tiền #" + requestId);
             }

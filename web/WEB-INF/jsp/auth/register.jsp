@@ -11,7 +11,7 @@
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Material Symbols Outlined -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
     <!-- Tailwind Configuration -->
@@ -186,11 +186,11 @@
                             <label class="text-xs font-semibold text-primary" for="phone">Số điện thoại *</label>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">call</span>
-                                <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${not empty requestScope.prefilledUser ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
+                                <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
                                        id="phone" name="phone" 
                                        value="<c:out value="${not empty requestScope.prefilledUser ? requestScope.prefilledUser.phone : param.phone}"/>" 
                                        placeholder="Nhập số điện thoại" type="tel" required maxlength="15"
-                                       ${not empty requestScope.prefilledUser ? 'readonly' : ''}>
+                                       ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'readonly' : ''}>
                             </div>
                         </div>
                     </div>
@@ -221,6 +221,19 @@
                                         type="button" onclick="togglePasswordVisibility('password', this)">
                                     <span class="material-symbols-outlined text-[20px]">visibility_off</span>
                                 </button>
+                            </div>
+                            
+                            <!-- Password Strength Indicator -->
+                            <div class="mt-2 space-y-1">
+                                <div class="flex items-center justify-between text-[10px] font-semibold">
+                                    <span class="text-on-surface-variant">Độ mạnh mật khẩu:</span>
+                                    <span id="strengthText" class="text-on-surface-variant font-bold">Trống</span>
+                                </div>
+                                <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden flex gap-1">
+                                    <div id="strengthSegment1" class="h-full w-1/3 bg-gray-300 rounded-full transition-all"></div>
+                                    <div id="strengthSegment2" class="h-full w-1/3 bg-gray-300 rounded-full transition-all"></div>
+                                    <div id="strengthSegment3" class="h-full w-1/3 bg-gray-300 rounded-full transition-all"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -527,9 +540,9 @@
                 }
 
                 const accountType = document.getElementById('accountType').value;
-                const isPrefilled = ${not empty requestScope.prefilledUser ? 'true' : 'false'};
+                const isPrefilled = "${requestScope.prefilledUser != null}" === "true";
 
-                // Validate base fields nếu không phải prefilled
+                 // Validate base fields nếu không phải prefilled
                 if (!isPrefilled) {
                     const fullNameInput = document.getElementById('fullName');
                     if (fullNameInput.value.trim().length < 3) {
@@ -556,6 +569,15 @@
                     const confirmPasswordInput = document.getElementById('confirmPassword');
                     if (passwordInput.value !== confirmPasswordInput.value) {
                         showError(confirmPasswordInput, 'Mật khẩu xác nhận không khớp.');
+                    }
+                } else {
+                    // Nếu prefilled nhưng SĐT trống và người dùng tự điền, vẫn cần validate
+                    const phoneInput = document.getElementById('phone');
+                    if (phoneInput && !phoneInput.hasAttribute('readonly')) {
+                        const phoneRegex = /^[0-9]{10,11}$/;
+                        if (!phoneRegex.test(phoneInput.value.trim())) {
+                            showError(phoneInput, 'Số điện thoại không hợp lệ (phải gồm 10-11 chữ số).');
+                        }
                     }
                 }
 
@@ -646,6 +668,57 @@
                     }
                 }
             });
+
+            // Live password strength calculation
+            const passwordField = document.getElementById('password');
+            if (passwordField) {
+                const strengthText = document.getElementById('strengthText');
+                const seg1 = document.getElementById('strengthSegment1');
+                const seg2 = document.getElementById('strengthSegment2');
+                const seg3 = document.getElementById('strengthSegment3');
+
+                passwordField.addEventListener('input', function() {
+                    const pwd = this.value;
+                    let score = 0;
+
+                    if (pwd.length >= 8) score++;
+                    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
+                    if (/\d/.test(pwd)) score++;
+                    if (/[^a-zA-Z\d]/.test(pwd)) score++;
+
+                    seg1.className = 'h-full w-1/3 bg-gray-300 rounded-full transition-all';
+                    seg2.className = 'h-full w-1/3 bg-gray-300 rounded-full transition-all';
+                    seg3.className = 'h-full w-1/3 bg-gray-300 rounded-full transition-all';
+
+                    if (pwd.length === 0) {
+                        strengthText.textContent = 'Trống';
+                        strengthText.className = 'text-on-surface-variant font-bold';
+                        return;
+                    }
+                    if (pwd.length < 8) {
+                        strengthText.textContent = 'Rất ngắn (Yếu)';
+                        strengthText.className = 'text-red-500 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-red-500 rounded-full transition-all';
+                        return;
+                    }
+                    if (score <= 1) {
+                        strengthText.textContent = 'Yếu';
+                        strengthText.className = 'text-red-500 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-red-500 rounded-full transition-all';
+                    } else if (score === 2 || score === 3) {
+                        strengthText.textContent = 'Trung bình';
+                        strengthText.className = 'text-orange-500 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-orange-500 rounded-full transition-all';
+                        seg2.className = 'h-full w-1/3 bg-orange-500 rounded-full transition-all';
+                    } else if (score >= 4) {
+                        strengthText.textContent = 'Mạnh';
+                        strengthText.className = 'text-green-600 font-bold';
+                        seg1.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
+                        seg2.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
+                        seg3.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
+                    }
+                });
+            }
         });
     </script>
 </body>

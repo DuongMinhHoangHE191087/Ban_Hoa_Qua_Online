@@ -143,34 +143,37 @@ graph TB
 
 ### 2.1 Database Table Matrix
 
-Below is a quick reference matrix of all 24 physical tables defined and normalized within the database schema:
+Below is a quick reference matrix of all 27 physical tables defined and normalized within the database schema:
 
 | No | Table Name | Functional Description |
 |---|---|---|
 | 01 | [users](#221-users) | Manages all system user accounts (Customers, Shop Owners, Delivery Staff, Admins). |
 | 02 | [user_sessions](#222-user_sessions) | Stores user login sessions and authentication tokens. |
-| 03 | [shop_owner_profiles](#223-shop_owner_profiles) | Detailed profiles and approval statuses for Shop Owners' storefronts. |
-| 04 | [categories](#224-categories) | Product categories for classifying agricultural goods and fresh fruits. |
-| 05 | [products](#225-products) | General information for registered agricultural items and fresh fruits. |
-| 06 | [product_images](#226-product_images) | Image gallery storage supporting multiple images per fruit product. |
-| 07 | [product_variants](#227-product_variants) | Specific product packaging options, pricing tiers, and stock amounts. |
-| 08 | [inventory_logs](#228-inventory_logs) | Complete audit log for stock fluctuations (adjustments, reservations, releases). |
-| 09 | [promotions](#229-promotions) | Coupon/Voucher management supporting shop-level or platform-wide scopes. |
-| 10 | [cart](#2210-cart) | Shopping cart header associated with each registered customer. |
-| 11 | [cart_items](#2211-cart_items) | Individual product variants and quantities stored inside customers' carts. |
-| 12 | [orders](#2212-orders) | Main order header details, including pricing breakdown, payment, and status. |
-| 13 | [order_items](#2213-order_items) | Transactional snapshots of purchased variants, pricing, and quantities. |
-| 14 | [order_promotions](#2214-order_promotions) | Logs the history of applied promo codes and actual discounts per order. |
-| 15 | [return_requests](#2215-return_requests) | Tracks cancellations, returns, and refunds requested by customers. |
-| 16 | [shop_settlements](#2216-shop_settlements) | Periodic financial settlement sessions between the platform and shop owners. |
-| 17 | [shop_settlement_orders](#2217-shop_settlement_orders) | Detailed mapping of orders processed within a specific financial settlement. |
-| 18 | [payment_transactions](#2218-payment_transactions) | Automated payment transaction records via SePay QR or COD. |
-| 19 | [sepay_webhook_dedup](#2219-sepay_webhook_dedup) | Idempotent ledger to prevent duplicate processing of bank transfer webhooks. |
-| 20 | [deliveries](#2220-deliveries) | Dispatching logs, shipper assignments, and delivery tracking. |
-| 21 | [reviews](#2221-reviews) | Customer reviews, star ratings, and feedback comments on purchased products. |
-| 22 | [chat_sessions](#2222-chat_sessions) | Active chat rooms connecting customers directly with shop owners. |
-| 23 | [chat_messages](#2223-chat_messages) | Individual message threads stored chronologically inside active chat sessions. |
-| 24 | [notifications](#2224-notifications) | Automated alerts, order updates, and marketing notifications pushed to users. |
+| 03 | [user_addresses](#223-user_addresses) | Stores multiple shipping addresses and default recipients for registered customers. |
+| 04 | [shop_owner_profiles](#224-shop_owner_profiles) | Detailed profiles and approval statuses for Shop Owners' storefronts. |
+| 05 | [categories](#225-categories) | Product categories for classifying agricultural goods and fresh fruits. |
+| 06 | [products](#226-products) | General information for registered agricultural items and fresh fruits. |
+| 07 | [product_images](#227-product_images) | Image gallery storage supporting multiple images per fruit product. |
+| 08 | [product_variants](#228-product_variants) | Specific product packaging options, pricing tiers, and stock amounts. |
+| 09 | [inventory_logs](#229-inventory_logs) | Complete audit log for stock fluctuations (adjustments, reservations, releases). |
+| 10 | [replenishment_logs](#2210-replenishment_logs) | Stores replenishment orders and details for variants stock updates. |
+| 11 | [promotions](#2211-promotions) | Coupon/Voucher management supporting shop-level or platform-wide scopes. |
+| 12 | [cart](#2212-cart) | Shopping cart header associated with each registered customer. |
+| 13 | [cart_items](#2213-cart_items) | Individual product variants and quantities stored inside customers' carts. |
+| 14 | [orders](#2214-orders) | Main order header details, including pricing breakdown, payment, and status. |
+| 15 | [order_items](#2215-order_items) | Transactional snapshots of purchased variants, pricing, and quantities. |
+| 16 | [order_promotions](#2216-order_promotions) | Logs the history of applied promo codes and actual discounts per order. |
+| 17 | [return_requests](#2217-return_requests) | Tracks cancellations, returns, and refunds requested by customers. |
+| 18 | [shop_settlements](#2218-shop_settlements) | Periodic financial settlement sessions between the platform and shop owners. |
+| 19 | [shop_settlement_orders](#2219-shop_settlement_orders) | Detailed mapping of orders processed within a specific financial settlement. |
+| 20 | [payment_transactions](#2220-payment_transactions) | Automated payment transaction records via SePay QR or COD. |
+| 21 | [sepay_webhook_dedup](#2221-sepay_webhook_dedup) | Idempotent ledger to prevent duplicate processing of bank transfer webhooks. |
+| 22 | [deliveries](#2222-deliveries) | Dispatching logs, shipper assignments, and delivery tracking. |
+| 23 | [reviews](#2223-reviews) | Customer reviews, star ratings, and feedback comments on purchased products. |
+| 24 | [chat_sessions](#2224-chat_sessions) | Active chat rooms connecting customers directly with shop owners. |
+| 25 | [chat_messages](#2225-chat_messages) | Individual message threads stored chronologically inside active chat sessions. |
+| 26 | [notifications](#2226-notifications) | Automated alerts, order updates, and marketing notifications pushed to users. |
+| 27 | [system_config](#2227-system_config) | Global system configuration parameters and metadata. |
 
 ---
 
@@ -221,10 +224,27 @@ Stores secure tokens to manage persistent user login states and API authenticati
 
 ---
 
-#### 2.2.3 shop_owner_profiles
+#### 2.2.3 user_addresses
+Stores multiple shipping addresses and recipient details for registered customers.
+
+* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
+
+| No | Field | PK | FK | UN | NN | Description |
+|---|---|:---:|:---:|:---:|:---:|---|
+| 01 | `address_id` | ✓ | | | ✓ | **INT IDENTITY(1,1)**: Primary Key. Unique address identifier, auto-incrementing. |
+| 02 | `user_id` | | ✓ | | ✓ | **INT**: Foreign Key referencing `users(user_id)`. Automatically cascaded on user deletion. |
+| 03 | `recipient_name` | | | | ✓ | **NVARCHAR(100)**: Recipient's full name. |
+| 04 | `recipient_phone` | | | | ✓ | **NVARCHAR(15)**: Recipient's contact phone number. |
+| 05 | `address_detail` | | | | ✓ | **NVARCHAR(500)**: Detailed shipping/delivery address. |
+| 06 | `is_default` | | | | ✓ | **BIT (DEFAULT 0)**: Flag indicating if this is the default shipping address. |
+| 07 | `created_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Timestamp of address creation. |
+
+---
+
+#### 2.2.4 shop_owner_profiles
 Maintains legal registration profiles, store descriptions, and approval statuses for online storefronts owned by Shop Owners.
 
-\* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
+* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
 
 | No | Field | PK | FK | UN | NN | Description |
 |---|---|:---:|:---:|:---:|:---:|---|
@@ -242,7 +262,7 @@ Maintains legal registration profiles, store descriptions, and approval statuses
 
 ---
 
-#### 2.2.4 categories
+#### 2.2.5 categories
 Stores product categories to classify various fresh fruits and agricultural goods.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -257,7 +277,7 @@ Stores product categories to classify various fresh fruits and agricultural good
 
 ---
 
-#### 2.2.5 products
+#### 2.2.6 products
 Stores general catalog data for fresh fruit listings.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -283,7 +303,7 @@ Stores general catalog data for fresh fruit listings.
 
 ---
 
-#### 2.2.6 product_images
+#### 2.2.7 product_images
 Stores URLs or physical paths of images associated with each catalog product.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -299,7 +319,7 @@ Stores URLs or physical paths of images associated with each catalog product.
 
 ---
 
-#### 2.2.7 product_variants
+#### 2.2.8 product_variants
 Stores packaging configurations, prices, and stock amounts. A product can have multiple variants (e.g., "Box 1kg", "Carton 10kg").
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -318,7 +338,7 @@ Stores packaging configurations, prices, and stock amounts. A product can have m
 
 ---
 
-#### 2.2.8 inventory_logs
+#### 2.2.9 inventory_logs
 Logs all stock fluctuations for inventory audit purposes.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -336,7 +356,24 @@ Logs all stock fluctuations for inventory audit purposes.
 
 ---
 
-#### 2.2.9 promotions
+---
+
+#### 2.2.10 replenishment_logs
+Stores warehouse inventory replenishment logs, tracing incoming stock quantities and supplier origins.
+
+* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
+
+| No | Field | PK | FK | UN | NN | Description |
+|---|---|:---:|:---:|:---:|:---:|---|
+| 01 | `log_id` | ✓ | | | ✓ | **INT IDENTITY(1,1)**: Primary Key. Auto-incrementing replenishment log identifier. |
+| 02 | `variant_id` | | ✓ | | ✓ | **INT**: Foreign Key referencing `product_variants(variant_id)`. Cascaded on variant deletion. |
+| 03 | `replenished_by` | | ✓ | | ✓ | **INT**: Foreign Key referencing `users(user_id)` identifying the user who performed the replenishment. |
+| 04 | `quantity` | | | | ✓ | **INT**: Quantities of stock added during replenishment. Must be `> 0`. |
+| 05 | `supplier_details` | | | | | **NVARCHAR(500)**: Information about the supplier or delivery. |
+| 06 | `replenishment_date` | | | | ✓ | **DATE**: Date when stock replenishment was executed. |
+| 07 | `created_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Timestamp of replenishment log record. |
+
+#### 2.2.11 promotions
 Stores discount codes and promotional campaigns.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -365,7 +402,7 @@ Stores discount codes and promotional campaigns.
 
 ---
 
-#### 2.2.10 cart
+#### 2.2.12 cart
 Stores shopping cart headers for registered customers.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -379,7 +416,7 @@ Stores shopping cart headers for registered customers.
 
 ---
 
-#### 2.2.11 cart_items
+#### 2.2.13 cart_items
 Stores individual product variants and quantities stored inside customers' carts.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -394,7 +431,7 @@ Stores individual product variants and quantities stored inside customers' carts
 
 ---
 
-#### 2.2.12 orders
+#### 2.2.14 orders
 Stores transactional headers, total sums, and lifecycles of customer purchases.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -404,29 +441,30 @@ Stores transactional headers, total sums, and lifecycles of customer purchases.
 | 01 | `order_id` | ✓ | | | ✓ | **INT IDENTITY(1,1)**: Primary Key. Auto-incrementing order identifier. |
 | 02 | `customer_id` | | ✓ | | ✓ | **INT**: Foreign Key referencing `users(user_id)` identifying the purchasing Customer. |
 | 03 | `owner_id` | | ✓ | | ✓ | **INT**: Foreign Key referencing `users(user_id)` identifying the recipient Shop Owner. |
-| 04 | `delivery_address` | | | | ✓ | **NVARCHAR(500)**: Explicit shipping destination address provided by the user. |
-| 05 | `user_address` | | | | ✓ | **NVARCHAR(500)**: Customer registration address archived at the moment of order placement. |
-| 06 | `delivery_time_slot` | | | | | **NVARCHAR(100)**: Customer's preferred delivery time window (e.g., "Office hours", "After 6 PM"). |
-| 07 | `notes` | | | | | **NVARCHAR(300)**: Custom shipping instructions (e.g., "Fragile, handle fruit with care"). |
-| 08 | `cancelled_at` | | | | | **DATETIME**: Order cancellation timestamp. |
-| 09 | `cancelled_by` | | ✓ | | | **INT**: Foreign Key referencing `users(user_id)` identifying who canceled the order. |
-| 10 | `cancellation_reason` | | | | | **NVARCHAR(500)**: Reason logged for canceling the order. |
-| 11 | `status` | | | | ✓ | **NVARCHAR(25) (DEFAULT 'PENDING_PAYMENT')**: Order lifecycle status. CHECK constraints: `PENDING_PAYMENT`, `CONFIRMED`, `PREPARING`, `DISPATCHED` (in transit), `DELIVERED`, `CANCELLED`, `PAYMENT_FAILED`, `EXPIRED`. |
-| 12 | `total_amount` | | | | ✓ | **DECIMAL(14,2)**: Total cost of order items before promotions (VND). |
-| 13 | `delivery_fee` | | | | ✓ | **DECIMAL(10,2) (DEFAULT 0)**: Logistics shipping fee (VND). |
-| 14 | `discount_amount` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Total applied discount sum (shop and system coupons combined). |
-| 15 | `system_discount_amount` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Discount amount funded by the platform coupon. |
-| 16 | `shop_discount_amount` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Discount amount funded by the vendor shop coupon. |
-| 17 | `platform_fee` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Service commission calculated and cut by the platform (VND). |
-| 18 | `final_amount` | | | | ✓ | **DECIMAL(14,2)**: Net payable sum: `total_amount` + `delivery_fee` - `discount_amount`. |
-| 19 | `payment_method` | | | | ✓ | **NVARCHAR(20)**: Payment channel. CHECK constraints: `CK` (Bank transfer QR), `COD` (Cash on delivery). |
-| 20 | `refund_status` | | | | ✓ | **NVARCHAR(20) (DEFAULT 'NONE')**: Financial refund status. CHECK constraints: `NONE`, `PENDING`, `APPROVED`, `REJECTED`, `PROCESSING`, `REFUNDED`, `FAILED`. |
-| 21 | `created_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Timestamp of order placement. |
-| 22 | `updated_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Last update timestamp. |
+| 04 | `delivery_address` | | | | ✓ | **NVARCHAR(500)**: Explicit shipping destination address provided by the user. Contains recipient details formatted as: Recipient Name \| SĐT: Phone \| Địa chỉ: Detail. |
+| 05 | `recipient_name` | | | | | **NVARCHAR(100)**: Recipient name (nullable). |
+| 06 | `recipient_phone` | | | | | **NVARCHAR(15)**: Recipient contact phone number (nullable). |
+| 07 | `delivery_time_slot` | | | | | **NVARCHAR(100)**: Customer's preferred delivery time window (e.g., "Office hours", "After 6 PM"). |
+| 08 | `notes` | | | | | **NVARCHAR(300)**: Custom shipping instructions (e.g., "Fragile, handle fruit with care"). |
+| 09 | `cancelled_at` | | | | | **DATETIME**: Order cancellation timestamp. |
+| 10 | `cancelled_by` | | ✓ | | | **INT**: Foreign Key referencing `users(user_id)` identifying who canceled the order. |
+| 11 | `cancellation_reason` | | | | | **NVARCHAR(500)**: Reason logged for canceling the order. |
+| 12 | `status` | | | | ✓ | **NVARCHAR(25) (DEFAULT 'PENDING_PAYMENT')**: Order lifecycle status. CHECK constraints: `PENDING_PAYMENT`, `CONFIRMED`, `PREPARING`, `DISPATCHED` (in transit), `DELIVERED`, `CANCELLED`, `PAYMENT_FAILED`, `EXPIRED`. |
+| 13 | `total_amount` | | | | ✓ | **DECIMAL(14,2)**: Total cost of order items before promotions (VND). |
+| 14 | `delivery_fee` | | | | ✓ | **DECIMAL(10,2) (DEFAULT 0)**: Logistics shipping fee (VND). |
+| 15 | `discount_amount` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Total applied discount sum (shop and system coupons combined). |
+| 16 | `system_discount_amount` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Discount amount funded by the platform coupon. |
+| 17 | `shop_discount_amount` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Discount amount funded by the vendor shop coupon. |
+| 18 | `platform_fee` | | | | ✓ | **DECIMAL(12,2) (DEFAULT 0)**: Service commission calculated and cut by the platform (VND). |
+| 19 | `final_amount` | | | | ✓ | **DECIMAL(14,2)**: Net payable sum: `total_amount` + `delivery_fee` - `discount_amount`. |
+| 20 | `payment_method` | | | | ✓ | **NVARCHAR(20)**: Payment channel. CHECK constraints: `CK` (Bank transfer QR), `COD` (Cash on delivery). |
+| 21 | `refund_status` | | | | ✓ | **NVARCHAR(20) (DEFAULT 'NONE')**: Financial refund status. CHECK constraints: `NONE`, `PENDING`, `APPROVED`, `REJECTED`, `PROCESSING`, `REFUNDED`, `FAILED`. |
+| 22 | `created_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Timestamp of order placement. |
+| 23 | `updated_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Last update timestamp. |
 
 ---
 
-#### 2.2.13 order_items
+#### 2.2.15 order_items
 Stores product purchase logs. Preserves historical pricing snapshot data to safeguard invoice legality when catalogs change.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -444,7 +482,7 @@ Stores product purchase logs. Preserves historical pricing snapshot data to safe
 
 ---
 
-#### 2.2.14 order_promotions
+#### 2.2.16 order_promotions
 Tracks promotion voucher usage logs associated with orders.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -460,7 +498,7 @@ Tracks promotion voucher usage logs associated with orders.
 
 ---
 
-#### 2.2.15 return_requests
+#### 2.2.17 return_requests
 Stores cancellation and refund requests filed by customers for broken, rotten, or incorrect fruit deliveries.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -488,7 +526,7 @@ Stores cancellation and refund requests filed by customers for broken, rotten, o
 
 ---
 
-#### 2.2.16 shop_settlements
+#### 2.2.18 shop_settlements
 Manages periodic financial settlements between the platform and Shop Owners.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -513,7 +551,7 @@ Manages periodic financial settlements between the platform and Shop Owners.
 
 ---
 
-#### 2.2.17 shop_settlement_orders
+#### 2.2.19 shop_settlement_orders
 Stores order mapping logs to guarantee that an order is settled once.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -531,7 +569,7 @@ Stores order mapping logs to guarantee that an order is settled once.
 
 ---
 
-#### 2.2.18 payment_transactions
+#### 2.2.20 payment_transactions
 Stores digital payment records (bank transfer automated integrations via SePay or COD).
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -557,7 +595,7 @@ Stores digital payment records (bank transfer automated integrations via SePay o
 
 ---
 
-#### 2.2.19 sepay_webhook_dedup
+#### 2.2.21 sepay_webhook_dedup
 Maintains bank transaction callbacks to prevent duplicate processing of webhook payloads (Idempotency ledger).
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -572,7 +610,7 @@ Maintains bank transaction callbacks to prevent duplicate processing of webhook 
 
 ---
 
-#### 2.2.20 deliveries
+#### 2.2.22 deliveries
 Tracks shipper dispatches and delivery tracking progress.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -591,7 +629,7 @@ Tracks shipper dispatches and delivery tracking progress.
 
 ---
 
-#### 2.2.21 reviews
+#### 2.2.23 reviews
 Stores customer feedback and ratings on purchased items.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -610,7 +648,7 @@ Stores customer feedback and ratings on purchased items.
 
 ---
 
-#### 2.2.22 chat_sessions
+#### 2.2.24 chat_sessions
 Manages active chat sessions connecting customers directly with shop owners.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -627,7 +665,7 @@ Manages active chat sessions connecting customers directly with shop owners.
 
 ---
 
-#### 2.2.23 chat_messages
+#### 2.2.25 chat_messages
 Stores message history inside active chat sessions.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -643,7 +681,7 @@ Stores message history inside active chat sessions.
 
 ---
 
-#### 2.2.24 notifications
+#### 2.2.26 notifications
 Stores automated user notifications pushed in-app.
 
 \* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
@@ -660,6 +698,25 @@ Stores automated user notifications pushed in-app.
 | 08 | `created_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Dispatch timestamp. |
 
 ---
+
+---
+
+#### 2.2.27 system_config
+Stores global, runtime configurable system parameters (e.g., fee rates, system states) with administrative change tracking.
+
+* PK~Primary Key; FK~Foreign Key; UN~Unique; NN ~ not null
+
+| No | Field | PK | FK | UN | NN | Description |
+|---|---|:---:|:---:|:---:|:---:|---|
+| 01 | `config_key` | ✓ | | | ✓ | **NVARCHAR(100)**: Primary Key. Unique configuration setting identifier (key). |
+| 02 | `config_value` | | | | ✓ | **NVARCHAR(500)**: Assigned configuration value. |
+| 03 | `description` | | | | | **NVARCHAR(500)**: Purpose or documentation notes of this config. |
+| 04 | `data_type` | | | | ✓ | **NVARCHAR(20) (DEFAULT 'STRING')**: Data type. CHECK constraints: `STRING`, `INT`, `DECIMAL`, `BOOLEAN`. |
+| 05 | `effective_date` | | | | | **DATETIME**: Date/time when the configuration change goes into effect. |
+| 06 | `previous_value` | | | | | **NVARCHAR(500)**: Historical value before the current change. |
+| 07 | `changed_by` | | ✓ | | | **INT**: Foreign Key referencing `users(user_id)` identifying the Admin who modified it. |
+| 08 | `changed_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Timestamp when the config was changed. |
+| 09 | `updated_at` | | | | ✓ | **DATETIME (DEFAULT GETDATE())**: Timestamp of last metadata update. |
 
 ## 3. Recommended Word Conversion (Markdown to .docx)
 

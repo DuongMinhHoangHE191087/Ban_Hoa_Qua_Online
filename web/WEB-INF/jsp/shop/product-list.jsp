@@ -14,8 +14,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
 
     <!-- Tailwind & SweetAlert -->
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -457,14 +457,6 @@
     const CTX = document.getElementById('js-ctx').value;
     const CSRF = document.getElementById('js-csrf').value;
     window.csrfToken = CSRF;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const harvestDateInput = document.getElementById('modal-harvestDate');
-        if (harvestDateInput) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            harvestDateInput.setAttribute('max', todayStr);
-        }
-    });
 
     document.addEventListener('DOMContentLoaded', function() {
         const harvestDateInput = document.getElementById('modal-harvestDate');

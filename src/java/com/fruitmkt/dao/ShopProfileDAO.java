@@ -27,33 +27,54 @@ public class ShopProfileDAO extends BaseDAO {
     private synchronized void checkSchemaOnce() {
         if (schemaChecked) return;
         try (Connection conn = getConnection()) {
-            boolean columnExists = false;
+            // Check business_email
+            boolean emailColExists = false;
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT TOP 0 business_email FROM shop_owner_profiles")) {
-                columnExists = true;
-            } catch (SQLException e) {
-                // Column does not exist
-            }
-            if (!columnExists) {
-                // Add column without unique constraint to avoid duplicate NULL error
-                String sqlAdd = "ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL";
+                emailColExists = true;
+            } catch (SQLException e) {}
+            if (!emailColExists) {
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate(sqlAdd);
-                    System.out.println("[DB Migrator] Success: Added business_email column to shop_owner_profiles.");
+                    stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL");
+                    System.out.println("[DB Migrator] Success: Added business_email column.");
                 }
-                
-                // Create filtered unique index to allow multiple nulls but unique non-null emails
-                String sqlIndex = "SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON shop_owner_profiles(business_email) WHERE business_email IS NOT NULL";
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate(sqlIndex);
+                    stmt.executeUpdate("SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON shop_owner_profiles(business_email) WHERE business_email IS NOT NULL");
                     System.out.println("[DB Migrator] Success: Created filtered unique index on business_email.");
                 } catch (SQLException ex) {
                     System.err.println("[DB Migrator] Warning creating index: " + ex.getMessage());
                 }
             }
+
+            // Check logo_url
+            boolean logoColExists = false;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 logo_url FROM shop_owner_profiles")) {
+                logoColExists = true;
+            } catch (SQLException e) {}
+            if (!logoColExists) {
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD logo_url NVARCHAR(500) NULL");
+                    System.out.println("[DB Migrator] Success: Added logo_url column.");
+                }
+            }
+
+            // Check cover_url
+            boolean coverColExists = false;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 cover_url FROM shop_owner_profiles")) {
+                coverColExists = true;
+            } catch (SQLException e) {}
+            if (!coverColExists) {
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD cover_url NVARCHAR(500) NULL");
+                    System.out.println("[DB Migrator] Success: Added cover_url column.");
+                }
+            }
+
             schemaChecked = true;
         } catch (SQLException e) {
-            System.err.println("[DB Migrator] Error checking/adding business_email column: " + e.getMessage());
+            System.err.println("[DB Migrator] Error checking/adding shop_owner_profiles columns: " + e.getMessage());
             schemaChecked = true;
         }
     }
@@ -131,8 +152,8 @@ public class ShopProfileDAO extends BaseDAO {
     public int save(ShopProfile profile) throws SQLException {
         String sql = "INSERT INTO shop_owner_profiles "
                    + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
-                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, logo_url, cover_url, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, profile.getUserId());
@@ -146,6 +167,8 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setString(9, profile.getPreferredCategories());
             ps.setString(10, profile.getDocPaths());
             ps.setString(11, profile.getBusinessEmail());
+            ps.setString(12, profile.getLogoUrl());
+            ps.setString(13, profile.getCoverUrl());
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -165,7 +188,7 @@ public class ShopProfileDAO extends BaseDAO {
     public void update(ShopProfile profile) throws SQLException {
         String sql = "UPDATE shop_owner_profiles SET shop_name = ?, shop_description = ?, approval_status = ?, "
                    + "rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, "
-                   + "preferred_categories = ?, doc_paths = ?, business_email = ?, updated_at = GETDATE() WHERE profile_id = ?";
+                   + "preferred_categories = ?, doc_paths = ?, business_email = ?, logo_url = ?, cover_url = ?, updated_at = GETDATE() WHERE profile_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, profile.getShopName());
@@ -178,7 +201,9 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setString(8, profile.getPreferredCategories());
             ps.setString(9, profile.getDocPaths());
             ps.setString(10, profile.getBusinessEmail());
-            ps.setInt(11, profile.getProfileId());
+            ps.setString(11, profile.getLogoUrl());
+            ps.setString(12, profile.getCoverUrl());
+            ps.setInt(13, profile.getProfileId());
             ps.executeUpdate();
         }
     }
@@ -249,6 +274,8 @@ public class ShopProfileDAO extends BaseDAO {
         p.setPreferredCategories(rs.getString("preferred_categories"));
         p.setDocPaths(rs.getString("doc_paths"));
         p.setBusinessEmail(rs.getString("business_email"));
+        p.setLogoUrl(rs.getString("logo_url"));
+        p.setCoverUrl(rs.getString("cover_url"));
         
         Timestamp createdAtTs = rs.getTimestamp("created_at");
         if (createdAtTs != null) {
