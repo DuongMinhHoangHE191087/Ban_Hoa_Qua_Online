@@ -76,6 +76,175 @@ public class SettlementDAO extends BaseDAO {
         return list;
     }
 
+    public int runAutoSettlement(int freezeDays) throws SQLException {
+        int settlementsCreated = 0;
+        
+        List<Integer> owners = new ArrayList<>();
+        String getOwnersSql = "SELECT DISTINCT o.owner_id "
+                            + "FROM orders o "
+                            + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
+                            + "WHERE o.status = 'DELIVERED' "
+                            + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
+                            + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
+                            + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
+                            
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(getOwnersSql)) {
+                ps.setInt(1, -freezeDays);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        owners.add(rs.getInt("owner_id"));
+                    }
+                }
+            }
+            
+            if (owners.isEmpty()) {
+                return 0;
+            }
+            
+            conn.setAutoCommit(false);
+            
+            try {
+                String getOrdersSql = "SELECT o.order_id, o.final_amount, o.platform_fee, o.discount_amount, o.created_at, "
+                                    + "  COALESCE((SELECT SUM(r.refund_amount) FROM return_requests r WHERE r.order_id = o.order_id AND r.status = 'COMPLETED'), 0) AS refund_amount "
+                                    + "FROM orders o "
+                                    + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
+                                    + "WHERE o.owner_id = ? "
+                                    + "  AND o.status = 'DELIVERED' "
+                                    + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
+                                    + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
+                                    + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
+                                    
+                String insertSettlementSql = "INSERT INTO shop_settlements (owner_id, period_start, period_end, gross_amount, platform_fee_amount, refund_amount, adjustment_amount, net_amount, status, calculated_at, created_by, note) "
+                                           + "VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'PENDING', GETDATE(), 1, ?)";
+                                           
+                String insertSettlementOrderSql = "INSERT INTO shop_settlement_orders (settlement_id, order_id, order_amount, platform_fee_amount, discount_amount, refund_amount, net_amount) "
+                                                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                                                
+                try (PreparedStatement psOrders = conn.prepareStatement(getOrdersSql);
+                     PreparedStatement psInsertSettle = conn.prepareStatement(insertSettlementSql, Statement.RETURN_GENERATED_KEYS);
+                     PreparedStatement psInsertSettleOrder = conn.prepareStatement(insertSettlementOrderSql)) {
+                     
+                    for (int ownerId : owners) {
+                        psOrders.setInt(1, ownerId);
+                        psOrders.setInt(2, -freezeDays);
+                        
+                        List<Map<String, Object>> ordersList = new ArrayList<>();
+                        java.sql.Date periodStart = null;
+                        java.sql.Date periodEnd = null;
+                        
+                        java.math.BigDecimal gross = java.math.BigDecimal.ZERO;
+                        java.math.BigDecimal platformFee = java.math.BigDecimal.ZERO;
+                        java.math.BigDecimal refund = java.math.BigDecimal.ZERO;
+                        
+                        try (ResultSet rsOrders = psOrders.executeQuery()) {
+                            while (rsOrders.next()) {
+                                Map<String, Object> orderData = new HashMap<>();
+                                int orderId = rsOrders.getInt("order_id");
+                                java.math.BigDecimal finalAmount = rsOrders.getBigDecimal("final_amount");
+                                java.math.BigDecimal pFee = rsOrders.getBigDecimal("platform_fee");
+                                java.math.BigDecimal disc = rsOrders.getBigDecimal("discount_amount");
+                                java.math.BigDecimal ref = rsOrders.getBigDecimal("refund_amount");
+                                java.sql.Date orderDate = rsOrders.getDate("created_at");
+                                
+                                orderData.put("order_id", orderId);
+                                orderData.put("final_amount", finalAmount);
+                                orderData.put("platform_fee", pFee);
+                                orderData.put("discount_amount", disc);
+                                orderData.put("refund_amount", ref);
+                                
+                                ordersList.add(orderData);
+                                
+                                gross = gross.add(finalAmount != null ? finalAmount : java.math.BigDecimal.ZERO);
+                                platformFee = platformFee.add(pFee != null ? pFee : java.math.BigDecimal.ZERO);
+                                refund = refund.add(ref != null ? ref : java.math.BigDecimal.ZERO);
+                                
+                                if (orderDate != null) {
+                                    if (periodStart == null || orderDate.before(periodStart)) {
+                                        periodStart = orderDate;
+                                    }
+                                    if (periodEnd == null || orderDate.after(periodEnd)) {
+                                        periodEnd = orderDate;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (ordersList.isEmpty()) {
+                            continue;
+                        }
+                        
+                        if (periodStart == null) periodStart = new java.sql.Date(System.currentTimeMillis());
+                        if (periodEnd == null) periodEnd = new java.sql.Date(System.currentTimeMillis());
+                        
+                        java.math.BigDecimal net = gross.subtract(platformFee).subtract(refund);
+                        
+                        String note = String.format("Quyết toán tự động hệ thống cho %d đơn hàng giao hàng thành công.", ordersList.size());
+                        
+                        psInsertSettle.setInt(1, ownerId);
+                        psInsertSettle.setDate(2, periodStart);
+                        psInsertSettle.setDate(3, periodEnd);
+                        psInsertSettle.setBigDecimal(4, gross);
+                        psInsertSettle.setBigDecimal(5, platformFee);
+                        psInsertSettle.setBigDecimal(6, refund);
+                        psInsertSettle.setBigDecimal(7, net);
+                        psInsertSettle.setString(8, note);
+                        
+                        psInsertSettle.executeUpdate();
+                        int settlementId = -1;
+                        try (ResultSet gk = psInsertSettle.getGeneratedKeys()) {
+                            if (gk.next()) {
+                                settlementId = gk.getInt(1);
+                            }
+                        }
+                        
+                        if (settlementId == -1) {
+                            throw new SQLException("Cannot retrieve generated key for shop_settlements.");
+                        }
+                        
+                        for (Map<String, Object> orderData : ordersList) {
+                            int orderId = (int) orderData.get("order_id");
+                            java.math.BigDecimal finalAmount = (java.math.BigDecimal) orderData.get("final_amount");
+                            java.math.BigDecimal pFee = (java.math.BigDecimal) orderData.get("platform_fee");
+                            java.math.BigDecimal disc = (java.math.BigDecimal) orderData.get("discount_amount");
+                            java.math.BigDecimal ref = (java.math.BigDecimal) orderData.get("refund_amount");
+                            
+                            java.math.BigDecimal netOrder = finalAmount.subtract(pFee).subtract(ref);
+                            
+                            psInsertSettleOrder.setInt(1, settlementId);
+                            psInsertSettleOrder.setInt(2, orderId);
+                            psInsertSettleOrder.setBigDecimal(3, finalAmount);
+                            psInsertSettleOrder.setBigDecimal(4, pFee);
+                            psInsertSettleOrder.setBigDecimal(5, disc);
+                            psInsertSettleOrder.setBigDecimal(6, ref);
+                            psInsertSettleOrder.setBigDecimal(7, netOrder);
+                            psInsertSettleOrder.addBatch();
+                        }
+                        psInsertSettleOrder.executeBatch();
+                        
+                        settlementsCreated++;
+                        
+                        try {
+                            com.fruitmkt.service.NotificationService notifService = new com.fruitmkt.service.NotificationService();
+                            notifService.send(ownerId, "PAYMENT", "Đối soát tự động mới", 
+                                String.format("Hệ thống đã tự động chốt kỳ đối soát mới #%d với doanh thu gộp: %,.0f đ, thực nhận: %,.0f đ. Vui lòng kiểm tra chi tiết.", 
+                                settlementId, gross.doubleValue(), net.doubleValue()), "/shop/settlement");
+                        } catch (Exception e) {
+                            System.err.println("Failed to send auto-settlement notification to shop owner " + ownerId + ": " + e.getMessage());
+                        }
+                    }
+                }
+                
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+        
+        return settlementsCreated;
+    }
+
     private ShopSettlement mapRow(ResultSet rs) throws SQLException {
         ShopSettlement s = new ShopSettlement();
         s.setSettlementId(rs.getInt("settlement_id"));

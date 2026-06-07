@@ -216,6 +216,13 @@
                 </a>
             </li>
             <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/payments"
+                   class="sb-nav-link ${param.activeMenu == 'payments' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span>Giám sát Thanh toán</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/returns"
                    class="sb-nav-link ${param.activeMenu == 'returns' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-rotate-left"></i></span>

@@ -84,14 +84,24 @@
     <main class="admin-main p-6 md:p-8 overflow-y-auto">
 
         <%-- Page header --%>
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8 gap-4">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Đối Soát &amp; Thanh Toán Shop</h1>
                 <p class="text-[#475569] text-xs md:text-sm mt-1">Tính toán phí nền tảng, hoàn tiền, và chuyển khoản doanh thu cho chủ shop.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                <i class="fa-solid fa-file-invoice-dollar text-[#84cc16]"></i>
-                <span class="text-xs font-bold uppercase tracking-wider">Settlements</span>
+            <div class="flex items-center gap-3">
+                <form action="${pageContext.request.contextPath}/admin/settlements" method="POST" class="inline">
+                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                    <input type="hidden" name="action" value="triggerSettlement">
+                    <button type="submit" class="bg-primary hover:bg-[#364e03] text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Chạy Auto-Settlement</span>
+                    </button>
+                </form>
+                <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2.5 rounded-xl text-[#364e03] shadow-sm">
+                    <i class="fa-solid fa-file-invoice-dollar text-[#84cc16]"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">Settlements</span>
+                </div>
             </div>
         </div>
 

@@ -65,6 +65,13 @@ public class AdminSettlementServlet extends HttpServlet {
                 int settlementId = Integer.parseInt(req.getParameter("settlementId"));
                 settlementService.markPaid(settlementId);
                 SessionUtil.flashSuccess(req.getSession(), "Đã đánh dấu Đã Thanh Toán cho đối soát #" + settlementId);
+            } else if ("triggerSettlement".equals(action)) {
+                int processed = settlementService.runAutoSettlement();
+                if (processed > 0) {
+                    SessionUtil.flashSuccess(req.getSession(), "Kích hoạt đối soát tự động thành công! Đã chốt thêm " + processed + " kỳ đối soát mới.");
+                } else {
+                    SessionUtil.flashSuccess(req.getSession(), "Kích hoạt đối soát thành công! Không tìm thấy đơn hàng mới nào đủ điều kiện đóng băng/quyết toán.");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

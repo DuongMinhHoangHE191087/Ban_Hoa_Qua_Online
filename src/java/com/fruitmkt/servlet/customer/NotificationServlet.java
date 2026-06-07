@@ -1,16 +1,17 @@
 package com.fruitmkt.servlet.customer;
 
 import com.fruitmkt.config.AppConfig;
-import com.fruitmkt.util.SessionUtil;
-import com.fruitmkt.service.NotificationService;
 import com.fruitmkt.dao.ChatDAO;
 import com.fruitmkt.model.entity.Notification;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.service.NotificationService;
 import com.fruitmkt.util.JsonUtil;
-
+import com.fruitmkt.util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
@@ -21,13 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * NotificationServlet — Controller cho chức năng: Danh sách thông báo của user
- *
- * URL: /notifications
- * GET : Danh sách thông báo của user hoặc AJAX API đếm số lượng chưa đọc.
- * POST: Đánh dấu đã đọc / Đọc tất cả.
- *
- * @author fruitmkt-team
+ * NotificationServlet - danh sách thông báo của user và các API AJAX liên quan.
  */
 @WebServlet({"/notifications", "/api/notifications/unread", "/api/notifications/recent", "/api/notifications/markAllRead"})
 public class NotificationServlet extends HttpServlet {
@@ -39,8 +34,6 @@ public class NotificationServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
-        // 1. Kiểm tra đăng nhập
         User currentUser = SessionUtil.getCurrentUser(req.getSession());
         if (currentUser == null) {
             String requestType = req.getHeader("X-Requested-With");
@@ -57,32 +50,29 @@ public class NotificationServlet extends HttpServlet {
         String action = req.getParameter("action");
         String servletPath = req.getServletPath();
 
-        // AJAX API lấy danh sách thông báo gần đây (top 5)
         if ("getRecent".equals(action) || servletPath.contains("/api/notifications/recent")) {
             resp.setContentType("application/json;charset=UTF-8");
             PrintWriter out = resp.getWriter();
             Map<String, Object> result = new HashMap<>();
             try {
                 List<Notification> list = notificationService.getAllNotifications(currentUser.getUserId());
-                // Lấy tối đa 5 phần tử đầu tiên
                 int limit = Math.min(5, list.size());
-                List<Notification> recent = list.subList(0, limit);
-                
                 result.put("success", true);
-                result.put("notifications", recent);
+                result.put("notifications", list.subList(0, limit));
                 out.print(JsonUtil.toJson(result));
             } catch (Exception e) {
                 LOG.log(Level.SEVERE, "Lỗi lấy danh sách thông báo gần đây", e);
                 result.put("success", false);
                 result.put("message", e.getMessage());
-                try { out.print(JsonUtil.toJson(result)); } catch (Exception ignored) {}
+                try {
+                    out.print(JsonUtil.toJson(result));
+                } catch (Exception ignored) {}
             } finally {
                 out.flush();
             }
             return;
         }
 
-        // AJAX API đếm số lượng chưa đọc
         if ("getUnreadCounts".equals(action) || servletPath.contains("/api/notifications/unread")) {
             resp.setContentType("application/json;charset=UTF-8");
             PrintWriter out = resp.getWriter();
@@ -90,7 +80,6 @@ public class NotificationServlet extends HttpServlet {
             try {
                 int unreadNotifs = notificationService.getUnread(currentUser.getUserId()).size();
                 int unreadChats = chatDAO.countTotalUnread(currentUser.getUserId());
-                
                 result.put("success", true);
                 result.put("unreadNotifications", unreadNotifs);
                 result.put("unreadChats", unreadChats);
@@ -99,18 +88,19 @@ public class NotificationServlet extends HttpServlet {
                 LOG.log(Level.SEVERE, "Lỗi lấy số lượng chưa đọc", e);
                 result.put("success", false);
                 result.put("message", e.getMessage());
-                try { out.print(JsonUtil.toJson(result)); } catch (Exception ignored) {}
+                try {
+                    out.print(JsonUtil.toJson(result));
+                } catch (Exception ignored) {}
             } finally {
                 out.flush();
             }
             return;
         }
 
-        // View danh sách thông báo thông thường
         try {
-            List<Notification> notificationList = notificationService.getAllNotifications(currentUser.getUserId());
-            req.setAttribute("notificationList", notificationList);
-            req.getRequestDispatcher("/WEB-INF/jsp/customer/notifications.jsp").forward(req, resp);
+            List<Notification> notifications = notificationService.getAllNotifications(currentUser.getUserId());
+            req.setAttribute("notifications", notifications);
+            req.getRequestDispatcher("/WEB-INF/jsp/customer/notification.jsp").forward(req, resp);
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "Lỗi tải danh sách thông báo", e);
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Không thể tải danh sách thông báo.");
@@ -122,8 +112,6 @@ public class NotificationServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
-        // 1. Kiểm tra đăng nhập
         User currentUser = SessionUtil.getCurrentUser(req.getSession());
         if (currentUser == null) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
@@ -137,6 +125,9 @@ public class NotificationServlet extends HttpServlet {
         try {
             if ("markRead".equals(action) || servletPath.contains("/markRead")) {
                 String notifIdStr = req.getParameter("notifId");
+                if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
+                    notifIdStr = req.getParameter("notificationId");
+                }
                 if (notifIdStr != null && !notifIdStr.trim().isEmpty()) {
                     int notifId = Integer.parseInt(notifIdStr);
                     notificationService.markRead(notifId);
@@ -152,10 +143,8 @@ public class NotificationServlet extends HttpServlet {
                     resp.setContentType("application/json;charset=UTF-8");
                     resp.getWriter().write("{\"success\":true,\"message\":\"Đã đánh dấu đọc tất cả.\"}");
                     return;
-                } else {
-                    req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Đã đánh dấu đọc tất cả thông báo.");
-                    req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
                 }
+                SessionUtil.flashSuccess(req.getSession(), "Đã đánh dấu đọc tất cả thông báo.");
             }
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "Lỗi xử lý POST thông báo", e);
@@ -164,13 +153,10 @@ public class NotificationServlet extends HttpServlet {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 resp.getWriter().write("{\"success\":false,\"message\":\"Có lỗi xảy ra: " + e.getMessage() + "\"}");
                 return;
-            } else {
-                req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Có lỗi xảy ra: " + e.getMessage());
-                req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "error");
             }
+            SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());
         }
 
-        // PRG pattern
         resp.sendRedirect(req.getContextPath() + "/notifications");
     }
 }
