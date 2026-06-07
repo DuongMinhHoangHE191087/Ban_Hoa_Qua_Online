@@ -222,15 +222,14 @@ public class CheckoutServlet extends HttpServlet {
             }
 
             if (cartSummary != null && cartSummary.getItems() != null && !cartSummary.getItems().isEmpty()) {
-                try {
-                    int ownerId = resolveSingleShopOwnerId(cartSummary.getItems(), null);
-                    req.setAttribute("shopOwnerId", ownerId);
-                    req.setAttribute("directSaleAmount", calculateDirectSaleAmount(cartSummary.getItems()));
-                } catch (IllegalArgumentException ex) {
-                    SessionUtil.flashError(session, ex.getMessage());
-                    resp.sendRedirect(req.getContextPath() + "/cart");
-                    return;
+                java.util.Map<Integer, List<CartItem>> itemsByOwner = groupItemsByOwnerId(cartSummary.getItems(), null);
+                if (itemsByOwner.size() == 1) {
+                    req.setAttribute("shopOwnerId", itemsByOwner.keySet().iterator().next());
                 }
+                cartSummary.setDeliveryFee(new BigDecimal("15000").multiply(new BigDecimal(itemsByOwner.size())));
+                cartSummary.setTotal(cartSummary.getSubtotal().add(cartSummary.getDeliveryFee()));
+                req.setAttribute("shopCount", itemsByOwner.size());
+                req.setAttribute("directSaleAmount", calculateDirectSaleAmount(cartSummary.getItems()));
             }
 
             List<UserAddress> userAddresses = new UserAddressDAO().findByUser(user.getUserId());
@@ -238,9 +237,9 @@ public class CheckoutServlet extends HttpServlet {
             req.setAttribute("cartSummary", cartSummary);
             req.setAttribute("userAddress", user.getUserAddress());
             req.getRequestDispatcher("/WEB-INF/jsp/customer/checkout.jsp").forward(req, resp);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            SessionUtil.flashError(session, "Lỗi khi tải trang thanh toán. Vui lòng thử lại.");
+            SessionUtil.flashError(session, "Loi khi tai trang thanh toan: " + e.getMessage() + ". Vui long thu lai.");
             resp.sendRedirect(req.getContextPath() + "/cart");
         }
     }
@@ -332,6 +331,14 @@ public class CheckoutServlet extends HttpServlet {
             paymentMethod = "COD";
         }
 
+        boolean saveAddressToBook = "true".equals(req.getParameter("saveAddressToBook"));
+        try {
+            new com.fruitmkt.service.UserService().saveOrUpdateCheckoutContactInfo(user, fullName, phone, deliveryAddress, saveAddressToBook);
+            SessionUtil.setCurrentUser(session, user);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         try {
             synchronized (String.valueOf(user.getUserId()).intern()) {
                 CartSummaryDTO cartSummary = cartService.getCart(user.getUserId());
@@ -414,6 +421,33 @@ public class CheckoutServlet extends HttpServlet {
                 BigDecimal subtotal = new BigDecimal(accumulativeSubtotal);
                 BigDecimal deliveryFee = new BigDecimal("15000");
                 BigDecimal finalAmount = subtotal.add(deliveryFee);
+
+                java.util.Map<Integer, List<CartItem>> itemsByOwner = groupItemsByOwnerId(checkoutItems, variantMap);
+                if (itemsByOwner.size() > 1) {
+                    int parentOrderId = placeMultiShopOrder(
+                            req,
+                            user,
+                            fullName,
+                            phone,
+                            deliveryAddress,
+                            paymentMethod,
+                            notes,
+                            shopCouponCode,
+                            systemCouponCode,
+                            checkoutItems,
+                            itemsByOwner,
+                            variantMap,
+                            subtotal);
+
+                    session.setAttribute("_purgedVariantIds", buildPurgedVariantIds(checkoutItems));
+                    SessionUtil.flashSuccess(session, "Dat hang thanh cong! Don hang da duoc tach theo tung shop.");
+                    if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
+                        resp.sendRedirect(req.getContextPath() + "/checkout?action=payment&orderId=" + parentOrderId);
+                    } else {
+                        resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + parentOrderId);
+                    }
+                    return;
+                }
 
                 int ownerId;
                 try {
@@ -619,6 +653,185 @@ public class CheckoutServlet extends HttpServlet {
     }
 
     /** Xây dựng URL QR động VietQR */
+    private int placeMultiShopOrder(HttpServletRequest req,
+                                    User user,
+                                    String fullName,
+                                    String phone,
+                                    String deliveryAddress,
+                                    String paymentMethod,
+                                    String notes,
+                                    String shopCouponCode,
+                                    String systemCouponCode,
+                                    List<CartItem> checkoutItems,
+                                    java.util.Map<Integer, List<CartItem>> itemsByOwner,
+                                    java.util.Map<Integer, ProductVariant> variantMap,
+                                    BigDecimal subtotal) throws Exception {
+        for (Integer ownerId : itemsByOwner.keySet()) {
+            if (ownerId != null && ownerId == user.getUserId()) {
+                throw new IllegalArgumentException("Ban khong the mua hang tu cua hang cua chinh minh.");
+            }
+        }
+
+        BigDecimal deliveryFeePerShop = new BigDecimal("15000");
+        BigDecimal deliveryFee = deliveryFeePerShop.multiply(new BigDecimal(itemsByOwner.size()));
+        java.util.Map<Integer, BigDecimal> subtotalByOwner = new java.util.LinkedHashMap<>();
+        java.util.Map<Integer, BigDecimal> shopDiscountByOwner = new java.util.LinkedHashMap<>();
+        java.util.Map<Integer, BigDecimal> systemDiscountByOwner = new java.util.LinkedHashMap<>();
+
+        for (java.util.Map.Entry<Integer, List<CartItem>> entry : itemsByOwner.entrySet()) {
+            BigDecimal ownerSubtotal = calculateSubtotal(entry.getValue(), variantMap);
+            subtotalByOwner.put(entry.getKey(), ownerSubtotal);
+            shopDiscountByOwner.put(entry.getKey(), BigDecimal.ZERO);
+            systemDiscountByOwner.put(entry.getKey(), BigDecimal.ZERO);
+        }
+
+        com.fruitmkt.model.entity.Promotion shopPromo = null;
+        Integer shopPromoOwnerId = null;
+        if (shopCouponCode != null && !shopCouponCode.trim().isEmpty()) {
+            for (Integer ownerId : itemsByOwner.keySet()) {
+                com.fruitmkt.model.entity.Promotion candidate =
+                        promotionService.validateShopCoupon(shopCouponCode, ownerId, subtotalByOwner.get(ownerId));
+                if (candidate != null) {
+                    shopPromo = candidate;
+                    shopPromoOwnerId = ownerId;
+                    break;
+                }
+            }
+            if (shopPromo == null) {
+                throw new IllegalArgumentException("Ma voucher shop khong hop le cho cac shop trong gio hang.");
+            }
+            BigDecimal shopDiscount = promotionService.calculateDiscount(shopPromo, subtotalByOwner.get(shopPromoOwnerId));
+            shopDiscountByOwner.put(shopPromoOwnerId, shopDiscount);
+        }
+
+        BigDecimal totalShopDiscount = sumValues(shopDiscountByOwner);
+        BigDecimal afterShopTotal = subtotal.subtract(totalShopDiscount).max(BigDecimal.ZERO);
+        com.fruitmkt.model.entity.Promotion systemPromo = null;
+        BigDecimal systemDiscount = BigDecimal.ZERO;
+        if (systemCouponCode != null && !systemCouponCode.trim().isEmpty()) {
+            systemPromo = promotionService.validateSystemCoupon(systemCouponCode, afterShopTotal);
+            if (systemPromo == null) {
+                throw new IllegalArgumentException("Ma voucher san khong hop le, da het han, hoac chua dat gia tri don toi thieu.");
+            }
+            systemDiscount = promotionService.calculateDiscount(systemPromo, afterShopTotal);
+            java.util.Map<Integer, BigDecimal> allocationBase = new java.util.LinkedHashMap<>();
+            for (Integer ownerId : itemsByOwner.keySet()) {
+                allocationBase.put(ownerId, subtotalByOwner.get(ownerId).subtract(shopDiscountByOwner.get(ownerId)).max(BigDecimal.ZERO));
+            }
+            systemDiscountByOwner.putAll(allocateDiscount(systemDiscount, allocationBase));
+        }
+
+        BigDecimal platformFeeRate = new BigDecimal(String.valueOf(configDAO.getDouble(
+                AppConfig.CONFIG_PLATFORM_FEE_RATE, AppConfig.PLATFORM_FEE_RATE_DEFAULT / 100.0)));
+        BigDecimal totalSystemDiscount = sumValues(systemDiscountByOwner);
+        BigDecimal totalDiscount = totalShopDiscount.add(totalSystemDiscount);
+        BigDecimal finalAmount = subtotal.subtract(totalDiscount).add(deliveryFee).max(BigDecimal.ZERO);
+        BigDecimal totalPlatformFee = BigDecimal.ZERO;
+        String status = AppConfig.PAYMENT_COD.equals(paymentMethod)
+                ? AppConfig.ORDER_CONFIRMED
+                : AppConfig.ORDER_PENDING_PAYMENT;
+        String formattedAddress = fullName.trim() + " | SDT: " + phone.trim() + " | Dia chi: " + deliveryAddress.trim();
+
+        Connection conn = null;
+        int parentOrderId = 0;
+        java.util.Map<Integer, Integer> childOrderIdByOwner = new java.util.LinkedHashMap<>();
+        try {
+            conn = orderDAO.openConnection();
+            conn.setAutoCommit(false);
+
+            Order parentOrder = new Order();
+            parentOrder.setCustomerId(user.getUserId());
+            parentOrder.setOwnerId((Integer) null);
+            parentOrder.setParentOrderId(null);
+            parentOrder.setOrderType(AppConfig.ORDER_TYPE_PARENT);
+            parentOrder.setDeliveryAddress(formattedAddress);
+            parentOrder.setRecipientName(fullName.trim());
+            parentOrder.setRecipientPhone(phone.trim());
+            parentOrder.setStatus(status);
+            parentOrder.setTotalAmount(subtotal);
+            parentOrder.setDeliveryFee(deliveryFee);
+            parentOrder.setDiscountAmount(totalDiscount);
+            parentOrder.setSystemDiscountAmount(totalSystemDiscount);
+            parentOrder.setShopDiscountAmount(totalShopDiscount);
+            parentOrder.setPlatformFee(BigDecimal.ZERO);
+            parentOrder.setFinalAmount(finalAmount);
+            parentOrder.setPaymentMethod(paymentMethod);
+            parentOrder.setNotes(notes);
+            parentOrderId = saveOrderWithConn(conn, parentOrder);
+
+            com.fruitmkt.service.InventoryService inventoryService = new com.fruitmkt.service.InventoryService();
+            for (Integer ownerId : itemsByOwner.keySet()) {
+                BigDecimal ownerSubtotal = subtotalByOwner.get(ownerId);
+                BigDecimal ownerShopDiscount = shopDiscountByOwner.get(ownerId);
+                BigDecimal ownerSystemDiscount = systemDiscountByOwner.get(ownerId);
+                BigDecimal ownerDiscount = ownerShopDiscount.add(ownerSystemDiscount);
+                BigDecimal netMerchandise = ownerSubtotal.subtract(ownerDiscount).max(BigDecimal.ZERO);
+                BigDecimal ownerPlatformFee = netMerchandise.multiply(platformFeeRate).setScale(0, java.math.RoundingMode.HALF_UP);
+                totalPlatformFee = totalPlatformFee.add(ownerPlatformFee);
+
+                Order childOrder = new Order();
+                childOrder.setCustomerId(user.getUserId());
+                childOrder.setOwnerId(ownerId);
+                childOrder.setParentOrderId(parentOrderId);
+                childOrder.setOrderType(AppConfig.ORDER_TYPE_CHILD);
+                childOrder.setDeliveryAddress(formattedAddress);
+                childOrder.setRecipientName(fullName.trim());
+                childOrder.setRecipientPhone(phone.trim());
+                childOrder.setStatus(status);
+                childOrder.setTotalAmount(ownerSubtotal);
+                childOrder.setDeliveryFee(deliveryFeePerShop);
+                childOrder.setDiscountAmount(ownerDiscount);
+                childOrder.setSystemDiscountAmount(ownerSystemDiscount);
+                childOrder.setShopDiscountAmount(ownerShopDiscount);
+                childOrder.setPlatformFee(ownerPlatformFee);
+                childOrder.setFinalAmount(netMerchandise.add(deliveryFeePerShop));
+                childOrder.setPaymentMethod(paymentMethod);
+                childOrder.setNotes(notes);
+                int childOrderId = saveOrderWithConn(conn, childOrder);
+                childOrderIdByOwner.put(ownerId, childOrderId);
+
+                saveOrderItemsWithConn(conn, childOrderId, itemsByOwner.get(ownerId), variantMap, inventoryService, user.getUserId());
+                if (shopPromo != null && shopPromo.getPromoId() > 0
+                        && shopPromoOwnerId != null && shopPromoOwnerId.equals(ownerId)
+                        && ownerShopDiscount.compareTo(BigDecimal.ZERO) > 0) {
+                    promotionDAO.saveOrderPromotion(conn, childOrderId, shopPromo.getPromoId(), user.getUserId(), ownerShopDiscount);
+                }
+                if (systemPromo != null && systemPromo.getPromoId() > 0
+                        && ownerSystemDiscount.compareTo(BigDecimal.ZERO) > 0) {
+                    promotionDAO.saveOrderPromotion(conn, childOrderId, systemPromo.getPromoId(), user.getUserId(), ownerSystemDiscount);
+                }
+            }
+
+            updateParentPlatformFee(conn, parentOrderId, totalPlatformFee);
+            incrementPromoUsageWithConn(conn, shopPromo);
+            incrementPromoUsageWithConn(conn, systemPromo);
+            deleteCheckedOutCartItems(conn, user.getUserId(), checkoutItems);
+            conn.commit();
+        } catch (Exception ex) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+            throw ex;
+        } finally {
+            if (conn != null) {
+                try { conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+
+        sendShopPreparationNotifications(childOrderIdByOwner);
+        if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
+            paymentDAO.initTransaction(
+                    parentOrderId,
+                    "SEPAY",
+                    finalAmount,
+                    REF_PREFIX + parentOrderId,
+                    req.getRemoteAddr(),
+                    LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN)
+            );
+        }
+        return parentOrderId;
+    }
+
     private String buildQrUrl(String reference, String amount) throws java.io.UnsupportedEncodingException {
         return "https://img.vietqr.io/image/" + BANK_ID + "-" + ACCOUNT_NO + "-compact2.png"
                 + "?amount=" + amount
@@ -627,28 +840,38 @@ public class CheckoutServlet extends HttpServlet {
     }
 
     private int saveOrderWithConn(Connection conn, Order order) throws SQLException {
-        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, recipient_name, recipient_phone, notes, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, shop_acceptance_deadline, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NONE', ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO orders (customer_id, owner_id, parent_order_id, order_type, delivery_address, recipient_name, recipient_phone, notes, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, shop_acceptance_deadline, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NONE', ?, GETDATE(), GETDATE())";
         try (PreparedStatement ps = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, order.getCustomerId());
-            ps.setInt(2, order.getOwnerId());
-            ps.setString(3, order.getDeliveryAddress());
-            ps.setString(4, order.getRecipientName());
-            ps.setString(5, order.getRecipientPhone());
-            ps.setString(6, order.getNotes());
-            ps.setString(7, order.getStatus());
-            ps.setBigDecimal(8, order.getTotalAmount());
-            ps.setBigDecimal(9, order.getDeliveryFee());
-            ps.setBigDecimal(10, order.getDiscountAmount());
-            ps.setBigDecimal(11, order.getSystemDiscountAmount());
-            ps.setBigDecimal(12, order.getShopDiscountAmount());
-            ps.setBigDecimal(13, order.getPlatformFee());
-            ps.setBigDecimal(14, order.getFinalAmount());
-            ps.setString(15, order.getPaymentMethod());
-            if ("CONFIRMED".equals(order.getStatus())) {
-                ps.setTimestamp(16, java.sql.Timestamp.valueOf(LocalDateTime.now().plusMinutes(30)));
+            if (order.getOwnerIdObject() != null && order.getOwnerIdObject() > 0) {
+                ps.setInt(2, order.getOwnerIdObject());
             } else {
-                ps.setNull(16, java.sql.Types.TIMESTAMP);
+                ps.setNull(2, java.sql.Types.INTEGER);
+            }
+            if (order.getParentOrderId() != null && order.getParentOrderId() > 0) {
+                ps.setInt(3, order.getParentOrderId());
+            } else {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            }
+            ps.setString(4, order.getOrderType() != null ? order.getOrderType() : AppConfig.ORDER_TYPE_CHILD);
+            ps.setString(5, order.getDeliveryAddress());
+            ps.setString(6, order.getRecipientName());
+            ps.setString(7, order.getRecipientPhone());
+            ps.setString(8, order.getNotes());
+            ps.setString(9, order.getStatus());
+            ps.setBigDecimal(10, order.getTotalAmount());
+            ps.setBigDecimal(11, order.getDeliveryFee());
+            ps.setBigDecimal(12, order.getDiscountAmount());
+            ps.setBigDecimal(13, order.getSystemDiscountAmount());
+            ps.setBigDecimal(14, order.getShopDiscountAmount());
+            ps.setBigDecimal(15, order.getPlatformFee());
+            ps.setBigDecimal(16, order.getFinalAmount());
+            ps.setString(17, order.getPaymentMethod());
+            if ("CONFIRMED".equals(order.getStatus())) {
+                ps.setTimestamp(18, java.sql.Timestamp.valueOf(LocalDateTime.now().plusMinutes(30)));
+            } else {
+                ps.setNull(18, java.sql.Types.TIMESTAMP);
             }
             
             ps.executeUpdate();
@@ -688,6 +911,180 @@ public class CheckoutServlet extends HttpServlet {
             }
         }
         return resolvedOwnerId != null ? resolvedOwnerId : -1;
+    }
+
+    private java.util.Map<Integer, List<CartItem>> groupItemsByOwnerId(List<CartItem> checkoutItems,
+                                                                        java.util.Map<Integer, ProductVariant> variantMap)
+            throws SQLException {
+        java.util.Map<Integer, List<CartItem>> grouped = new java.util.LinkedHashMap<>();
+        for (CartItem item : checkoutItems) {
+            int productId = item.getProductId();
+            if (productId <= 0 && variantMap != null) {
+                ProductVariant variant = variantMap.get(item.getVariantId());
+                if (variant != null) {
+                    productId = variant.getProductId();
+                }
+            }
+            if (productId <= 0) {
+                throw new IllegalStateException("KhÃ´ng thá»ƒ xÃ¡c Ä‘á»‹nh shop cá»§a sáº£n pháº©m trong giá» hÃ ng.");
+            }
+            int ownerId = orderDAO.getOwnerIdByProductId(productId);
+            if (ownerId <= 0) {
+                throw new IllegalStateException("KhÃ´ng tÃ¬m tháº¥y owner_id cho product_id=" + productId);
+            }
+            grouped.computeIfAbsent(ownerId, ignored -> new java.util.ArrayList<>()).add(item);
+        }
+        return grouped;
+    }
+
+    private BigDecimal calculateSubtotal(List<CartItem> items, java.util.Map<Integer, ProductVariant> variantMap) {
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (CartItem item : items) {
+            ProductVariant variant = variantMap != null ? variantMap.get(item.getVariantId()) : null;
+            BigDecimal price = variant != null ? variant.getActivePrice() : (item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO);
+            BigDecimal packagingPriceAdd = item.getPackagingPriceAdd() != null ? item.getPackagingPriceAdd() : BigDecimal.ZERO;
+            subtotal = subtotal.add(price.add(packagingPriceAdd).multiply(new BigDecimal(item.getQuantity())));
+        }
+        return subtotal.setScale(0, java.math.RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal sumValues(java.util.Map<Integer, BigDecimal> values) {
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BigDecimal value : values.values()) {
+            if (value != null) {
+                sum = sum.add(value);
+            }
+        }
+        return sum;
+    }
+
+    private java.util.Map<Integer, BigDecimal> allocateDiscount(BigDecimal discount,
+                                                                 java.util.Map<Integer, BigDecimal> allocationBase) {
+        java.util.Map<Integer, BigDecimal> result = new java.util.LinkedHashMap<>();
+        BigDecimal baseTotal = sumValues(allocationBase);
+        if (discount == null || discount.compareTo(BigDecimal.ZERO) <= 0 || baseTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            for (Integer ownerId : allocationBase.keySet()) {
+                result.put(ownerId, BigDecimal.ZERO);
+            }
+            return result;
+        }
+
+        BigDecimal remaining = discount;
+        int index = 0;
+        int size = allocationBase.size();
+        for (java.util.Map.Entry<Integer, BigDecimal> entry : allocationBase.entrySet()) {
+            index++;
+            BigDecimal allocated;
+            if (index == size) {
+                allocated = remaining;
+            } else {
+                allocated = discount.multiply(entry.getValue())
+                        .divide(baseTotal, 0, java.math.RoundingMode.HALF_UP)
+                        .min(entry.getValue())
+                        .max(BigDecimal.ZERO);
+                remaining = remaining.subtract(allocated);
+            }
+            result.put(entry.getKey(), allocated.max(BigDecimal.ZERO));
+        }
+        return result;
+    }
+
+    private void saveOrderItemsWithConn(Connection conn,
+                                        int orderId,
+                                        List<CartItem> items,
+                                        java.util.Map<Integer, ProductVariant> variantMap,
+                                        com.fruitmkt.service.InventoryService inventoryService,
+                                        int customerId) throws SQLException {
+        String insertItemSql = "INSERT INTO order_items (order_id, variant_id, product_name_snapshot, variant_label_snapshot, quantity, unit_price, subtotal, packaging_label_snapshot, packaging_price_snapshot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement itemPs = conn.prepareStatement(insertItemSql)) {
+            for (CartItem item : items) {
+                ProductVariant variant = variantMap.get(item.getVariantId());
+                BigDecimal latestPrice = variant != null ? variant.getActivePrice() : item.getPrice();
+                BigDecimal packagingPriceAdd = item.getPackagingPriceAdd() != null ? item.getPackagingPriceAdd() : BigDecimal.ZERO;
+                BigDecimal itemSubtotal = latestPrice.add(packagingPriceAdd).multiply(new BigDecimal(item.getQuantity()));
+
+                itemPs.setInt(1, orderId);
+                itemPs.setInt(2, item.getVariantId());
+                itemPs.setString(3, item.getProductName());
+                itemPs.setString(4, item.getVariantLabel());
+                itemPs.setInt(5, item.getQuantity());
+                itemPs.setBigDecimal(6, latestPrice);
+                itemPs.setBigDecimal(7, itemSubtotal);
+                if (item.getPackagingLabel() != null) {
+                    itemPs.setString(8, item.getPackagingLabel());
+                } else {
+                    itemPs.setNull(8, java.sql.Types.NVARCHAR);
+                }
+                itemPs.setBigDecimal(9, packagingPriceAdd);
+                itemPs.addBatch();
+                inventoryService.reserve(conn, item.getVariantId(), item.getQuantity(), orderId, customerId);
+            }
+            itemPs.executeBatch();
+        }
+    }
+
+    private void updateParentPlatformFee(Connection conn, int parentOrderId, BigDecimal platformFee) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("UPDATE orders SET platform_fee = ?, updated_at = GETDATE() WHERE order_id = ?")) {
+            ps.setBigDecimal(1, platformFee != null ? platformFee : BigDecimal.ZERO);
+            ps.setInt(2, parentOrderId);
+            ps.executeUpdate();
+        }
+    }
+
+    private void incrementPromoUsageWithConn(Connection conn, com.fruitmkt.model.entity.Promotion promo) throws SQLException {
+        if (promo == null || promo.getPromoId() <= 0) {
+            return;
+        }
+        try (PreparedStatement ps = conn.prepareStatement("UPDATE promotions SET used_count = used_count + 1, updated_at = GETDATE() WHERE promo_id = ?")) {
+            ps.setInt(1, promo.getPromoId());
+            ps.executeUpdate();
+        }
+    }
+
+    private void deleteCheckedOutCartItems(Connection conn, int customerId, List<CartItem> checkoutItems) throws SQLException {
+        StringBuilder deleteCartSql = new StringBuilder(
+                "DELETE FROM cart_items WHERE cart_id = (SELECT cart_id FROM cart WHERE customer_id = ?) AND variant_id IN (");
+        for (int i = 0; i < checkoutItems.size(); i++) {
+            deleteCartSql.append("?");
+            if (i < checkoutItems.size() - 1) {
+                deleteCartSql.append(",");
+            }
+        }
+        deleteCartSql.append(")");
+        try (PreparedStatement deletePs = conn.prepareStatement(deleteCartSql.toString())) {
+            deletePs.setInt(1, customerId);
+            for (int i = 0; i < checkoutItems.size(); i++) {
+                deletePs.setInt(2 + i, checkoutItems.get(i).getVariantId());
+            }
+            deletePs.executeUpdate();
+        }
+    }
+
+    private String buildPurgedVariantIds(List<CartItem> checkoutItems) {
+        StringBuilder purgedSb = new StringBuilder();
+        for (int i = 0; i < checkoutItems.size(); i++) {
+            purgedSb.append(checkoutItems.get(i).getVariantId());
+            if (i < checkoutItems.size() - 1) {
+                purgedSb.append(",");
+            }
+        }
+        return purgedSb.toString();
+    }
+
+    private void sendShopPreparationNotifications(java.util.Map<Integer, Integer> childOrderIdByOwner) {
+        com.fruitmkt.service.NotificationService notificationService = new com.fruitmkt.service.NotificationService();
+        for (java.util.Map.Entry<Integer, Integer> entry : childOrderIdByOwner.entrySet()) {
+            Integer ownerId = entry.getKey();
+            Integer childOrderId = entry.getValue();
+            try {
+                notificationService.send(ownerId, AppConfig.NOTIF_ORDER_UPDATE,
+                        "CÃ³ Ä‘Æ¡n hÃ ng cáº§n chuáº©n bá»‹",
+                        "ÄÆ¡n hÃ ng #" + childOrderId + " Ä‘Ã£ Ä‘Æ°á»£c táº¡o tá»« checkout nhiá»u shop. Vui lÃ²ng kiá»ƒm tra vÃ  chuáº©n bá»‹ hÃ ng.",
+                        "/shop/orders");
+            } catch (Exception ex) {
+                System.err.println("[FruitMkt] WARN: Khong gui duoc thong bao chuan bi hang cho ownerId=" + ownerId + ": " + ex.getMessage());
+            }
+        }
     }
 
     private BigDecimal calculateDirectSaleAmount(List<CartItem> items) {

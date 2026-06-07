@@ -3,16 +3,22 @@ package com.fruitmkt.test;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.CartDAO;
 import com.fruitmkt.dao.CategoryDAO;
+import com.fruitmkt.dao.DeliveryDAO;
+import com.fruitmkt.dao.DeliveryTripDAO;
 import com.fruitmkt.dao.OrderDAO;
 import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
 import com.fruitmkt.dao.SystemConfigDAO;
 import com.fruitmkt.dao.UserDAO;
+import com.fruitmkt.model.dto.CartSummaryDTO;
+import com.fruitmkt.model.entity.Delivery;
+import com.fruitmkt.model.entity.DeliveryTrip;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.servlet.customer.CheckoutServlet;
+import com.fruitmkt.service.DeliveryService;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,6 +34,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +57,9 @@ public class CheckoutServletPricingRegressionTest {
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final UserDAO userDAO = new UserDAO();
     private final SystemConfigDAO configDAO = new SystemConfigDAO();
+    private final DeliveryDAO deliveryDAO = new DeliveryDAO();
+    private final DeliveryTripDAO deliveryTripDAO = new DeliveryTripDAO();
+    private final DeliveryService deliveryService = new DeliveryService();
 
     private MockHttpEnvironment env;
 
@@ -129,15 +139,91 @@ public class CheckoutServletPricingRegressionTest {
     }
 
     @Test
-    public void rejectMixedShopCheckoutOnGet() throws Exception {
+    public void allowMixedShopCheckoutOnGetWithPerShopShipping() throws Exception {
         env.clearRequestState();
         env.putParam("variantIds", variantAId + "," + variantBId);
 
         servlet.doGetPublic(env.request, env.response);
 
-        assertEquals("/ctx/cart", env.redirectLocation);
-        assertEquals("error", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
-        assertNotNull(env.sessionAttributes.get(AppConfig.SESSION_FLASH_MSG));
+        assertNull(env.redirectLocation);
+        assertEquals("/WEB-INF/jsp/customer/checkout.jsp", env.forwardedPath);
+        assertEquals(2, ((Integer) env.requestAttributes.get("shopCount")).intValue());
+        CartSummaryDTO summary = (CartSummaryDTO) env.requestAttributes.get("cartSummary");
+        assertNotNull(summary);
+        assertEquals(0, new BigDecimal("30000").compareTo(summary.getDeliveryFee()));
+        assertEquals(0, new BigDecimal("210000").compareTo(summary.getTotal()));
+    }
+
+    @Test
+    public void checkoutMultipleShopsWithoutShopVoucherCreatesParentAndChildOrders() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", "0912345678");
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", variantAId + "," + variantBId);
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        assertTrue(env.redirectLocation.contains("/checkout?action=success&orderId="));
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        Order parent = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_TYPE_PARENT, parent.getOrderType());
+        assertNull(parent.getOwnerIdObject());
+        assertNull(parent.getParentOrderId());
+        assertEquals(0, new BigDecimal("180000").compareTo(parent.getTotalAmount()));
+        assertEquals(0, new BigDecimal("30000").compareTo(parent.getDeliveryFee()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(parent.getDiscountAmount()));
+        assertEquals(0, new BigDecimal("210000").compareTo(parent.getFinalAmount()));
+
+        List<Order> children = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, children.size());
+        Order childA = findChildByOwner(children, ownerAId);
+        Order childB = findChildByOwner(children, ownerBId);
+        assertChildOrder(childA, ownerAId, new BigDecimal("100000"), BigDecimal.ZERO, new BigDecimal("115000"));
+        assertChildOrder(childB, ownerBId, new BigDecimal("80000"), BigDecimal.ZERO, new BigDecimal("95000"));
+
+        deliveryService.assignShipper(childA.getOrderId(), 0, LocalDateTime.now().plusDays(1));
+        Delivery delivery = deliveryDAO.findByOrderId(childA.getOrderId());
+        assertNotNull(delivery);
+        assertNotNull(delivery.getDeliveryTripId());
+        assertEquals(Integer.valueOf(1), delivery.getTripStopSeq());
+        DeliveryTrip trip = deliveryTripDAO.findById(delivery.getDeliveryTripId());
+        assertNotNull(trip);
+        assertEquals(createdOrderId, trip.getParentOrderId());
+        assertEquals(AppConfig.DELIVERY_TRIP_PLANNED, trip.getStatus());
+    }
+
+    @Test
+    public void shopVoucherInMultiShopCheckoutDiscountsOnlyMatchingChildOrder() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", "0912345678");
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", variantAId + "," + variantBId);
+        env.putParam("shopCouponCode", "SHOP10");
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        assertTrue(env.redirectLocation.contains("/checkout?action=success&orderId="));
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        Order parent = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_TYPE_PARENT, parent.getOrderType());
+        assertEquals(0, new BigDecimal("10000").compareTo(parent.getShopDiscountAmount()));
+        assertEquals(0, new BigDecimal("10000").compareTo(parent.getDiscountAmount()));
+        assertEquals(0, new BigDecimal("200000").compareTo(parent.getFinalAmount()));
+
+        List<Order> children = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, children.size());
+        assertChildOrder(findChildByOwner(children, ownerAId), ownerAId, new BigDecimal("100000"), new BigDecimal("10000"), new BigDecimal("105000"));
+        assertChildOrder(findChildByOwner(children, ownerBId), ownerBId, new BigDecimal("80000"), BigDecimal.ZERO, new BigDecimal("95000"));
     }
 
     @Test
@@ -182,6 +268,27 @@ public class CheckoutServletPricingRegressionTest {
         assertEquals(0, order.getFinalAmount().compareTo(expectedFinalAmount));
         assertEquals(ownerAId, order.getOwnerId());
         assertEquals(AppConfig.PAYMENT_COD, order.getPaymentMethod());
+    }
+
+    private void assertChildOrder(Order child, int expectedOwnerId, BigDecimal expectedSubtotal,
+                                  BigDecimal expectedDiscount, BigDecimal expectedFinalAmount) {
+        assertNotNull(child);
+        assertEquals(AppConfig.ORDER_TYPE_CHILD, child.getOrderType());
+        assertEquals(createdOrderId, child.getParentOrderId().intValue());
+        assertEquals(expectedOwnerId, child.getOwnerId());
+        assertEquals(0, expectedSubtotal.compareTo(child.getTotalAmount()));
+        assertEquals(0, new BigDecimal("15000").compareTo(child.getDeliveryFee()));
+        assertEquals(0, expectedDiscount.compareTo(child.getDiscountAmount()));
+        assertEquals(0, expectedFinalAmount.compareTo(child.getFinalAmount()));
+    }
+
+    private Order findChildByOwner(List<Order> children, int ownerId) {
+        for (Order child : children) {
+            if (child.getOwnerId() == ownerId) {
+                return child;
+            }
+        }
+        return null;
     }
 
     private int createUser(String fullName, String email, String role, String phone) throws SQLException {
@@ -245,7 +352,41 @@ public class CheckoutServletPricingRegressionTest {
 
     private void hardDeleteOrder(int orderId) throws SQLException {
         try (Connection conn = orderDAO.openConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM order_items WHERE order_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM notifications WHERE user_id IN (?, ?) AND action_url = ?")) {
+                ps.setInt(1, ownerAId);
+                ps.setInt(2, ownerBId);
+                ps.setString(3, "/shop/orders");
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM payment_transactions WHERE order_id = ? OR order_id IN (SELECT order_id FROM orders WHERE parent_order_id = ?)")) {
+                ps.setInt(1, orderId);
+                ps.setInt(2, orderId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM deliveries WHERE order_id = ? OR order_id IN (SELECT order_id FROM orders WHERE parent_order_id = ?)")) {
+                ps.setInt(1, orderId);
+                ps.setInt(2, orderId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM delivery_trips WHERE parent_order_id = ?")) {
+                ps.setInt(1, orderId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM order_promotions WHERE order_id = ? OR order_id IN (SELECT order_id FROM orders WHERE parent_order_id = ?)")) {
+                ps.setInt(1, orderId);
+                ps.setInt(2, orderId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM order_items WHERE order_id = ? OR order_id IN (SELECT order_id FROM orders WHERE parent_order_id = ?)")) {
+                ps.setInt(1, orderId);
+                ps.setInt(2, orderId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM orders WHERE parent_order_id = ?")) {
                 ps.setInt(1, orderId);
                 ps.executeUpdate();
             }

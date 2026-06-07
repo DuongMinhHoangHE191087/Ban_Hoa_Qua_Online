@@ -65,7 +65,7 @@
             <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm sticky top-24">
                 <div class="flex items-center gap-3 pb-5 mb-5 border-b border-gray-100">
                     <img class="w-12 h-12 rounded-full object-cover border border-primary/20" 
-                         src="${not empty user.avatarUrl ? (user.avatarUrl.startsWith('http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" alt="Avatar">
+                         src="${not empty user.avatarUrl ? (fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" alt="Avatar">
                     <div class="overflow-hidden">
                         <h3 class="text-sm font-bold text-txt truncate"><c:out value="${user.fullName}"/></h3>
                         <span class="text-[10px] text-txt-3"><c:out value="${user.email}"/></span>
@@ -125,7 +125,7 @@
                              onclick="document.getElementById('avatarInput').click();" 
                              title="Click để đổi ảnh đại diện">
                             <img id="avatarPreview" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                                 src="${not empty user.avatarUrl ? (user.avatarUrl.startsWith('http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" alt="Avatar">
+                                 src="${not empty user.avatarUrl ? (fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" alt="Avatar">
                             <div class="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <i class="fa-solid fa-camera text-base"></i>
                             </div>

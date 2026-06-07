@@ -9,7 +9,9 @@ public class Order {
 
     private int orderId;
     private int customerId;
-    private int ownerId;
+    private Integer ownerId;
+    private Integer parentOrderId;
+    private String orderType;
     private String deliveryAddress;
     private String recipientName;
     private String recipientPhone;
@@ -43,8 +45,16 @@ public class Order {
     public int getCustomerId() { return customerId; }
     public void setCustomerId(int customerId) { this.customerId = customerId; }
 
-    public int getOwnerId() { return ownerId; }
+    public int getOwnerId() { return ownerId != null ? ownerId : 0; }
+    public Integer getOwnerIdObject() { return ownerId; }
     public void setOwnerId(int ownerId) { this.ownerId = ownerId; }
+    public void setOwnerId(Integer ownerId) { this.ownerId = ownerId; }
+
+    public Integer getParentOrderId() { return parentOrderId; }
+    public void setParentOrderId(Integer parentOrderId) { this.parentOrderId = parentOrderId; }
+
+    public String getOrderType() { return orderType; }
+    public void setOrderType(String orderType) { this.orderType = orderType; }
 
     public String getDeliveryAddress() { return deliveryAddress; }
     public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }

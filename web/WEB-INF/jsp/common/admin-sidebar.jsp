@@ -201,14 +201,14 @@
                 <a href="${pageContext.request.contextPath}/admin/orders"
                    class="sb-nav-link ${param.activeMenu == 'orders' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-box-open"></i></span>
-                    <span>GiÃƒÂ¡m sÃƒÂ¡t Ã„ÂÃ†Â¡n hÃƒÂ ng</span>
+                    <span>Giám sát Đơn hàng</span>
                 </a>
             </li>
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/promotions"
                    class="sb-nav-link ${param.activeMenu == 'promotions' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-tags"></i></span>
-                    <span>Voucher sÃ¡n</span>
+                    <span>Voucher sàn</span>
                 </a>
             </li>
 
@@ -219,21 +219,21 @@
                 <a href="${pageContext.request.contextPath}/admin/settlements"
                    class="sb-nav-link ${param.activeMenu == 'settlements' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
-                    <span>Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœi soÃƒÆ’Ã‚Â¡t Thanh toÃƒÆ’Ã‚Â¡n</span>
+                    <span>Đối soát Thanh toán</span>
                 </a>
             </li>
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/payments"
                    class="sb-nav-link ${param.activeMenu == 'payments' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-credit-card"></i></span>
-                    <span>GiÃƒÆ’Ã‚Â¡m sÃƒÆ’Ã‚Â¡t Thanh toÃƒÆ’Ã‚Â¡n</span>
+                    <span>Giám sát Thanh toán</span>
                 </a>
             </li>
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/returns"
                    class="sb-nav-link ${param.activeMenu == 'returns' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-rotate-left"></i></span>
-                    <span>YÃƒÆ’Ã‚Âªu cÃƒÂ¡Ã‚ÂºÃ‚Â§u Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢i trÃƒÂ¡Ã‚ÂºÃ‚Â£</span>
+                    <span>Yêu cầu Đổi trả</span>
                 </a>
             </li>
         </ul>
@@ -244,7 +244,7 @@
                 <a href="${pageContext.request.contextPath}/admin/reviews"
                    class="sb-nav-link ${param.activeMenu == 'reviews' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-star"></i></span>
-                    <span>KiÃƒÂ¡Ã‚Â»Ã†â€™m duyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡t Ãƒâ€žÃ‚ÂÃƒÆ’Ã‚Â¡nh giÃƒÆ’Ã‚Â¡</span>
+                    <span>Kiểm duyệt Đánh giá</span>
                 </a>
             </li>
             <li class="sb-nav-item">
