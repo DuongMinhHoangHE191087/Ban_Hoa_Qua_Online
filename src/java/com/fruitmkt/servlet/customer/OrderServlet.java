@@ -182,6 +182,15 @@ public class OrderServlet extends HttpServlet {
                 }
                 orderService.customerConfirmDelivery(orderId, user.getUserId());
                 SessionUtil.setFlashMessage(req.getSession(), "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
+            } else if ("reportNotReceived".equals(action)) {
+                // RBAC: chỉ chủ đơn mới được báo cáo
+                com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
+                if (ord == null) {
+                    resp.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động này.");
+                    return;
+                }
+                orderDAO.updateReceivedStatus(orderId, "NOT_RECEIVED");
+                SessionUtil.setFlashMessage(req.getSession(), "Bạn đã báo cáo chưa nhận được hàng. Ban quản trị sẽ tiến hành xác minh đơn hàng.", "warning");
             } else if ("cancel".equals(action)) {
                 // [FIX B6] RBAC: chỉ chủ đơn mới được hủy
                 com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
@@ -192,6 +201,41 @@ public class OrderServlet extends HttpServlet {
                 String reason = req.getParameter("reason");
                 orderService.cancelOrder(orderId, user.getUserId(), reason);
                 SessionUtil.setFlashMessage(req.getSession(), "Bạn đã hủy đơn hàng thành công!", "success");
+            } else if ("reorder".equals(action)) {
+                // Reorder: thêm lại items của đơn hàng cũ vào giỏ hiện tại
+                com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
+                if (ord == null) {
+                    resp.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động này.");
+                    return;
+                }
+                java.util.List<com.fruitmkt.model.entity.OrderItem> items = orderService.getOrderItems(orderId);
+                // Lấy hoặc tạo giỏ hàng hiện tại
+                com.fruitmkt.dao.CartDAO cartDAO = new com.fruitmkt.dao.CartDAO();
+                java.util.List<com.fruitmkt.model.entity.Cart> carts = cartDAO.findByCustomer(user.getUserId());
+                int cartId;
+                if (carts.isEmpty()) {
+                    cartId = cartDAO.createForCustomer(user.getUserId());
+                } else {
+                    cartId = carts.get(0).getCartId();
+                }
+                int addedCount = 0;
+                int skippedCount = 0;
+                for (com.fruitmkt.model.entity.OrderItem item : items) {
+                    if (item.getVariantId() == null) { skippedCount++; continue; }
+                    try {
+                        cartDAO.addItem(cartId, item.getVariantId(), item.getQuantity());
+                        addedCount++;
+                    } catch (Exception ex) {
+                        skippedCount++;
+                    }
+                }
+                if (skippedCount > 0) {
+                    SessionUtil.setFlashMessage(req.getSession(), "Đã thêm " + addedCount + " sản phẩm vào giỏ hàng. " + skippedCount + " sản phẩm không còn khả dụng đã bị bỏ qua.", "warning");
+                } else {
+                    SessionUtil.setFlashMessage(req.getSession(), "Đã thêm " + addedCount + " sản phẩm vào giỏ hàng thành công!", "success");
+                }
+                resp.sendRedirect(req.getContextPath() + "/cart");
+                return;
             }
         } catch (Exception e) {
             SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");

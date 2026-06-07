@@ -257,6 +257,7 @@ public class RegisterServlet extends HttpServlet {
         String storeName = req.getParameter("storeName");
         String address = req.getParameter("address");
         String businessEmail = req.getParameter("businessEmail");
+        String phone = req.getParameter("phone");
         String preferredCategoriesJson = null;
 
         try {
@@ -270,9 +271,18 @@ public class RegisterServlet extends HttpServlet {
             storeName = sanitizeInput(storeName);
             address = sanitizeInput(address);
             businessEmail = sanitizeInput(businessEmail);
+            phone = sanitizeInput(phone);
+
             storeName = com.fruitmkt.util.ValidationUtil.requireValidShopName(storeName, "Tên cửa hàng");
             address = com.fruitmkt.util.ValidationUtil.requireValidAddress(address, "Địa chỉ kinh doanh");
             businessEmail = com.fruitmkt.util.ValidationUtil.requireValidEmail(businessEmail, "Email liên hệ kinh doanh");
+            phone = com.fruitmkt.util.ValidationUtil.requireValidPhone(phone, "Số điện thoại");
+
+            // Cập nhật số điện thoại nếu tài khoản chưa có hoặc có sự thay đổi SĐT
+            if (currentUser.getPhone() == null || currentUser.getPhone().trim().isEmpty() || !phone.equals(currentUser.getPhone())) {
+                currentUser.setPhone(phone);
+                new com.fruitmkt.dao.UserDAO().update(currentUser);
+            }
 
             if (shopProfileDAO.isBusinessEmailExists(businessEmail)) {
                 throw new Exception("Mỗi doanh nghiệp chỉ được đăng ký tối đa 1 gian hàng! Email kinh doanh này đã được sử dụng.");

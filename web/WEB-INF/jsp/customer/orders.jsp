@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -241,6 +241,16 @@
                                 <a href="${pageContext.request.contextPath}/reviews?orderId=${order.orderId}" class="w-full bg-[#f5fdf9] text-primary hover:bg-primary hover:text-on-primary py-2.5 rounded-xl transition-all font-semibold border border-primary/20 text-center flex items-center justify-center gap-2 text-sm">
                                     <span class="material-symbols-outlined text-base">star</span> Viết đánh giá chất lượng
                                 </a>
+                                <%-- Reorder button --%>
+                                <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                    <input type="hidden" name="action" value="reorder">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+                                    <button type="submit"
+                                        class="w-full bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white py-2.5 rounded-xl transition-all font-semibold border border-sky-200 flex items-center justify-center gap-2 text-sm active:scale-95 transform">
+                                        <span class="material-symbols-outlined text-base">replay</span> Mua lại đơn hàng này
+                                    </button>
+                                </form>
                                 <a href="${pageContext.request.contextPath}/returns?orderId=${order.orderId}" class="w-full bg-[#fff5f5] text-error hover:bg-[#ba1a1a] hover:text-white py-2.5 rounded-xl transition-all font-semibold border border-error/20 text-center flex items-center justify-center gap-2 text-sm">
                                     <span class="material-symbols-outlined text-base">rotate_left</span> Yêu cầu Đổi / Trả hàng
                                 </a>

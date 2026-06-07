@@ -4,7 +4,7 @@ import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
-import com.fruitmkt.util.PasswordUtil;
+import com.fruitmkt.util.HashUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -71,11 +71,11 @@ public class AdminProfileServlet extends HttpServlet {
                 }
 
                 User currentAdmin = userDAO.findUserById(admin.getUserId());
-                if (!PasswordUtil.checkPassword(oldPass, currentAdmin.getPasswordHash())) {
+                if (!HashUtil.verify(oldPass, currentAdmin.getPasswordHash())) {
                     throw new Exception("Mật khẩu cũ không chính xác.");
                 }
 
-                String newHash = PasswordUtil.hashPassword(newPass);
+                String newHash = HashUtil.hashPassword(newPass);
                 userDAO.updatePassword(admin.getUserId(), newHash);
                 
                 SessionUtil.flashSuccess(req.getSession(), "Đã thay đổi mật khẩu thành công.");

@@ -131,7 +131,7 @@ public class LoginServlet extends HttpServlet {
         } else if (AppConfig.ROLE_SHOP_OWNER.equals(role)) {
             resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
         } else if (AppConfig.ROLE_DELIVERY.equals(role)) {
-            resp.sendRedirect(req.getContextPath() + "/delivery/");
+            resp.sendRedirect(req.getContextPath() + "/delivery/dashboard");
         } else {
             resp.sendRedirect(req.getContextPath() + "/");
         }

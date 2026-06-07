@@ -186,11 +186,11 @@
                             <label class="text-xs font-semibold text-primary" for="phone">Số điện thoại *</label>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">call</span>
-                                <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${not empty requestScope.prefilledUser ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
+                                <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
                                        id="phone" name="phone" 
                                        value="<c:out value="${not empty requestScope.prefilledUser ? requestScope.prefilledUser.phone : param.phone}"/>" 
                                        placeholder="Nhập số điện thoại" type="tel" required maxlength="15"
-                                       ${not empty requestScope.prefilledUser ? 'readonly' : ''}>
+                                       ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'readonly' : ''}>
                             </div>
                         </div>
                     </div>
@@ -542,7 +542,7 @@
                 const accountType = document.getElementById('accountType').value;
                 const isPrefilled = "${requestScope.prefilledUser != null}" === "true";
 
-                // Validate base fields nếu không phải prefilled
+                 // Validate base fields nếu không phải prefilled
                 if (!isPrefilled) {
                     const fullNameInput = document.getElementById('fullName');
                     if (fullNameInput.value.trim().length < 3) {
@@ -569,6 +569,15 @@
                     const confirmPasswordInput = document.getElementById('confirmPassword');
                     if (passwordInput.value !== confirmPasswordInput.value) {
                         showError(confirmPasswordInput, 'Mật khẩu xác nhận không khớp.');
+                    }
+                } else {
+                    // Nếu prefilled nhưng SĐT trống và người dùng tự điền, vẫn cần validate
+                    const phoneInput = document.getElementById('phone');
+                    if (phoneInput && !phoneInput.hasAttribute('readonly')) {
+                        const phoneRegex = /^[0-9]{10,11}$/;
+                        if (!phoneRegex.test(phoneInput.value.trim())) {
+                            showError(phoneInput, 'Số điện thoại không hợp lệ (phải gồm 10-11 chữ số).');
+                        }
                     }
                 }
 

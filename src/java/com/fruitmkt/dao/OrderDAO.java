@@ -19,6 +19,33 @@ import java.util.*;
  */
 public class OrderDAO extends BaseDAO {
 
+    private static boolean schemaChecked = false;
+
+    public OrderDAO() {
+        checkSchemaOnce();
+    }
+
+    private synchronized void checkSchemaOnce() {
+        if (schemaChecked) return;
+        try (Connection conn = getConnection()) {
+            boolean colExists = false;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 received_status FROM orders")) {
+                colExists = true;
+            } catch (SQLException e) {}
+            if (!colExists) {
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("ALTER TABLE orders ADD received_status NVARCHAR(30) NULL");
+                    System.out.println("[DB Migrator] Success: Added received_status column to orders.");
+                }
+            }
+            schemaChecked = true;
+        } catch (SQLException e) {
+            System.err.println("[DB Migrator] Error checking/adding orders columns: " + e.getMessage());
+            schemaChecked = true;
+        }
+    }
+
     /**
      * Tìm đơn hàng theo ID.
      */
@@ -516,6 +543,7 @@ public class OrderDAO extends BaseDAO {
         o.setFinalAmount(rs.getBigDecimal("final_amount"));
         o.setPaymentMethod(rs.getString("payment_method"));
         o.setRefundStatus(rs.getString("refund_status"));
+        o.setReceivedStatus(rs.getString("received_status"));
         
         Timestamp createdAtVal = rs.getTimestamp("created_at");
         if (createdAtVal != null) {
@@ -552,5 +580,15 @@ public class OrderDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    public void updateReceivedStatus(int orderId, String receivedStatus) throws SQLException {
+        String sql = "UPDATE orders SET received_status = ?, updated_at = GETDATE() WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, receivedStatus);
+            ps.setInt(2, orderId);
+            ps.executeUpdate();
+        }
     }
 }

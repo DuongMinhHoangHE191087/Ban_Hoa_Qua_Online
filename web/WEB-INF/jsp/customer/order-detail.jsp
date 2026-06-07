@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
@@ -155,7 +155,10 @@
             <!-- Timeline connectors background -->
             <div class="absolute top-[50px] left-0 right-0 h-1.5 bg-outline-variant/30 rounded-full z-0"></div>
             <!-- Timeline active progress bar -->
-            <div class="absolute top-[50px] left-0 h-1.5 bg-primary rounded-full z-0 transition-all duration-500" style="width: ${stepNum == -1 ? '100%' : (stepNum - 1) * 25}%"></div>
+            <div id="timeline-active-bar" class="absolute top-[50px] left-0 h-1.5 bg-primary rounded-full z-0 transition-all duration-500" style="width: 0%"></div>
+            <script>
+                document.getElementById('timeline-active-bar').style.width = "${stepNum == -1 ? 100 : (stepNum - 1) * 25}%";
+            </script>
             
             <div class="flex justify-between items-center z-10 relative">
                 <c:choose>
@@ -342,6 +345,144 @@
                 </div>
             </div>
 
+            <%-- Delivery ETA Card (shown when DISPATCHED or DELIVERED) --%>
+            <c:if test="${order.status == 'DISPATCHED' || order.status == 'DELIVERED'}">
+                <div class="premium-glass-card rounded-[1.5rem] p-6">
+                    <h3 class="font-headline-md text-lg text-inverse-surface font-bold mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">schedule</span> Thông tin giao vận
+                    </h3>
+                    <c:choose>
+                        <c:when test="${not empty delivery}">
+                            <div class="flex flex-col gap-5 text-sm">
+                                <div>
+                                    <span class="text-on-surface-variant block text-xs font-semibold mb-1.5 uppercase tracking-wider">Xác nhận của bạn</span>
+                                    <c:choose>
+                                        <c:when test="${order.receivedStatus == 'RECEIVED'}">
+                                            <span class="bg-emerald-100 text-emerald-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+                                                <span class="material-symbols-outlined text-sm font-bold">done_all</span> Bạn đã xác nhận nhận hàng
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${order.receivedStatus == 'NOT_RECEIVED'}">
+                                            <span class="bg-red-100 text-red-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+                                                <span class="material-symbols-outlined text-sm font-bold">report_problem</span> Bạn đã báo cáo chưa nhận được hàng
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="bg-amber-100 text-amber-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+                                                <span class="material-symbols-outlined text-sm font-bold">hourglass_empty</span> Chờ bạn xác nhận
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                                <div>
+                                    <span class="text-on-surface-variant block text-xs font-semibold mb-1.5 uppercase tracking-wider">Trạng thái vận chuyển</span>
+                                    <c:choose>
+                                        <c:when test="${delivery.status == 'DELIVERED'}">
+                                            <span class="bg-emerald-100 text-emerald-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 w-fit">
+                                                <span class="material-symbols-outlined text-sm">check_circle</span> Đã giao hàng thành công
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${delivery.status == 'FAILED'}">
+                                            <span class="bg-red-100 text-red-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 w-fit">
+                                                <span class="material-symbols-outlined text-sm">error</span> Giao hàng thất bại
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${delivery.status == 'IN_TRANSIT'}">
+                                            <span class="bg-sky-100 text-sky-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 w-fit animate-pulse">
+                                                <span class="material-symbols-outlined text-sm">local_shipping</span> Shipper đang giao hàng
+                                            </span>
+                                        </c:when>
+                                        <c:when test="${delivery.status == 'PICKED_UP'}">
+                                            <span class="bg-amber-100 text-amber-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 w-fit">
+                                                <span class="material-symbols-outlined text-sm">inventory_2</span> Đã lấy hàng từ kho
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="bg-blue-100 text-blue-800 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 w-fit">
+                                                <span class="material-symbols-outlined text-sm">hourglass_empty</span> Đang tìm shipper
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+
+                                <%-- Shopee/TikTok Shop-style Vertical Tracking History --%>
+                                <div class="border-t border-outline-variant/20 pt-4 mt-2">
+                                    <span class="text-on-surface-variant block text-xs font-semibold mb-3 uppercase tracking-wider">Lịch sử hành trình</span>
+                                    <div class="flex flex-col pl-4 border-l-2 border-primary/20 ml-2 gap-5 relative">
+                                        
+                                        <%-- Step: Delivered --%>
+                                        <c:if test="${delivery.status == 'DELIVERED'}">
+                                            <div class="relative">
+                                                <div class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-emerald-600 border border-white ring-4 ring-emerald-100"></div>
+                                                <div class="font-bold text-[#1b5e20] text-sm">Giao hàng thành công</div>
+                                                <p class="text-xs text-on-surface-variant mt-0.5">Đơn hàng đã được giao thành công đến người nhận. Cảm ơn bạn đã mua sắm tại MetaFruit!</p>
+                                                <c:if test="${not empty delivery.deliveredAt}">
+                                                    <span class="text-[10px] text-on-surface-variant/80 block mt-1">${delivery.deliveredAt}</span>
+                                                </c:if>
+                                                <c:if test="${not empty delivery.proofImageUrl}">
+                                                    <a href="${delivery.proofImageUrl}" target="_blank" class="block mt-2 rounded-xl overflow-hidden border border-outline-variant/30 hover:opacity-90 transition-opacity w-40">
+                                                        <img src="${delivery.proofImageUrl}" alt="Ảnh giao hàng" class="w-full max-h-24 object-cover">
+                                                    </a>
+                                                </c:if>
+                                            </div>
+                                        </c:if>
+
+                                        <%-- Step: Failed --%>
+                                        <c:if test="${delivery.status == 'FAILED'}">
+                                            <div class="relative">
+                                                <div class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-red-600 border border-white ring-4 ring-red-100"></div>
+                                                <div class="font-bold text-red-700 text-sm">Giao hàng thất bại</div>
+                                                <p class="text-xs text-on-surface-variant mt-0.5">Lý do: ${delivery.failureReason}</p>
+                                                <c:if test="${not empty delivery.updatedAt}">
+                                                    <span class="text-[10px] text-on-surface-variant/80 block mt-1">${delivery.updatedAt}</span>
+                                                </c:if>
+                                            </div>
+                                        </c:if>
+
+                                        <%-- Step: In Transit --%>
+                                        <c:if test="${delivery.status == 'IN_TRANSIT' || delivery.status == 'DELIVERED'}">
+                                            <div class="relative">
+                                                <div class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary border border-white ring-4 ring-primary/10"></div>
+                                                <div class="font-bold text-inverse-surface text-sm">Đang vận chuyển</div>
+                                                <p class="text-xs text-on-surface-variant mt-0.5">Shipper đang trên đường giao hàng đến địa chỉ của bạn.</p>
+                                                <c:if test="${not empty delivery.estimatedDeliveryTime}">
+                                                    <p class="text-xs text-primary font-semibold mt-1">Dự kiến giao: ${delivery.estimatedDeliveryTime}</p>
+                                                </c:if>
+                                            </div>
+                                        </c:if>
+
+                                        <%-- Step: Picked Up --%>
+                                        <c:if test="${delivery.status == 'PICKED_UP' || delivery.status == 'IN_TRANSIT' || delivery.status == 'DELIVERED'}">
+                                            <div class="relative">
+                                                <div class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white"></div>
+                                                <div class="font-semibold text-inverse-surface text-sm">Shipper đã lấy hàng</div>
+                                                <p class="text-xs text-on-surface-variant mt-0.5">Shipper đã nhận hàng thành công từ cửa hàng và đang đóng gói vận chuyển.</p>
+                                                <c:if test="${not empty delivery.pickedUpAt}">
+                                                    <span class="text-[10px] text-on-surface-variant/80 block mt-1">${delivery.pickedUpAt}</span>
+                                                </c:if>
+                                            </div>
+                                        </c:if>
+
+                                        <%-- Step: Assigned --%>
+                                        <div class="relative">
+                                            <div class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 border border-white"></div>
+                                            <div class="font-semibold text-inverse-surface text-sm">Chuẩn bị bàn giao vận chuyển</div>
+                                            <p class="text-xs text-on-surface-variant mt-0.5">Đơn hàng đang chờ Shipper đến lấy nông sản để bắt đầu luồng giao nhận.</p>
+                                            <c:if test="${not empty delivery.createdAt}">
+                                                <span class="text-[10px] text-on-surface-variant/80 block mt-1">${delivery.createdAt}</span>
+                                            </c:if>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <p class="text-on-surface-variant text-xs italic">Thông tin giao vận đang được cập nhật. Shipper sẽ liên hệ bạn sớm.</p>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </c:if>
+
             <!-- Customer actions control card (DEL-03) -->
             <div class="premium-glass-card rounded-[1.5rem] p-6 flex flex-col gap-4">
                 <h3 class="font-headline-md text-lg text-inverse-surface font-bold border-b border-outline-variant/20 pb-3 flex items-center gap-2">
@@ -375,17 +516,28 @@
                     </div>
                 </c:if>
 
-                <!-- Nút xác nhận nhận hàng hỏa tốc -->
-                <c:if test="${order.status == 'DISPATCHED' || order.status == 'SHIPPED'}">
-                    <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
-                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                        <input type="hidden" name="action" value="confirmDelivery">
-                        <input type="hidden" name="orderId" value="${order.orderId}">
-                        <button type="submit" class="w-full bg-primary text-on-primary hover:bg-inverse-surface py-4 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Nhấn xác nhận khi bạn đã nhận được gói hàng tươi ngon và kiểm tra đúng số lượng.');">
-                            <span class="material-symbols-outlined">verified</span> Đã nhận được hàng
-                        </button>
-                    </form>
-                    <p class="text-[10px] text-on-surface-variant text-center opacity-85 mt-1">Vui lòng chỉ bấm khi đã kiểm tra chất lượng trái cây.</p>
+                <!-- Nút xác nhận nhận hàng hỏa tốc hoặc báo chưa nhận được hàng -->
+                <c:if test="${(order.status == 'DISPATCHED' || order.status == 'DELIVERED') && (empty order.receivedStatus || order.receivedStatus == 'PENDING')}">
+                    <div class="flex flex-col gap-3 w-full">
+                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                            <input type="hidden" name="action" value="confirmDelivery">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+                            <button type="submit" class="w-full bg-primary text-on-primary hover:bg-inverse-surface py-3.5 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Nhấn xác nhận khi bạn đã nhận được gói hàng tươi ngon và kiểm tra đúng số lượng.');">
+                                <span class="material-symbols-outlined text-lg">verified</span> Đã nhận được hàng
+                            </button>
+                        </form>
+                        
+                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                            <input type="hidden" name="action" value="reportNotReceived">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+                            <button type="submit" class="w-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white py-3 rounded-xl font-bold transition-all border border-red-200 flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Bạn xác nhận chưa nhận được hàng? Hệ thống sẽ báo cáo lên quản trị viên để giải quyết tranh chấp.');">
+                                <span class="material-symbols-outlined text-lg">report_problem</span> Chưa nhận được hàng
+                            </button>
+                        </form>
+                        <p class="text-[10px] text-on-surface-variant text-center opacity-85 mt-1">Vui lòng kiểm tra kỹ trước khi bấm xác nhận.</p>
+                    </div>
                 </c:if>
 
                 <!-- Đã giao hàng thành công (DELIVERED) -> Khách hàng được quyền đánh giá hoặc yêu cầu đổi trả -->

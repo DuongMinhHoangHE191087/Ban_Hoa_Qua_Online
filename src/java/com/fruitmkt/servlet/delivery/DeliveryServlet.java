@@ -12,7 +12,7 @@ import java.io.IOException;
 /**
  * DeliveryServlet
  */
-@WebServlet("/delivery")
+@WebServlet({"/delivery", "/delivery/"})
 public class DeliveryServlet extends HttpServlet {
 
     @Override

@@ -2,190 +2,366 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Bảng Điều Khiển Giao Hàng" />
+    <jsp:param name="pageTitle" value="Dashboard Giao Hàng" />
 </jsp:include>
 
-<!-- Load Tailwind CSS dynamically -->
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms"></script>
 <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    primary: '#4d661c',
-                    'primary-hover': '#364e03',
-                    'primary-light': '#d9f99d',
-                },
-                fontFamily: { sans: ['Lexend', 'sans-serif'] }
-            }
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: '#16A34A',
+                'primary-hover': '#15803D',
+                'primary-light': '#DCFCE7',
+                'primary-mid': '#4ADE80',
+                'txt': '#0F172A',
+                'txt-2': '#475569',
+                'txt-3': '#94A3B8',
+                'border-c': '#BBF7D0',
+                'bg-page': '#F0FDF4',
+            },
+            fontFamily: { sans: ['Lexend', 'sans-serif'] }
         }
     }
+}
 </script>
 
-<div class="max-w-7xl mx-auto my-10 p-6 bg-white/70 backdrop-blur-md border border-[#e2ece7] rounded-3xl shadow-lg min-h-[70vh]">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[#e2ece7] pb-5 mb-8 gap-4">
+<style>
+body { background: #F0FDF4; }
+.glass-card {
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(187,247,208,0.6);
+    box-shadow: 0 4px 24px -6px rgba(22,163,74,0.08);
+}
+.status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:9999px; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+.tab-pill { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:9999px; font-size:12px; font-weight:700; transition:all .18s; cursor:pointer; }
+</style>
+
+<main class="max-w-7xl mx-auto px-4 md:px-8 py-10 font-sans text-txt">
+
+    <%-- Header --%>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
-            <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] flex items-center gap-2">
-                <i class="fa-solid fa-truck-fast text-primary"></i> Nhiệm Vụ Giao Hàng
-            </h1>
-            <p class="text-xs md:text-sm text-[#475569] mt-1">Quản lý các đơn hàng được phân công cho bạn</p>
+            <div class="flex items-center gap-3 mb-1">
+                <div class="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-truck-fast text-white text-lg"></i>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-[#14532D] tracking-tight">Dashboard Giao Hàng</h1>
+            </div>
+            <p class="text-txt-2 text-sm ml-1">Quản lý và cập nhật trạng thái các đơn hàng được phân công</p>
         </div>
-        <a href="${pageContext.request.contextPath}/auth/logout" class="bg-white border border-[#4d661c] hover:bg-[#f0f7e6] text-[#4d661c] font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-2">
-            <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+        <div class="flex items-center gap-3">
+            <a href="${pageContext.request.contextPath}/auth/logout"
+               class="flex items-center gap-2 bg-white border border-border-c text-primary font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-primary-light transition-all shadow-sm">
+                <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+            </a>
+        </div>
+    </div>
+
+    <%-- Flash Message --%>
+    <c:if test="${not empty sessionScope.flashMsg}">
+        <div id="flash-alert" class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 text-sm font-semibold shadow-sm
+             ${sessionScope.flashType == 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-400 text-red-800'}">
+            <i class="fa-solid ${sessionScope.flashType == 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
+            <span class="flex-1"><c:out value="${sessionScope.flashMsg}"/></span>
+            <button onclick="document.getElementById('flash-alert').remove()" class="opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <c:remove var="flashMsg" scope="session"/>
+        <c:remove var="flashType" scope="session"/>
+    </c:if>
+
+    <%-- Status Filter Tabs --%>
+    <div class="flex flex-wrap gap-2 mb-8 bg-white/60 border border-border-c p-2 rounded-2xl backdrop-blur">
+        <a href="${pageContext.request.contextPath}/delivery/dashboard" class="tab-pill ${empty filterStatus ? 'bg-primary text-white shadow-sm' : 'text-txt-2 hover:bg-primary-light hover:text-primary'}">
+            <i class="fa-solid fa-list"></i> Tất cả
+        </a>
+        <a href="${pageContext.request.contextPath}/delivery/dashboard?status=ASSIGNED" class="tab-pill ${filterStatus == 'ASSIGNED' ? 'bg-blue-600 text-white shadow-sm' : 'text-txt-2 hover:bg-blue-50 hover:text-blue-600'}">
+            <i class="fa-solid fa-inbox"></i> Mới nhận
+        </a>
+        <a href="${pageContext.request.contextPath}/delivery/dashboard?status=PICKED_UP" class="tab-pill ${filterStatus == 'PICKED_UP' ? 'bg-amber-500 text-white shadow-sm' : 'text-txt-2 hover:bg-amber-50 hover:text-amber-600'}">
+            <i class="fa-solid fa-box"></i> Đã lấy hàng
+        </a>
+        <a href="${pageContext.request.contextPath}/delivery/dashboard?status=IN_TRANSIT" class="tab-pill ${filterStatus == 'IN_TRANSIT' ? 'bg-purple-600 text-white shadow-sm' : 'text-txt-2 hover:bg-purple-50 hover:text-purple-600'}">
+            <i class="fa-solid fa-truck"></i> Đang giao
+        </a>
+        <a href="${pageContext.request.contextPath}/delivery/dashboard?status=DELIVERED" class="tab-pill ${filterStatus == 'DELIVERED' ? 'bg-emerald-600 text-white shadow-sm' : 'text-txt-2 hover:bg-emerald-50 hover:text-emerald-600'}">
+            <i class="fa-solid fa-circle-check"></i> Đã giao
+        </a>
+        <a href="${pageContext.request.contextPath}/delivery/dashboard?status=FAILED" class="tab-pill ${filterStatus == 'FAILED' ? 'bg-red-600 text-white shadow-sm' : 'text-txt-2 hover:bg-red-50 hover:text-red-600'}">
+            <i class="fa-solid fa-circle-xmark"></i> Thất bại
         </a>
     </div>
 
+    <%-- Empty State --%>
     <c:if test="${empty deliveryList}">
-        <div class="text-center py-16 px-6 text-[#94a3b8]">
-            <i class="fa-solid fa-box-open text-5xl mb-4 text-[#cbd5e1]"></i>
-            <h2 class="text-lg font-bold text-[#475569] mb-1">Chưa có đơn hàng nào</h2>
-            <p class="text-xs text-[#94a3b8] max-w-sm mx-auto">Hiện tại bạn chưa được phân công giao đơn hàng nào. Hãy chờ đợi hoặc liên hệ Quản lý.</p>
+        <div class="glass-card rounded-3xl text-center py-20 px-6">
+            <div class="w-20 h-20 rounded-full bg-primary-light flex items-center justify-center mx-auto mb-5">
+                <i class="fa-solid fa-box-open text-3xl text-primary"></i>
+            </div>
+            <h2 class="text-lg font-bold text-[#0C4A6E] mb-2">Chưa có đơn hàng nào</h2>
+            <p class="text-txt-3 text-sm max-w-xs mx-auto">Hiện tại bạn chưa được phân công giao đơn hàng nào. Hãy chờ đợi hoặc liên hệ Quản lý.</p>
         </div>
     </c:if>
 
+    <%-- Delivery Cards Grid --%>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <c:forEach var="deliv" items="${deliveryList}">
-            <div class="bg-white/95 border border-[#e2ece7] rounded-3xl overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-md transition-all duration-300">
-                <div class="p-5 border-b border-[#e2ece7] bg-[#f9fdf9] flex justify-between items-center">
-                    <h3 class="font-bold text-sm text-[#1e293b]">Đơn hàng #${deliv.orderId}</h3>
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-                        <c:choose>
-                            <c:when test="${deliv.status == 'ASSIGNED'}">bg-blue-50 text-blue-700 border border-blue-200</c:when>
-                            <c:when test="${deliv.status == 'PICKED_UP'}">bg-amber-50 text-amber-700 border border-amber-200</c:when>
-                            <c:when test="${deliv.status == 'IN_TRANSIT'}">bg-purple-50 text-purple-700 border border-purple-200</c:when>
-                            <c:when test="${deliv.status == 'DELIVERED'}">bg-emerald-50 text-emerald-700 border border-emerald-200</c:when>
-                            <c:when test="${deliv.status == 'FAILED'}">bg-red-50 text-red-700 border border-red-200</c:when>
-                        </c:choose>">
-                        <c:choose>
-                            <c:when test="${deliv.status == 'ASSIGNED'}">Mới nhận</c:when>
-                            <c:when test="${deliv.status == 'PICKED_UP'}">Đã lấy hàng</c:when>
-                            <c:when test="${deliv.status == 'IN_TRANSIT'}">Đang giao</c:when>
-                            <c:when test="${deliv.status == 'DELIVERED'}">Thành công</c:when>
-                            <c:when test="${deliv.status == 'FAILED'}">Thất bại</c:when>
-                        </c:choose>
-                    </span>
+        <c:forEach var="dto" items="${deliveryList}">
+            <div class="glass-card rounded-3xl overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-lg transition-all duration-300 cursor-default">
+
+                <%-- Card Header --%>
+                <div class="px-5 py-4 border-b border-border-c bg-gradient-to-r from-[#EFF6FF] to-[#F0F9FF] flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-txt-3 font-medium">Đơn hàng</span>
+                        <h3 class="font-extrabold text-[#0C4A6E] text-base">
+                            <a href="${pageContext.request.contextPath}/delivery/detail?id=${dto.deliveryId}" class="hover:underline hover:text-primary flex items-center gap-1.5">
+                                #${dto.orderId} <i class="fa-regular fa-eye text-xs text-txt-3"></i>
+                            </a>
+                        </h3>
+                    </div>
+                    <%-- Status Badge --%>
+                    <c:choose>
+                        <c:when test="${empty dto.delivery.staffId}">
+                            <span class="status-badge bg-sky-100 text-sky-800 border border-sky-300 font-extrabold animate-pulse">
+                                <i class="fa-solid fa-hourglass-half text-[9px]"></i> Chờ Shipper nhận đơn
+                            </span>
+                        </c:when>
+                        <c:when test="${dto.deliveryStatus == 'ASSIGNED'}">
+                            <span class="status-badge bg-blue-50 text-blue-700 border border-blue-200">
+                                <i class="fa-solid fa-inbox text-[9px]"></i> Mới nhận
+                            </span>
+                        </c:when>
+                        <c:when test="${dto.deliveryStatus == 'PICKED_UP'}">
+                            <span class="status-badge bg-amber-50 text-amber-700 border border-amber-200">
+                                <i class="fa-solid fa-box text-[9px]"></i> Đã lấy hàng
+                            </span>
+                        </c:when>
+                        <c:when test="${dto.deliveryStatus == 'IN_TRANSIT'}">
+                            <span class="status-badge bg-purple-50 text-purple-700 border border-purple-200">
+                                <i class="fa-solid fa-truck text-[9px]"></i> Đang giao
+                            </span>
+                        </c:when>
+                        <c:when test="${dto.deliveryStatus == 'DELIVERED'}">
+                            <span class="status-badge bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <i class="fa-solid fa-circle-check text-[9px]"></i> Đã giao
+                            </span>
+                        </c:when>
+                        <c:when test="${dto.deliveryStatus == 'FAILED'}">
+                            <span class="status-badge bg-red-50 text-red-700 border border-red-200">
+                                <i class="fa-solid fa-circle-xmark text-[9px]"></i> Thất bại
+                            </span>
+                        </c:when>
+                    </c:choose>
                 </div>
-                
-                <div class="p-5 flex-grow">
-                    <div class="flex items-start gap-3 mb-3 text-xs md:text-sm">
-                        <i class="fa-solid fa-clock text-slate-400 mt-1"></i>
+
+                <%-- Card Body --%>
+                <div class="p-5 flex-grow flex flex-col gap-3">
+
+                    <%-- Recipient Info --%>
+                    <c:if test="${not empty dto.recipientName}">
+                        <div class="flex items-start gap-2.5 text-sm">
+                            <div class="w-7 h-7 rounded-xl bg-sky-50 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="fa-solid fa-user text-primary text-[11px]"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-txt-3 block font-semibold uppercase tracking-wider">Người nhận</span>
+                                <span class="font-bold text-txt">${dto.recipientName}</span>
+                                <c:if test="${not empty dto.recipientPhone}">
+                                    <span class="text-txt-2 ml-1 text-xs">(${dto.recipientPhone})</span>
+                                </c:if>
+                            </div>
+                        </div>
+                    </c:if>
+
+                    <%-- Delivery Address --%>
+                    <c:if test="${not empty dto.deliveryAddress}">
+                        <div class="flex items-start gap-2.5 text-sm">
+                            <div class="w-7 h-7 rounded-xl bg-sky-50 flex items-center justify-center shrink-0 mt-0.5">
+                                <i class="fa-solid fa-location-dot text-primary text-[11px]"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs text-txt-3 block font-semibold uppercase tracking-wider">Địa chỉ giao</span>
+                                <p class="text-txt font-medium leading-snug">${dto.deliveryAddress}</p>
+                            </div>
+                        </div>
+                    </c:if>
+
+                    <%-- Estimated Delivery Time --%>
+                    <div class="flex items-start gap-2.5 text-sm">
+                        <div class="w-7 h-7 rounded-xl bg-sky-50 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-regular fa-clock text-primary text-[11px]"></i>
+                        </div>
                         <div>
-                            <strong class="block text-xs text-[#475569]">Dự kiến giao:</strong>
+                            <span class="text-xs text-txt-3 block font-semibold uppercase tracking-wider">Dự kiến giao</span>
                             <c:choose>
-                                <c:when test="${not empty deliv.estimatedDeliveryTime}">
-                                    <fmt:parseDate value="${deliv.estimatedDeliveryTime}" pattern="yyyy-MM-dd'T'HH:mm" var="estDate" type="both" />
-                                    <b class="text-primary font-bold"><fmt:formatDate value="${estDate}" pattern="dd/MM/yyyy HH:mm" /></b>
+                                <c:when test="${not empty dto.estimatedDeliveryTime}">
+                                    <b class="text-primary font-bold">${dto.estimatedDeliveryTime}</b>
                                 </c:when>
-                                <c:otherwise><span class="text-slate-400 italic">Chưa thiết lập</span></c:otherwise>
+                                <c:otherwise>
+                                    <span class="text-txt-3 italic text-xs">Chưa thiết lập</span>
+                                </c:otherwise>
                             </c:choose>
-                            <button type="button" onclick="openEstimateModal('${deliv.deliveryId}')" class="bg-none border-none text-primary hover:text-primary-hover underline cursor-pointer text-[11px] font-bold ml-2">Cập nhật</button>
+                            <c:if test="${not empty dto.delivery.staffId && dto.deliveryStatus != 'DELIVERED' && dto.deliveryStatus != 'FAILED'}">
+                                <button type="button" onclick="openEstimateModal('${dto.deliveryId}')"
+                                    class="ml-2 text-primary hover:text-primary-hover underline text-[11px] font-bold cursor-pointer bg-none border-none">Cập nhật</button>
+                            </c:if>
                         </div>
                     </div>
-                    
-                    <c:if test="${deliv.status == 'FAILED'}">
-                        <div class="bg-red-50 text-red-700 p-3.5 rounded-2xl text-xs font-semibold mt-4 border border-red-100">
-                            <strong>Lý do thất bại:</strong> ${deliv.failureReason}
+
+                    <%-- Failure Reason --%>
+                    <c:if test="${dto.deliveryStatus == 'FAILED' && not empty dto.failureReason}">
+                        <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700 font-semibold">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                            <strong>Lý do thất bại:</strong> ${dto.failureReason}
                         </div>
                     </c:if>
                 </div>
-                
-                <div class="p-5 bg-white border-t border-[#e2ece7] mt-auto">
+
+                <%-- Card Footer — Action Buttons --%>
+                <div class="px-5 pb-5 mt-auto">
                     <c:choose>
-                        <c:when test="${deliv.status == 'ASSIGNED'}">
-                            <button onclick="updateStatus('${deliv.deliveryId}', 'PICKED_UP')" class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-2.5 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border-0">Xác nhận Đã Lấy Hàng</button>
+                        <c:when test="${empty dto.delivery.staffId}">
+                            <button onclick="claimOrder('${dto.deliveryId}')"
+                                class="w-full bg-[#0369A1] hover:bg-[#0284C7] text-white font-bold py-3 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-hand-holding-hand"></i> Nhận đơn giao hàng này
+                            </button>
                         </c:when>
-                        <c:when test="${deliv.status == 'PICKED_UP'}">
-                            <button onclick="updateStatus('${deliv.deliveryId}', 'IN_TRANSIT')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border-0">Bắt đầu Đi Giao</button>
+                        <c:when test="${dto.deliveryStatus == 'ASSIGNED'}">
+                            <button onclick="updateStatus('${dto.deliveryId}', 'PICKED_UP')"
+                                class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-box-open"></i> Xác nhận Đã Lấy Hàng
+                            </button>
                         </c:when>
-                        <c:when test="${deliv.status == 'IN_TRANSIT'}">
-                            <div class="flex gap-3">
-                                <button onclick="openProofModal('${deliv.deliveryId}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-1.5"><i class="fa-solid fa-check"></i> Thành công</button>
-                                <button onclick="openFailModal('${deliv.deliveryId}')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-1.5"><i class="fa-solid fa-xmark"></i> Thất bại</button>
+                        <c:when test="${dto.deliveryStatus == 'PICKED_UP'}">
+                            <button onclick="updateStatus('${dto.deliveryId}', 'IN_TRANSIT')"
+                                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-truck"></i> Bắt đầu Giao Hàng
+                            </button>
+                        </c:when>
+                        <c:when test="${dto.deliveryStatus == 'IN_TRANSIT'}">
+                            <div class="flex gap-2">
+                                <button onclick="openProofModal('${dto.deliveryId}')"
+                                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-2xl transition-all shadow-sm active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-check"></i> Giao thành công
+                                </button>
+                                <button onclick="openFailModal('${dto.deliveryId}')"
+                                    class="flex-1 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold py-3 rounded-2xl border border-red-200 transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-xmark"></i> Thất bại
+                                </button>
                             </div>
                         </c:when>
                         <c:otherwise>
-                            <button disabled class="w-full bg-slate-100 text-slate-400 font-bold py-2.5 rounded-xl cursor-not-allowed border-0 opacity-60">Đã hoàn tất xử lý</button>
+                            <div class="w-full bg-slate-50 text-txt-3 font-bold py-3 rounded-2xl text-center text-sm border border-slate-100">
+                                <i class="fa-solid fa-check-double mr-1"></i> Đã hoàn tất xử lý
+                            </div>
                         </c:otherwise>
                     </c:choose>
                 </div>
             </div>
         </c:forEach>
     </div>
-</div>
+</main>
 
-<!-- Modal Bằng Chứng Giao Hàng -->
-<div id="proofModal" class="hidden fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-xl">
-        <h3 class="text-emerald-600 font-bold text-lg flex items-center gap-2 mb-2"><i class="fa-solid fa-check-circle"></i> Giao Thành Công</h3>
-        <p class="text-xs text-[#64748b] mb-4">Cung cấp hình ảnh bằng chứng giao hàng thành công.</p>
+<%-- Modal: Giao Thành Công (Proof) --%>
+<div id="proofModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl border border-emerald-100">
+        <h3 class="text-emerald-700 font-extrabold text-lg flex items-center gap-2 mb-2">
+            <span class="w-9 h-9 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                <i class="fa-solid fa-check-circle text-emerald-600"></i>
+            </span>
+            Xác nhận Giao Thành Công
+        </h3>
+        <p class="text-xs text-txt-2 mb-5">Cung cấp URL ảnh bằng chứng giao hàng để hoàn tất xác nhận.</p>
         <input type="hidden" id="proofDeliveryId">
-        <div class="mb-4">
-            <label class="block text-xs font-bold text-[#475569] mb-1.5">URL Ảnh Bằng Chứng *</label>
-            <input type="text" id="proofImageUrl" class="w-full px-4 py-2 border border-[#cbd5e1] rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="https://example.com/image.jpg">
+        <div class="mb-5">
+            <label class="block text-xs font-bold text-txt-2 mb-1.5">URL Ảnh Bằng Chứng <span class="text-red-500">*</span></label>
+            <input type="text" id="proofImageUrl" placeholder="https://example.com/proof.jpg"
+                class="w-full px-4 py-3 border border-[#BAE6FD] rounded-2xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
         </div>
-        <div class="flex justify-end gap-3 mt-6">
-            <button onclick="closeModal('proofModal')" class="bg-slate-100 hover:bg-slate-200 text-[#475569] font-bold text-xs px-4 py-2.5 rounded-xl transition-all">Hủy</button>
-            <button onclick="submitSuccess()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md">Xác nhận</button>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('proofModal')" class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-txt-2 font-bold text-xs transition-all">Hủy</button>
+            <button onclick="submitSuccess()" class="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-md">Xác nhận giao thành công</button>
         </div>
     </div>
 </div>
 
-<!-- Modal Giao Thất Bại -->
-<div id="failModal" class="hidden fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-xl">
-        <h3 class="text-red-600 font-bold text-lg flex items-center gap-2 mb-2"><i class="fa-solid fa-times-circle"></i> Báo Cáo Thất Bại</h3>
+<%-- Modal: Giao Thất Bại --%>
+<div id="failModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl border border-red-100">
+        <h3 class="text-red-700 font-extrabold text-lg flex items-center gap-2 mb-4">
+            <span class="w-9 h-9 rounded-2xl bg-red-50 flex items-center justify-center">
+                <i class="fa-solid fa-circle-xmark text-red-600"></i>
+            </span>
+            Báo Cáo Giao Hàng Thất Bại
+        </h3>
         <input type="hidden" id="failDeliveryId">
-        <div class="mb-4">
-            <label class="block text-xs font-bold text-[#475569] mb-1.5">Lý do thất bại *</label>
-            <textarea id="failureReason" rows="3" class="w-full px-4 py-2 border border-[#cbd5e1] rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" placeholder="Ví dụ: Khách không nghe máy, Sai địa chỉ..."></textarea>
+        <div class="mb-5">
+            <label class="block text-xs font-bold text-txt-2 mb-1.5">Lý do thất bại <span class="text-red-500">*</span></label>
+            <textarea id="failureReason" rows="3" placeholder="Ví dụ: Khách không nghe máy, sai địa chỉ..."
+                class="w-full px-4 py-3 border border-red-200 rounded-2xl text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 resize-none"></textarea>
         </div>
-        <div class="flex justify-end gap-3 mt-6">
-            <button onclick="closeModal('failModal')" class="bg-slate-100 hover:bg-slate-200 text-[#475569] font-bold text-xs px-4 py-2.5 rounded-xl transition-all">Hủy</button>
-            <button onclick="submitFail()" class="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md">Xác nhận Thất bại</button>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('failModal')" class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-txt-2 font-bold text-xs transition-all">Hủy</button>
+            <button onclick="submitFail()" class="px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-all shadow-md">Xác nhận Thất bại</button>
         </div>
     </div>
 </div>
 
-<!-- Modal Thời gian dự kiến -->
-<div id="estimateModal" class="hidden fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-xl">
-        <h3 class="text-[#364e03] font-bold text-lg flex items-center gap-2 mb-2"><i class="fa-solid fa-clock"></i> Thời Gian Dự Kiến</h3>
+<%-- Modal: Cập nhật Thời Gian Dự Kiến --%>
+<div id="estimateModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl border border-border-c">
+        <h3 class="text-primary font-extrabold text-lg flex items-center gap-2 mb-4">
+            <span class="w-9 h-9 rounded-2xl bg-primary-light flex items-center justify-center">
+                <i class="fa-regular fa-clock text-primary"></i>
+            </span>
+            Cập nhật Thời Gian Giao Dự Kiến
+        </h3>
         <input type="hidden" id="estDeliveryId">
-        <div class="mb-4">
-            <label class="block text-xs font-bold text-[#475569] mb-1.5">Thời gian giao hàng dự kiến *</label>
-            <input type="datetime-local" id="estimatedTime" class="w-full px-4 py-2 border border-[#cbd5e1] rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+        <div class="mb-5">
+            <label class="block text-xs font-bold text-txt-2 mb-1.5">Thời gian giao hàng dự kiến <span class="text-red-500">*</span></label>
+            <input type="datetime-local" id="estimatedTime"
+                class="w-full px-4 py-3 border border-border-c rounded-2xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
         </div>
-        <div class="flex justify-end gap-3 mt-6">
-            <button onclick="closeModal('estimateModal')" class="bg-slate-100 hover:bg-slate-200 text-[#475569] font-bold text-xs px-4 py-2.5 rounded-xl transition-all">Hủy</button>
-            <button onclick="submitEstimate()" class="bg-primary hover:bg-primary-hover text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md">Lưu</button>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('estimateModal')" class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-txt-2 font-bold text-xs transition-all">Hủy</button>
+            <button onclick="submitEstimate()" class="px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover text-white font-bold text-xs transition-all shadow-md">Lưu thời gian</button>
         </div>
     </div>
 </div>
 
 <script>
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-function openProofModal(id) { document.getElementById('proofDeliveryId').value = id; document.getElementById('proofImageUrl').value = ''; document.getElementById('proofModal').classList.remove('hidden'); }
-function openFailModal(id) { document.getElementById('failDeliveryId').value = id; document.getElementById('failureReason').value = ''; document.getElementById('failModal').classList.remove('hidden'); }
-function openEstimateModal(id) { document.getElementById('estDeliveryId').value = id; document.getElementById('estimateModal').classList.remove('hidden'); }
+function openProofModal(id) {
+    document.getElementById('proofDeliveryId').value = id;
+    document.getElementById('proofImageUrl').value = '';
+    document.getElementById('proofModal').classList.remove('hidden');
+}
+function openFailModal(id) {
+    document.getElementById('failDeliveryId').value = id;
+    document.getElementById('failureReason').value = '';
+    document.getElementById('failModal').classList.remove('hidden');
+}
+function openEstimateModal(id) {
+    document.getElementById('estDeliveryId').value = id;
+    document.getElementById('estimateModal').classList.remove('hidden');
+}
 
 async function apiCall(data) {
     try {
         const res = await fetch('${pageContext.request.contextPath}/delivery/api/update', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': window.csrfToken || '',
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify(data)
         });
-        const contentType = res.headers.get("content-type");
-        if (!res.ok || !contentType || contentType.indexOf("application/json") === -1) {
-            if (contentType && contentType.indexOf("application/json") !== -1) {
-                const errData = await res.json();
-                throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + res.status + ')');
-            }
-            throw new Error('Lỗi hệ thống (Mã: ' + res.status + ')');
+        const ct = res.headers.get("content-type") || '';
+        if (!res.ok) {
+            const errData = ct.includes("application/json") ? await res.json() : {};
+            throw new Error(errData.message || ('Lỗi hệ thống (Mã: ' + res.status + ')'));
         }
         const result = await res.json();
         if (result.success) {
@@ -193,32 +369,50 @@ async function apiCall(data) {
         } else {
             alert("Lỗi: " + result.message);
         }
-    } catch (e) { alert(e.message || "Lỗi mạng!"); }
+    } catch (e) {
+        alert(e.message || "Lỗi mạng!");
+    }
+}
+
+function claimOrder(id) {
+    if (confirm("Bạn có chắc chắn muốn đảm nhận đơn giao hàng này không?")) {
+        apiCall({ action: "CLAIM", deliveryId: id });
+    }
 }
 
 function updateStatus(id, status) {
-    if(confirm("Xác nhận chuyển trạng thái?")) {
+    if (confirm("Xác nhận chuyển trạng thái sang: " + status + "?")) {
         apiCall({ action: "STATUS", deliveryId: id, status: status });
     }
 }
 function submitSuccess() {
     const id = document.getElementById('proofDeliveryId').value;
-    const url = document.getElementById('proofImageUrl').value;
-    if(!url) { alert("Vui lòng nhập link ảnh!"); return; }
+    const url = document.getElementById('proofImageUrl').value.trim();
+    if (!url) { alert("Vui lòng nhập link ảnh bằng chứng!"); return; }
+    closeModal('proofModal');
     apiCall({ action: "STATUS", deliveryId: id, status: "DELIVERED", proofImageUrl: url });
 }
 function submitFail() {
     const id = document.getElementById('failDeliveryId').value;
-    const reason = document.getElementById('failureReason').value;
-    if(!reason) { alert("Vui lòng nhập lý do!"); return; }
+    const reason = document.getElementById('failureReason').value.trim();
+    if (!reason) { alert("Vui lòng nhập lý do thất bại!"); return; }
+    closeModal('failModal');
     apiCall({ action: "STATUS", deliveryId: id, status: "FAILED", failureReason: reason });
 }
 function submitEstimate() {
     const id = document.getElementById('estDeliveryId').value;
     const time = document.getElementById('estimatedTime').value;
-    if(!time) { alert("Vui lòng chọn thời gian!"); return; }
+    if (!time) { alert("Vui lòng chọn thời gian!"); return; }
+    closeModal('estimateModal');
     apiCall({ action: "ESTIMATE", deliveryId: id, estimatedTime: time });
 }
+
+// Close modals on backdrop click
+['proofModal','failModal','estimateModal'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) closeModal(id);
+    });
+});
 </script>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />
