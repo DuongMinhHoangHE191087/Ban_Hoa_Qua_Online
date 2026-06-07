@@ -248,6 +248,16 @@
                                 </div>
                             </a>
 
+                            <a href="${pageContext.request.contextPath}/shop/reports" class="group flex items-center gap-3.5 p-3.5 rounded-xl border border-gray-150/70 hover:border-primary/20 hover:bg-[#f4fbf7]/40 transition-all duration-200">
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base transition-colors group-hover:bg-primary group-hover:text-white">
+                                    <i class="fa-solid fa-chart-column"></i>
+                                </div>
+                                <div class="flex-grow">
+                                    <h4 class="text-xs font-bold text-gray-700 group-hover:text-primary transition-colors">Báo cáo &amp; Thống kê</h4>
+                                    <p class="text-[10px] text-gray-400 mt-0.5">Xu hướng doanh số &amp; sản lượng bán</p>
+                                </div>
+                            </a>
+
                             <a href="${pageContext.request.contextPath}/home" class="group flex items-center gap-3.5 p-3.5 rounded-xl border border-gray-150/70 hover:border-primary/20 hover:bg-[#f4fbf7]/40 transition-all duration-200">
                                 <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base transition-colors group-hover:bg-primary group-hover:text-white">
                                     <i class="fa-solid fa-house"></i>

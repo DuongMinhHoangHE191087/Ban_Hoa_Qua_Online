@@ -582,6 +582,187 @@ public class OrderDAO extends BaseDAO {
         return list;
     }
 
+    public List<Map<String, Object>> getRevenueTrend(Integer ownerId, String startDate, String endDate) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+            "SELECT CAST(created_at AS DATE) AS order_date, SUM(final_amount) AS total_revenue " +
+            "FROM orders " +
+            "WHERE status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') "
+        );
+        List<Object> params = new ArrayList<>();
+        if (ownerId != null) {
+            sql.append("AND owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) >= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) <= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("GROUP BY CAST(created_at AS DATE) ORDER BY order_date");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", rs.getDate("order_date").toString());
+                    map.put("revenue", rs.getBigDecimal("total_revenue"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> getOrderStatusStats(Integer ownerId, String startDate, String endDate) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+            "SELECT status, COUNT(*) AS order_count " +
+            "FROM orders " +
+            "WHERE 1=1 "
+        );
+        List<Object> params = new ArrayList<>();
+        if (ownerId != null) {
+            sql.append("AND owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) >= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) <= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("GROUP BY status");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("status", rs.getString("status"));
+                    map.put("count", rs.getInt("order_count"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> getCancellationReasonStats(Integer ownerId, String startDate, String endDate) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+            "SELECT COALESCE(cancellation_reason, N'Không có lý do') AS reason, COUNT(*) AS cancel_count " +
+            "FROM orders " +
+            "WHERE status = 'CANCELLED' "
+        );
+        List<Object> params = new ArrayList<>();
+        if (ownerId != null) {
+            sql.append("AND owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) >= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) <= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("GROUP BY cancellation_reason ORDER BY cancel_count DESC");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("reason", rs.getString("reason"));
+                    map.put("count", rs.getInt("cancel_count"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> getFruitUsageReport(Integer ownerId, String startDate, String endDate) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+            "SELECT oi.product_name_snapshot, oi.variant_label_snapshot, " +
+            "       SUM(oi.quantity) AS total_quantity, SUM(oi.subtotal) AS total_amount, " +
+            "       COUNT(DISTINCT o.order_id) AS order_count "
+        );
+        
+        if (ownerId == null) {
+            sql.append(", s.shop_name ");
+        }
+        
+        sql.append(
+            "FROM order_items oi " +
+            "JOIN orders o ON oi.order_id = o.order_id "
+        );
+        
+        if (ownerId == null) {
+            sql.append("LEFT JOIN shop_owner_profiles s ON o.owner_id = s.user_id ");
+        }
+        
+        sql.append("WHERE o.status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') ");
+        
+        List<Object> params = new ArrayList<>();
+        if (ownerId != null) {
+            sql.append("AND o.owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) >= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) <= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        
+        sql.append("GROUP BY oi.product_name_snapshot, oi.variant_label_snapshot ");
+        if (ownerId == null) {
+            sql.append(", s.shop_name ");
+        }
+        sql.append("ORDER BY total_quantity DESC");
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("productName", rs.getString("product_name_snapshot"));
+                    map.put("variantLabel", rs.getString("variant_label_snapshot"));
+                    map.put("totalQuantity", rs.getInt("total_quantity"));
+                    map.put("totalAmount", rs.getBigDecimal("total_amount"));
+                    map.put("orderCount", rs.getInt("order_count"));
+                    if (ownerId == null) {
+                        map.put("shopName", rs.getString("shop_name") != null ? rs.getString("shop_name") : "Hệ thống");
+                    }
+                    list.add(map);
+                }
+            }
+        }
+        return list;
     public void updateReceivedStatus(int orderId, String receivedStatus) throws SQLException {
         String sql = "UPDATE orders SET received_status = ?, updated_at = GETDATE() WHERE order_id = ?";
         try (Connection conn = getConnection();

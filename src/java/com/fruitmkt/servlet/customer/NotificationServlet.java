@@ -3,63 +3,82 @@ package com.fruitmkt.servlet.customer;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.NotificationService;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.entity.Notification;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * NotificationServlet — Controller cho chức năng: Danh sách thông báo của user
  *
  * URL: /notifications
  * GET : Danh sách thông báo của user
- * POST: Đánh dấu đã đọc
- *
- * QUY TẮC SERVLET:
- *   1. Không viết SQL ở đây — gọi Service
- *   2. Sau POST thành công dùng PRG pattern (sendRedirect)
- *   3. Lưu flash message vào session trước redirect
- *   4. Forward đến /WEB-INF/jsp/customer/... (không để truy cập trực tiếp)
- *   5. Kiểm tra quyền bằng SessionUtil trước khi xử lý
+ * POST: Đánh dấu đã đọc / đã đọc tất cả
  *
  * @author fruitmkt-team
  */
 @WebServlet("/notifications")
 public class NotificationServlet extends HttpServlet {
 
-    // TODO: Inject service — thêm service cần dùng ở đây
-    // private final XxxService xxxService = new XxxService();
+    private final NotificationService notificationService = new NotificationService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Kiểm tra session/quyền nếu cần
-        //        2. Đọc request parameters
-        //        3. Gọi service để lấy data
-        //        4. Set attributes vào request
-        //        5. Forward đến JSP tương ứng
-        //
-        // Ví dụ:
-        // req.setAttribute("data", service.getData(...));
-        // req.getRequestDispatcher("/WEB-INF/jsp/customer/xxx.jsp").forward(req, resp);
-        throw new UnsupportedOperationException("doGet not implemented: NotificationServlet");
+        User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        req.setCharacterEncoding("UTF-8");
+        resp.setContentType("text/html;charset=UTF-8");
+
+        try {
+            List<Notification> notifications = notificationService.getAllNotifications(user.getUserId());
+            req.setAttribute("notifications", notifications);
+            req.getRequestDispatcher("/WEB-INF/jsp/customer/notification.jsp").forward(req, resp);
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải trang thông báo");
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        // TODO: 1. Đọc params / JSON body
-        //        2. Validate input
-        //        3. Gọi service
-        //        4. Set flash message
-        //        5. Redirect (PRG pattern)
-        //
-        // Ví dụ:
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Thành công!");
-        // req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "success");
-        // resp.sendRedirect(req.getContextPath() + "/..");
-        throw new UnsupportedOperationException("doPost not implemented: NotificationServlet");
-    }
+        User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
 
+        String action = req.getParameter("action");
+        try {
+            if ("markAllRead".equals(action)) {
+                notificationService.markAllRead(user.getUserId());
+                SessionUtil.flashSuccess(req.getSession(), "Đã đánh dấu tất cả thông báo là đã đọc.");
+            } else if ("markRead".equals(action)) {
+                String notifIdStr = req.getParameter("notificationId");
+                if (notifIdStr != null && !notifIdStr.trim().isEmpty()) {
+                    int notifId = Integer.parseInt(notifIdStr);
+                    notificationService.markRead(notifId);
+                }
+                String redirectUrl = req.getParameter("redirectUrl");
+                if (redirectUrl != null && !redirectUrl.trim().isEmpty()) {
+                    resp.sendRedirect(req.getContextPath() + redirectUrl);
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            SessionUtil.flashError(req.getSession(), "Lỗi xử lý: " + e.getMessage());
+        }
+        
+        resp.sendRedirect(req.getContextPath() + "/notifications");
+    }
 }

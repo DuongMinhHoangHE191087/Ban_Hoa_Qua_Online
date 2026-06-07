@@ -56,6 +56,12 @@
             <i class="fa-solid fa-wallet w-5 text-center ${param.activePage == 'settlement' ? 'text-[#4d661c]' : 'text-gray-400'}"></i>
             <span>Tài chính</span>
         </a>
+        <a href="${pageContext.request.contextPath}/shop/reports"
+           class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200
+                  ${param.activePage == 'reports' ? 'font-bold bg-[#edf7f2] text-[#4d661c] shadow-inner border-l-4 border-[#4d661c]' : 'font-medium text-[#475569] hover:bg-[#edf7f2] hover:text-[#4d661c]'}">
+            <i class="fa-solid fa-chart-column w-5 text-center ${param.activePage == 'reports' ? 'text-[#4d661c]' : 'text-gray-400'}"></i>
+            <span>Báo cáo</span>
+        </a>
         <a href="${pageContext.request.contextPath}/shop/profile"
            class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200
                   ${param.activePage == 'profile' ? 'font-bold bg-[#edf7f2] text-[#4d661c] shadow-inner border-l-4 border-[#4d661c]' : 'font-medium text-[#475569] hover:bg-[#edf7f2] hover:text-[#4d661c]'}">

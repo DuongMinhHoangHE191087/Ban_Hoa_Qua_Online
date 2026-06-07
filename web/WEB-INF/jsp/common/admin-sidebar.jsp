@@ -158,6 +158,13 @@
                     <span>Quản lý người dùng</span>
                 </a>
             </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/reports"
+                   class="sb-nav-link ${param.activeMenu == 'reports' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-chart-column"></i></span>
+                    <span>Báo cáo thống kê</span>
+                </a>
+            </li>
         </ul>
 
         <div class="sb-section-label">Thương mại</div>

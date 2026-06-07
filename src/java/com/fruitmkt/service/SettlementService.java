@@ -8,6 +8,14 @@ import java.util.List;
 
 public class SettlementService {
     private final SettlementDAO settlementDAO = new SettlementDAO();
+    private final com.fruitmkt.dao.SystemConfigDAO configDAO = new com.fruitmkt.dao.SystemConfigDAO();
+
+    public int runAutoSettlement() throws SQLException {
+        synchronized (SettlementService.class) {
+            int freezeDays = configDAO.getInt(com.fruitmkt.config.AppConfig.CONFIG_FREEZE_DAYS, com.fruitmkt.config.AppConfig.FREEZE_DAYS_DEFAULT);
+            return settlementDAO.runAutoSettlement(freezeDays);
+        }
+    }
 
     public List<ShopSettlement> getAllSettlements(String status, int page, int pageSize) throws SQLException {
         return settlementDAO.findAll(status, page, pageSize);
