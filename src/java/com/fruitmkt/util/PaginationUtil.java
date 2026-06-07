@@ -7,6 +7,9 @@ package com.fruitmkt.util;
  */
 public final class PaginationUtil {
 
+    private static final int MAX_PAGE_SIZE = com.fruitmkt.config.AppConfig.MAX_PAGE_SIZE;
+    private static final int DEFAULT_PAGE_SIZE = com.fruitmkt.config.AppConfig.DEFAULT_PAGE_SIZE;
+
     /**
      * Tính offset (dùng trong SQL OFFSET ? ROWS)
      * @param page     Trang hiện tại (1-based)
@@ -14,7 +17,9 @@ public final class PaginationUtil {
      * @return offset để nhảy dòng
      */
     public static int getOffset(int page, int pageSize) {
-        return Math.max(0, (page - 1) * pageSize);
+        int validatedPage = validatePage(page);
+        int validatedPageSize = validatePageSize(pageSize);
+        return Math.max(0, (validatedPage - 1) * validatedPageSize);
     }
 
     /**
@@ -24,18 +29,48 @@ public final class PaginationUtil {
      * @return tổng số trang
      */
     public static int getTotalPages(long totalItems, int pageSize) {
-        if (pageSize <= 0) return 0;
-        return (int) Math.ceil((double) totalItems / pageSize);
+        int validatedPageSize = validatePageSize(pageSize);
+        if (validatedPageSize <= 0) return 0;
+        return (int) Math.ceil((double) totalItems / validatedPageSize);
     }
 
-    /** Parse page param từ request, mặc định trang 1 */
+    /** Parse page param từ request, mặc định trang 1 và giới hạn tối thiểu 1 */
     public static int parsePage(String param) {
         try {
-            int p = Integer.parseInt(param);
-            return p > 0 ? p : 1;
+            if (param == null || param.trim().isEmpty()) {
+                return 1;
+            }
+            int p = Integer.parseInt(param.trim());
+            return validatePage(p);
         } catch (Exception e) {
             return 1;
         }
+    }
+
+    /** Parse pageSize param từ request, mặc định 10 và giới hạn tối đa 100 */
+    public static int parsePageSize(String param) {
+        try {
+            if (param == null || param.trim().isEmpty()) {
+                return DEFAULT_PAGE_SIZE;
+            }
+            int s = Integer.parseInt(param.trim());
+            return validatePageSize(s);
+        } catch (Exception e) {
+            return DEFAULT_PAGE_SIZE;
+        }
+    }
+
+    /** Validate số trang */
+    public static int validatePage(int page) {
+        return Math.max(1, page);
+    }
+
+    /** Validate kích thước trang (giới hạn tối thiểu 1, tối đa 100) */
+    public static int validatePageSize(int pageSize) {
+        if (pageSize <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(pageSize, MAX_PAGE_SIZE);
     }
 
     private PaginationUtil() {}

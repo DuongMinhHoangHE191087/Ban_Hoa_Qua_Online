@@ -9,6 +9,7 @@ import com.fruitmkt.model.entity.Product;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ProductService — Business logic cho Product.
@@ -34,6 +35,7 @@ public class ProductService {
      */
     public PagedResultDTO getProductList(int page, String keyword, Integer categoryId,
                                           BigDecimal minPrice, BigDecimal maxPrice) throws SQLException {
+        productDAO.autoDeactivateExpiredProducts();
         if (page < 1) page = 1;
 
         int pageSize = AppConfig.PAGE_SIZE_PRODUCTS;
@@ -46,6 +48,25 @@ public class ProductService {
     }
 
     /**
+     * Tìm sản phẩm theo ID (không làm tăng view count).
+     *
+     * @param productId ID sản phẩm
+     * @return đối tượng Product hoặc null nếu không tìm thấy
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public Product getProductById(int productId) throws SQLException {
+        if (productId <= 0) {
+            throw new IllegalArgumentException("productId không hợp lệ.");
+        }
+        productDAO.autoDeactivateExpiredProducts();
+        List<Product> results = productDAO.findById(productId);
+        if (results == null || results.isEmpty()) {
+            return null;
+        }
+        return results.get(0);
+    }
+
+    /**
      * Lấy chi tiết 1 sản phẩm theo ID.
      *
      * @throws IllegalArgumentException nếu productId <= 0.
@@ -55,6 +76,7 @@ public class ProductService {
         if (productId <= 0) {
             throw new IllegalArgumentException("productId không hợp lệ.");
         }
+        productDAO.autoDeactivateExpiredProducts();
         List<Product> results = productDAO.findById(productId);
         if (results == null || results.isEmpty()) {
             throw new SQLException("Không tìm thấy sản phẩm với ID: " + productId);
@@ -103,8 +125,109 @@ public class ProductService {
         return productDAO.getLowStockCountByOwner(ownerId, threshold);
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────
+    public List<Map<String, Object>> getLowStockVariantsByOwner(int ownerId, int threshold) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("ownerId không hợp lệ.");
+        }
+        return productDAO.getLowStockVariantsByOwner(ownerId, threshold);
+    }
 
+    /**
+     * Lấy danh sách sản phẩm ở trạng thái chờ duyệt (PENDING).
+     *
+     * @return danh sách sản phẩm chờ duyệt
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public List<Product> getPendingProducts() throws SQLException {
+        return productDAO.findPendingProducts();
+    }
+
+    /**
+     * Lấy danh sách toàn bộ sản phẩm phục vụ quản lý phía Admin (phân trang và lọc theo trạng thái duyệt).
+     *
+     * @param page Trang hiện tại (1-based)
+     * @param pageSize Số lượng phần tử mỗi trang
+     * @param approvalStatus Trạng thái kiểm duyệt cần lọc (nullable)
+     * @return danh sách sản phẩm thỏa mãn điều kiện
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public List<Product> getAllAdminProducts(int page, int pageSize, String approvalStatus) throws SQLException {
+        if (page < 1) page = 1;
+        return productDAO.findAllAdminProducts(page, pageSize, approvalStatus);
+    }
+
+    /**
+     * Phê duyệt sản phẩm và đẩy lên sàn giao dịch công khai.
+     * Admin có quyền đè danh mục và gắn mác Organic/Imported khi duyệt.
+     *
+     * @param productId ID sản phẩm
+     * @param isOrganic nhãn hữu cơ
+     * @param isImported nhãn nhập khẩu
+     * @param categoryId ID danh mục được chỉ định
+     * @return true nếu cập nhật thành công, ngược lại false
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public boolean approveProduct(int productId, boolean isOrganic, boolean isImported, int categoryId) throws SQLException {
+        if (productId <= 0) {
+            throw new IllegalArgumentException("ID sản phẩm không hợp lệ.");
+        }
+        if (categoryId <= 0) {
+            throw new IllegalArgumentException("ID danh mục không hợp lệ.");
+        }
+        boolean updated = productDAO.updateApprovalStatus(productId, "APPROVED", null, isOrganic, isImported, categoryId);
+        // Bug fix: sau khi duyệt, đảm bảo sản phẩm có status ACTIVE để hiển thị công khai
+        // (sản phẩm có thể đã bị chì tiếp theo hoặc INACTIVE trước đó)
+        if (updated) {
+            productDAO.updateStatus(productId, "ACTIVE");
+        }
+        return updated;
+    }
+
+    /**
+     * Từ chối phê duyệt sản phẩm và ghi nhận lý do.
+     *
+     * @param productId ID sản phẩm
+     * @param reason Lý do từ chối phê duyệt
+     * @return true nếu cập nhật thành công, ngược lại false
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public boolean rejectProduct(int productId, String reason) throws SQLException {
+        if (productId <= 0) {
+            throw new IllegalArgumentException("ID sản phẩm không hợp lệ.");
+        }
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Lý do từ chối không được để trống.");
+        }
+        List<Product> list = productDAO.findById(productId);
+        if (list == null || list.isEmpty()) {
+            throw new IllegalArgumentException("Sản phẩm không tồn tại.");
+        }
+        Product p = list.get(0);
+        return productDAO.updateApprovalStatus(productId, "REJECTED", reason.trim(), p.getIsOrganic(), p.getIsImported(), p.getCategoryId());
+    }
+
+    /**
+     * Gỡ bỏ/Ẩn sản phẩm vi phạm bởi Admin (Cập nhật trạng thái thành DELETED).
+     *
+     * @param productId ID sản phẩm
+     * @return true nếu gỡ bỏ thành công, ngược lại false
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public boolean banProduct(int productId) throws SQLException {
+        if (productId <= 0) {
+            throw new IllegalArgumentException("ID sản phẩm không hợp lệ.");
+        }
+        // Bug fix: sử dụng deleteProduct (transactional) thay vì banProduct (đơn giản)
+        // để đảm bảo:
+        //   1. Biến thể sản phẩm bị vô hiệu hóa (is_active = 0)
+        //   2. Xóa khỏi giỏ hàng của mọi khách hàng (cart_items)
+        //   3. Tắt các chương trình khuyến mãi có liên quan
+        //   4. Đặt status = DELETED
+        productDAO.deleteProduct(productId);
+        return true;
+    }
+
+    // ── Private helpers ────────────────────────────────────────────────────
 
     private void validateProduct(Product product) {
         if (product == null) throw new IllegalArgumentException("Dữ liệu sản phẩm không được null.");

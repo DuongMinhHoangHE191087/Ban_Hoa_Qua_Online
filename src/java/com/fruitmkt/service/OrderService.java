@@ -28,6 +28,7 @@ public class OrderService {
     private final com.fruitmkt.dao.SystemConfigDAO configDAO = new com.fruitmkt.dao.SystemConfigDAO();
     private final com.fruitmkt.dao.PaymentDAO paymentDAO = new com.fruitmkt.dao.PaymentDAO();
     private final com.fruitmkt.service.NotificationService notificationService = new com.fruitmkt.service.NotificationService();
+    private final com.fruitmkt.service.InventoryService inventoryService = new com.fruitmkt.service.InventoryService();
 
     /**
      * TODO: Implement — xem SRS / use case tương ứng
@@ -116,8 +117,13 @@ public class OrderService {
         
         // Cập nhật DB trạng thái CANCELLED
         orderDAO.cancel(orderId, cancelledBy, reason);
-        // Hoàn trả tồn kho
-        orderDAO.restoreInventoryStock(orderId);
+        // Hoàn trả tồn kho thông qua InventoryService để ghi nhận nhật ký tồn kho
+        java.util.List<com.fruitmkt.model.entity.OrderItem> items = orderDAO.findItemsByOrderId(orderId);
+        for (com.fruitmkt.model.entity.OrderItem item : items) {
+            if (item.getVariantId() != null) {
+                inventoryService.release(item.getVariantId(), item.getQuantity(), orderId);
+            }
+        }
     }
 
     /**

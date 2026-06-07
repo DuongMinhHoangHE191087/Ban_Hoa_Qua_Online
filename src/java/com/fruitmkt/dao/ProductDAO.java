@@ -4,6 +4,7 @@ import com.fruitmkt.dao.base.BaseDAO;
 import com.fruitmkt.model.entity.Product;
 import java.sql.*;
 import java.util.*;
+import java.math.BigDecimal;
 
 /**
  * ProductDAO — DAO cho entity Product.
@@ -23,7 +24,6 @@ public class ProductDAO extends BaseDAO {
      * Tìm sản phẩm theo ID.
      */
     public List<Product> findById(int id) throws SQLException {
-        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE product_id = ?";
         try (Connection conn = getConnection();
@@ -38,14 +38,24 @@ public class ProductDAO extends BaseDAO {
         return list;
     }
 
+    public static final String DTO_SELECT_FIELDS = 
+        "p.product_id, p.owner_id, p.category_id, p.name, CAST(NULL AS NVARCHAR(MAX)) AS description, "
+      + "p.origin_country, p.origin_region, p.harvest_date, p.shelf_life_days, "
+      + "p.storage_instruction, p.status, p.view_count, p.rating, p.sold_quantity, "
+      + "p.is_organic, p.is_imported, p.approval_status, CAST(NULL AS NVARCHAR(255)) AS verification_doc_path, "
+      + "p.rejection_reason, p.season_start_month, p.season_end_month, p.created_at, p.updated_at";
+
     /**
-     * Lấy danh sách toàn bộ sản phẩm có phân trang.
+     * Lấy danh sách toàn bộ sản phẩm có phân trang (Tối ưu hóa Deferred Join).
      */
     public List<Product> findAll(int page, int pageSize) throws SQLException {
-        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM products WHERE status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT " + DTO_SELECT_FIELDS + " FROM products p "
+                   + "JOIN (SELECT product_id FROM products WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' "
+                   + "ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY) temp "
+                   + "ON p.product_id = temp.product_id "
+                   + "ORDER BY p.product_id DESC";
         //khang
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -64,7 +74,6 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách sản phẩm theo ID của chủ cửa hàng.
      */
     public List<Product> findByOwner(int ownerId) throws SQLException {
-        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' ORDER BY product_id DESC";
         //khang
@@ -81,13 +90,16 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
-     * Lấy danh sách sản phẩm theo Category ID có phân trang.
+     * Lấy danh sách sản phẩm theo Category ID có phân trang (Tối ưu hóa Deferred Join).
      */
     public List<Product> findByCategory(int categoryId, int page, int pageSize) throws SQLException {
-        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        String sql = "SELECT * FROM products WHERE category_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT " + DTO_SELECT_FIELDS + " FROM products p "
+                   + "JOIN (SELECT product_id FROM products WHERE category_id = ? AND status = 'ACTIVE' AND approval_status = 'APPROVED' "
+                   + "ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY) temp "
+                   + "ON p.product_id = temp.product_id "
+                   + "ORDER BY p.product_id DESC";
         //khang
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -107,11 +119,10 @@ public class ProductDAO extends BaseDAO {
      * Lấy danh sách tất cả sản phẩm đang có chương trình khuyến mãi hoạt động (Flash Sale).
      */
     public List<Product> findFlashSaleProducts() throws SQLException {
-        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         String sql = "SELECT DISTINCT p.* FROM products p "
                    + "JOIN promotions pr ON p.product_id = pr.product_id "
-                   + "WHERE p.status = 'ACTIVE' AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
                    + "ORDER BY p.product_id DESC";
         try (Connection conn = getConnection();
@@ -128,13 +139,12 @@ public class ProductDAO extends BaseDAO {
      * Tìm kiếm sản phẩm theo từ khóa, danh mục, khoảng giá và phân trang.
      */
     public List<Product> search(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, int page, int pageSize) throws SQLException {
-        autoDeactivateExpiredProducts();
         List<Product> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT DISTINCT p.* FROM products p ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE p.status = 'ACTIVE' ");//khang
+        sql.append("WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' ");//khang
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -179,12 +189,11 @@ public class ProductDAO extends BaseDAO {
      * Đếm tổng số sản phẩm ACTIVE khớp với bộ lọc tìm kiếm/danh mục để hỗ trợ phân trang.
      */
     public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
-        autoDeactivateExpiredProducts();
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");//khang
         }
-        sql.append("WHERE p.status = 'ACTIVE' ");
+        sql.append("WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' ");
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -224,8 +233,8 @@ public class ProductDAO extends BaseDAO {
      * Lưu sản phẩm mới vào DB.
      */
     public int save(Product product) throws SQLException {
-        String sql = "INSERT INTO products (owner_id, category_id, name, description, origin_country, origin_region, harvest_date, shelf_life_days, storage_instruction, status, view_count, rating, sold_quantity, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO products (owner_id, category_id, name, description, origin_country, origin_region, harvest_date, shelf_life_days, storage_instruction, status, view_count, rating, sold_quantity, is_organic, is_imported, season_start_month, season_end_month, approval_status, verification_doc_path, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, product.getOwnerId());
@@ -252,6 +261,23 @@ public class ProductDAO extends BaseDAO {
             ps.setInt(11, product.getViewCount());
             ps.setBigDecimal(12, product.getRating() != null ? product.getRating() : java.math.BigDecimal.ZERO);
             ps.setInt(13, product.getSoldQuantity());
+            ps.setBoolean(14, product.getIsOrganic());
+            ps.setBoolean(15, product.getIsImported());
+            
+            if (product.getSeasonStartMonth() != null) {
+                ps.setInt(16, product.getSeasonStartMonth());
+            } else {
+                ps.setNull(16, Types.INTEGER);
+            }
+            
+            if (product.getSeasonEndMonth() != null) {
+                ps.setInt(17, product.getSeasonEndMonth());
+            } else {
+                ps.setNull(17, Types.INTEGER);
+            }
+            
+            ps.setString(18, product.getApprovalStatus() != null ? product.getApprovalStatus() : "PENDING");
+            ps.setString(19, product.getVerificationDocPath());
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -267,7 +293,7 @@ public class ProductDAO extends BaseDAO {
      * Cập nhật thông tin sản phẩm.
      */
     public void update(Product product) throws SQLException {
-        String sql = "UPDATE products SET owner_id = ?, category_id = ?, name = ?, description = ?, origin_country = ?, origin_region = ?, harvest_date = ?, shelf_life_days = ?, storage_instruction = ?, status = ?, view_count = ?, rating = ?, sold_quantity = ?, updated_at = GETDATE() WHERE product_id = ?";
+        String sql = "UPDATE products SET owner_id = ?, category_id = ?, name = ?, description = ?, origin_country = ?, origin_region = ?, harvest_date = ?, shelf_life_days = ?, storage_instruction = ?, status = ?, view_count = ?, rating = ?, sold_quantity = ?, is_organic = ?, is_imported = ?, season_start_month = ?, season_end_month = ?, approval_status = ?, verification_doc_path = ?, rejection_reason = ?, updated_at = GETDATE() WHERE product_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, product.getOwnerId());
@@ -290,11 +316,32 @@ public class ProductDAO extends BaseDAO {
             }
             
             ps.setString(9, product.getStorageInstruction());
-            ps.setString(10, product.getStatus());
+            // Bug fix: guard null status — UPDATE dùng "ACTIVE" mặc định nếu không có giá trị
+            ps.setString(10, product.getStatus() != null ? product.getStatus() : "ACTIVE");
             ps.setInt(11, product.getViewCount());
-            ps.setBigDecimal(12, product.getRating());
+            // Bug fix: guard null rating — tránh NullPointerException khi sản phẩm chưa có đánh giá nào
+            ps.setBigDecimal(12, product.getRating() != null ? product.getRating() : java.math.BigDecimal.ZERO);
             ps.setInt(13, product.getSoldQuantity());
-            ps.setInt(14, product.getProductId());
+            ps.setBoolean(14, product.getIsOrganic());
+            ps.setBoolean(15, product.getIsImported());
+            
+            if (product.getSeasonStartMonth() != null) {
+                ps.setInt(16, product.getSeasonStartMonth());
+            } else {
+                ps.setNull(16, Types.INTEGER);
+            }
+            
+            if (product.getSeasonEndMonth() != null) {
+                ps.setInt(17, product.getSeasonEndMonth());
+            } else {
+                ps.setNull(17, Types.INTEGER);
+            }
+            
+            ps.setString(18, product.getApprovalStatus());
+            ps.setString(19, product.getVerificationDocPath());
+            ps.setString(20, product.getRejectionReason());
+            ps.setInt(21, product.getProductId());
+            
             ps.executeUpdate();
         }
     }
@@ -497,7 +544,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findSimilarProducts(int productId, int categoryId, int limit) throws SQLException {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products "
-                   + "WHERE category_id = ? AND product_id != ? AND status = 'ACTIVE' "
+                   + "WHERE category_id = ? AND product_id != ? AND status = 'ACTIVE' AND approval_status = 'APPROVED' "
                    + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
                    + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
@@ -528,7 +575,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findByOwnerAndActiveStatus(int ownerId, int excludeProductId, int limit) throws SQLException {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products "
-                   + "WHERE owner_id = ? AND product_id != ? AND status = 'ACTIVE' "
+                   + "WHERE owner_id = ? AND product_id != ? AND status = 'ACTIVE' AND approval_status = 'APPROVED' "
                    + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
                    + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
@@ -563,7 +610,34 @@ public class ProductDAO extends BaseDAO {
         return 0;
     }
 
-
+    /** Lấy danh sách biến thể sản phẩm sắp hết hàng (tồn kho <= threshold) của chủ cửa hàng. */
+    public List<Map<String, Object>> getLowStockVariantsByOwner(int ownerId, int threshold) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT pv.variant_id, pv.product_id, pv.sku, pv.variant_label, pv.price, pv.stock_quantity, p.name AS product_name "
+                   + "FROM product_variants pv "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "WHERE p.owner_id = ? AND pv.stock_quantity <= ? AND pv.is_active = 1 AND p.status = 'ACTIVE' "
+                   + "ORDER BY pv.stock_quantity ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, threshold);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("variantId", rs.getInt("variant_id"));
+                    map.put("productId", rs.getInt("product_id"));
+                    map.put("sku", rs.getString("sku"));
+                    map.put("variantLabel", rs.getString("variant_label"));
+                    map.put("price", rs.getBigDecimal("price"));
+                    map.put("stockQuantity", rs.getInt("stock_quantity"));
+                    map.put("productName", rs.getString("product_name"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
 
     /** Ánh xạ ResultSet -> Product — gọi trong mọi query SELECT */
     private Product mapRow(ResultSet rs) throws SQLException {
@@ -589,6 +663,17 @@ public class ProductDAO extends BaseDAO {
         p.setViewCount(rs.getInt("view_count"));
         p.setRating(rs.getBigDecimal("rating"));
         p.setSoldQuantity(rs.getInt("sold_quantity"));
+        p.setIsOrganic(rs.getBoolean("is_organic"));
+        p.setIsImported(rs.getBoolean("is_imported"));
+        p.setApprovalStatus(rs.getString("approval_status"));
+        p.setVerificationDocPath(rs.getString("verification_doc_path"));
+        p.setRejectionReason(rs.getString("rejection_reason"));
+        
+        int startMonth = rs.getInt("season_start_month");
+        p.setSeasonStartMonth(rs.wasNull() ? null : startMonth);
+        
+        int endMonth = rs.getInt("season_end_month");
+        p.setSeasonEndMonth(rs.wasNull() ? null : endMonth);
         
         Timestamp createdAtVal = rs.getTimestamp("created_at");
         if (createdAtVal != null) {
@@ -601,5 +686,415 @@ public class ProductDAO extends BaseDAO {
         }
         
         return p;
+    }
+
+    /**
+     * Lấy danh sách sản phẩm chờ kiểm duyệt (PENDING)
+     */
+    public List<Product> findPendingProducts() throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT * FROM products WHERE approval_status = 'PENDING' AND status != 'DELETED' ORDER BY product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRow(rs));
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách sản phẩm phục vụ trang quản trị Admin (phân trang và lọc theo trạng thái duyệt)
+     */
+    public List<Product> findAllAdminProducts(int page, int pageSize, String approvalStatusFilter) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+        StringBuilder sql = new StringBuilder("SELECT * FROM products WHERE status != 'DELETED' ");
+        List<Object> params = new ArrayList<>();
+        
+        if (approvalStatusFilter != null && !approvalStatusFilter.trim().isEmpty()) {
+            sql.append("AND approval_status = ? ");
+            params.add(approvalStatusFilter.trim());
+        }
+        
+        sql.append("ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        params.add(offset);
+        params.add(pageSize);
+        
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Cập nhật trạng thái phê duyệt sản phẩm bởi Admin.
+     * Cập nhật cả nhãn Organic/Imported và Category ID nếu được Admin chỉ định khi duyệt.
+     */
+    public boolean updateApprovalStatus(int productId, String approvalStatus, String rejectionReason, boolean isOrganic, boolean isImported, int categoryId) throws SQLException {
+        String sql = "UPDATE products SET approval_status = ?, rejection_reason = ?, is_organic = ?, is_imported = ?, category_id = ?, updated_at = GETDATE() WHERE product_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, approvalStatus);
+            ps.setString(2, rejectionReason);
+            ps.setBoolean(3, isOrganic);
+            ps.setBoolean(4, isImported);
+            ps.setInt(5, categoryId);
+            ps.setInt(6, productId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Ẩn/Xóa sản phẩm vi phạm bởi Admin (soft delete)
+     */
+    public boolean banProduct(int productId) throws SQLException {
+        String sql = "UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Lấy trang tiếp theo của sản phẩm sử dụng Keyset (Cursor) Pagination.
+     * Thích hợp cho infinite scroll hoặc lượng dữ liệu lớn.
+     * @param lastProductId ID của sản phẩm cuối cùng của trang trước (0 nếu là trang đầu)
+     * @param limit Số lượng sản phẩm muốn lấy
+     */
+    public List<Product> findNextProducts(int lastProductId, int limit) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT ");
+        sql.append(DTO_SELECT_FIELDS);
+        sql.append(" FROM products p WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED'");
+        if (lastProductId > 0) {
+            sql.append(" AND p.product_id < ?");
+        }
+        sql.append(" ORDER BY p.product_id DESC OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY");
+        
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (lastProductId > 0) {
+                ps.setInt(paramIndex++, lastProductId);
+            }
+            ps.setInt(paramIndex, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowDTO(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    private com.fruitmkt.model.dto.ProductDTO mapRowDTO(ResultSet rs) throws SQLException {
+        Product p = mapRow(rs);
+        com.fruitmkt.model.dto.ProductDTO dto = new com.fruitmkt.model.dto.ProductDTO();
+        dto.setProductId(p.getProductId());
+        dto.setOwnerId(p.getOwnerId());
+        dto.setCategoryId(p.getCategoryId());
+        dto.setName(p.getName());
+        dto.setDescription(p.getDescription());
+        dto.setOriginCountry(p.getOriginCountry());
+        dto.setOriginRegion(p.getOriginRegion());
+        dto.setHarvestDate(p.getHarvestDate());
+        dto.setShelfLifeDays(p.getShelfLifeDays());
+        dto.setStorageInstruction(p.getStorageInstruction());
+        dto.setStatus(p.getStatus());
+        dto.setViewCount(p.getViewCount());
+        dto.setRating(p.getRating());
+        dto.setSoldQuantity(p.getSoldQuantity());
+        dto.setIsOrganic(p.getIsOrganic());
+        dto.setIsImported(p.getIsImported());
+        dto.setApprovalStatus(p.getApprovalStatus());
+        dto.setVerificationDocPath(p.getVerificationDocPath());
+        dto.setRejectionReason(p.getRejectionReason());
+        dto.setSeasonStartMonth(p.getSeasonStartMonth());
+        dto.setSeasonEndMonth(p.getSeasonEndMonth());
+        dto.setCreatedAt(p.getCreatedAt());
+        dto.setUpdatedAt(p.getUpdatedAt());
+        return dto;
+    }
+
+    /**
+     * Lấy danh sách toàn bộ sản phẩm đang hoạt động và đã được phê duyệt để nạp làm context cho AI.
+     */
+    public List<Product> findAllActiveForAI() throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT product_id, category_id, name, description, origin_country, view_count, rating, sold_quantity FROM products WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' ORDER BY product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Product p = new Product();
+                p.setProductId(rs.getInt("product_id"));
+                p.setCategoryId(rs.getInt("category_id"));
+                p.setName(rs.getString("name"));
+                p.setDescription(rs.getString("description"));
+                p.setOriginCountry(rs.getString("origin_country"));
+                p.setViewCount(rs.getInt("view_count"));
+                p.setRating(rs.getBigDecimal("rating"));
+                p.setSoldQuantity(rs.getInt("sold_quantity"));
+                list.add(p);
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Lấy thông tin ngắn gọn của danh sách sản phẩm theo ID để hiển thị trong AI chat.
+     */
+    public List<Map<String, Object>> findBriefProductsByIds(List<Integer> ids) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        if (ids == null || ids.isEmpty()) {
+            return list;
+        }
+        
+        StringBuilder placeholders = new StringBuilder();
+        for (int i = 0; i < ids.size(); i++) {
+            placeholders.append("?");
+            if (i < ids.size() - 1) {
+                placeholders.append(",");
+            }
+        }
+        
+        String sql = "SELECT p.product_id, p.name, "
+                   + "       (SELECT TOP 1 pv.price FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS price, "
+                   + "       (SELECT TOP 1 pv.variant_label FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS unit, "
+                   // B8: Fallback — lấy ảnh primary trước, nếu không có thì lấy ảnh bất kỳ
+                   + "       (SELECT TOP 1 pi.file_path FROM product_images pi WHERE pi.product_id = p.product_id ORDER BY pi.is_primary DESC, pi.display_order ASC) AS image "
+                   + "FROM products p "
+                   + "WHERE p.product_id IN (" + placeholders.toString() + ") AND p.status = 'ACTIVE' AND p.approval_status = 'APPROVED'";
+
+                   
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 1, ids.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("productId", rs.getInt("product_id"));
+                    map.put("name", rs.getString("name"));
+                    map.put("price", rs.getBigDecimal("price"));
+                    map.put("unit", rs.getString("unit"));
+                    map.put("image", rs.getString("image"));
+                    list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    private Map<String, Object> mapRowToProductMap(ResultSet rs, String contextPath) throws SQLException {
+        Map<String, Object> item = new HashMap<>();
+        int productId = rs.getInt("product_id");
+        item.put("productId", productId);
+        item.put("name", rs.getString("name"));
+        item.put("description", rs.getString("description"));
+        BigDecimal rating = rs.getBigDecimal("rating");
+        item.put("rating", rating != null ? rating : new BigDecimal("4.8"));
+        item.put("soldQuantity", rs.getInt("sold_quantity"));
+
+        String imagePath = rs.getString("primary_image_path");
+        if (imagePath != null && !imagePath.trim().isEmpty()) {
+            imagePath = imagePath.trim().replace('\\', '/');
+        }
+        if (imagePath == null) {
+            imagePath = contextPath + "/assets/img/placeholder.png";
+        } else if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
+            if (!imagePath.startsWith("/")) {
+                imagePath = "/" + imagePath;
+            }
+            imagePath = contextPath + imagePath;
+        }
+        item.put("image", imagePath);
+
+        BigDecimal basePrice = rs.getBigDecimal("cheapest_price");
+        if (basePrice == null) {
+            basePrice = new BigDecimal("45000");
+        }
+        String unit = rs.getString("cheapest_unit");
+        if (unit == null) {
+            unit = "kg";
+        }
+        int stockRemaining = rs.getInt("cheapest_stock");
+        if (rs.wasNull()) {
+            stockRemaining = 10;
+        }
+        item.put("unit", unit);
+
+        String promoType = rs.getString("discount_type");
+        if (promoType != null) {
+            BigDecimal discountValue = rs.getBigDecimal("discount_value");
+            BigDecimal discountMax = rs.getBigDecimal("discount_max");
+            BigDecimal finalPrice = basePrice;
+            int discountPercent = 0;
+
+            if ("PERCENT".equals(promoType)) {
+                discountPercent = discountValue.intValue();
+                BigDecimal discountAmount = basePrice.multiply(discountValue).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                if (discountMax != null && discountMax.compareTo(BigDecimal.ZERO) > 0) {
+                    if (discountAmount.compareTo(discountMax) > 0) {
+                        discountAmount = discountMax;
+                    }
+                }
+                finalPrice = basePrice.subtract(discountAmount);
+            } else if ("FIXED".equals(promoType)) {
+                finalPrice = basePrice.subtract(discountValue);
+                if (basePrice.compareTo(BigDecimal.ZERO) > 0) {
+                    discountPercent = discountValue.multiply(new BigDecimal("100"))
+                            .divide(basePrice, 0, java.math.RoundingMode.HALF_UP).intValue();
+                }
+            }
+
+            if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {
+                finalPrice = BigDecimal.ZERO;
+            }
+
+            item.put("price", finalPrice);
+            item.put("originalPrice", basePrice);
+            item.put("discountPercent", discountPercent);
+            item.put("stockRemaining", stockRemaining);
+            item.put("stockTotal", stockRemaining + 40);
+        } else {
+            item.put("price", basePrice);
+            item.put("originalPrice", basePrice);
+            item.put("discountPercent", 0);
+            item.put("stockRemaining", stockRemaining);
+            item.put("stockTotal", stockRemaining + 40);
+        }
+        return item;
+    }
+
+    public List<Map<String, Object>> findFlashSaleProductsOptimized(String contextPath) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
+                   + "       pi.file_path AS primary_image_path, "
+                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "FROM products p "
+                   + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
+                   + "LEFT JOIN ( "
+                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
+                   + "    FROM product_variants "
+                   + "    WHERE is_active = 1 "
+                   + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
+                   + "JOIN promotions pr ON pr.product_id = p.product_id "
+                   + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' "
+                   + "ORDER BY p.product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(mapRowToProductMap(rs, contextPath));
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> findBestSellersOptimized(int limit, String contextPath) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
+                   + "       pi.file_path AS primary_image_path, "
+                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "FROM products p "
+                   + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
+                   + "LEFT JOIN ( "
+                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
+                   + "    FROM product_variants "
+                   + "    WHERE is_active = 1 "
+                   + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
+                   + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
+                   + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' "
+                   + "ORDER BY p.sold_quantity DESC, p.product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowToProductMap(rs, contextPath));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> searchProductsOptimized(String keyword, Integer categoryId, int page, int pageSize, String contextPath) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT p.product_id, p.name, p.description, p.rating, p.sold_quantity, ");
+        sql.append("       pi.file_path AS primary_image_path, ");
+        sql.append("       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, ");
+        sql.append("       pr.discount_type, pr.discount_value, pr.discount_max ");
+        sql.append("FROM products p ");
+        sql.append("JOIN ( ");
+        sql.append("    SELECT product_id ");
+        sql.append("    FROM products ");
+        sql.append("    WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' ");
+        
+        List<Object> params = new ArrayList<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("    AND (name LIKE ? OR description LIKE ?) ");
+            String k = "%" + keyword.trim() + "%";
+            params.add(k);
+            params.add(k);
+        }
+        if (categoryId != null) {
+            sql.append("    AND category_id = ? ");
+            params.add(categoryId);
+        }
+        
+        sql.append("    ORDER BY product_id DESC ");
+        sql.append("    OFFSET ? ROWS FETCH NEXT ? ROWS ONLY ");
+        sql.append(") temp ON p.product_id = temp.product_id ");
+        sql.append("LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 ");
+        sql.append("LEFT JOIN ( ");
+        sql.append("    SELECT product_id, price, variant_label, stock_quantity, ");
+        sql.append("           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn ");
+        sql.append("    FROM product_variants ");
+        sql.append("    WHERE is_active = 1 ");
+        sql.append(") pv ON pv.product_id = p.product_id AND pv.rn = 1 ");
+        sql.append("LEFT JOIN promotions pr ON pr.product_id = p.product_id ");
+        sql.append("    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 ");
+        sql.append("    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() ");
+        sql.append("ORDER BY p.product_id DESC");
+        
+        params.add(offset);
+        params.add(pageSize);
+        
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowToProductMap(rs, contextPath));
+                }
+            }
+        }
+        return list;
     }
 }
