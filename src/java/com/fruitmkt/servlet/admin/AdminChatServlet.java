@@ -1,4 +1,4 @@
-package com.fruitmkt.servlet.shop;
+package com.fruitmkt.servlet.admin;
 
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.ChatDAO;
@@ -15,16 +15,16 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * ShopChatServlet — Trang quản lý tin nhắn của Shop Owner.
- * URL: /shop/chat[?sessionId=X]
+ * AdminChatServlet — Trang quản lý chat cho Admin.
+ * URL: /admin/chat[?sessionId=X]
  *
- * [FIX bug#2]: role check đổi từ "SHOP" → AppConfig.ROLE_SHOP_OWNER ("SHOP_OWNER")
- * [UPGRADE]: findSessionsByOwner JOIN trả về partner_name (tên customer)
+ * Admin thấy TẤT CẢ chat sessions (cả SHOP lẫn ADMIN type).
+ * Admin có thể tham gia bất kỳ session nào để hỗ trợ.
  *
  * @author fruitmkt-team
  */
-@WebServlet("/shop/chat")
-public class ShopChatServlet extends HttpServlet {
+@WebServlet("/admin/chat")
+public class AdminChatServlet extends HttpServlet {
 
     private final ChatDAO chatDAO = new ChatDAO();
     private final UserDAO userDAO = new UserDAO();
@@ -32,11 +32,8 @@ public class ShopChatServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        User shopOwner = SessionUtil.getCurrentUser(req.getSession());
-        // [FIX bug#2]: Đổi "SHOP" → AppConfig.ROLE_SHOP_OWNER
-        if (shopOwner == null
-                || (!AppConfig.ROLE_SHOP_OWNER.equals(shopOwner.getRole())
-                    && !AppConfig.ROLE_ADMIN.equals(shopOwner.getRole()))) {
+        User admin = SessionUtil.getCurrentUser(req.getSession());
+        if (admin == null || !AppConfig.ROLE_ADMIN.equals(admin.getRole())) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -48,14 +45,15 @@ public class ShopChatServlet extends HttpServlet {
                 activeSessionId = Integer.parseInt(sessionIdStr);
             }
 
-            // [UPGRADE]: JOIN trả về partner_name + partner_avatar
-            List<ChatSession> sessions = chatDAO.findSessionsByOwner(shopOwner.getUserId());
+            // Admin xem TẤT CẢ sessions
+            List<ChatSession> sessions = chatDAO.findAllSessions();
             if (activeSessionId == -1 && !sessions.isEmpty()) {
                 activeSessionId = sessions.get(0).getSessionId();
             }
 
             req.setAttribute("chatSessions", sessions);
             req.setAttribute("activeSessionId", activeSessionId);
+            req.setAttribute("adminId", admin.getUserId());
 
             ChatSession activeSession = null;
             for (ChatSession s : sessions) {
@@ -66,20 +64,13 @@ public class ShopChatServlet extends HttpServlet {
             }
             if (activeSession == null && activeSessionId > 0) {
                 activeSession = chatDAO.findSessionById(activeSessionId);
-                if (activeSession != null) {
-                    User partner = userDAO.findUserById(activeSession.getCustomerId());
-                    if (partner != null) {
-                        activeSession.setPartnerName(partner.getFullName());
-                        activeSession.setPartnerAvatar(partner.getAvatarUrl());
-                    }
-                }
             }
             req.setAttribute("activeSession", activeSession);
 
-            req.getRequestDispatcher("/WEB-INF/jsp/shop/chat.jsp").forward(req, resp);
+            req.getRequestDispatcher("/WEB-INF/jsp/admin/chat.jsp").forward(req, resp);
 
         } catch (NumberFormatException e) {
-            resp.sendRedirect(req.getContextPath() + "/shop/chat");
+            resp.sendRedirect(req.getContextPath() + "/admin/chat");
         } catch (SQLException e) {
             e.printStackTrace();
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy dữ liệu chat");

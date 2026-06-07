@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Quản lý Tin nhắn (Shop)" />
+    <jsp:param name="pageTitle" value="Quản lý Chat (Admin)" />
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
@@ -20,9 +20,9 @@
     .chat-layout { height: calc(100vh - 120px); min-height: 550px; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #c5c8b7; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #75796a; }
-    .session-item.active { background: rgba(217, 249, 157, 0.6); border-color: #4d661c; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .session-item.active { background: rgba(224, 231, 255, 0.7); border-color: #3730a3; }
     
     .ws-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; }
     .ws-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -30,20 +30,23 @@
     .ws-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
     .ws-dot.disconnected { background: #ef4444; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    
+    .badge-shop  { background: #dcfce7; color: #166534; }
+    .badge-admin { background: #e0e7ff; color: #3730a3; }
 </style>
 
-<main class="flex-1 overflow-hidden bg-[#eaffea] text-[#00210d] flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(217, 249, 157, 0.15), transparent 40%);">
+<main class="flex-1 overflow-hidden bg-slate-50 text-slate-800 flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 40%);">
     
     <!-- Left Column: Chat List -->
-    <aside class="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 flex flex-col border-r border-white/30 glass-panel bg-white/40 relative z-10 hidden md:flex">
+    <aside class="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 flex flex-col border-r border-slate-200 glass-panel bg-white/40 relative z-10 hidden md:flex">
         <!-- Header & Search -->
-        <div class="p-4 border-b border-white/20">
-            <h1 class="font-headline-md text-xl font-bold text-[#4d661c] mb-3 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[#4d661c]">forum</span> Khách hàng
+        <div class="p-4 border-b border-slate-200">
+            <h1 class="font-headline-md text-xl font-bold text-indigo-700 mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined">support_agent</span> Quản lý Hỗ trợ
             </h1>
             <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                <input id="searchSessions" class="w-full pl-10 pr-4 py-2 bg-white/50 border border-white/40 rounded-xl focus:outline-none focus:border-[#4d661c] focus:ring-1 focus:ring-[#4d661c] text-sm transition-colors placeholder:text-slate-400 shadow-sm" placeholder="Tìm khách hàng..." type="text">
+                <input id="searchSessions" class="w-full pl-10 pr-4 py-2 bg-white/50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-colors placeholder:text-slate-400 shadow-sm" placeholder="Tìm kiếm phiên hỗ trợ..." type="text">
             </div>
         </div>
         
@@ -52,40 +55,40 @@
             <c:choose>
                 <c:when test="${empty chatSessions}">
                     <div class="p-8 text-center text-slate-400">
-                        <span class="material-symbols-outlined text-4xl mb-2">inbox</span>
-                        <p class="text-sm">Chưa có khách hàng nào nhắn tin.</p>
+                        <span class="material-symbols-outlined text-4xl mb-2">forum</span>
+                        <p class="text-sm">Chưa có phiên chat hỗ trợ nào.</p>
                     </div>
                 </c:when>
                 <c:otherwise>
                     <c:forEach var="session" items="${chatSessions}">
-                        <a href="${pageContext.request.contextPath}/shop/chat?sessionId=${session.sessionId}"
-                           class="session-item flex items-center gap-3 p-3 rounded-xl hover:bg-white/40 border border-transparent transition-all ${session.sessionId == activeSessionId ? 'active shadow-sm' : 'bg-white/20'}"
+                        <a href="${pageContext.request.contextPath}/admin/chat?sessionId=${session.sessionId}"
+                           class="session-item flex items-start gap-3 p-3.5 rounded-xl hover:bg-white/45 border border-transparent transition-all ${session.sessionId == activeSessionId ? 'active shadow-sm' : 'bg-white/20'}"
                            data-name="${session.partnerName}">
-                            <div class="relative">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-600 border border-indigo-200 shadow-sm">
                                 <c:choose>
-                                    <c:when test="${not empty session.partnerAvatar}">
-                                        <img src="${session.partnerAvatar}" alt="Avatar" class="w-11 h-11 rounded-full object-cover border border-white shadow-sm">
+                                    <c:when test="${session.sessionType == 'ADMIN'}">
+                                        <span class="material-symbols-outlined text-base">support_agent</span>
                                     </c:when>
                                     <c:otherwise>
-                                        <div class="w-11 h-11 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border border-white shadow-sm">
-                                            <span class="material-symbols-outlined text-lg">person</span>
-                                        </div>
+                                        <span class="material-symbols-outlined text-base">storefront</span>
                                     </c:otherwise>
                                 </c:choose>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-baseline mb-0.5">
-                                    <h3 class="font-label-md text-sm font-semibold text-slate-800 truncate">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h3 class="font-semibold text-slate-800 text-sm truncate pr-2">
                                         <c:choose>
                                             <c:when test="${not empty session.partnerName}">${session.partnerName}</c:when>
-                                            <c:otherwise>Khách hàng #${session.customerId}</c:otherwise>
+                                            <c:otherwise>Phiên #${session.sessionId}</c:otherwise>
                                         </c:choose>
                                     </h3>
-                                    <span class="text-[10px] text-slate-400 shrink-0 ml-1">
-                                        <fmt:formatDate value="${session.updatedAt}" pattern="HH:mm"/>
+                                    <span class="text-[9px] text-slate-400 shrink-0">
+                                        <fmt:formatDate value="${session.updatedAt}" pattern="dd/MM HH:mm"/>
                                     </span>
                                 </div>
-                                <p class="text-xs text-slate-400 truncate">Bấm để trả lời hỗ trợ</p>
+                                <span class="text-[9px] px-2 py-0.5 rounded-full font-semibold ${session.sessionType == 'ADMIN' ? 'badge-admin' : 'badge-shop'}">
+                                    ${session.sessionType == 'ADMIN' ? 'Hỗ trợ Admin' : 'Shop'}
+                                </span>
                             </div>
                         </a>
                     </c:forEach>
@@ -99,39 +102,37 @@
         <c:choose>
             <c:when test="${activeSessionId > 0}">
                 <!-- Chat Header -->
-                <div class="px-4 py-3 border-b border-white/40 glass-panel bg-white/70 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+                <div class="px-4 py-3 border-b border-slate-200 glass-panel bg-white/70 flex justify-between items-center sticky top-0 z-10 shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="md:hidden">
-                            <a href="${pageContext.request.contextPath}/shop/chat" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full flex items-center justify-center">
+                            <a href="${pageContext.request.contextPath}/admin/chat" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full flex items-center justify-center">
                                 <span class="material-symbols-outlined">arrow_back</span>
                             </a>
                         </div>
-                        <div class="w-10 h-10 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border border-white shadow-sm">
-                            <span class="material-symbols-outlined">person</span>
+                        <div class="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 border border-indigo-200 shadow-sm">
+                            <span class="material-symbols-outlined text-base">support_agent</span>
                         </div>
                         <div>
-                            <h2 class="font-label-md text-sm font-bold text-slate-800">
-                                <c:choose>
-                                    <c:when test="${not empty activeSession.partnerName}">${activeSession.partnerName}</c:when>
-                                    <c:otherwise>Khách hàng #${activeSession.customerId}</c:otherwise>
-                                </c:choose>
-                            </h2>
+                            <h2 class="font-label-md text-sm font-bold text-slate-800">Phiên hỗ trợ #${activeSessionId}</h2>
                             <div id="wsStatusBadge" class="ws-status text-amber-600">
                                 <span class="ws-dot connecting"></span> Đang kết nối...
                             </div>
                         </div>
+                    </div>
+                    <div class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full font-medium border border-indigo-100">
+                        🔐 Chế độ Admin — Toàn quyền hỗ trợ
                     </div>
                 </div>
                 
                 <!-- Messages Area -->
                 <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
                     <div class="flex justify-center">
-                        <span class="text-[11px] font-label-sm bg-white/50 backdrop-blur-sm border border-white/40 text-slate-400 px-3 py-1 rounded-full shadow-sm">Bắt đầu cuộc trò chuyện</span>
+                        <span class="text-[11px] font-label-sm bg-white border border-slate-200 text-slate-400 px-3 py-1 rounded-full shadow-sm">Lịch sử cuộc trò chuyện</span>
                     </div>
                 </div>
 
-                <!-- Media Preview Panel (ẩn mặc định) -->
-                <div id="uploadPreviewPanel" class="hidden px-4 py-2 bg-slate-50 border-t border-white/40 flex items-center gap-3">
+                <!-- Media Preview Panel -->
+                <div id="uploadPreviewPanel" class="hidden px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center gap-3">
                     <div class="relative w-16 h-16 rounded-lg border border-slate-300 overflow-hidden bg-black flex items-center justify-center">
                         <img id="imagePreview" class="hidden w-full h-full object-cover" />
                         <video id="videoPreview" class="hidden w-full h-full object-cover" /></video>
@@ -147,30 +148,30 @@
                 </div>
                 
                 <!-- Input Area -->
-                <div class="p-3 bg-white/60 backdrop-blur-lg border-t border-white/40 shadow-sm z-10">
-                    <div class="flex items-end gap-2 bg-[#eaffea] border border-[#c5c8b7]/40 p-2 rounded-2xl shadow-inner focus-within:border-[#4d661c]">
+                <div class="p-3 bg-white/60 backdrop-blur-lg border-t border-slate-200 shadow-sm z-10">
+                    <div class="flex items-end gap-2 bg-slate-50 border border-slate-200 p-2 rounded-2xl shadow-inner focus-within:border-indigo-500">
                         <!-- Input file ẩn -->
                         <input type="file" id="mediaInput" accept="image/*,video/*" class="hidden">
                         
-                        <button type="button" id="btnTriggerUpload" class="p-2 text-slate-500 hover:text-[#4d661c] transition-colors rounded-full hover:bg-white/40 flex items-center justify-center flex-shrink-0" title="Tải ảnh/video">
+                        <button type="button" id="btnTriggerUpload" class="p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-white/40 flex items-center justify-center flex-shrink-0" title="Tải ảnh/video">
                             <span class="material-symbols-outlined text-xl">image</span>
                         </button>
                         
                         <textarea id="chatInput" class="flex-1 bg-transparent border-none resize-none focus:ring-0 text-slate-800 placeholder:text-slate-400 font-body-md text-sm py-2 px-1 max-h-32 min-h-[40px] border-transparent focus:border-transparent focus:outline-none" placeholder="Nhập câu trả lời hỗ trợ..." rows="1"></textarea>
                         
-                        <button type="button" id="btnSendMessage" class="p-2 bg-[#4d661c] text-white hover:bg-[#31694b] transition-colors rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mb-0.5">
+                        <button type="button" id="btnSendMessage" class="p-2 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mb-0.5">
                             <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">send</span>
                         </button>
                     </div>
                 </div>
             </c:when>
             <c:otherwise>
-                <div class="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
-                    <div class="w-24 h-24 bg-[#b4f0c9]/30 rounded-full flex items-center justify-center mb-4 border border-white shadow-inner">
-                        <span class="material-symbols-outlined text-5xl text-[#4d661c]/60">chat_bubble</span>
+                <div class="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50 p-8">
+                    <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-4 border border-indigo-100 shadow-inner">
+                        <span class="material-symbols-outlined text-5xl text-indigo-400/60">support_agent</span>
                     </div>
-                    <h3 class="text-base font-bold text-[#4d661c] mb-1">Chưa chọn khách hàng</h3>
-                    <p class="text-xs text-slate-500">Chọn một khách hàng ở danh sách bên trái để trả lời hỗ trợ</p>
+                    <h3 class="text-base font-bold text-indigo-700 mb-1">Chọn phiên hỗ trợ</h3>
+                    <p class="text-xs text-slate-500">Chọn một cuộc trò chuyện hỗ trợ khách hàng ở danh sách bên trái để bắt đầu</p>
                 </div>
             </c:otherwise>
         </c:choose>
@@ -181,7 +182,7 @@
 <script>
     const CTX = '${pageContext.request.contextPath}';
     const sessionId = parseInt('${activeSessionId}');
-    const currentUserId = parseInt('${sessionScope.currentUser != null ? sessionScope.currentUser.userId : -1}');
+    const currentAdminId = parseInt('${adminId}');
     
     const chatBox = document.getElementById('chatBox');
     const chatInput = document.getElementById('chatInput');
@@ -218,7 +219,7 @@
 
         ws.onopen = () => {
             wsReady = true;
-            setStatus('connected', 'Trực tuyến');
+            setStatus('connected', 'Kết nối thành công');
         };
 
         ws.onmessage = (e) => {
@@ -227,7 +228,7 @@
                 if (msg.error) { console.warn('WS error:', msg.error); return; }
                 if (msg.messageId && !renderedIds.has(msg.messageId)) {
                     renderedIds.add(msg.messageId);
-                    const isMine = (msg.senderId === currentUserId);
+                    const isMine = (msg.senderId === currentAdminId);
                     chatBox.appendChild(renderMessage(msg, isMine));
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
@@ -260,7 +261,7 @@
         // Avatar
         if (!isMine) {
             const avatar = document.createElement('div');
-            avatar.className = 'w-8 h-8 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border border-white/50 shadow-sm shrink-0 mt-auto';
+            avatar.className = 'w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 border border-white/50 shadow-sm shrink-0 mt-auto';
             avatar.innerHTML = '<span class="material-symbols-outlined text-sm">person</span>';
             wrap.appendChild(avatar);
         }
@@ -271,14 +272,14 @@
         // Thời gian gửi
         const info = document.createElement('span');
         info.className = 'text-[10px] text-slate-400 ' + (isMine ? 'mr-1' : 'ml-1');
-        info.textContent = (isMine ? 'Bạn' : 'Khách') + ', ' + formatTime(msg.createdAt);
+        info.textContent = (isMine ? 'Bạn (Admin)' : 'Đối tác') + ', ' + formatTime(msg.createdAt);
         container.appendChild(info);
 
         // Nội dung tin nhắn
         const contentBox = document.createElement('div');
         
         if (isMine) {
-            contentBox.className = 'bg-[#4d661c] text-white p-3 rounded-2xl rounded-br-sm shadow-md text-sm border border-white/10';
+            contentBox.className = 'bg-indigo-600 text-white p-3 rounded-2xl rounded-br-sm shadow-md text-sm border border-white/10';
         } else {
             contentBox.className = 'glass-panel bg-white/90 p-3 rounded-2xl rounded-bl-sm shadow-sm text-slate-800 text-sm border border-white/60';
         }
@@ -322,7 +323,7 @@
                 data.messages.forEach(msg => {
                     if (!renderedIds.has(msg.messageId)) {
                         renderedIds.add(msg.messageId);
-                        chatBox.appendChild(renderMessage(msg, msg.senderId === data.currentUserId));
+                        chatBox.appendChild(renderMessage(msg, msg.senderId === currentAdminId));
                     }
                 });
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -350,7 +351,7 @@
                 mediaUrl: pendingMediaUrl,
                 mediaType: pendingMediaType,
                 createdAt: new Date().toISOString(),
-                senderId: currentUserId,
+                senderId: currentAdminId,
                 messageId: null
             };
             chatBox.appendChild(renderMessage(tempMsg, true));
