@@ -1,6 +1,8 @@
 package com.fruitmkt.servlet.api;
 
 import com.fruitmkt.util.JsonUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fruitmkt.dao.ChatDAO;
 import com.fruitmkt.model.entity.ChatMessage;
 import com.fruitmkt.model.entity.User;
@@ -36,9 +38,6 @@ public class ChatAPI extends HttpServlet {
                 result.put("success", false);
                 result.put("message", "Vui lòng đăng nhập");
                 out.print(JsonUtil.toJson(result));
-                return;
-            }
-
             String action = request.getParameter("action");
             if ("getMessages".equals(action)) {
                 int sessionId = Integer.parseInt(request.getParameter("sessionId"));
