@@ -10,6 +10,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\OrderItem
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\PaymentDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ProductDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ProductImageDAO.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ProductPackagingOptionDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ProductVariantDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\PromotionDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ReturnRequestDAO.java
@@ -31,6 +32,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\Che
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\DeliveryWithOrderDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\OrderSummaryDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\PagedResultDTO.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\ProductDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\dto\ProductListDTO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Cart.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\CartItem.java
@@ -46,6 +48,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\PaymentTransaction.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Product.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ProductImage.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ProductPackagingOption.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ProductVariant.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Promotion.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ReturnRequest.java
@@ -59,6 +62,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\UserSession.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\AuthService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\CartService.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\CategoryService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\ChatService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\DeliveryService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\EmailService.java
@@ -76,10 +80,12 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\Settl
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\ShopService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\SystemConfigService.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\service\UserService.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminChatServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminConfigServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminDashboardServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminNotificationServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminOrderServlet.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminProductServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminProfileServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminRefundServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminReviewAPI.java
@@ -87,6 +93,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminSettlementServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminShopManageServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminUserEditServlet.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminUserRevokeSessionsAPI.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminUserServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\AdminUserStatusAPI.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\CategoryServlet.java
@@ -96,6 +103,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\UserManageServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\CartSyncServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\ChatAPI.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\ChatMediaUploadServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\CouponValidateServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\PaymentWebhookServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\auth\ChangePasswordServlet.java
@@ -123,6 +131,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\deliv
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\delivery\DeliveryServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\delivery\DeliveryUpdateAPI.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest\AboutServlet.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest\AiSearchServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest\ContactServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest\GuestCartServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\guest\HomeServlet.java
@@ -160,3 +169,5 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\util\Paginati
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\util\SessionUtil.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\util\TokenUtil.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\util\ValidationUtil.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\websocket\ChatEndpoint.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\websocket\HttpSessionConfigurator.java

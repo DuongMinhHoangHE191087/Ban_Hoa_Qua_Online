@@ -197,9 +197,11 @@ public class CheckoutServlet extends HttpServlet {
                     long accumulativeGrams = 0;
                     for (CartItem item : filtered) {
                         BigDecimal price = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
+                        BigDecimal packagingPriceAdd = item.getPackagingPriceAdd() != null ? item.getPackagingPriceAdd() : BigDecimal.ZERO;
+                        BigDecimal totalItemUnitPrice = price.add(packagingPriceAdd);
                         BigDecimal weight = item.getWeightKg() != null ? item.getWeightKg() : new BigDecimal("1.000");
 
-                        long unitPrice = price.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+                        long unitPrice = totalItemUnitPrice.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
                         accumulativeSubtotal += unitPrice * item.getQuantity();
 
                         long weightGrams = weight.multiply(new BigDecimal("1000")).setScale(0, java.math.RoundingMode.HALF_UP).longValue();
@@ -396,8 +398,10 @@ public class CheckoutServlet extends HttpServlet {
                 long accumulativeSubtotal = 0;
                 for (CartItem item : checkoutItems) {
                     ProductVariant variant = variantMap.get(item.getVariantId());
-                    BigDecimal price = variant != null ? variant.getPrice() : BigDecimal.ZERO;
-                    long unitPrice = price.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+                    BigDecimal price = variant != null ? variant.getActivePrice() : BigDecimal.ZERO;
+                    BigDecimal packagingPriceAdd = item.getPackagingPriceAdd() != null ? item.getPackagingPriceAdd() : BigDecimal.ZERO;
+                    BigDecimal totalItemUnitPrice = price.add(packagingPriceAdd);
+                    long unitPrice = totalItemUnitPrice.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
                     accumulativeSubtotal += unitPrice * item.getQuantity();
                 }
 
@@ -512,15 +516,15 @@ public class CheckoutServlet extends HttpServlet {
                     }
 
 
-                    String insertItemSql = "INSERT INTO order_items (order_id, variant_id, product_name_snapshot, variant_label_snapshot, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                    String updateStockSql = "UPDATE product_variants SET stock_quantity = stock_quantity - ? WHERE variant_id = ?";
+                    String insertItemSql = "INSERT INTO order_items (order_id, variant_id, product_name_snapshot, variant_label_snapshot, quantity, unit_price, subtotal, packaging_label_snapshot, packaging_price_snapshot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    com.fruitmkt.service.InventoryService inventoryService = new com.fruitmkt.service.InventoryService();
 
-                    try (PreparedStatement itemPs = conn.prepareStatement(insertItemSql);
-                         PreparedStatement stockPs = conn.prepareStatement(updateStockSql)) {
+                    try (PreparedStatement itemPs = conn.prepareStatement(insertItemSql)) {
                         for (CartItem item : checkoutItems) {
-                            // [FIX] Dùng cache variantMap thay vì query lần 3
                             ProductVariant variant = variantMap.get(item.getVariantId());
-                            BigDecimal latestPrice = variant != null ? variant.getPrice() : item.getPrice();
+                            BigDecimal latestPrice = variant != null ? variant.getActivePrice() : item.getPrice();
+                            BigDecimal packagingPriceAdd = item.getPackagingPriceAdd() != null ? item.getPackagingPriceAdd() : BigDecimal.ZERO;
+                            BigDecimal itemSubtotal = latestPrice.add(packagingPriceAdd).multiply(new BigDecimal(item.getQuantity()));
 
                             itemPs.setInt(1, orderId);
                             itemPs.setInt(2, item.getVariantId());
@@ -528,15 +532,19 @@ public class CheckoutServlet extends HttpServlet {
                             itemPs.setString(4, item.getVariantLabel());
                             itemPs.setInt(5, item.getQuantity());
                             itemPs.setBigDecimal(6, latestPrice);
-                            itemPs.setBigDecimal(7, latestPrice.multiply(new BigDecimal(item.getQuantity())));
+                            itemPs.setBigDecimal(7, itemSubtotal);
+                            if (item.getPackagingLabel() != null) {
+                                itemPs.setString(8, item.getPackagingLabel());
+                            } else {
+                                itemPs.setNull(8, java.sql.Types.NVARCHAR);
+                            }
+                            itemPs.setBigDecimal(9, packagingPriceAdd);
                             itemPs.addBatch();
 
-                            stockPs.setInt(1, item.getQuantity());
-                            stockPs.setInt(2, item.getVariantId());
-                            stockPs.addBatch();
+                            // Sử dụng InventoryService.reserve để tự động ghi log và cập nhật stock trong transaction
+                            inventoryService.reserve(conn, item.getVariantId(), item.getQuantity(), orderId, user.getUserId());
                         }
                         itemPs.executeBatch();
-                        stockPs.executeBatch();
                     }
 
                     StringBuilder deleteCartSql = new StringBuilder(

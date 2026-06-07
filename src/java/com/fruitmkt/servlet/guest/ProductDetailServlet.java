@@ -98,6 +98,19 @@ public class ProductDetailServlet extends HttpServlet {
             boolean isExpiredProduct = "OUT_OF_SEASON".equals(product.getStatus());
             req.setAttribute("isExpiredProduct", isExpiredProduct);
 
+            int currentMonth = java.time.LocalDate.now().getMonthValue();
+            boolean isOutOfSeason = false;
+            if (product.getSeasonStartMonth() != null && product.getSeasonEndMonth() != null) {
+                int start = product.getSeasonStartMonth();
+                int end = product.getSeasonEndMonth();
+                if (start <= end) {
+                    isOutOfSeason = (currentMonth < start || currentMonth > end);
+                } else {
+                    isOutOfSeason = (currentMonth < start && currentMonth > end);
+                }
+            }
+            req.setAttribute("isOutOfSeason", isOutOfSeason);
+
             boolean hasRequestedToday = false;
             com.fruitmkt.model.entity.User currentUser = (com.fruitmkt.model.entity.User) req.getSession().getAttribute(AppConfig.SESSION_USER);
             if (currentUser != null && isExpiredProduct) {
@@ -107,6 +120,11 @@ public class ProductDetailServlet extends HttpServlet {
 
             // 3. Đọc danh sách các biến thể đang hoạt động của sản phẩm
             List<ProductVariant> variants = productVariantDAO.findByProduct(productId);
+
+            // Đọc danh sách bao bì đóng gói chọn thêm
+            com.fruitmkt.dao.ProductPackagingOptionDAO packagingOptionDAO = new com.fruitmkt.dao.ProductPackagingOptionDAO();
+            List<com.fruitmkt.model.entity.ProductPackagingOption> packagingOptions = packagingOptionDAO.findByProduct(productId);
+            req.setAttribute("packagingOptions", packagingOptions);
 
             // AJAX format=json support for quick-view and variant selector modals on Home page
             String format = req.getParameter("format");
@@ -131,14 +149,28 @@ public class ProductDetailServlet extends HttpServlet {
                     vMap.put("variantId", v.getVariantId());
                     vMap.put("variantLabel", v.getVariantLabel());
                     vMap.put("price", v.getPrice());
+                    vMap.put("activePrice", v.getActivePrice());
+                    vMap.put("isDiscounted", v.getIsDiscounted());
+                    vMap.put("discountPrice", v.getDiscountPrice());
+                    vMap.put("weightKg", v.getWeightKg());
                     vMap.put("stockQuantity", v.getStockQuantity());
                     variantsMapList.add(vMap);
+                }
+
+                List<Map<String, Object>> packagingsMapList = new java.util.ArrayList<>();
+                for (com.fruitmkt.model.entity.ProductPackagingOption po : packagingOptions) {
+                    Map<String, Object> poMap = new java.util.HashMap<>();
+                    poMap.put("packagingId", po.getPackagingId());
+                    poMap.put("label", po.getLabel());
+                    poMap.put("priceAdd", po.getPriceAdd());
+                    packagingsMapList.add(poMap);
                 }
 
                 Map<String, Object> finalResponse = new java.util.HashMap<>();
                 finalResponse.put("success", true);
                 finalResponse.put("product", productMap);
                 finalResponse.put("variants", variantsMapList);
+                finalResponse.put("packagingOptions", packagingsMapList);
 
                 com.fruitmkt.util.JsonUtil.writeJson(resp, finalResponse);
                 return;

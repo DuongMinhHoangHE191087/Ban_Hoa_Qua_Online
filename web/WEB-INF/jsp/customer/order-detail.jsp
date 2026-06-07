@@ -269,10 +269,20 @@
                         <div class="p-6 flex items-center justify-between gap-4">
                             <div>
                                 <h4 class="font-semibold text-inverse-surface text-base mb-1">${item.productNameSnapshot}</h4>
-                                <span class="text-on-surface-variant text-xs font-medium bg-surface-container-high px-2.5 py-1 rounded-md">Phân loại: ${item.variantLabelSnapshot}</span>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-on-surface-variant text-xs font-medium bg-surface-container-high px-2.5 py-1 rounded-md">Phân loại: ${item.variantLabelSnapshot}</span>
+                                    <c:if test="${not empty item.packagingLabelSnapshot}">
+                                        <span class="text-primary text-xs font-medium bg-secondary-container px-2.5 py-1 rounded-md">Đóng gói: ${item.packagingLabelSnapshot} (+<ft:currency value="${item.packagingPriceSnapshot}"/>)</span>
+                                    </c:if>
+                                </div>
                             </div>
                             <div class="text-end">
-                                <span class="text-on-surface-variant text-xs block mb-1">Đơn giá: <ft:currency value="${item.unitPrice}"/></span>
+                                <span class="text-on-surface-variant text-xs block mb-1">
+                                    Đơn giá: <ft:currency value="${item.unitPrice}"/>
+                                    <c:if test="${item.packagingPriceSnapshot > 0}">
+                                        + <ft:currency value="${item.packagingPriceSnapshot}"/> (Bao bì)
+                                    </c:if>
+                                </span>
                                 <span class="text-inverse-surface font-bold"><ft:currency value="${item.subtotal}"/> <span class="text-on-surface-variant text-xs font-normal">x ${item.quantity}</span></span>
                             </div>
                         </div>

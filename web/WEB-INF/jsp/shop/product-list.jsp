@@ -152,6 +152,7 @@
                                     <th>Giá bán</th>
                                     <th class="text-center">Tồn kho</th>
                                     <th class="text-center">Tương tác</th>
+                                    <th class="text-center">Kiểm duyệt</th>
                                     <th class="text-center">Trạng thái bán</th>
                                     <th class="text-right">Thao tác</th>
                                 </tr>
@@ -223,6 +224,33 @@
                                             <div class="flex flex-col items-center">
                                                 <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">visibility</span> Lượt xem: ${item.viewCount}</span>
                                                 <span class="flex items-center gap-1 mt-1 font-semibold text-primary"><span class="material-symbols-outlined text-[14px]">shopping_cart</span> Đã bán: ${item.soldQuantity}</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Approval Status Badge -->
+                                        <td class="text-center">
+                                            <div class="flex flex-col items-center justify-center">
+                                                <c:choose>
+                                                    <c:when test="${item.approvalStatus == 'APPROVED'}">
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
+                                                            <i class="fa-solid fa-circle-check"></i> Đã duyệt
+                                                        </span>
+                                                    </c:when>
+                                                    <c:when test="${item.approvalStatus == 'REJECTED'}">
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-[10px] font-bold cursor-help"
+                                                              title="Lý do từ chối: ${item.rejectionReason}">
+                                                            <i class="fa-solid fa-circle-xmark"></i> Bị từ chối
+                                                        </span>
+                                                        <span class="text-[9px] text-rose-600 font-semibold mt-1 max-w-[120px] truncate" title="${item.rejectionReason}">
+                                                            Lý do: ${item.rejectionReason}
+                                                        </span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-800 text-[10px] font-bold">
+                                                            <i class="fa-solid fa-clock"></i> Chờ duyệt
+                                                        </span>
+                                                    </c:otherwise>
+                                                </c:choose>
                                             </div>
                                         </td>
 
@@ -345,6 +373,46 @@
                     </div>
                 </div>
 
+                <!-- Nhãn & Mùa vụ -->
+                <div>
+                    <h2 class="text-xs font-bold text-primary border-b border-primary/10 pb-1.5 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+                        <span class="material-symbols-outlined text-[16px]">eco</span>
+                        Nhãn sản phẩm & Mùa vụ
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-6">
+                            <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-txt-2 select-none">
+                                <input type="checkbox" name="isOrganic" id="modal-isOrganic" class="rounded text-primary focus:ring-primary">
+                                <span>Sản phẩm Hữu Cơ (Organic)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer font-bold text-xs text-txt-2 select-none">
+                                <input type="checkbox" name="isImported" id="modal-isImported" class="rounded text-primary focus:ring-primary">
+                                <span>Sản phẩm Nhập Khẩu</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="modal-seasonStartMonth" class="block text-xs font-bold text-txt-2 mb-1.5">Mùa vụ bắt đầu (Tháng)</label>
+                                <select name="seasonStartMonth" id="modal-seasonStartMonth" class="form-control-custom">
+                                    <option value="">-- Suốt năm --</option>
+                                    <c:forEach var="m" begin="1" end="12">
+                                        <option value="${m}">Tháng ${m}</option>
+                                    </c:forEach>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="modal-seasonEndMonth" class="block text-xs font-bold text-txt-2 mb-1.5">Mùa vụ kết thúc (Tháng)</label>
+                                <select name="seasonEndMonth" id="modal-seasonEndMonth" class="form-control-custom">
+                                    <option value="">-- Suốt năm --</option>
+                                    <c:forEach var="m" begin="1" end="12">
+                                        <option value="${m}">Tháng ${m}</option>
+                                    </c:forEach>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 2. Dynamic Variants Component -->
                 <div>
                     <div class="flex items-center justify-between border-b border-primary/10 pb-1.5 mb-4">
@@ -361,6 +429,25 @@
                     
                     <div class="space-y-3" id="modal-variants-container">
                         <!-- Variant rows dynamically appended here -->
+                    </div>
+                </div>
+
+                <!-- 2.5 Dynamic Packaging Options Component -->
+                <div>
+                    <div class="flex items-center justify-between border-b border-primary/10 pb-1.5 mb-4">
+                        <h2 class="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
+                            <span class="material-symbols-outlined text-[16px]">inventory_2</span>
+                            Tùy chọn đóng gói (Bao bì, hộp quà...)
+                        </h2>
+                        <button type="button" onclick="addPackagingRow()"
+                                class="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-hover bg-primary-lt hover:bg-primary/10 px-2.5 py-1.5 rounded-lg border-0 cursor-pointer transition-colors">
+                            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                            Thêm tùy chọn
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3" id="modal-packaging-container">
+                        <!-- Packaging rows dynamically appended here -->
                     </div>
                 </div>
 
@@ -430,6 +517,27 @@
                     </label>
 
                     <div id="modal-file-list-preview" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 hidden"></div>
+                </div>
+
+                <!-- Verification Document -->
+                <div>
+                    <h2 class="text-xs font-bold text-primary border-b border-primary/10 pb-1.5 mb-4 flex items-center gap-1.5 uppercase tracking-wider">
+                        <span class="material-symbols-outlined text-[16px]">description</span>
+                        Giấy tờ kiểm định chất lượng (PDF, Word, Ảnh) <span class="text-red-500" id="modal-doc-required-star">*</span>
+                    </h2>
+                    <div class="space-y-3">
+                        <input type="file" name="verificationDoc" id="modal-verificationDoc" accept=".pdf,.jpg,.jpeg,.png,.docx"
+                               class="form-control-custom">
+                        <p class="text-[11px] text-txt-3">Yêu cầu đính kèm giấy chứng nhận hữu cơ, xuất xứ nông sản để Admin phê duyệt. Kích thước tối đa 25MB.</p>
+                        
+                        <%-- Existing document display --%>
+                        <div id="modal-current-doc-container" class="hidden p-3 rounded-xl bg-slate-50 border border-border flex items-center justify-between text-xs text-txt-2">
+                            <span class="font-semibold flex items-center gap-1"><span class="material-symbols-outlined text-primary text-[16px]">file_present</span> Tài liệu đã tải lên</span>
+                            <a id="modal-current-doc-link" href="#" target="_blank" class="text-primary hover:text-primary-hover font-bold flex items-center gap-0.5 underline">
+                                Xem tài liệu cũ <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Footer / Buttons -->
@@ -668,9 +776,23 @@
         imageInput.required = true;
         document.getElementById('modal-image-required-star').classList.remove('hidden');
         
+        // Make verification document required for new products
+        const docInput = document.getElementById('modal-verificationDoc');
+        docInput.value = '';
+        docInput.required = true;
+        document.getElementById('modal-doc-required-star').classList.remove('hidden');
+        document.getElementById('modal-current-doc-container').classList.add('hidden');
+        
         // Initialize with one empty variant row
         document.getElementById('modal-variants-container').innerHTML = '';
         addVariantRow({ variantLabel: 'kg', price: '', stockQuantity: '' });
+
+        // Reset checkboxes & seasons & packagings
+        document.getElementById('modal-isOrganic').checked = false;
+        document.getElementById('modal-isImported').checked = false;
+        document.getElementById('modal-seasonStartMonth').value = '';
+        document.getElementById('modal-seasonEndMonth').value = '';
+        document.getElementById('modal-packaging-container').innerHTML = '';
         
         document.getElementById('productModal').classList.remove('hidden');
     }
@@ -725,6 +847,24 @@
                 imageInput.required = false;
                 document.getElementById('modal-image-required-star').classList.add('hidden');
                 
+                // Verification document not required since it already exists
+                const docInput = document.getElementById('modal-verificationDoc');
+                docInput.value = '';
+                docInput.required = false;
+                document.getElementById('modal-doc-required-star').classList.add('hidden');
+                
+                // Show current document link if exists
+                const docContainer = document.getElementById('modal-current-doc-container');
+                const docLink = document.getElementById('modal-current-doc-link');
+                if (data.product.verificationDocPath) {
+                    let path = data.product.verificationDocPath;
+                    if (path.startsWith('build/')) path = path.substring(6);
+                    docLink.href = CTX + '/' + path;
+                    docContainer.classList.remove('hidden');
+                } else {
+                    docContainer.classList.add('hidden');
+                }
+                
                 // Reset new file accumulator
                 newImageFiles = new DataTransfer();
                 document.getElementById('modal-file-list-preview').innerHTML = '';
@@ -752,6 +892,21 @@
                     });
                 } else {
                     addVariantRow({ variantLabel: 'kg', price: '', stockQuantity: '' });
+                }
+
+                // Populate checkboxes & seasons
+                document.getElementById('modal-isOrganic').checked = data.product.isOrganic;
+                document.getElementById('modal-isImported').checked = data.product.isImported;
+                document.getElementById('modal-seasonStartMonth').value = data.product.seasonStartMonth || '';
+                document.getElementById('modal-seasonEndMonth').value = data.product.seasonEndMonth || '';
+                
+                // Render packaging list
+                const packagingContainer = document.getElementById('modal-packaging-container');
+                packagingContainer.innerHTML = '';
+                if (data.packagingOptions && data.packagingOptions.length > 0) {
+                    data.packagingOptions.forEach(opt => {
+                        addPackagingRow(opt);
+                    });
                 }
 
                 document.getElementById('productModal').classList.remove('hidden');
@@ -984,58 +1139,98 @@
         const container = document.getElementById('modal-variants-container');
         const isEditMode = !!document.getElementById('modal-productId').value;
         const row = document.createElement('div');
-        row.className = "variant-row bg-slate-50/70 border border-border p-4 rounded-xl relative group flex flex-col md:flex-row gap-3 items-end transition-all hover:bg-slate-50";
+        row.className = "variant-row bg-slate-50/70 border border-border p-4 rounded-xl relative group flex flex-col gap-3 transition-all hover:bg-slate-50";
         
         const variantId = data.variantId || '';
         const variantLabel = data.variantLabel || '';
         const price = data.price !== undefined ? data.price : '';
         const stock = data.stockQuantity !== undefined ? data.stockQuantity : '';
+        const weightKg = data.weightKg !== undefined ? data.weightKg : '1.000';
+        const discountPrice = data.discountPrice !== undefined && data.discountPrice !== null ? data.discountPrice : '';
+        let discountStart = data.discountStart !== undefined && data.discountStart !== null ? data.discountStart : '';
+        let discountEnd = data.discountEnd !== undefined && data.discountEnd !== null ? data.discountEnd : '';
+        if (discountStart && discountStart.length > 16) discountStart = discountStart.substring(0, 16);
+        if (discountEnd && discountEnd.length > 16) discountEnd = discountEnd.substring(0, 16);
 
         row.innerHTML = `
-            <input type="hidden" name="variantId" value="\${variantId}">
+            <input type="hidden" name="variantId" value="${variantId}">
             
-            <!-- Variant Name/Label -->
-            <div class="flex-grow w-full">
-                <label class="block text-[10px] font-bold text-txt-2 mb-1">Tên phân loại / Đơn vị <span class="text-red-500">*</span></label>
-                <input type="text" name="variantLabel" required placeholder="Ví dụ: kg, Hộp 500g, Thùng 5kg" 
-                       value="\${variantLabel}"
-                       class="form-control-custom py-1.5 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end w-full">
+                <!-- Variant Name/Label -->
+                <div class="col-span-1 md:col-span-3">
+                    <label class="block text-[10px] font-bold text-txt-2 mb-1">Tên phân loại / Đơn vị <span class="text-red-500">*</span></label>
+                    <input type="text" name="variantLabel" required placeholder="Ví dụ: kg, Hộp 500g, Thùng 5kg" 
+                           value="${variantLabel}"
+                           class="form-control-custom py-1.5 text-xs">
+                </div>
+                
+                <!-- Price -->
+                <div class="col-span-1 md:col-span-2">
+                    <label class="block text-[10px] font-bold text-txt-2 mb-1">Giá bán lẻ (VND) <span class="text-red-500">*</span></label>
+                    <div class="relative rounded-xl">
+                        <input type="number" name="variantPrice" required min="1000" step="1000" placeholder="50000" 
+                               value="${price}"
+                               class="form-control-custom py-1.5 text-xs pr-10">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">VND</span>
+                    </div>
+                </div>
+
+                <!-- Weight (Kg) -->
+                <div class="col-span-1 md:col-span-2">
+                    <label class="block text-[10px] font-bold text-txt-2 mb-1">Cân nặng (Kg) <span class="text-red-500">*</span></label>
+                    <div class="relative rounded-xl">
+                        <input type="number" name="variantWeight" required min="0.001" step="0.001" placeholder="1.0" 
+                               value="${weightKg}"
+                               class="form-control-custom py-1.5 text-xs pr-8">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">Kg</span>
+                    </div>
+                </div>
+
+                <!-- Stock Quantity -->
+                <div class="col-span-1 md:col-span-3">
+                    <label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Tồn kho</label>
+                    <input type="hidden" name="variantStock" value="${stock}">
+                    <div class="form-control-custom py-1.5 text-xs bg-slate-100 text-txt-2 cursor-not-allowed">
+                        ${stock !== '' ? stock : '0 (Cập nhật khi nhập hàng)'}
+                    </div>
+                </div>
+
+                <!-- Delete button -->
+                <div class="col-span-1 md:col-span-2 flex justify-end pb-0.5">
+                    <button type="button" onclick="removeVariantRow(this)" class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center border-0 cursor-pointer transition-colors active:scale-95">
+                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                    </button>
+                </div>
             </div>
-            
-            <!-- Price -->
-            <div class="w-full md:w-48">
-                <label class="block text-[10px] font-bold text-txt-2 mb-1">Giá bán lẻ (VND) <span class="text-red-500">*</span></label>
-                <div class="relative rounded-xl">
-                    <input type="number" name="variantPrice" required min="1000" step="1000" placeholder="50000" 
-                           value="\${price}"
-                           class="form-control-custom py-1.5 text-xs pr-10">
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">VND</span>
+
+            <!-- Discount section -->
+            <div class="bg-primary/5 p-3 rounded-lg border border-primary/10 mt-2">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-[16px] text-primary">sell</span>
+                    <span class="text-[10px] font-bold text-primary uppercase tracking-wider">Cấu hình giảm giá (Tùy chọn)</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[9px] font-bold text-txt-2 mb-1">Giá khuyến mãi (VND)</label>
+                        <input type="number" name="variantDiscountPrice" min="0" step="1000" placeholder="Giá sau giảm" 
+                               value="${discountPrice}"
+                               class="form-control-custom py-1 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian bắt đầu</label>
+                        <input type="datetime-local" name="variantDiscountStart" 
+                               value="${discountStart}"
+                               class="form-control-custom py-1 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian kết thúc</label>
+                        <input type="datetime-local" name="variantDiscountEnd" 
+                               value="${discountEnd}"
+                               class="form-control-custom py-1 text-xs">
+                    </div>
                 </div>
             </div>
         `;
-
-        // Stock: shown as read-only 0 on CREATE (managed via Inventory)
-        if (!isEditMode) {
-            row.innerHTML += '<input type="hidden" name="variantStock" value="0">'
-                + '<div class="w-full md:w-36">'
-                + '<label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Số lượng ban đầu</label>'
-                + '<div class="form-control-custom py-1.5 text-xs bg-slate-50 text-txt-2 cursor-not-allowed">0</div>'
-                + '<p class="text-[9px] text-txt-3 mt-0.5">Cập nhật tại Quản lý Tồn kho</p>'
-                + '</div>';
-        } else {
-            row.innerHTML += '<input type="hidden" name="variantStock" value="' + stock + '">'
-                + '<div class="w-full md:w-36">'
-                + '<label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Tồn kho hiện tại</label>'
-                + '<div class="form-control-custom py-1.5 text-xs bg-slate-50 text-txt-2 cursor-not-allowed">' + (stock !== '' ? stock : '—') + '</div>'
-                + '<p class="text-[9px] text-txt-3 mt-0.5">Cập nhật tại Quản lý Tồn kho</p>'
-                + '</div>';
-        }
-
-        // Delete button
-        row.innerHTML += '<div class="flex shrink-0 items-center justify-center pb-0.5">'
-            + '<button type="button" onclick="removeVariantRow(this)" class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center border-0 cursor-pointer transition-colors active:scale-95">'
-            + '<span class="material-symbols-outlined text-[16px]">delete</span>'
-            + '</button></div>';
         
         container.appendChild(row);
         updateVariantDeleteButtons();
@@ -1055,6 +1250,52 @@
                 deleteBtn.style.display = rows.length <= 1 ? 'none' : 'flex';
             }
         });
+    }
+
+    // ─── Packaging options ──────────────────────────────────────────────────
+    function addPackagingRow(data = {}) {
+        const container = document.getElementById('modal-packaging-container');
+        const row = document.createElement('div');
+        row.className = "packaging-row bg-slate-50/70 border border-border p-3 rounded-xl relative flex flex-col md:flex-row gap-3 items-end transition-all hover:bg-slate-50";
+        
+        const packagingId = data.packagingId || '';
+        const label = data.label || '';
+        const priceAdd = data.priceAdd !== undefined ? data.priceAdd : '';
+
+        row.innerHTML = `
+            <input type="hidden" name="packagingId" value="${packagingId}">
+            
+            <!-- Packaging Label -->
+            <div class="flex-grow w-full">
+                <label class="block text-[10px] font-bold text-txt-2 mb-1">Tên loại đóng gói <span class="text-red-500">*</span></label>
+                <input type="text" name="packagingLabel" required placeholder="Ví dụ: Hộp gỗ cao cấp, Khay xốp bảo vệ" 
+                       value="${label}"
+                       class="form-control-custom py-1.5 text-xs">
+            </div>
+            
+            <!-- Price Add -->
+            <div class="w-full md:w-48">
+                <label class="block text-[10px] font-bold text-txt-2 mb-1">Phụ phí cộng thêm (VND) <span class="text-red-500">*</span></label>
+                <div class="relative rounded-xl">
+                    <input type="number" name="packagingPriceAdd" required min="0" step="1000" placeholder="10000" 
+                           value="${priceAdd}"
+                           class="form-control-custom py-1.5 text-xs pr-10">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">VND</span>
+                </div>
+            </div>
+            
+            <!-- Delete button -->
+            <div class="flex shrink-0 items-center justify-center pb-0.5">
+                <button type="button" onclick="removePackagingRow(this)" class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center border-0 cursor-pointer transition-colors active:scale-95">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                </button>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+
+    function removePackagingRow(button) {
+        button.closest('.packaging-row').remove();
     }
 
     function deleteExistingImageModal(imageId) {

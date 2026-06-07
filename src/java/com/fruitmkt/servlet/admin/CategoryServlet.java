@@ -1,9 +1,9 @@
 package com.fruitmkt.servlet.admin;
 
 import com.fruitmkt.config.AppConfig;
-import com.fruitmkt.dao.CategoryDAO;
 import com.fruitmkt.model.entity.Category;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.service.CategoryService;
 import com.fruitmkt.util.SessionUtil;
 
 import jakarta.servlet.ServletException;
@@ -14,43 +14,55 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * CategoryServlet — Controller cho chức năng: Quản lý danh mục trái cây
+ * CategoryServlet — Controller xử lý luồng nghiệp vụ Quản lý Danh mục phía Admin.
  *
  * URL: /admin/categories
- * GET : Quản lý danh mục trái cây
- * POST: CRUD category
+ * GET: Hiển thị giao diện quản lý danh sách danh mục
+ * POST: Thực hiện tạo mới, cập nhật, xóa, bật/tắt hiển thị danh mục
  *
  * @author fruitmkt-team
  */
 @WebServlet("/admin/categories")
 public class CategoryServlet extends HttpServlet {
 
-    private final CategoryDAO categoryDAO = new CategoryDAO();
+    private final CategoryService categoryService = new CategoryService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+        HttpSession session = req.getSession();
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
         try {
-            // Lấy danh sách danh mục
-            List<Category> categories = categoryDAO.findAll();
+            // Lấy danh sách danh mục thông qua Service
+            List<Category> categories = categoryService.getAllCategories();
             req.setAttribute("categories", categories);
             
-            // Forward tới view
+            // Forward tới view quản trị
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-categories.jsp").forward(req, resp);
         } catch (SQLException e) {
             e.printStackTrace();
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy danh sách danh mục");
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy danh sách danh mục: " + e.getMessage());
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+        HttpSession session = req.getSession();
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
         String action = req.getParameter("action");
         if (action == null) {
-            SessionUtil.setFlashMessage(req.getSession(), "Hành động không hợp lệ", "danger");
+            SessionUtil.setFlashMessage(session, "Hành động không hợp lệ", "danger");
             resp.sendRedirect(req.getContextPath() + "/admin/categories");
             return;
         }
@@ -70,12 +82,12 @@ public class CategoryServlet extends HttpServlet {
                     toggleStatus(req, resp);
                     break;
                 default:
-                    SessionUtil.setFlashMessage(req.getSession(), "Hành động không hợp lệ", "danger");
+                    SessionUtil.setFlashMessage(session, "Hành động không hợp lệ", "danger");
                     resp.sendRedirect(req.getContextPath() + "/admin/categories");
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            SessionUtil.setFlashMessage(req.getSession(), "Lỗi hệ thống: " + e.getMessage(), "danger");
+            SessionUtil.setFlashMessage(session, "Lỗi hệ thống: " + e.getMessage(), "danger");
             resp.sendRedirect(req.getContextPath() + "/admin/categories");
         }
     }
@@ -92,8 +104,12 @@ public class CategoryServlet extends HttpServlet {
         cat.setDisplayOrder(displayOrder);
         cat.setIsActive(isActive);
 
-        categoryDAO.save(cat);
-        SessionUtil.setFlashMessage(req.getSession(), "Thêm danh mục mới thành công!", "success");
+        try {
+            categoryService.createCategory(cat);
+            SessionUtil.setFlashMessage(req.getSession(), "Thêm danh mục mới thành công!", "success");
+        } catch (IllegalArgumentException e) {
+            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
+        }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }
 
@@ -111,31 +127,35 @@ public class CategoryServlet extends HttpServlet {
         cat.setDisplayOrder(displayOrder);
         cat.setIsActive(isActive);
 
-        categoryDAO.update(cat);
-        SessionUtil.setFlashMessage(req.getSession(), "Cập nhật danh mục thành công!", "success");
+        try {
+            categoryService.updateCategory(cat);
+            SessionUtil.setFlashMessage(req.getSession(), "Cập nhật danh mục thành công!", "success");
+        } catch (IllegalArgumentException e) {
+            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
+        }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }
 
     private void deleteCategory(HttpServletRequest req, HttpServletResponse resp) throws SQLException, IOException {
         int categoryId = Integer.parseInt(req.getParameter("categoryId"));
         
-        if (categoryDAO.hasActiveProducts(categoryId)) {
-            SessionUtil.setFlashMessage(req.getSession(), "Không thể xóa danh mục đang có sản phẩm!", "danger");
-        } else {
-            categoryDAO.delete(categoryId);
+        try {
+            // Service sẽ tự kiểm định tính hợp lệ của việc xóa danh mục (ràng buộc sản phẩm)
+            categoryService.deleteCategory(categoryId);
             SessionUtil.setFlashMessage(req.getSession(), "Xóa danh mục thành công!", "success");
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
         }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }
     
     private void toggleStatus(HttpServletRequest req, HttpServletResponse resp) throws SQLException, IOException {
         int categoryId = Integer.parseInt(req.getParameter("categoryId"));
-        List<Category> list = categoryDAO.findById(categoryId);
-        if (!list.isEmpty()) {
-            Category cat = list.get(0);
-            cat.setIsActive(!cat.getIsActive());
-            categoryDAO.update(cat);
+        try {
+            categoryService.toggleCategoryStatus(categoryId);
             SessionUtil.setFlashMessage(req.getSession(), "Đã thay đổi trạng thái hiển thị của danh mục!", "success");
+        } catch (IllegalArgumentException e) {
+            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
         }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }

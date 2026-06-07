@@ -46,6 +46,24 @@ if (-not (Test-Path ".env") -and (Test-Path ".env.template")) {
     Log-Message "Created .env from template." "INFO"
 }
 
+# Load .env variables into Process environment
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#")) {
+            $parts = $line.Split('=', 2)
+            if ($parts.Length -eq 2) {
+                $key = $parts[0].Trim()
+                $val = $parts[1].Trim()
+                if (($val.StartsWith('"') -and $val.EndsWith('"')) -or ($val.StartsWith("'") -and $val.EndsWith("'"))) {
+                    $val = $val.Substring(1, $val.Length - 2)
+                }
+                [System.Environment]::SetEnvironmentVariable($key, $val, "Process")
+            }
+        }
+    }
+}
+
 # 2. Load config from ini if exists
 if (Test-Path "tomcat_config.ini") {
     Get-Content "tomcat_config.ini" | ForEach-Object {
@@ -126,6 +144,7 @@ Cac tuy chon:
   open           - Mo ung dung trong browser (http://localhost:8080/Ban_Hoa_Qua_Online/)
   deploy         - Chay toan bo quy trinh (Clean, Build, Deploy, Run & Watch)
   reload         - Recompile nhanh va Hot-Reload Tomcat (giu nguyen Session)
+  test           - Chay kiem thu unit tests JUnit cho he thong
 
 
 Docker options:
@@ -602,6 +621,106 @@ function Docker-Reset {
     docker compose down -v --rmi all
 }
 
+function Run-Tests {
+    Write-Host "`n===== PREPARING AND RUNNING JUNIT TESTS =====" -ForegroundColor Green
+    
+    $testLibDir = "lib/test"
+    if (-not (Test-Path $testLibDir)) {
+        New-Item -ItemType Directory -Path $testLibDir -Force | Out-Null
+    }
+    
+    # Download JUnit if not present
+    $junitJar = "$testLibDir/junit-4.13.2.jar"
+    if (-not (Test-Path $junitJar)) {
+        Write-Host "Downloading JUnit 4..." -ForegroundColor Yellow
+        Invoke-WebRequest -Uri "https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar" -OutFile $junitJar -TimeoutSec 15
+    }
+    
+    # Download Hamcrest if not present
+    $hamcrestJar = "$testLibDir/hamcrest-core-1.3.jar"
+    if (-not (Test-Path $hamcrestJar)) {
+        Write-Host "Downloading Hamcrest Core..." -ForegroundColor Yellow
+        Invoke-WebRequest -Uri "https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar" -OutFile $hamcrestJar -TimeoutSec 15
+    }
+    
+    # Recompile main classes first
+    $webBuildDir = "build/web"
+    $tomcatHome = ""
+    if ($env:CATALINA_HOME) { $tomcatHome = $env:CATALINA_HOME }
+    if (-not $tomcatHome) {
+        # Check standard tomcat path
+        $tomcatHome = "C:\Users\Admin\Downloads\apache-tomcat-10.1.55-windows-x64\apache-tomcat-10.1.55"
+        if (-not (Test-Path $tomcatHome)) {
+            $tomcatHome = "C:\apache-tomcat-10.1.55"
+        }
+    }
+    
+    $classpath = "web/WEB-INF/lib/*;$tomcatHome/lib/*"
+    $compileLogFile = "compile_output.log"
+    
+    Write-Host "Compiling main Java classes..." -ForegroundColor Yellow
+    $compiledMain = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
+    if (-not $compiledMain) {
+        $compileErrors = Get-Content $compileLogFile -Raw -ErrorAction SilentlyContinue
+        Write-Host "Main Java compilation failed!" -ForegroundColor Red
+        Write-Host $compileErrors -ForegroundColor Red
+        if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
+        return
+    }
+    if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
+    
+    # Compile tests
+    $testBuildDir = "build/test/classes"
+    if (Test-Path $testBuildDir) {
+        Remove-Item $testBuildDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-Item -ItemType Directory -Path $testBuildDir -Force | Out-Null
+    
+    $testFiles = Get-ChildItem -Path "test" -Filter "*.java" -Recurse | ForEach-Object { $_.FullName }
+    if (-not $testFiles) {
+        Write-Host "[ERROR] No test Java files found in test/!" -ForegroundColor Red
+        return
+    }
+    [System.IO.File]::WriteAllLines("test_sources.txt", $testFiles)
+    
+    $testClasspath = "build/web/WEB-INF/classes;web/WEB-INF/lib/*;lib/test/*;$tomcatHome/lib/*"
+    
+    Write-Host "Compiling test Java classes..." -ForegroundColor Yellow
+    $javacCmd = "javac -encoding UTF-8 -cp `"$testClasspath`" -d `"$testBuildDir`" @test_sources.txt > test_compile_output.log 2>&1"
+    cmd.exe /c $javacCmd
+    
+    if (Test-Path "test_sources.txt") { Remove-Item "test_sources.txt" -Force }
+    
+    if ($LASTEXITCODE -ne 0) {
+        $compileErrors = Get-Content test_compile_output.log -Raw -ErrorAction SilentlyContinue
+        Write-Host "Test compilation failed!" -ForegroundColor Red
+        Write-Host $compileErrors -ForegroundColor Red
+        if (Test-Path "test_compile_output.log") { Remove-Item "test_compile_output.log" -Force }
+        return
+    }
+    if (Test-Path "test_compile_output.log") { Remove-Item "test_compile_output.log" -Force }
+    Write-Host "Test compilation completed successfully!" -ForegroundColor Green
+    
+    # Run tests using JUnit Core
+    Write-Host "`nRunning JUnit Tests..." -ForegroundColor Cyan
+    $runClasspath = "build/test/classes;build/web/WEB-INF/classes;web/WEB-INF/lib/*;lib/test/*;$tomcatHome/lib/*"
+    
+    $testClasses = @(
+        "com.fruitmkt.test.ProductApprovalTest",
+        "com.fruitmkt.test.CategoryCRUDTest",
+        "com.fruitmkt.test.CartOrderFlowTest",
+        "com.fruitmkt.test.UserAuthFlowTest",
+        "com.fruitmkt.test.PromotionVoucherTest",
+        "com.fruitmkt.test.ProductBusinessRulesTest",
+        "com.fruitmkt.test.SettlementAndReturnRulesTest",
+        "com.fruitmkt.test.AiSearchTest",
+        "com.fruitmkt.test.ChatNotificationTest"
+    )
+    
+    $cmdRun = "java -cp `"$runClasspath`" org.junit.runner.JUnitCore $($testClasses -join ' ')"
+    cmd.exe /c $cmdRun
+}
+
 # Main execution
 switch ($Action.ToLower()) {
     "help" { Show-Help }
@@ -615,6 +734,7 @@ switch ($Action.ToLower()) {
     "open" { Open-App }
     "deploy" { Deploy-App }
     "reload" { Deploy-Reload }
+    "test" { Run-Tests }
     "docker-build" { Docker-Build }
     "docker-up" { Docker-Up }
     "docker-down" { Docker-Down }
