@@ -1,6 +1,8 @@
 package com.fruitmkt.servlet.shop;
 
+import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.ChatDAO;
+import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.ChatSession;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
@@ -12,16 +14,29 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+/**
+ * ShopChatServlet — Trang quản lý tin nhắn của Shop Owner.
+ * URL: /shop/chat[?sessionId=X]
+ *
+ * [FIX bug#2]: role check đổi từ "SHOP" → AppConfig.ROLE_SHOP_OWNER ("SHOP_OWNER")
+ * [UPGRADE]: findSessionsByOwner JOIN trả về partner_name (tên customer)
+ *
+ * @author fruitmkt-team
+ */
 @WebServlet("/shop/chat")
 public class ShopChatServlet extends HttpServlet {
 
     private final ChatDAO chatDAO = new ChatDAO();
+    private final UserDAO userDAO = new UserDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         User shopOwner = SessionUtil.getCurrentUser(req.getSession());
-        if (shopOwner == null || (!"SHOP".equals(shopOwner.getRole()) && !"ADMIN".equals(shopOwner.getRole()))) {
+        // [FIX bug#2]: Đổi "SHOP" → AppConfig.ROLE_SHOP_OWNER
+        if (shopOwner == null
+                || (!AppConfig.ROLE_SHOP_OWNER.equals(shopOwner.getRole())
+                    && !AppConfig.ROLE_ADMIN.equals(shopOwner.getRole()))) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -33,6 +48,7 @@ public class ShopChatServlet extends HttpServlet {
                 activeSessionId = Integer.parseInt(sessionIdStr);
             }
 
+            // [UPGRADE]: JOIN trả về partner_name + partner_avatar
             List<ChatSession> sessions = chatDAO.findSessionsByOwner(shopOwner.getUserId());
             if (activeSessionId == -1 && !sessions.isEmpty()) {
                 activeSessionId = sessions.get(0).getSessionId();
@@ -40,9 +56,30 @@ public class ShopChatServlet extends HttpServlet {
 
             req.setAttribute("chatSessions", sessions);
             req.setAttribute("activeSessionId", activeSessionId);
-            
+
+            ChatSession activeSession = null;
+            for (ChatSession s : sessions) {
+                if (s.getSessionId() == activeSessionId) {
+                    activeSession = s;
+                    break;
+                }
+            }
+            if (activeSession == null && activeSessionId > 0) {
+                activeSession = chatDAO.findSessionById(activeSessionId);
+                if (activeSession != null) {
+                    User partner = userDAO.findUserById(activeSession.getCustomerId());
+                    if (partner != null) {
+                        activeSession.setPartnerName(partner.getFullName());
+                        activeSession.setPartnerAvatar(partner.getAvatarUrl());
+                    }
+                }
+            }
+            req.setAttribute("activeSession", activeSession);
+
             req.getRequestDispatcher("/WEB-INF/jsp/shop/chat.jsp").forward(req, resp);
 
+        } catch (NumberFormatException e) {
+            resp.sendRedirect(req.getContextPath() + "/shop/chat");
         } catch (SQLException e) {
             e.printStackTrace();
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy dữ liệu chat");

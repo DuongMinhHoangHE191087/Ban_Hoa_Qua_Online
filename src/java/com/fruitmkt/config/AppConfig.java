@@ -68,6 +68,10 @@ public final class AppConfig {
         public static final int PAGE_SIZE_ORDERS = 15;
         /** Số dòng admin table mỗi trang */
         public static final int PAGE_SIZE_ADMIN = 25;
+        /** Kích thước trang tối đa cho phép */
+        public static final int MAX_PAGE_SIZE = 100;
+        /** Kích thước trang mặc định */
+        public static final int DEFAULT_PAGE_SIZE = 10;
 
         // ------------------------------------------------------------------
         // Upload File
@@ -227,6 +231,7 @@ public final class AppConfig {
         public static final String CONFIG_SEPAY_BANK_ID        = "sepay_bank_id";
         public static final String CONFIG_SEPAY_ACCOUNT_NO     = "sepay_account_no";
         public static final String CONFIG_SEPAY_ACCOUNT_NAME   = "sepay_account_name";
+        public static final String CONFIG_GEMINI_API_KEY       = "gemini_api_key";
 
         private AppConfig() {
                 /* Utility class — không khởi tạo */ }

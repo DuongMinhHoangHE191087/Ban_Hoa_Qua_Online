@@ -3,6 +3,7 @@ package com.fruitmkt.dao;
 import com.fruitmkt.dao.base.BaseDAO;
 import com.fruitmkt.model.entity.Cart;
 import com.fruitmkt.model.entity.CartItem;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
@@ -55,17 +56,25 @@ public class CartDAO extends BaseDAO {
         throw new SQLException("Tạo giỏ hàng thất bại, không lấy được mã khóa tự tăng.");
     }
 
-    /**
-     * Thêm sản phẩm vào giỏ hàng. Nếu sản phẩm đã tồn tại, cộng dồn số lượng.
-     */
     public Cart addItem(int cartId, int variantId, int quantity) throws SQLException {
-        String selectSql = "SELECT cart_item_id, quantity FROM cart_items WHERE cart_id = ? AND variant_id = ?";
+        return addItem(cartId, variantId, quantity, null);
+    }
+
+    public Cart addItem(int cartId, int variantId, int quantity, Integer packagingId) throws SQLException {
+        String selectSql = "SELECT cart_item_id, quantity FROM cart_items WHERE cart_id = ? AND variant_id = ? AND (packaging_id = ? OR (packaging_id IS NULL AND ? IS NULL))";
         int existingCartItemId = -1;
         int existingQuantity = 0;
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(selectSql)) {
             ps.setInt(1, cartId);
             ps.setInt(2, variantId);
+            if (packagingId != null) {
+                ps.setInt(3, packagingId);
+                ps.setInt(4, packagingId);
+            } else {
+                ps.setNull(3, Types.INTEGER);
+                ps.setNull(4, Types.INTEGER);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     existingCartItemId = rs.getInt("cart_item_id");
@@ -77,12 +86,17 @@ public class CartDAO extends BaseDAO {
         if (existingCartItemId != -1) {
             updateItemQuantity(existingCartItemId, existingQuantity + quantity);
         } else {
-            String insertSql = "INSERT INTO cart_items (cart_id, variant_id, quantity, added_at) VALUES (?, ?, ?, GETDATE())";
+            String insertSql = "INSERT INTO cart_items (cart_id, variant_id, quantity, packaging_id, added_at) VALUES (?, ?, ?, ?, GETDATE())";
             try (Connection conn = getConnection();
                  PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 ps.setInt(1, cartId);
                 ps.setInt(2, variantId);
                 ps.setInt(3, quantity);
+                if (packagingId != null) {
+                    ps.setInt(4, packagingId);
+                } else {
+                    ps.setNull(4, Types.INTEGER);
+                }
                 ps.executeUpdate();
             }
         }
@@ -161,11 +175,14 @@ public class CartDAO extends BaseDAO {
      */
     public List<CartItem> findItems(int cartId) throws SQLException {
         List<CartItem> list = new ArrayList<>();
-        String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path "
+        String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path, "
+                   + "ppo.label AS packaging_label, ppo.price_add AS packaging_price_add, "
+                   + "pv.discount_price, pv.discount_start, pv.discount_end "
                    + "FROM cart_items ci "
                    + "JOIN product_variants pv ON ci.variant_id = pv.variant_id "
                    + "JOIN products p ON pv.product_id = p.product_id "
                    + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
+                   + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id "
                    + "WHERE ci.cart_id = ? ORDER BY ci.added_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -197,11 +214,14 @@ public class CartDAO extends BaseDAO {
      * Tìm một CartItem theo ID.
      */
     public CartItem findItemById(int cartItemId) throws SQLException {
-        String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path "
+        String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path, "
+                   + "ppo.label AS packaging_label, ppo.price_add AS packaging_price_add, "
+                   + "pv.discount_price, pv.discount_start, pv.discount_end "
                    + "FROM cart_items ci "
                    + "JOIN product_variants pv ON ci.variant_id = pv.variant_id "
                    + "JOIN products p ON pv.product_id = p.product_id "
                    + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
+                   + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id "
                    + "WHERE ci.cart_item_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -245,6 +265,9 @@ public class CartDAO extends BaseDAO {
         ci.setVariantId(rs.getInt("variant_id"));
         ci.setQuantity(rs.getInt("quantity"));
         
+        int pkgId = rs.getInt("packaging_id");
+        ci.setPackagingId(rs.wasNull() ? null : pkgId);
+        
         Timestamp addedAtVal = rs.getTimestamp("added_at");
         if (addedAtVal != null) {
             ci.setAddedAt(addedAtVal.toLocalDateTime());
@@ -255,12 +278,32 @@ public class CartDAO extends BaseDAO {
     private CartItem mapCartItemRowWithDetails(ResultSet rs) throws SQLException {
         CartItem ci = mapCartItemRow(rs);
         ci.setVariantLabel(rs.getString("variant_label"));
-        ci.setPrice(rs.getBigDecimal("price"));
+        
+        BigDecimal price = rs.getBigDecimal("price");
+        BigDecimal discountPrice = rs.getBigDecimal("discount_price");
+        Timestamp discountStartVal = rs.getTimestamp("discount_start");
+        Timestamp discountEndVal = rs.getTimestamp("discount_end");
+        
+        BigDecimal activePrice = price;
+        if (discountPrice != null && discountStartVal != null && discountEndVal != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            java.time.LocalDateTime discountStart = discountStartVal.toLocalDateTime();
+            java.time.LocalDateTime discountEnd = discountEndVal.toLocalDateTime();
+            if ((now.isAfter(discountStart) || now.isEqual(discountStart)) && 
+                (now.isBefore(discountEnd) || now.isEqual(discountEnd))) {
+                activePrice = discountPrice;
+            }
+        }
+        ci.setPrice(activePrice);
+        ci.setBasePrice(price);
+        
         ci.setStockQuantity(rs.getInt("stock_quantity"));
         ci.setWeightKg(rs.getBigDecimal("weight_kg"));
         ci.setProductName(rs.getString("product_name"));
         ci.setImagePath(rs.getString("image_path"));
         ci.setProductId(rs.getInt("product_id"));
+        ci.setPackagingLabel(rs.getString("packaging_label"));
+        ci.setPackagingPriceAdd(rs.getBigDecimal("packaging_price_add"));
         return ci;
     }
 

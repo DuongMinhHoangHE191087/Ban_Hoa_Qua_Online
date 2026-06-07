@@ -101,8 +101,12 @@ public class CartServlet extends HttpServlet {
 
                     int variantId = Integer.parseInt(req.getParameter("variantId"));
                     int quantity = Integer.parseInt(req.getParameter("quantity"));
+                    String packagingIdStr = req.getParameter("packagingId");
+                    Integer packagingId = (packagingIdStr != null && !packagingIdStr.trim().isEmpty()) 
+                        ? Integer.parseInt(packagingIdStr.trim()) 
+                        : null;
 
-                    cartService.addToCart(user.getUserId(), variantId, quantity);
+                    cartService.addToCart(user.getUserId(), variantId, quantity, packagingId);
                     CartSummaryDTO updatedSummary = cartService.getCart(user.getUserId());
                     JsonUtil.writeJson(resp, Map.of("success", true, "message", "Đã thêm vào giỏ hàng thành công.", "cartSummary", updatedSummary));
                     break;

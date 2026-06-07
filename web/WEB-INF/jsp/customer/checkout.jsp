@@ -388,9 +388,19 @@
                                         <span class="font-label-md text-label-md text-on-surface text-lg font-bold"><c:out value="${item.productName}"/></span>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Biến thể: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></span>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">Trọng lượng: <c:out value="${item.weightKg}"/> kg</span>
+                                        <c:if test="${not empty item.packagingLabel}">
+                                            <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 block">
+                                                Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold border border-[#BBF7D0]/40"><c:out value="${item.packagingLabel}"/> (+<ft:currency value="${item.packagingPriceAdd}"/>)</span>
+                                            </span>
+                                        </c:if>
                                     </div>
                                     <div class="text-right">
-                                        <span class="font-label-md text-label-md text-primary font-bold text-lg block"><ft:currency value="${item.price}"/></span>
+                                        <span class="font-label-md text-label-md text-primary font-bold text-lg block">
+                                            <ft:currency value="${item.price + item.packagingPriceAdd}"/>
+                                        </span>
+                                        <c:if test="${item.packagingPriceAdd > 0}">
+                                            <span class="text-[10px] text-gray-400 block">Gồm đóng gói +<ft:currency value="${item.packagingPriceAdd}"/></span>
+                                        </c:if>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-sm font-semibold">SL: <c:out value="${item.quantity}"/></span>
                                     </div>
                                 </div>

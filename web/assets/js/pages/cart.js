@@ -90,7 +90,10 @@ const CartPage = {
             weightKg: item.weightKg || 1.0,
             quantity: item.quantity,
             imagePath: item.imagePath,
-            stockQuantity: item.stockQuantity
+            stockQuantity: item.stockQuantity,
+            packagingId: item.packagingId,
+            packagingLabel: item.packagingLabel,
+            packagingPriceAdd: item.packagingPriceAdd
         }));
         localStorage.setItem(this.userCartKey, JSON.stringify(mappedItems));
         
@@ -468,9 +471,10 @@ const CartPage = {
             const isChecked = checkedVariantIds.includes(item.variantId);
             if (isChecked) {
                 const price = parseFloat(item.price) || 0;
+                const packagingPriceAdd = parseFloat(item.packagingPriceAdd) || 0;
                 const weight = parseFloat(item.weightKg) || 1.0;
                 
-                totalCents += Math.round(price) * item.quantity;
+                totalCents += Math.round(price + packagingPriceAdd) * item.quantity;
                 totalGrams += Math.round(weight * 1000) * item.quantity;
                 checkedCount++;
             }
@@ -575,7 +579,9 @@ const CartPage = {
                 imgUrl = this.contextPath + imgUrl;
             }
 
-            const itemSubtotal = parseFloat(item.price) * item.quantity;
+            const price = parseFloat(item.price) || 0;
+            const packagingPriceAdd = parseFloat(item.packagingPriceAdd) || 0;
+            const itemSubtotal = (price + packagingPriceAdd) * item.quantity;
 
             // Fallback thông minh cho dữ liệu Local Storage của Guest để tránh lỗi undefined / NaN
             const productName = item.productName || (item.name ? item.name.split(' - ')[0] : 'Sản phẩm');
@@ -605,8 +611,16 @@ const CartPage = {
                                     ` : `<span class="bg-[#f3f4f6] text-[#374151] px-2 py-0.5 rounded text-xs font-semibold border border-slate-200">${variantLabel}</span>`}
                                 </p>
                                 <p class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 text-muted">Trọng lượng: <span class="fw-semibold text-dark">${weightKg.toFixed(3)} kg</span></p>
+                                ${item.packagingLabel ? `
+                                <p class="font-body-md text-body-md text-on-surface-variant text-[11px] mt-1 text-muted">
+                                    Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-semibold border border-[#BBF7D0]/40">${item.packagingLabel} (+${CurrencyFmt.format(packagingPriceAdd)})</span>
+                                </p>
+                                ` : ''}
                             </div>
-                            <span class="font-headline-md text-headline-md text-primary font-bold text-lg text-success">${CurrencyFmt.format(item.price)}</span>
+                            <div class="flex flex-col items-end">
+                                <span class="font-headline-md text-headline-md text-primary font-bold text-lg text-success">${CurrencyFmt.format(price + packagingPriceAdd)}</span>
+                                ${packagingPriceAdd > 0 ? `<span class="text-[10px] text-gray-400">Gồm đóng gói +${CurrencyFmt.format(packagingPriceAdd)}</span>` : ''}
+                            </div>
                         </div>
                         
                         <div class="flex justify-between items-center mt-sm w-full">

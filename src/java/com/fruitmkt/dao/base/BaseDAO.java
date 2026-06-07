@@ -49,7 +49,7 @@ public abstract class BaseDAO {
      * Lấy kết nối trực tiếp từ cấu hình database.
      * Kết nối phải được đóng bởi caller trong try-with-resources.
      */
-    protected Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         return DriverManager.getConnection(AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD);
     }
 }

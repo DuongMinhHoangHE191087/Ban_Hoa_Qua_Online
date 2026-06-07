@@ -575,6 +575,8 @@ public class OrderDAO extends BaseDAO {
                     item.setQuantity(rs.getInt("quantity"));
                     item.setUnitPrice(rs.getBigDecimal("unit_price"));
                     item.setSubtotal(rs.getBigDecimal("subtotal"));
+                    item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
+                    item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
                     list.add(item);
                 }
             }
@@ -763,6 +765,8 @@ public class OrderDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
     public void updateReceivedStatus(int orderId, String receivedStatus) throws SQLException {
         String sql = "UPDATE orders SET received_status = ?, updated_at = GETDATE() WHERE order_id = ?";
         try (Connection conn = getConnection();

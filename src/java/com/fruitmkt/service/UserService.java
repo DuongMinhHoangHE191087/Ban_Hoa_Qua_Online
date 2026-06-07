@@ -31,4 +31,8 @@ public class UserService {
     public boolean isPhoneTakenByAnother(String phone, int userId) throws SQLException {
         return userDAO.isPhoneExists(phone, userId);
     }
+
+    public void deleteSessionsByUserId(int userId) throws SQLException {
+        userDAO.deleteSessionsByUserId(userId);
+    }
 }

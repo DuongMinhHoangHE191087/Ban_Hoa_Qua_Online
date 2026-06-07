@@ -91,6 +91,9 @@
                                                         <span class="truncate max-w-[150px] text-xs text-txt-3">${c.config_value}</span>
                                                     </div>
                                                 </c:when>
+                                                <c:when test="${c.config_key == 'gemini_api_key' && not empty c.config_value}">
+                                                    <span class="text-txt-3" title="API Key được ẩn vì lý do bảo mật">••••••••••••</span>
+                                                </c:when>
                                                 <c:when test="${c.data_type == 'DECIMAL' && c.config_key.contains('FEE')}">
                                                     <span class="text-orange-600">${c.config_value}%</span>
                                                 </c:when>
@@ -139,10 +142,14 @@
                 <div>
                     <h4 class="font-bold text-txt mb-1">Đăng xuất tất cả phiên đăng nhập (Xóa Refresh Tokens)</h4>
                     <p class="text-sm text-txt-2 mb-4">Hành động này sẽ xóa toàn bộ token duy trì đăng nhập của tất cả người dùng. Bất kỳ ai đang không truy cập hoặc tải lại trang sau khi phiên bộ nhớ hết hạn sẽ phải đăng nhập lại. Sử dụng tính năng này trước khi bảo trì hệ thống.</p>
+                    <div class="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 p-3 rounded-lg">
+                        <input type="checkbox" id="confirmDangerAction" class="rounded text-red-600 focus:ring-red-500 cursor-pointer" onchange="toggleDangerButton(this)">
+                        <label for="confirmDangerAction" class="text-xs font-semibold text-red-800 cursor-pointer select-none">Tôi xác nhận hiểu rõ rủi ro và muốn kích hoạt hành động này</label>
+                    </div>
                     <form method="POST" action="${pageContext.request.contextPath}/admin/config" onsubmit="return confirm('Bạn có CHẮC CHẮN muốn xóa TOÀN BỘ phiên đăng nhập của tất cả người dùng không?');">
                         <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                         <input type="hidden" name="action" value="clearAllSessions">
-                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer">
+                        <button type="submit" id="btnDangerSubmit" disabled class="bg-slate-400 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow cursor-not-allowed opacity-50">
                             <i class="fa-solid fa-right-from-bracket mr-1"></i> Thực hiện Xóa phiên
                         </button>
                     </form>
@@ -221,6 +228,17 @@
     window.onclick = e => {
         if (e.target === document.getElementById('editModal')) closeModal('editModal');
     };
+
+    function toggleDangerButton(chk) {
+        const btn = document.getElementById('btnDangerSubmit');
+        if (chk.checked) {
+            btn.disabled = false;
+            btn.className = "bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer";
+        } else {
+            btn.disabled = true;
+            btn.className = "bg-slate-400 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow cursor-not-allowed opacity-50";
+        }
+    }
 </script>
 </body>
 </html>

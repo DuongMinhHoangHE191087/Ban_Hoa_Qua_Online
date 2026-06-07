@@ -146,6 +146,10 @@
         <filter-name>AuthFilter</filter-name>
         <url-pattern>/chat</url-pattern>
     </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/admin/chat</url-pattern>
+    </filter-mapping>
  
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>
@@ -186,6 +190,10 @@
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>
         <url-pattern>/chat</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RoleFilter</filter-name>
+        <url-pattern>/admin/chat</url-pattern>
     </filter-mapping>
 
 <!-- Trigger reload -->

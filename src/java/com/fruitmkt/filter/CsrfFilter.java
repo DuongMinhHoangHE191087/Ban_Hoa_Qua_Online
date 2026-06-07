@@ -33,9 +33,11 @@ public class CsrfFilter implements Filter {
         }
 
         // Chỉ kiểm tra POST (bỏ qua GET, webhook /api/* và /auth/* trong lúc phát triển, và cả /cart)
+        // Bỏ qua /ws/chat/* vì WebSocket handshake là GET với header Upgrade — không có CSRF token body
         if ("POST".equalsIgnoreCase(req.getMethod()) 
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/api/")
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")
+                && !req.getRequestURI().startsWith(req.getContextPath() + "/ws/")
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/cart")) {
             String sessionToken = (String) session.getAttribute(AppConfig.SESSION_CSRF_TOKEN);
             String requestToken = req.getParameter("_csrf");

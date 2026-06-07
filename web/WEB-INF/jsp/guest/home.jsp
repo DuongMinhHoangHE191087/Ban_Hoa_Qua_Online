@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -311,12 +311,6 @@
                                                             </h3>
                                                         </div>
 
-                                                        <!-- Short Description for Flash Sale items -->
-                                                        <p
-                                                            class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
-                                                            <c:out value="${item.description}" />
-                                                        </p>
-
                                                         <!-- Stars and Unit Info -->
                                                         <div class="flex items-center gap-2 mb-3">
                                                             <div class="text-amber-500 scale-90 -ml-1">
@@ -358,17 +352,139 @@
                                                     </div>
                                                     <div
                                                         class="w-full bg-gray-100 h-2 rounded-full overflow-hidden border border-gray-200/50">
-                                                        <div class="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all duration-500"
-                                                            style="width: ${percentRemaining}%"></div>
+                                                        <div class="flash-sale-progress bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full transition-all duration-500"
+                                                             data-width="${percentRemaining}"></div>
                                                     </div>
                                                 </div>
 
                                                 <button type="button"
-                                                    onclick="quickAddProduct(event, ${item.productId})"
+                                                    onclick="quickAddProduct(event, '${item.productId}')"
                                                     class="w-full bg-red-50 border border-red-200 hover:bg-red-600 hover:text-white text-red-600 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
                                                     <span
                                                         class="material-symbols-outlined text-[16px]">shopping_cart</span>
                                                     Mua ngay Deal sốc
+                                                </button>
+                                            </div>
+                                        </article>
+                                    </c:forEach>
+                                </div>
+                            </div>
+                        </section>
+                    </c:if>
+
+                    <!-- BEST SELLERS SECTION -->
+                    <c:if test="${not empty bestSellersProducts}">
+                        <section class="px-6 md:px-12 max-w-7xl mx-auto mb-16">
+                            <div class="glass-panel rounded-3xl p-6 md:p-8 border-emerald-100/50 bg-white/65 hover:border-emerald-300/40 transition-all duration-300">
+
+                                <!-- Section Header & Slider Nav -->
+                                <div
+                                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-4 border-b border-emerald-100/50">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="material-symbols-outlined text-primary text-[32px] font-bold">trending_up</span>
+                                        <div>
+                                            <h2 class="text-xl md:text-2xl font-bold tracking-tight text-primary">🔥 SẢN PHẨM BÁN CHẠY NHẤT</h2>
+                                            <p class="text-xs text-on-surface-variant font-light mt-0.5">Top 10 sản phẩm bán chạy nhất, được khách hàng tin tưởng khuyên dùng.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 border-emerald-100/80">
+                                        <button onclick="scrollBestSellers(-1)"
+                                            class="w-9 h-9 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer">
+                                            <span
+                                                class="material-symbols-outlined text-[18px] font-bold">chevron_left</span>
+                                        </button>
+                                        <button onclick="scrollBestSellers(1)"
+                                            class="w-9 h-9 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-90 flex items-center justify-center cursor-pointer">
+                                            <span
+                                                class="material-symbols-outlined text-[18px] font-bold">chevron_right</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Best Sellers Products Horizontal Slider Container -->
+                                <div id="bestSellersContainer"
+                                    class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+                                    <c:forEach var="item" items="${bestSellersProducts}">
+                                        <article data-product-id="${item.productId}"
+                                            class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start">
+                                            <c:if test="${item.discountPercent > 0}">
+                                                <!-- Discount Tag Badge -->
+                                                <div
+                                                    class="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm">
+                                                    -
+                                                    <c:out value="${item.discountPercent}" />%
+                                                </div>
+                                            </c:if>
+
+                                            <!-- Clickable Product Area -->
+                                            <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
+                                                class="block group/link flex-grow flex flex-col justify-between"
+                                                style="text-decoration: none; color: inherit;">
+                                                <!-- Image Section -->
+                                                <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
+                                                    style="aspect-ratio: 4/3;">
+                                                    <img src="${item.image}" alt="${item.name}"
+                                                        onerror="handleImageError(this)"
+                                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                    <!-- Floating added qty badge -->
+                                                    <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden"
+                                                        id="badge-prod-${item.productId}">
+                                                        Đã thêm 0
+                                                    </div>
+                                                </div>
+
+                                                <!-- Content Section -->
+                                                <div class="flex-grow flex flex-col justify-between px-1">
+                                                    <div>
+                                                        <div class="flex justify-between items-start gap-2 mb-1">
+                                                            <h3
+                                                                class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                                                <c:out value="${item.name}" />
+                                                            </h3>
+                                                        </div>
+
+                                                        <!-- Stars and Unit Info -->
+                                                        <div class="flex items-center gap-2 mb-3">
+                                                            <div class="text-amber-500 scale-90 -ml-1">
+                                                                <ft:stars rating="${item.rating}" showValue="false" />
+                                                            </div>
+                                                            <span
+                                                                class="text-[10px] bg-emerald-100 text-primary font-semibold px-2 py-0.5 rounded-full">
+                                                                Đơn vị:
+                                                                <c:out value="${item.unit}" />
+                                                            </span>
+                                                        </div>
+
+                                                        <!-- Price Tag -->
+                                                        <div class="flex items-baseline gap-2 mb-3">
+                                                            <span class="text-base font-bold text-primary">
+                                                                <ft:currency value="${item.price}" />
+                                                            </span>
+                                                            <c:if test="${item.discountPercent > 0}">
+                                                                <span
+                                                                    class="text-xs text-on-surface-variant/60 line-through">
+                                                                    <ft:currency value="${item.originalPrice}" />
+                                                                </span>
+                                                            </c:if>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </a>
+
+                                            <!-- Buy Actions -->
+                                            <div class="space-y-3 px-1 mt-3">
+                                                <div class="flex justify-between text-[10px] font-semibold">
+                                                    <span class="text-primary-hover">Còn lại: ${item.stockRemaining} ${item.unit}</span>
+                                                    <span class="text-on-surface-variant/60">Đã bán ${item.soldQuantity}</span>
+                                                </div>
+                                                <button type="button"
+                                                    onclick="quickAddProduct(event, '${item.productId}')"
+                                                    class="w-full bg-primary-light hover:bg-primary hover:text-white text-primary font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+                                                    <span
+                                                        class="material-symbols-outlined text-[16px]">shopping_cart</span>
+                                                    Mua Ngay
                                                 </button>
                                             </div>
                                         </article>
@@ -508,7 +624,7 @@
 
                                         <!-- Lower Action Block (Price & Add to Cart) -->
                                         <div
-                                            class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
+                                                            class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
                                             <div class="flex flex-col">
                                                 <span class="text-base font-bold text-primary">
                                                     <ft:currency value="${item.price}" />
@@ -519,7 +635,7 @@
                                                 </span>
                                             </div>
 
-                                            <button type="button" onclick="quickAddProduct(event, ${item.productId})"
+                                            <button type="button" onclick="quickAddProduct(event, '${item.productId}')"
                                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                                 title="Thêm vào giỏ">
                                                 <span
@@ -558,30 +674,42 @@
                                         </c:otherwise>
                                     </c:choose>
 
-                                    <!-- Page Numbers -->
+                                    <!-- Page Numbers with Ellipsis -->
                                     <c:forEach var="p" begin="1" end="${totalPages}">
-                                        <c:url var="pageUrl" value="/home">
-                                            <c:param name="page" value="${p}" />
-                                            <c:if test="${not empty keyword}">
-                                                <c:param name="keyword" value="${keyword}" />
-                                            </c:if>
-                                            <c:if test="${not empty selectedCategoryId}">
-                                                <c:param name="categoryId" value="${selectedCategoryId}" />
-                                            </c:if>
-                                        </c:url>
                                         <c:choose>
-                                            <c:when test="${currentPage == p}">
-                                                <span
-                                                    class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                                                    ${p}
-                                                </span>
+                                            <%-- Display conditions: first page, last page, and neighbor pages --%>
+                                            <c:when test="${p == 1 || p == totalPages || (p >= currentPage - 1 && p <= currentPage + 1)}">
+                                                <c:url var="pageUrl" value="/home">
+                                                    <c:param name="page" value="${p}" />
+                                                    <c:if test="${not empty keyword}">
+                                                        <c:param name="keyword" value="${keyword}" />
+                                                    </c:if>
+                                                    <c:if test="${not empty selectedCategoryId}">
+                                                        <c:param name="categoryId" value="${selectedCategoryId}" />
+                                                    </c:if>
+                                                </c:url>
+                                                <c:choose>
+                                                    <c:when test="${currentPage == p}">
+                                                        <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
+                                                            ${p}
+                                                        </span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <a href="${pageUrl}"
+                                                            class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                                            ${p}
+                                                        </a>
+                                                    </c:otherwise>
+                                                </c:choose>
                                             </c:when>
-                                            <c:otherwise>
-                                                <a href="${pageUrl}"
-                                                    class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                                    ${p}
-                                                </a>
-                                            </c:otherwise>
+                                            <%-- Ellipsis before active range --%>
+                                            <c:when test="${p == 2 && currentPage > 3}">
+                                                <button onclick="promptPageJump('${totalPages}')" class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer" title="Nhảy đến trang...">...</button>
+                                            </c:when>
+                                            <%-- Ellipsis after active range --%>
+                                            <c:when test="${p == totalPages - 1 && currentPage < totalPages - 2}">
+                                                <button onclick="promptPageJump('${totalPages}')" class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer" title="Nhảy đến trang...">...</button>
+                                            </c:when>
                                         </c:choose>
                                     </c:forEach>
 
@@ -1153,12 +1281,76 @@
                         setTimeout(() => toast.classList.remove('show'), 3500);
                     }
 
+                    function promptPageJump(totalPages) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Nhảy đến trang',
+                                text: 'Nhập số trang muốn đến (1 - ' + totalPages + '):',
+                                input: 'number',
+                                inputAttributes: {
+                                    min: 1,
+                                    max: totalPages,
+                                    step: 1
+                                },
+                                inputValue: 1,
+                                showCancelButton: true,
+                                confirmButtonText: 'Đồng ý',
+                                cancelButtonText: 'Hủy',
+                                confirmButtonColor: '#4d661c',
+                                cancelButtonColor: '#6b7280',
+                                background: '#ffffff',
+                                inputValidator: (value) => {
+                                    if (!value) {
+                                        return 'Vui lòng nhập số trang!';
+                                    }
+                                    const page = parseInt(value);
+                                    if (isNaN(page) || page < 1 || page > totalPages) {
+                                        return 'Số trang phải từ 1 đến ' + totalPages + '!';
+                                    }
+                                }
+                            }).then((result) => {
+                                if (result.isConfirmed && result.value) {
+                                    const targetPage = parseInt(result.value);
+                                    const urlParams = new URLSearchParams(window.location.search);
+                                    urlParams.set('page', targetPage);
+                                    window.location.search = urlParams.toString();
+                                }
+                            });
+                        } else {
+                            const targetPageStr = prompt("Nhập số trang bạn muốn chuyển đến (1 - " + totalPages + "):");
+                            if (targetPageStr !== null) {
+                                const targetPage = parseInt(targetPageStr.trim());
+                                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+                                    const urlParams = new URLSearchParams(window.location.search);
+                                    urlParams.set('page', targetPage);
+                                    window.location.search = urlParams.toString();
+                                } else {
+                                    alert("Số trang không hợp lệ!");
+                                }
+                            }
+                        }
+                    }
+
+                    function scrollBestSellers(direction) {
+                        const container = document.getElementById('bestSellersContainer');
+                        if (container) {
+                            const cardWidth = container.firstElementChild ? container.firstElementChild.offsetWidth + 24 : 300;
+                            container.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+                        }
+                    }
+
                     // Launch initializers
                     document.addEventListener('DOMContentLoaded', () => {
                         startFlashSaleTimer();
                         if (window.updateCardAddedQuantities) {
                             window.updateCardAddedQuantities();
                         }
+                        document.querySelectorAll('.flash-sale-progress').forEach(el => {
+                            const w = el.getAttribute('data-width');
+                            if (w) {
+                                el.style.width = w + '%';
+                            }
+                        });
                     });
                 </script>
 

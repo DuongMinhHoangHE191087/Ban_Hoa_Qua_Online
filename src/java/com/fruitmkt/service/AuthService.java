@@ -128,18 +128,37 @@ public class AuthService {
             throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
         }
 
-        // Kiểm tra đối chiếu hash (Tuỳ vào HashUtil bạn đang viết)
+        // 1. Kiểm tra tài khoản có bị khóa hay không
+        if (user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil())) {
+            java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
+            throw new Exception("Tài khoản đang bị khóa tạm thời do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau: " 
+                + user.getLockedUntil().format(dtf));
+        }
+
+        // 2. Kiểm tra đối chiếu hash
         if (!HashUtil.verify(password, user.getPasswordHash())) {
-            // Có thể thêm logic: userDAO.incrementFailedLogin(user.getUserId());
-            throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
+            // Tăng số lần nhập sai
+            userDAO.incrementFailedLogin(user.getUserId());
+            int newFailedCount = user.getFailedLoginCount() + 1;
+            
+            if (newFailedCount >= AppConfig.MAX_FAILED_LOGIN) {
+                LocalDateTime lockTime = LocalDateTime.now().plusMinutes(AppConfig.LOCK_DURATION_MINUTES);
+                userDAO.lockAccount(user.getUserId(), lockTime);
+                throw new Exception("Tài khoản đã bị khóa tạm thời trong 30 phút do nhập sai mật khẩu quá " + AppConfig.MAX_FAILED_LOGIN + " lần.");
+            }
+            
+            int remaining = AppConfig.MAX_FAILED_LOGIN - newFailedCount;
+            throw new Exception("Mật khẩu không chính xác. Bạn còn " + remaining + " lần thử trước khi tài khoản bị khóa.");
         }
 
         if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus()) || !user.isEmailVerified()) {
             throw new VerificationRequiredException(user.getEmail(), "Tài khoản chưa được xác minh. Vui lòng nhập mã code để kích hoạt tài khoản.");
         }
 
-        // Thành công: Xóa biến đếm số lần sai mật khẩu
-        // userDAO.resetFailedLogin(user.getUserId());
+        // 3. Đăng nhập thành công: reset số lần sai
+        if (user.getFailedLoginCount() > 0 || user.getLockedUntil() != null) {
+            userDAO.resetFailedLogin(user.getUserId());
+        }
         return user;
     }
 

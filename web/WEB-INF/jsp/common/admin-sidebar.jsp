@@ -159,10 +159,10 @@
                 </a>
             </li>
             <li class="sb-nav-item">
-                <a href="${pageContext.request.contextPath}/admin/reports"
-                   class="sb-nav-link ${param.activeMenu == 'reports' ? 'active' : ''}">
-                    <span class="sb-icon"><i class="fa-solid fa-chart-column"></i></span>
-                    <span>Báo cáo thống kê</span>
+                <a href="${pageContext.request.contextPath}/admin/chat"
+                   class="sb-nav-link ${param.activeMenu == 'chat' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-comments"></i></span>
+                    <span>Chat Hỗ trợ</span>
                 </a>
             </li>
         </ul>
@@ -181,6 +181,13 @@
                    class="sb-nav-link ${param.activeMenu == 'manage-shops' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-store"></i></span>
                     <span>Quản lý Cửa hàng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/products"
+                   class="sb-nav-link ${param.activeMenu == 'admin-products' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-clipboard-check"></i></span>
+                    <span>Phê duyệt Sản phẩm</span>
                 </a>
             </li>
             <li class="sb-nav-item">
@@ -206,6 +213,13 @@
                    class="sb-nav-link ${param.activeMenu == 'settlements' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                     <span>Đối soát Thanh toán</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/payments"
+                   class="sb-nav-link ${param.activeMenu == 'payments' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span>Giám sát Thanh toán</span>
                 </a>
             </li>
             <li class="sb-nav-item">

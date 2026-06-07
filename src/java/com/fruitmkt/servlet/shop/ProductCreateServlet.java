@@ -72,10 +72,23 @@ public class ProductCreateServlet extends HttpServlet {
         String storageInstruction = req.getParameter("storageInstruction");
         String categoryIdStr = req.getParameter("categoryId");
         
+        boolean isOrganic = req.getParameter("isOrganic") != null;
+        boolean isImported = req.getParameter("isImported") != null;
+        String seasonStartMonthStr = req.getParameter("seasonStartMonth");
+        String seasonEndMonthStr = req.getParameter("seasonEndMonth");
+        
         // Đọc danh sách biến thể
         String[] variantLabels = req.getParameterValues("variantLabel");
         String[] variantPrices = req.getParameterValues("variantPrice");
         String[] variantStocks = req.getParameterValues("variantStock");
+        String[] variantWeights = req.getParameterValues("variantWeight");
+        String[] variantDiscountPrices = req.getParameterValues("variantDiscountPrice");
+        String[] variantDiscountStarts = req.getParameterValues("variantDiscountStart");
+        String[] variantDiscountEnds = req.getParameterValues("variantDiscountEnd");
+
+        // Đọc danh sách đóng gói chọn thêm
+        String[] packagingLabels = req.getParameterValues("packagingLabel");
+        String[] packagingPriceAdds = req.getParameterValues("packagingPriceAdd");
 
         // Giữ lại giá trị cũ phòng khi validate thất bại
         req.setAttribute("oldName", name);
@@ -160,7 +173,18 @@ public class ProductCreateServlet extends HttpServlet {
 
         // 3. Validate file ảnh trước khi ghi xuống đĩa
         List<Part> imageParts = new ArrayList<>();
+        Part verificationDocPart = null;
         try {
+            verificationDocPart = req.getPart("verificationDoc");
+            if (verificationDocPart != null && verificationDocPart.getSize() > 0) {
+                String filename = verificationDocPart.getSubmittedFileName();
+                if (!FileUploadUtil.isAllowedDoc(filename)) {
+                    errors.add("Giấy tờ xác nhận nông sản không đúng định dạng (chỉ hỗ trợ: pdf, jpg, jpeg, png, docx).");
+                }
+            } else {
+                errors.add("Vui lòng tải lên giấy tờ xác nhận nông sản sạch/hữu cơ/nhập khẩu.");
+            }
+            
             for (Part part : req.getParts()) {
                 if ("images".equals(part.getName()) && part.getSize() > 0) {
                     String filename = part.getSubmittedFileName();
@@ -193,6 +217,9 @@ public class ProductCreateServlet extends HttpServlet {
 
         // 5. Lưu thông tin vào Database
         try {
+            String uploadDir = getServletContext().getRealPath("");
+            String docPath = FileUploadUtil.saveShopDoc(verificationDocPart, uploadDir, currentUser.getUserId());
+
             Product p = new Product();
             p.setOwnerId(currentUser.getUserId());
             p.setCategoryId(categoryId);
@@ -204,12 +231,24 @@ public class ProductCreateServlet extends HttpServlet {
             p.setShelfLifeDays(shelfLifeDays);
             p.setStorageInstruction(storageInstruction != null ? storageInstruction.trim() : null);
             p.setStatus("ACTIVE");
+            p.setIsOrganic(isOrganic);
+            p.setIsImported(isImported);
+            p.setApprovalStatus("PENDING");
+            p.setVerificationDocPath(docPath);
+            
+            try {
+                if (seasonStartMonthStr != null && !seasonStartMonthStr.trim().isEmpty()) {
+                    p.setSeasonStartMonth(Integer.parseInt(seasonStartMonthStr.trim()));
+                }
+                if (seasonEndMonthStr != null && !seasonEndMonthStr.trim().isEmpty()) {
+                    p.setSeasonEndMonth(Integer.parseInt(seasonEndMonthStr.trim()));
+                }
+            } catch (NumberFormatException ignored) {}
 
             // Lưu sản phẩm và nhận ID tự sinh
             int productId = productDAO.save(p);
 
             // Lưu hình ảnh sản phẩm
-            String uploadDir = getServletContext().getRealPath("");
             int imageIndex = 0;
             for (Part part : imageParts) {
                 String relativePath = FileUploadUtil.save(part, uploadDir);
@@ -248,8 +287,62 @@ public class ProductCreateServlet extends HttpServlet {
                     }
                     variant.setStockQuantity(vStock);
 
+                    BigDecimal vWeight = new BigDecimal("1.000");
+                    if (variantWeights != null && variantWeights.length > i && variantWeights[i] != null && !variantWeights[i].trim().isEmpty()) {
+                        try {
+                            vWeight = new BigDecimal(variantWeights[i].trim());
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    variant.setWeightKg(vWeight);
+
+                    BigDecimal vDiscPrice = null;
+                    if (variantDiscountPrices != null && variantDiscountPrices.length > i && variantDiscountPrices[i] != null && !variantDiscountPrices[i].trim().isEmpty()) {
+                        try {
+                            vDiscPrice = new BigDecimal(variantDiscountPrices[i].trim());
+                        } catch (NumberFormatException ignored) {}
+                    }
+                    variant.setDiscountPrice(vDiscPrice);
+
+                    java.time.LocalDateTime vDiscStart = null;
+                    if (variantDiscountStarts != null && variantDiscountStarts.length > i && variantDiscountStarts[i] != null && !variantDiscountStarts[i].trim().isEmpty()) {
+                        try {
+                            vDiscStart = java.time.LocalDateTime.parse(variantDiscountStarts[i].trim());
+                        } catch (Exception ignored) {}
+                    }
+                    variant.setDiscountStart(vDiscStart);
+
+                    java.time.LocalDateTime vDiscEnd = null;
+                    if (variantDiscountEnds != null && variantDiscountEnds.length > i && variantDiscountEnds[i] != null && !variantDiscountEnds[i].trim().isEmpty()) {
+                        try {
+                            vDiscEnd = java.time.LocalDateTime.parse(variantDiscountEnds[i].trim());
+                        } catch (Exception ignored) {}
+                    }
+                    variant.setDiscountEnd(vDiscEnd);
+
                     variant.setIsActive(true);
                     productVariantDAO.save(variant);
+                }
+            }
+
+            // Lưu danh sách các bao bì tùy chọn
+            if (packagingLabels != null) {
+                com.fruitmkt.dao.ProductPackagingOptionDAO ppoDAO = new com.fruitmkt.dao.ProductPackagingOptionDAO();
+                for (int i = 0; i < packagingLabels.length; i++) {
+                    String pLabel = packagingLabels[i];
+                    if (pLabel != null && !pLabel.trim().isEmpty()) {
+                        BigDecimal priceAdd = BigDecimal.ZERO;
+                        if (packagingPriceAdds != null && packagingPriceAdds.length > i && packagingPriceAdds[i] != null) {
+                            try {
+                                priceAdd = new BigDecimal(packagingPriceAdds[i].trim());
+                            } catch (NumberFormatException ignored) {}
+                        }
+                        com.fruitmkt.model.entity.ProductPackagingOption option = new com.fruitmkt.model.entity.ProductPackagingOption();
+                        option.setProductId(productId);
+                        option.setLabel(pLabel.trim());
+                        option.setPriceAdd(priceAdd);
+                        option.setIsActive(true);
+                        ppoDAO.save(option);
+                    }
                 }
             }
 

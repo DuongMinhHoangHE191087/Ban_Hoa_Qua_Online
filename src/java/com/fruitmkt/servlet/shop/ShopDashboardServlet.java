@@ -50,17 +50,20 @@ public class ShopDashboardServlet extends HttpServlet {
             java.math.BigDecimal revenue = orderService.getRevenueByOwner(ownerId);
             int orderCount = orderService.getOrderCountByOwner(ownerId);
             int lowStock = productService.getLowStockCountByOwner(ownerId, 10);
+            java.util.List<java.util.Map<String, Object>> lowStockVariants = productService.getLowStockVariantsByOwner(ownerId, 10);
             java.util.List<com.fruitmkt.model.entity.Order> recentOrders = orderService.getRecentOrdersByOwner(ownerId, 5);
 
             req.setAttribute("revenue", revenue);
             req.setAttribute("orderCount", orderCount);
             req.setAttribute("lowStock", lowStock);
+            req.setAttribute("lowStockVariants", lowStockVariants);
             req.setAttribute("recentOrders", recentOrders);
         } catch (Exception e) {
             e.printStackTrace();
             req.setAttribute("revenue", java.math.BigDecimal.ZERO);
             req.setAttribute("orderCount", 0);
             req.setAttribute("lowStock", 0);
+            req.setAttribute("lowStockVariants", new java.util.ArrayList<>());
             req.setAttribute("recentOrders", new java.util.ArrayList<>());
         }
 
