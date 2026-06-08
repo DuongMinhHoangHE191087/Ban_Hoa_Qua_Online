@@ -479,7 +479,7 @@
                                        title="Xem chi tiết">
                                         <span class="material-symbols-outlined text-[15px]">visibility</span>
                                     </a>
-                                    <button type="button" onclick="triggerQuickAddFromAi(event, \${p.productId})" 
+                                    <button type="button" onclick="triggerQuickAddFromAi(event, \${p.productId}, \${p.variantId || 0}, '\${p.name.replace(/'/g, \"\\\\'\")}', \${p.price || 0}, '\${imgUrl}')" 
                                             class="bg-primary hover:bg-primary-hover text-white p-1.5 rounded-lg flex items-center justify-center transition-transform active:scale-90 cursor-pointer" 
                                             title="Thêm nhanh vào giỏ">
                                         <span class="material-symbols-outlined text-[15px]">add_shopping_cart</span>
@@ -534,17 +534,21 @@
             }
         }
 
-        function triggerQuickAddFromAi(event, productId) {
+        function triggerQuickAddFromAi(event, productId, variantId, name, price, imagePath) {
             if (event) {
                 event.preventDefault();
                 event.stopPropagation();
             }
-            if (window.quickAddProductGlobal) {
-                window.quickAddProductGlobal(productId);
-            } else if (typeof quickAddProduct === 'function') {
-                quickAddProduct(null, productId);
+            if (variantId > 0 && typeof window.addCartItem === 'function') {
+                window.addCartItem(variantId, 1, name, price, imagePath, 99, productId);
             } else {
-                window.location.href = '${pageContext.request.contextPath}/products/detail?id=' + productId;
+                if (window.quickAddProductGlobal) {
+                    window.quickAddProductGlobal(productId);
+                } else if (typeof quickAddProduct === 'function') {
+                    quickAddProduct(null, productId);
+                } else {
+                    window.location.href = '${pageContext.request.contextPath}/products/detail?id=' + productId;
+                }
             }
         }
     </script>
