@@ -101,7 +101,8 @@ public class AiSearchServlet extends HttpServlet {
                     "1. Tuyệt đối KHÔNG ĐƯỢC nhắc đến hoặc hiển thị bất kỳ ID sản phẩm nào (ví dụ: 'ID: 1', 'mã số 5') trong nội dung câu trả lời văn bản ('reply') gửi cho khách hàng. Hãy trả lời bằng văn phong tự nhiên, chỉ dùng tên sản phẩm.\n" +
                     "2. Chỉ trả về ID sản phẩm trong trường 'suggestedProductIds' dưới dạng mảng số nguyên. Mảng này được dùng ngầm để thêm sản phẩm vào giỏ hàng và lọc danh mục hiển thị trên giao diện.\n" +
                     "3. Gợi ý sản phẩm PHẢI lấy từ danh sách thực tế có sẵn dưới đây. Tuyệt đối không tự bịa ra sản phẩm hoặc ID sản phẩm không có trong danh sách.\n" +
-                    "4. Chỉ tư vấn về hoa quả, thực phẩm sạch, cách bảo quản và chế biến. Lịch sự từ chối các câu hỏi ngoài lề (lập trình, toán học, v.v.).\n\n" +
+                    "4. Chỉ tư vấn về hoa quả, thực phẩm sạch, cách bảo quản và chế biến. Lịch sự từ chối các câu hỏi ngoài lề (lập trình, toán học, v.v.).\n" +
+                    "5. Khi giới thiệu các sản phẩm gợi ý trong phần trả lời ('reply'), hãy trình bày thật bắt mắt: viết TÊN SẢN PHẨM IN ĐẬM ở một dòng riêng biệt, xuống dòng và viết giá tiền định dạng VNĐ sinh động (Ví dụ: '**Cam Sành Hàm Yên**\\n*Giá bán: 35.000đ / kg*') để tăng tính thuyết phục và tối ưu hiệu quả bán hàng.\n\n" +
                     catalogBuilder.toString();
 
             // Payload gọi Gemini API

@@ -893,6 +893,7 @@ public class ProductDAO extends BaseDAO {
         }
         
         String sql = "SELECT p.product_id, p.name, "
+                   + "       (SELECT TOP 1 pv.variant_id FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS variant_id, "
                    + "       (SELECT TOP 1 pv.price FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS price, "
                    + "       (SELECT TOP 1 pv.variant_label FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS unit, "
                    // B8: Fallback — lấy ảnh primary trước, nếu không có thì lấy ảnh bất kỳ
@@ -910,6 +911,7 @@ public class ProductDAO extends BaseDAO {
                 while (rs.next()) {
                     Map<String, Object> map = new HashMap<>();
                     map.put("productId", rs.getInt("product_id"));
+                    map.put("variantId", rs.getInt("variant_id"));
                     map.put("name", rs.getString("name"));
                     map.put("price", rs.getBigDecimal("price"));
                     map.put("unit", rs.getString("unit"));
