@@ -339,9 +339,11 @@ public class CheckoutServlet extends HttpServlet {
             e.printStackTrace();
         }
 
+        java.util.concurrent.locks.ReentrantLock lock = com.fruitmkt.util.UserLockManager.getLock(user.getUserId());
         try {
-            synchronized (String.valueOf(user.getUserId()).intern()) {
-                CartSummaryDTO cartSummary = cartService.getCart(user.getUserId());
+            if (lock.tryLock(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                try {
+                    CartSummaryDTO cartSummary = cartService.getCart(user.getUserId());
                 List<CartItem> items = cartSummary.getItems();
                 if (items.isEmpty()) {
                     SessionUtil.flashError(session, "Giỏ hàng trống hoặc đơn hàng đang được xử lý.");
@@ -644,6 +646,13 @@ public class CheckoutServlet extends HttpServlet {
                 } else {
                     resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + orderId);
                 }
+                } finally {
+                    lock.unlock();
+                    com.fruitmkt.util.UserLockManager.cleanUp(user.getUserId());
+                }
+            } else {
+                SessionUtil.flashError(session, "Yêu cầu đặt hàng của bạn đang được hệ thống xử lý. Vui lòng không bấm liên tiếp.");
+                resp.sendRedirect(req.getContextPath() + "/checkout?variantIds=" + (variantIdsParam != null ? variantIdsParam : ""));
             }
         } catch (Exception e) {
             e.printStackTrace();
