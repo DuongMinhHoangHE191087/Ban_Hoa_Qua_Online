@@ -4,9 +4,7 @@
 param(
     [string]$Action = "help"
 )
-
 $LogFile = "build_tools.log"
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Log-Message {
     param([string]$Message, [string]$Level = "INFO")
@@ -70,8 +68,8 @@ function Verify-CatalinaHome {
 
 function Find-JavaHome {
     # 1. Try env variable
-    $home = Verify-JavaHome $env:JAVA_HOME
-    if ($home) { return $home }
+    $resolvedHome = Verify-JavaHome $env:JAVA_HOME
+    if ($resolvedHome) { return $resolvedHome }
 
     # 2. Try NetBeans properties
     if (Test-Path "nbproject/private/private.properties") {
@@ -81,8 +79,8 @@ function Find-JavaHome {
             foreach ($line in $lines) {
                 if ($line -match '^platforms\.[^.]+\.home\s*=\s*(.+)') {
                     $p = $Matches[1].Trim()
-                    $home = Verify-JavaHome $p
-                    if ($home) { return $home }
+                    $resolvedHome = Verify-JavaHome $p
+                    if ($resolvedHome) { return $resolvedHome }
                 }
             }
         }
@@ -98,15 +96,15 @@ function Find-JavaHome {
         if (Test-Path $regPath) {
             $jh = Get-ItemProperty -Path $regPath -Name "JavaHome" -ErrorAction SilentlyContinue
             if ($jh) {
-                $home = Verify-JavaHome $jh.JavaHome
-                if ($home) { return $home }
+                $resolvedHome = Verify-JavaHome $jh.JavaHome
+                if ($resolvedHome) { return $resolvedHome }
             }
             $subKeys = Get-ChildItem -Path $regPath -ErrorAction SilentlyContinue
             foreach ($sub in $subKeys) {
                 $jhSub = Get-ItemProperty -Path $sub.PSPath -Name "JavaHome" -ErrorAction SilentlyContinue
                 if ($jhSub) {
-                    $home = Verify-JavaHome $jhSub.JavaHome
-                    if ($home) { return $home }
+                    $resolvedHome = Verify-JavaHome $jhSub.JavaHome
+                    if ($resolvedHome) { return $resolvedHome }
                 }
             }
         }
@@ -122,8 +120,8 @@ function Find-JavaHome {
             $jdks = Get-ChildItem -Path $dir -Directory -Filter "jdk-*" -ErrorAction SilentlyContinue
             $jdks = $jdks | Sort-Object Name -Descending
             foreach ($jdk in $jdks) {
-                $home = Verify-JavaHome $jdk.FullName
-                if ($home) { return $home }
+                $resolvedHome = Verify-JavaHome $jdk.FullName
+                if ($resolvedHome) { return $resolvedHome }
             }
         }
     }
@@ -133,8 +131,8 @@ function Find-JavaHome {
     if ($javaCmd) {
         $javaExe = $javaCmd.Source
         $parent = Split-Path (Split-Path $javaExe -Parent) -Parent
-        $home = Verify-JavaHome $parent
-        if ($home) { return $home }
+        $resolvedHome = Verify-JavaHome $parent
+        if ($resolvedHome) { return $resolvedHome }
     }
 
     return $null
@@ -142,20 +140,20 @@ function Find-JavaHome {
 
 function Find-CatalinaHome {
     # 1. Try env variable
-    $home = Verify-CatalinaHome $env:CATALINA_HOME
-    if ($home) { return $home }
+    $resolvedHome = Verify-CatalinaHome $env:CATALINA_HOME
+    if ($resolvedHome) { return $resolvedHome }
 
     # 2. Try NetBeans configuration
     if (Test-Path "nbproject/private/private.properties") {
         $nbHome = Get-PropertyFromFile "nbproject/private/private.properties" "j2ee.server.home"
-        $home = Verify-CatalinaHome $nbHome
-        if ($home) { return $home }
+        $resolvedHome = Verify-CatalinaHome $nbHome
+        if ($resolvedHome) { return $resolvedHome }
 
         $antProps = Get-PropertyFromFile "nbproject/private/private.properties" "deploy.ant.properties.file"
         if ($antProps -and (Test-Path $antProps)) {
             $tcHome = Get-PropertyFromFile $antProps "tomcat.home"
-            $home = Verify-CatalinaHome $tcHome
-            if ($home) { return $home }
+            $resolvedHome = Verify-CatalinaHome $tcHome
+            if ($resolvedHome) { return $resolvedHome }
         }
     }
 
@@ -173,21 +171,21 @@ function Find-CatalinaHome {
             $matches = Get-Item $dir -ErrorAction SilentlyContinue
             foreach ($m in $matches) {
                 if ($m.PSIsContainer) {
-                    $home = Verify-CatalinaHome $m.FullName
-                    if ($home) { return $home }
+                    $resolvedHome = Verify-CatalinaHome $m.FullName
+                    if ($resolvedHome) { return $resolvedHome }
                 }
             }
         } elseif (Test-Path $dir) {
             $tcDirs = Get-ChildItem -Path $dir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*tomcat*" -or $_.Name -like "*apache-tomcat*" }
             $tcDirs = $tcDirs | Sort-Object Name -Descending
             foreach ($tcd in $tcDirs) {
-                $home = Verify-CatalinaHome $tcd.FullName
-                if ($home) { return $home }
+                $resolvedHome = Verify-CatalinaHome $tcd.FullName
+                if ($resolvedHome) { return $resolvedHome }
                 
                 $subDirs = Get-ChildItem -Path $tcd.FullName -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*tomcat*" -or $_.Name -like "*apache-tomcat*" }
                 foreach ($sub in $subDirs) {
-                    $home = Verify-CatalinaHome $sub.FullName
-                    if ($home) { return $home }
+                    $resolvedHome = Verify-CatalinaHome $sub.FullName
+                    if ($resolvedHome) { return $resolvedHome }
                 }
             }
         }
@@ -695,9 +693,9 @@ function Deploy-App {
     if (Test-Path $webSrcDir) {
         Write-Host "Syncing web files..." -ForegroundColor Yellow
         # Robocopy command
-        $robocopyProcess = Start-Process -FilePath "robocopy" `
+        Start-Process -FilePath "robocopy" `
             -ArgumentList "`"$webSrcDir`"", "`"$webBuildDir`"", "/s", "/e", "/xd", "WEB-INF\classes", "/w:1", "/r:1", "/ndl", "/nfl" `
-            -PassThru -Wait -NoNewWindow
+            -Wait -NoNewWindow
     }
 
     $classpath = "web/WEB-INF/lib/*;$tomcatHome/lib/*"
