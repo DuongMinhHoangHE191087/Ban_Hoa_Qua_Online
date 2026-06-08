@@ -123,6 +123,8 @@ function Find-JavaHome {
                 $resolvedHome = Verify-JavaHome $jdk.FullName
                 if ($resolvedHome) { return $resolvedHome }
             }
+        } elseif (Test-Path "$b\conf") {
+            return (Get-Item $b).FullName
         }
     }
 
