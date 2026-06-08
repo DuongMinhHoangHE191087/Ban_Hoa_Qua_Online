@@ -126,7 +126,7 @@
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center gap-2">
-                                                <button onclick="openEditModal(${c.categoryId}, '${c.name}', '${c.slug}', ${c.displayOrder}, ${c.getIsActive()})"
+                                                <button onclick="openEditModal('${c.categoryId}', '${c.name}', '${c.slug}', '${c.displayOrder}', '${c.getIsActive()}')"
                                                         class="bg-white hover:bg-slate-50 border border-slate-200 text-txt-2 hover:text-primary font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
                                                     <i class="fa-solid fa-pen mr-0.5"></i> Sửa
                                                 </button>
@@ -262,7 +262,7 @@
         document.getElementById('editName').value = name;
         document.getElementById('editSlug').value = slug;
         document.getElementById('editOrder').value = order;
-        document.getElementById('editActive').checked = isActive;
+        document.getElementById('editActive').checked = (isActive === 'true' || isActive === true);
         openModal('editModal');
     }
 
