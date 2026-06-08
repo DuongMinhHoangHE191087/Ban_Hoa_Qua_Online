@@ -334,6 +334,8 @@ $env:JAVA_HOME = $JAVA_HOME
 $env:JRE_HOME = $JRE_HOME
 if ($CATALINA_HOME) { $env:CATALINA_HOME = $CATALINA_HOME }
 if ($CATALINA_BASE) { $env:CATALINA_BASE = $CATALINA_BASE }
+$env:JAVA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
+$env:CATALINA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
 $env:PATH = "$JAVA_HOME\bin;" + $env:PATH
 
 
@@ -589,6 +591,8 @@ function Install-Config {
     $env:JRE_HOME = $global:JRE_HOME
     $env:CATALINA_HOME = $global:CATALINA_HOME
     $env:CATALINA_BASE = $global:CATALINA_BASE
+    $env:JAVA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
+    $env:CATALINA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
     
     Log-Message "Install-config executed, updated configuration saved."
 }

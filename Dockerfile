@@ -23,5 +23,8 @@ RUN find /app/src/java -name "*.java" > /app/sources.txt && \
 RUN rm -rf /usr/local/tomcat/webapps/* && \
     cp -r /app/build/web /usr/local/tomcat/webapps/Ban_Hoa_Qua_Online
 
+ENV JAVA_OPTS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
+ENV CATALINA_OPTS="-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
+
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
