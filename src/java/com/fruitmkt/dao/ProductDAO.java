@@ -852,6 +852,29 @@ public class ProductDAO extends BaseDAO {
         return list;
     }
 
+    public List<Map<String, Object>> findAllActiveBriefForAI() throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT p.product_id, p.name, p.status, ISNULL(SUM(pv.stock_quantity), 0) AS total_stock "
+                   + "FROM products p "
+                   + "LEFT JOIN product_variants pv ON p.product_id = pv.product_id AND pv.is_active = 1 "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' "
+                   + "GROUP BY p.product_id, p.name, p.status "
+                   + "ORDER BY p.product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("productId", rs.getInt("product_id"));
+                map.put("name", rs.getString("name"));
+                map.put("status", rs.getString("status"));
+                map.put("stock", rs.getInt("total_stock"));
+                list.add(map);
+            }
+        }
+        return list;
+    }
+
     /**
      * Lấy thông tin ngắn gọn của danh sách sản phẩm theo ID để hiển thị trong AI chat.
      */

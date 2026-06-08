@@ -503,7 +503,7 @@
                             const contextPath = window.contextPath || '${pageContext.request.contextPath}';
                             productsHtml += `
                                 <div class="mt-3 text-center">
-                                    <a href="\${contextPath}/products" class="inline-flex items-center gap-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-[10px] px-3.5 py-2 rounded-full transition-all shadow-sm">
+                                    <a href="\${contextPath}/products?fromAi=true&suggestedIds=\${suggestedIds.join(',')}" class="inline-flex items-center gap-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-[10px] px-3.5 py-2 rounded-full transition-all shadow-sm">
                                         <span class="material-symbols-outlined text-[14px]">open_in_new</span> Xem danh sách trên trang Sản phẩm
                                     </a>
                                 </div>

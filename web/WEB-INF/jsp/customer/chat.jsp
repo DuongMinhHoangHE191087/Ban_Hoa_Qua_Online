@@ -7,6 +7,9 @@
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script>
+    window.CTX = '${pageContext.request.contextPath}';
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
@@ -192,7 +195,7 @@
 
 <c:if test="${activeSessionId > 0}">
 <script>
-    const CTX = '${pageContext.request.contextPath}';
+    const CTX = window.CTX;
     const sessionId = parseInt('${activeSessionId}');
     const currentUserId = parseInt('${sessionScope.currentUser != null ? sessionScope.currentUser.userId : -1}');
     
@@ -493,6 +496,7 @@
 </c:if>
 
 <script>
+    const CTX = window.CTX;
     // Search filter cho Sidebar
     const searchInput = document.getElementById('searchSessions');
     if (searchInput) {

@@ -562,11 +562,23 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Clear AI filter if page is reloaded or if the URL does not contain fromAi=true
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFromAi = urlParams.get('fromAi') === 'true';
+        const isReload = (window.performance && window.performance.navigation && window.performance.navigation.type === 1) ||
+                         (window.performance && window.performance.getEntriesByType && window.performance.getEntriesByType("navigation")[0] && window.performance.getEntriesByType("navigation")[0].type === "reload");
+
+        if (isReload || !isFromAi) {
+            sessionStorage.removeItem('aiFilteredProductIds');
+        }
+
         // Submit handler for the filter form
         const form = document.querySelector('aside form');
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
+                // Clear AI filter when user manually submits the search/filter form
+                sessionStorage.removeItem('aiFilteredProductIds');
                 applyClientFilters();
             });
         }
