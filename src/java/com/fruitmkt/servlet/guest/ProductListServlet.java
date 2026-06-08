@@ -63,7 +63,23 @@ public class ProductListServlet extends HttpServlet {
 
         try {
             categories  = categoryDAO.findAllActive();
-            pagedResult = productService.getProductList(page, keyword, categoryId, minPrice, maxPrice);
+            String suggestedIdsParam = req.getParameter("suggestedIds");
+            if (suggestedIdsParam != null && !suggestedIdsParam.trim().isEmpty()) {
+                String[] idsStr = suggestedIdsParam.split(",");
+                List<Product> productsList = new ArrayList<>();
+                for (String idStr : idsStr) {
+                    try {
+                        int id = Integer.parseInt(idStr.trim());
+                        Product p = productService.getProductById(id);
+                        if (p != null && "ACTIVE".equals(p.getStatus()) && "APPROVED".equals(p.getApprovalStatus())) {
+                            productsList.add(p);
+                        }
+                    } catch (NumberFormatException ignored) {}
+                }
+                pagedResult = new PagedResultDTO(productsList, 1, 1, productsList.size(), AppConfig.PAGE_SIZE_PRODUCTS);
+            } else {
+                pagedResult = productService.getProductList(page, keyword, categoryId, minPrice, maxPrice);
+            }
 
             // Chuyển đổi danh sách Product sang List<Map<String, Object>> để cung cấp đầy đủ thông tin (ảnh, giá, đơn vị) cho JSP
             if (pagedResult != null && pagedResult.getItems() != null) {
