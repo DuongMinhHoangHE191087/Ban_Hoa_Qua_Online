@@ -77,8 +77,8 @@ Tài liệu này được thiết kế để các bạn sinh viên có thể **c
 | 53 | Wishlist System | Move Wishlist to Cart | Customer | Customer: Move items from wishlist to shopping cart directly. |  | II.32 | To Do | 3 | 120 |  |
 | 54 | Checkout Process | Select Delivery Address | Customer | Customer: Select shipping address from profile list during checkout. |  | II.33 | To Do | 2 | 90 |  |
 | 55 | Checkout Process | Order Confirmation | Customer | Order confirmation page with order ID and payment instructions. |  | II.34 | To Do | 2 | 90 |  |
-| 56 | Order Placement | Create Order | Customer | Customer checkout: Transactional order and order items creation. |  | II.35 | To Do | 5 | 180 |  |
-| 57 | Order Placement | Reservate Inventory | System | System: Hold stock during checkout and rollback if stock is insufficient. |  | II.36 | To Do | 4 | 150 |  |
+| 56 | Order Placement | Create Order | Customer | Customer checkout: Transactional order and order items creation. |  | II.35 | Completed | 5 | 180 | 2026-06-07: Multi-shop checkout creates parent order + per-shop child orders, supports COD/CK parent payment reference, and passes regression tests. |
+| 57 | Order Placement | Reservate Inventory | System | System: Hold stock during checkout and rollback if stock is insufficient. |  | II.36 | Completed | 4 | 150 | 2026-06-07: Inventory reservation is executed transactionally per child order item; rollback preserves stock/cart on failure. |
 | 58 | Customer Order Tracking | Reorder Previous Purchase | Customer | Customer: Quick reordering of items from historical purchases. |  | II.37 | Completed | 3 | 120 |  |
 | 59 | Customer Order Tracking | Track Order Status | Customer | Customer: Track live order delivery status using visual timeline. |  | II.38 | Completed | 3 | 120 |  |
 | 60 | Customer Order Tracking | Estimated Delivery Time | Customer / Shop Owner / Delivery | Display estimated delivery time set by the Shop Owner. |  | II.39 | Completed | 1 | 60 |  |
@@ -98,12 +98,12 @@ Tài liệu này được thiết kế để các bạn sinh viên có thể **c
 | 73 | Online Payment Integration | Payment Confirmation SePay Webhook | System | System: SePay webhook receiver to auto-approve orders on payment. |  | III.4 | To Do | 6 | 210 |  |
 | 74 | Online Payment Integration | Real-time Status Polling | Customer | Customer checkout: Real-time API polling for payment success. |  | III.5 | To Do | 2 | 90 |  |
 | 75 | Online Payment Integration | Payment Refund Logic | Admin | Admin control: Process refunds for cancelled or returned orders. |  | III.6 | To Do | 4 | 150 |  |
-| 76 | Discount Promotion Engine | Apply Coupon Promotion | Customer | Customer checkout: Apply coupon discount codes for price deduction. |  | III.7 | To Do | 4 | 150 |  |
+| 76 | Discount Promotion Engine | Apply Coupon Promotion | Customer | Customer checkout: Apply coupon discount codes for price deduction. |  | III.7 | Completed | 4 | 150 | 2026-06-07: Direct sale, voucher shop per matching shop, and voucher sàn on parent order total are separated in checkout and regression-tested for multi-shop carts. |
 | 77 | Invoice & Billing | Generate Digital Invoice | System | System: Auto-generate digital invoice after successful payment. |  | III.8 | To Do | 3 | 120 |  |
 | 78 | Invoice & Billing | Download Receipt PDF/HTML | Customer | Customer: Download purchase receipt as PDF or clean HTML. |  | III.9 | To Do | 5 | 180 |  |
 | 79 | Order Returns & Refund Requests | Create Return/Exchange Request | Customer | Customer: Submit return/exchange requests with photo evidence. |  | III.10 | To Do | 4 | 150 |  |
 | 80 | Customer Order History | View Order History Detail | Customer | Customer: View order history details, timeline, and invoice. |  | III.11 | To Do | 3 | 120 |  |
-| 81 | Marketing Campaigns | Discount Coupons Creation | Shop Owner / Admin | Shop Owner: Create and manage promotional discount coupons. |  | III.12 | To Do | 4 | 150 |  |
+| 81 | Marketing Campaigns | Discount Coupons Creation | Shop Owner / Admin | Shop Owner: Create and manage promotional discount coupons. |  | III.12 | Completed | 4 | 150 | PromotionServlet CRUD/toggle/delete and admin negative validation tests are included in the main JUnit runner. |
 | 82 | Marketing Campaigns | Seasonal Campaigns | Shop Owner / Admin | Shop Owner: Create automated seasonal discount campaigns. |  | III.13 | To Do | 4 | 150 |  |
 | 83 | Marketing Campaigns | Flash Sales Configuration | Shop Owner / Admin | Shop Owner: Create timed Flash Sale events with limited stock. |  | III.14 | To Do | 4 | 150 |  |
 | 84 | Product Review & Rating System | Write Product Review | Customer | Customer: Submit product reviews with ratings and image attachments. |  | III.15 | To Do | 4 | 150 |  |
@@ -116,11 +116,11 @@ Tài liệu này được thiết kế để các bạn sinh viên có thể **c
 | 91 | Notification & Alert Center | Delivery Status Updates | System | System: Notify customers of shipping updates (Shipped/Delivered). |  | III.22 | To Do | 2 | 90 |  |
 | 92 | Notification & Alert Center | Promotion Notifications | Admin | Admin: Send promotional notifications to all customers in background. |  | III.23 | To Do | 4 | 150 |  |
 | 93 | Notification & Alert Center | Low Stock Warning | System | System: Warn Shop Owners when variant inventory falls below 5 items. |  | III.24 | To Do | 2 | 90 |  |
-| 94 | Notification & Alert Center | New Order Alert | System | System: Instant notification to Shop Owners on new order placement. |  | III.25 | To Do | 3 | 120 |  |
+| 94 | Notification & Alert Center | New Order Alert | System | System: Instant notification to Shop Owners on new order placement. |  | III.25 | Completed | 3 | 120 | 2026-06-07: Multi-shop checkout sends preparation notifications to each affected shop owner after successful commit. |
 | 95 | Notification & Alert Center | Email Notifications | System | System: General email sender service utilizing JavaMail API. |  | III.26 | To Do | 4 | 150 |  |
 | 96 | Notification & Alert Center | In-App Notifications bell | Customer | Customer: Real-time notification badge and dropdown on header. |  | III.27 | To Do | 3 | 120 |  |
 | 97 | Global Admin Monitoring | Monitor Orders Global | Admin | Admin panel: Global order monitoring dashboard with multi-filters. |  | III.28 | To Do | 4 | 150 |  |
-| 98 | Global Admin Monitoring | Monitor Payments Global | Admin | Admin panel: Monitor all transaction logs and VietQR bank transfers. |  | III.29 | To Do | 4 | 150 |  |
+| 98 | Global Admin Monitoring | Monitor Payments Global | Admin | Admin panel: Monitor all transaction logs and VietQR bank transfers. |  | III.29 | Completed | 4 | 150 | Admin payment dashboard route/JSP exists; filter and pagination regression is included in the main JUnit runner. |
 | 99 | Global Admin Monitoring | Handle Refund Requests | Admin | Admin panel: Review and approve customer refund requests. |  | III.30 | To Do | 4 | 150 |  |
 | 100 | Analytics & Reporting | Revenue Report Chart.js | Shop Owner / Admin | Shop/Admin: Revenue visualization charts powered by Chart.js. |  | III.31 | To Do | 5 | 180 |  |
 | 101 | Analytics & Reporting | Sales/Fruit Usage Report | Shop Owner / Admin | Shop/Admin: Advanced sales and fruit usage reports generation. |  | III.32 | To Do | 6 | 210 |  |

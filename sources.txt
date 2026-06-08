@@ -3,6 +3,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\CartDAO.j
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\CategoryDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\ChatDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\DeliveryDAO.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\DeliveryTripDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\InventoryDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\NotificationDAO.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\dao\OrderDAO.java
@@ -41,6 +42,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ChatMessage.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\ChatSession.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Delivery.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\DeliveryTrip.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\InventoryLog.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Notification.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\model\entity\Order.java
@@ -105,6 +107,7 @@ D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\ShopApprovalServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\ShopDocServeServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\admin\UserManageServlet.java
+D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\AddressAPIServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\CartSyncServlet.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\ChatAPI.java
 D:\DMHoang\Project_GitHub\Ban_Hoa_Qua_Online\src\java\com\fruitmkt\servlet\api\ChatMediaUploadServlet.java

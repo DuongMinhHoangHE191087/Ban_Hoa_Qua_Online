@@ -9,6 +9,8 @@ public class Delivery {
 
     private int deliveryId;
     private int orderId;
+    private Integer deliveryTripId;
+    private Integer tripStopSeq;
     private Integer staffId;
     private String status;
     private java.time.LocalDateTime pickedUpAt;
@@ -26,6 +28,12 @@ public class Delivery {
 
     public int getOrderId() { return orderId; }
     public void setOrderId(int orderId) { this.orderId = orderId; }
+
+    public Integer getDeliveryTripId() { return deliveryTripId; }
+    public void setDeliveryTripId(Integer deliveryTripId) { this.deliveryTripId = deliveryTripId; }
+
+    public Integer getTripStopSeq() { return tripStopSeq; }
+    public void setTripStopSeq(Integer tripStopSeq) { this.tripStopSeq = tripStopSeq; }
 
     public Integer getStaffId() { return staffId; }
     public void setStaffId(Integer staffId) { this.staffId = staffId; }

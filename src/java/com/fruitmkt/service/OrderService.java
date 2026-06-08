@@ -1,5 +1,6 @@
 package com.fruitmkt.service;
 
+import com.fruitmkt.config.AppConfig;
 import java.sql.SQLException;
 
 /**
@@ -72,7 +73,7 @@ public class OrderService {
     }
 
     /**
-     * Cập nhật đơn hàng thành APPROVED (Duyệt đơn)
+     * Cập nhật đơn hàng sang CONFIRMED sau khi shop owner duyệt.
      */
     public void confirmOrder(int orderId, int ownerId) throws SQLException {
         com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
@@ -82,7 +83,7 @@ public class OrderService {
         if (!"PENDING_PAYMENT".equals(order.getStatus()) && !"CONFIRMED".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể duyệt đơn hàng ở trạng thái PENDING hoặc CONFIRMED");
         }
-        orderDAO.updateStatus(orderId, "APPROVED");
+        orderDAO.updateStatus(orderId, "CONFIRMED");
     }
 
     /**
@@ -147,7 +148,7 @@ public class OrderService {
         if (order == null || order.getOwnerId() != ownerId) {
             throw new RuntimeException("Đơn hàng không hợp lệ!");
         }
-        if (!"APPROVED".equals(order.getStatus()) && !"PREPARING".equals(order.getStatus())) {
+        if (!"CONFIRMED".equals(order.getStatus()) && !"PREPARING".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
         }
         orderDAO.updateStatus(orderId, "DISPATCHED");
@@ -222,7 +223,7 @@ public class OrderService {
      * Tự động xác nhận hoàn thành đơn hàng đã giao (DELIVERED) sau freeze_days ngày nếu khách không khiếu nại.
      */
     public void autoConfirmDeliveredOrders() throws SQLException {
-        int freezeDays = configDAO.getInt("freeze_days", 3);
+        int freezeDays = configDAO.getInt(AppConfig.CONFIG_FREEZE_DAYS, AppConfig.FREEZE_DAYS_DEFAULT);
         String sql = "SELECT o.order_id, o.owner_id, o.final_amount FROM orders o "
                    + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
                    + "WHERE o.status = 'DELIVERED' "

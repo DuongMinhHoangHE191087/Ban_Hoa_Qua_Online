@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
     <jsp:param name="pageTitle" value="Quản lý Tin nhắn (Shop)" />
 </jsp:include>
@@ -64,7 +65,7 @@
                             <div class="relative">
                                 <c:choose>
                                     <c:when test="${not empty session.partnerAvatar}">
-                                        <img src="${session.partnerAvatar}" alt="Avatar" class="w-11 h-11 rounded-full object-cover border border-white shadow-sm">
+                                        <img src="${fn:startsWith(session.partnerAvatar, 'http') ? session.partnerAvatar : pageContext.request.contextPath.concat('/').concat(session.partnerAvatar)}" alt="Avatar" class="w-11 h-11 rounded-full object-cover border border-white shadow-sm">
                                     </c:when>
                                     <c:otherwise>
                                         <div class="w-11 h-11 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border border-white shadow-sm">

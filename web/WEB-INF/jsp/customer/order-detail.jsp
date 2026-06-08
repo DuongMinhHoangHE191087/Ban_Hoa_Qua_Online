@@ -304,13 +304,13 @@
                     </div>
                     <c:if test="${order.shopDiscountAmount > 0}">
                         <div class="flex justify-between items-center text-primary font-semibold">
-                            <span>Mã giảm giá từ Shop</span>
+                            <span>Voucher shop</span>
                             <span>-<ft:currency value="${order.shopDiscountAmount}"/></span>
                         </div>
                     </c:if>
                     <c:if test="${order.systemDiscountAmount > 0}">
                         <div class="flex justify-between items-center text-primary font-semibold">
-                            <span>Mã giảm giá từ Sàn (MetaFruit)</span>
+                            <span>Voucher sàn (MetaFruit)</span>
                             <span>-<ft:currency value="${order.systemDiscountAmount}"/></span>
                         </div>
                     </c:if>

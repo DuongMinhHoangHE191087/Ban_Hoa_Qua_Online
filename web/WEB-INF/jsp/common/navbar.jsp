@@ -149,7 +149,7 @@
                         <div class="user-avatar" style="overflow: hidden;">
                             <c:choose>
                                 <c:when test="${not empty sessionScope.currentUser.avatarUrl}">
-                                    <img src="${sessionScope.currentUser.avatarUrl.startsWith('http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <img src="${fn:startsWith(sessionScope.currentUser.avatarUrl, 'http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
                                 </c:when>
                                 <c:otherwise>
                                     <i class="fa-solid fa-user-circle"></i>

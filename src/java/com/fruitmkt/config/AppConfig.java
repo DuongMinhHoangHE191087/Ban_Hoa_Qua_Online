@@ -130,6 +130,9 @@ public final class AppConfig {
         public static final String ORDER_PAYMENT_FAILED = "PAYMENT_FAILED";
         public static final String ORDER_EXPIRED = "EXPIRED";
 
+        public static final String ORDER_TYPE_PARENT = "PARENT";
+        public static final String ORDER_TYPE_CHILD = "CHILD";
+
         // ------------------------------------------------------------------
         // Delivery Status
         // ------------------------------------------------------------------
@@ -138,6 +141,14 @@ public final class AppConfig {
         public static final String DELIVERY_IN_TRANSIT = "IN_TRANSIT";
         public static final String DELIVERY_DELIVERED = "DELIVERED";
         public static final String DELIVERY_FAILED = "FAILED";
+
+        public static final String DELIVERY_TRIP_PLANNED = "PLANNED";
+        public static final String DELIVERY_TRIP_ASSIGNED = "ASSIGNED";
+        public static final String DELIVERY_TRIP_PICKED_UP = "PICKED_UP";
+        public static final String DELIVERY_TRIP_IN_TRANSIT = "IN_TRANSIT";
+        public static final String DELIVERY_TRIP_DELIVERED = "DELIVERED";
+        public static final String DELIVERY_TRIP_FAILED = "FAILED";
+        public static final String DELIVERY_TRIP_CANCELLED = "CANCELLED";
 
         // ------------------------------------------------------------------
         // Shop Approval Status

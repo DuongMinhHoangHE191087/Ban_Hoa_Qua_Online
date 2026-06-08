@@ -79,7 +79,7 @@ public class OrderDAO extends BaseDAO {
         int offset = (page - 1) * pageSize;
         if (offset < 0) offset = 0;
         
-        StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE customer_id = ? ");
+        StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE customer_id = ? AND parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         params.add(customerId);
         
@@ -138,10 +138,10 @@ public class OrderDAO extends BaseDAO {
     }
 
     public int countAll(String status) throws SQLException {
-        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders ");
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         if (status != null && !status.trim().isEmpty()) {
-            sql.append("WHERE status = ? ");
+            sql.append("AND status = ? ");
             params.add(status);
         }
         try (Connection conn = getConnection();
@@ -162,10 +162,10 @@ public class OrderDAO extends BaseDAO {
     public List<Order> findAll(String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
-        StringBuilder sql = new StringBuilder("SELECT * FROM orders ");
+        StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         if (status != null && !status.trim().isEmpty()) {
-            sql.append("WHERE status = ? ");
+            sql.append("AND status = ? ");
             params.add(status);
         }
         sql.append("ORDER BY order_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
@@ -190,7 +190,7 @@ public class OrderDAO extends BaseDAO {
         if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
             sql.append("JOIN payment_transactions pt ON o.order_id = pt.order_id ");
         }
-        sql.append("WHERE 1=1 ");
+        sql.append("WHERE o.parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         
         if (status != null && !status.trim().isEmpty()) {
@@ -228,7 +228,7 @@ public class OrderDAO extends BaseDAO {
             sql.append("JOIN payment_transactions pt ON o.order_id = pt.order_id ");
         }
         
-        sql.append("WHERE 1=1 ");
+        sql.append("WHERE o.parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         
         if (status != null && !status.trim().isEmpty()) {
@@ -266,39 +266,49 @@ public class OrderDAO extends BaseDAO {
      * Lưu đơn hàng mới vào DB và trả về ID đơn hàng tự sinh.
      */
     public int save(Order order) throws SQLException {
-        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO orders (customer_id, owner_id, parent_order_id, order_type, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, order.getCustomerId());
-            ps.setInt(2, order.getOwnerId());
-            ps.setString(3, order.getDeliveryAddress());
-            ps.setString(4, order.getDeliveryTimeSlot());
-            ps.setString(5, order.getNotes());
+            if (order.getOwnerIdObject() != null && order.getOwnerIdObject() > 0) {
+                ps.setInt(2, order.getOwnerIdObject());
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
+            if (order.getParentOrderId() != null && order.getParentOrderId() > 0) {
+                ps.setInt(3, order.getParentOrderId());
+            } else {
+                ps.setNull(3, Types.INTEGER);
+            }
+            ps.setString(4, order.getOrderType() != null ? order.getOrderType() : "CHILD");
+            ps.setString(5, order.getDeliveryAddress());
+            ps.setString(6, order.getDeliveryTimeSlot());
+            ps.setString(7, order.getNotes());
             
             if (order.getCancelledAt() != null) {
-                ps.setTimestamp(6, Timestamp.valueOf(order.getCancelledAt()));
+                ps.setTimestamp(8, Timestamp.valueOf(order.getCancelledAt()));
             } else {
-                ps.setNull(6, Types.TIMESTAMP);
+                ps.setNull(8, Types.TIMESTAMP);
             }
             
             if (order.getCancelledBy() != null) {
-                ps.setInt(7, order.getCancelledBy());
+                ps.setInt(9, order.getCancelledBy());
             } else {
-                ps.setNull(7, Types.INTEGER);
+                ps.setNull(9, Types.INTEGER);
             }
             
-            ps.setString(8, order.getCancellationReason());
-            ps.setString(9, order.getStatus() != null ? order.getStatus() : "PENDING_PAYMENT");
-            ps.setBigDecimal(10, order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(11, order.getDeliveryFee() != null ? order.getDeliveryFee() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(12, order.getDiscountAmount() != null ? order.getDiscountAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(13, order.getSystemDiscountAmount() != null ? order.getSystemDiscountAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(14, order.getShopDiscountAmount() != null ? order.getShopDiscountAmount() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(15, order.getPlatformFee() != null ? order.getPlatformFee() : java.math.BigDecimal.ZERO);
-            ps.setBigDecimal(16, order.getFinalAmount() != null ? order.getFinalAmount() : java.math.BigDecimal.ZERO);
-            ps.setString(17, order.getPaymentMethod() != null ? order.getPaymentMethod() : "COD");
-            ps.setString(18, order.getRefundStatus() != null ? order.getRefundStatus() : "NONE");
+            ps.setString(10, order.getCancellationReason());
+            ps.setString(11, order.getStatus() != null ? order.getStatus() : "PENDING_PAYMENT");
+            ps.setBigDecimal(12, order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(13, order.getDeliveryFee() != null ? order.getDeliveryFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(14, order.getDiscountAmount() != null ? order.getDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(15, order.getSystemDiscountAmount() != null ? order.getSystemDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(16, order.getShopDiscountAmount() != null ? order.getShopDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(17, order.getPlatformFee() != null ? order.getPlatformFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(18, order.getFinalAmount() != null ? order.getFinalAmount() : java.math.BigDecimal.ZERO);
+            ps.setString(19, order.getPaymentMethod() != null ? order.getPaymentMethod() : "COD");
+            ps.setString(20, order.getRefundStatus() != null ? order.getRefundStatus() : "NONE");
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -458,7 +468,7 @@ public class OrderDAO extends BaseDAO {
 
     /** Đếm tổng đơn hàng của customer với status filter (phân trang). */
     public int countByCustomer(int customerId, String status) throws SQLException {
-        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE customer_id = ?");
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE customer_id = ? AND parent_order_id IS NULL");
         List<Object> params = new ArrayList<>();
         params.add(customerId);
         
@@ -497,7 +507,7 @@ public class OrderDAO extends BaseDAO {
 
     /** Tính tổng doanh thu của shop owner (chỉ các đơn hàng DELIVERED). */
     public java.math.BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
-        String sql = "SELECT SUM(final_amount) FROM orders WHERE owner_id = ? AND status = 'DELIVERED'";
+        String sql = "SELECT SUM(final_amount) FROM orders WHERE owner_id = ? AND status = 'DELIVERED' AND order_type = 'CHILD'";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
@@ -517,7 +527,11 @@ public class OrderDAO extends BaseDAO {
         Order o = new Order();
         o.setOrderId(rs.getInt("order_id"));
         o.setCustomerId(rs.getInt("customer_id"));
-        o.setOwnerId(rs.getInt("owner_id"));
+        int ownerId = rs.getInt("owner_id");
+        o.setOwnerId(rs.wasNull() ? null : ownerId);
+        int parentOrderId = rs.getInt("parent_order_id");
+        o.setParentOrderId(rs.wasNull() ? null : parentOrderId);
+        o.setOrderType(rs.getString("order_type"));
         o.setDeliveryAddress(rs.getString("delivery_address"));
         o.setRecipientName(rs.getString("recipient_name"));
         o.setRecipientPhone(rs.getString("recipient_phone"));
@@ -589,7 +603,7 @@ public class OrderDAO extends BaseDAO {
         StringBuilder sql = new StringBuilder(
             "SELECT CAST(created_at AS DATE) AS order_date, SUM(final_amount) AS total_revenue " +
             "FROM orders " +
-            "WHERE status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') "
+            "WHERE status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND order_type = 'CHILD' "
         );
         List<Object> params = new ArrayList<>();
         if (ownerId != null) {
@@ -628,7 +642,7 @@ public class OrderDAO extends BaseDAO {
         StringBuilder sql = new StringBuilder(
             "SELECT status, COUNT(*) AS order_count " +
             "FROM orders " +
-            "WHERE 1=1 "
+            "WHERE order_type = 'CHILD' "
         );
         List<Object> params = new ArrayList<>();
         if (ownerId != null) {
@@ -667,7 +681,7 @@ public class OrderDAO extends BaseDAO {
         StringBuilder sql = new StringBuilder(
             "SELECT COALESCE(cancellation_reason, N'Không có lý do') AS reason, COUNT(*) AS cancel_count " +
             "FROM orders " +
-            "WHERE status = 'CANCELLED' "
+            "WHERE status = 'CANCELLED' AND order_type = 'CHILD' "
         );
         List<Object> params = new ArrayList<>();
         if (ownerId != null) {
@@ -722,7 +736,7 @@ public class OrderDAO extends BaseDAO {
             sql.append("LEFT JOIN shop_owner_profiles s ON o.owner_id = s.user_id ");
         }
         
-        sql.append("WHERE o.status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') ");
+        sql.append("WHERE o.status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND o.order_type = 'CHILD' ");
         
         List<Object> params = new ArrayList<>();
         if (ownerId != null) {
@@ -761,6 +775,21 @@ public class OrderDAO extends BaseDAO {
                         map.put("shopName", rs.getString("shop_name") != null ? rs.getString("shop_name") : "Hệ thống");
                     }
                     list.add(map);
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Order> findChildrenByParentId(int parentOrderId) throws SQLException {
+        List<Order> list = new ArrayList<>();
+        String sql = "SELECT * FROM orders WHERE parent_order_id = ? ORDER BY order_id ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, parentOrderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
                 }
             }
         }

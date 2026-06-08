@@ -1234,7 +1234,7 @@
                     <c:set var="fp" value="${productPromotions[0]}"/>
                     <div class="flash-sale-badge">
                         <i class="fa-solid fa-bolt"></i>
-                        Flash Sale:
+                        Sale trực tiếp:
                         <c:choose>
                             <c:when test="${fp.discountType == 'PERCENT'}">Giảm <c:out value="${fp.discountValue}"/>%</c:when>
                             <c:otherwise>Giảm <ft:currency value="${fp.discountValue}"/></c:otherwise>
@@ -1445,7 +1445,7 @@
                 <c:if test="${not empty productPromotions || not empty shopVouchers || not empty systemVouchers}">
                     <div class="shop-body-section">
                         <div class="shop-section-label">
-                            <i class="fa-solid fa-ticket"></i> Mã giảm giá &amp; Voucher
+                        <i class="fa-solid fa-ticket"></i> Ưu đãi: sale trực tiếp, voucher shop, voucher sàn
                         </div>
                         <div class="voucher-slider-wrapper">
                             <div class="voucher-slider-nav">
@@ -1460,12 +1460,12 @@
                             <div class="voucher-track-container">
                                 <div class="voucher-track" id="voucher-track">
 
-                                    <%-- Voucher sản phẩm (Flash Sale) --%>
+                                    <%-- Sale trực tiếp cho sản phẩm --%>
                                     <c:forEach var="pv" items="${productPromotions}">
                                         <div class="voucher-item type-product">
                                             <div class="voucher-ribbon">
                                                 <span class="voucher-ribbon-icon"><i class="fa-solid fa-bolt"></i></span>
-                                                FLASH
+                                                SALE
                                             </div>
                                             <div class="voucher-body">
                                                 <div class="voucher-code"><c:out value="${pv.code}"/></div>
@@ -1482,7 +1482,7 @@
                                         </div>
                                     </c:forEach>
 
-                                    <%-- Voucher của Shop --%>
+                                    <%-- Voucher shop --%>
                                     <c:forEach var="sv" items="${shopVouchers}">
                                         <div class="voucher-item type-shop">
                                             <div class="voucher-ribbon">
@@ -1503,7 +1503,7 @@
                                         </div>
                                     </c:forEach>
 
-                                    <%-- Voucher hệ thống --%>
+                                    <%-- Voucher sàn --%>
                                     <c:forEach var="syv" items="${systemVouchers}">
                                         <div class="voucher-item type-system">
                                             <div class="voucher-ribbon">

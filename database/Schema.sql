@@ -235,7 +235,9 @@ CREATE TABLE cart_items (
 CREATE TABLE orders (
     order_id INT IDENTITY(1,1) PRIMARY KEY,
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
-    owner_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
+    owner_id INT NULL FOREIGN KEY REFERENCES users(user_id),
+    parent_order_id INT NULL FOREIGN KEY REFERENCES orders(order_id),
+    order_type NVARCHAR(10) NOT NULL DEFAULT 'CHILD' CHECK (order_type IN ('PARENT','CHILD')),
     delivery_address NVARCHAR(500) NOT NULL,
     recipient_name NVARCHAR(100) NULL,
     recipient_phone NVARCHAR(15) NULL,
@@ -368,9 +370,22 @@ CREATE TABLE sepay_webhook_dedup (
 );
 
 -- 16. deliveries [cite: 86]
+CREATE TABLE delivery_trips (
+    trip_id INT IDENTITY(1,1) PRIMARY KEY,
+    parent_order_id INT NOT NULL FOREIGN KEY REFERENCES orders(order_id),
+    shipper_id INT NULL FOREIGN KEY REFERENCES users(user_id),
+    status NVARCHAR(20) NOT NULL DEFAULT 'PLANNED' CHECK (status IN ('PLANNED','ASSIGNED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED')),
+    estimated_start_time DATETIME NULL,
+    estimated_end_time DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+    updated_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
 CREATE TABLE deliveries (
     delivery_id INT IDENTITY(1,1) PRIMARY KEY,
     order_id INT NOT NULL UNIQUE FOREIGN KEY REFERENCES orders(order_id),
+    delivery_trip_id INT NULL FOREIGN KEY REFERENCES delivery_trips(trip_id),
+    trip_stop_seq INT NULL,
     staff_id INT NULL FOREIGN KEY REFERENCES users(user_id),
     status NVARCHAR(20) NOT NULL DEFAULT 'ASSIGNED' CHECK (status IN ('ASSIGNED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED')),
     picked_up_at DATETIME NULL,

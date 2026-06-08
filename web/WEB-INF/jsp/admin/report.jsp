@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thống kê & Báo cáo – Admin MetaFruit</title>
+    <title>Thống kê & Báo cáo – Admin Verdant Market</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -416,7 +416,7 @@
     // Xuất báo cáo CSV phía client
     function exportToCSV() {
         const rows = [
-            ["Báo cáo bán hàng MetaFruit"],
+            ["Báo cáo bán hàng Verdant Market"],
             ["Giai doan", "${startDate} den ${endDate}"],
             [],
             ["Ten San Pham", "Phien Ban", "Cua Hang", "So Luong Ban", "Doanh Thu (VND)", "So Don Hang"]
@@ -463,7 +463,7 @@
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
-            link.setAttribute("download", "MetaFruit_Admin_BaoCao_" + "${startDate}" + "_to_" + "${endDate}" + ".csv");
+            link.setAttribute("download", "Verdant_Market_Admin_BaoCao_" + "${startDate}" + "_to_" + "${endDate}" + ".csv");
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();

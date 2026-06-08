@@ -566,6 +566,8 @@ public class UserDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
     public void updateAvatar(int userId, String avatarUrl) throws SQLException {
         String sql = "UPDATE users SET avatar_url = ?, updated_at = GETDATE() WHERE user_id = ?";
         try (Connection conn = getConnection();

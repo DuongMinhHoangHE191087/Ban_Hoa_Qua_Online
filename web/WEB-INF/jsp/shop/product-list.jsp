@@ -1207,12 +1207,12 @@
             <div class="bg-primary/5 p-3 rounded-lg border border-primary/10 mt-2">
                 <div class="flex items-center gap-2 mb-2">
                     <span class="material-symbols-outlined text-[16px] text-primary">sell</span>
-                    <span class="text-[10px] font-bold text-primary uppercase tracking-wider">Cấu hình giảm giá (Tùy chọn)</span>
+                    <span class="text-[10px] font-bold text-primary uppercase tracking-wider">Sale trực tiếp (Tùy chọn)</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                        <label class="block text-[9px] font-bold text-txt-2 mb-1">Giá khuyến mãi (VND)</label>
-                        <input type="number" name="variantDiscountPrice" min="0" step="1000" placeholder="Giá sau giảm" 
+                        <label class="block text-[9px] font-bold text-txt-2 mb-1">Giá sale (VND)</label>
+                        <input type="number" name="variantDiscountPrice" min="0" step="1000" placeholder="Giá sau sale" 
                                value="${discountPrice}"
                                class="form-control-custom py-1 text-xs">
                     </div>

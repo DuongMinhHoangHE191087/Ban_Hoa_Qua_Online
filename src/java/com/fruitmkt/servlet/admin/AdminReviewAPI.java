@@ -27,12 +27,16 @@ public class AdminReviewAPI extends HttpServlet {
 
         try {
             int reviewId = Integer.parseInt(request.getParameter("reviewId"));
-            boolean isHidden = Boolean.parseBoolean(request.getParameter("isHidden"));
-            
-            reviewService.updateReviewVisibility(reviewId, isHidden);
-            
+            String action = request.getParameter("action");
+            if (action == null || action.trim().isEmpty()) {
+                boolean isHidden = Boolean.parseBoolean(request.getParameter("isHidden"));
+                action = isHidden ? "reject" : "approve";
+            }
+
+            reviewService.moderateReview(reviewId, action);
+            boolean rejected = "reject".equalsIgnoreCase(action) || "hide".equalsIgnoreCase(action);
             result.put("success", true);
-            result.put("message", isHidden ? "Đã ẩn đánh giá khỏi cửa hàng" : "Đã hiển thị đánh giá");
+            result.put("message", rejected ? "Đã từ chối và ẩn đánh giá" : "Đã duyệt đánh giá");
             
         } catch (Exception e) {
             e.printStackTrace();
