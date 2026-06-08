@@ -66,7 +66,7 @@ sequenceDiagram
 
 ## ⚙️ CÀI ĐẶT HỆ THỐNG & TECH STACK
 
-Để hệ thống hoạt động mượt mà và đồng bộ trên máy của tất cả các thành viên, cần cấu hình đúng các thông số sau:
+Để hệ thống hoạt động mượt mà và đồng bộ trên máy của tất cả các thành viên, hãy xem trước [Hướng dẫn cấu hình IDE (NetBeans, IntelliJ, VS Code)](file:///IDE_GUIDE.md) và cấu hình đúng các thông số sau:
 
 ### 1. Thông số Kỹ thuật Yêu cầu
 *   **JDK Version**: JDK 17 trở lên (Hỗ trợ JDK 25 tốt nhất).

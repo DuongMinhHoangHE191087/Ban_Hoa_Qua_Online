@@ -18,25 +18,217 @@ function Log-Message {
 
 
 # ==================== CONFIGURATION LOADING & AUTO-DETECTION ====================
-$JAVA_HOME = "C:\Program Files\Java\jdk-26.0.1"
-$JRE_HOME = "C:\Program Files\Java\jdk-26.0.1"
-$CATALINA_HOME = ""
-$CATALINA_BASE = ""
 
-# 1. Try to load from NetBeans private properties (Highly recommended as the user uses NetBeans)
-if (Test-Path "nbproject/private/private.properties") {
-    Get-Content "nbproject/private/private.properties" | ForEach-Object {
-        $line = $_.Trim()
-        if ($line.StartsWith("j2ee.server.home=")) {
-            $path = $line.Substring("j2ee.server.home=".Length).Replace("\\", "/").Replace("\", "/")
-            if (Test-Path $path) {
-                $CATALINA_HOME = $path
+function Get-PropertyFromFile {
+    param(
+        [string]$filePath,
+        [string]$propertyName
+    )
+    if (Test-Path $filePath) {
+        $lines = Get-Content $filePath -ErrorAction SilentlyContinue
+        foreach ($line in $lines) {
+            $trimmed = $line.Trim()
+            if ($trimmed -and -not $trimmed.StartsWith("#")) {
+                $parts = $trimmed.Split('=', 2)
+                if ($parts.Length -eq 2) {
+                    $key = $parts[0].Trim()
+                    if ($key -eq $propertyName) {
+                        $val = $parts[1].Trim()
+                        if (($val.StartsWith('"') -and $val.EndsWith('"')) -or ($val.StartsWith("'") -and $val.EndsWith("'"))) {
+                            $val = $val.Substring(1, $val.Length - 2)
+                        }
+                        return $val.Replace("\\", "/").Replace("\", "/")
+                    }
+                }
             }
         }
     }
+    return $null
 }
 
-# 1.5 Auto-create config files from templates if they do not exist
+function Verify-JavaHome {
+    param([string]$path)
+    if ($path) {
+        $cleanPath = $path.Replace("\\", "/").Replace("\", "/").Trim()
+        if (Test-Path "$cleanPath\bin\javac.exe") {
+            return (Get-Item $cleanPath).FullName
+        }
+    }
+    return $null
+}
+
+function Verify-CatalinaHome {
+    param([string]$path)
+    if ($path) {
+        $cleanPath = $path.Replace("\\", "/").Replace("\", "/").Trim()
+        if ((Test-Path "$cleanPath\bin\startup.bat") -and (Test-Path "$cleanPath\lib\catalina.jar")) {
+            return (Get-Item $cleanPath).FullName
+        }
+    }
+    return $null
+}
+
+function Find-JavaHome {
+    # 1. Try env variable
+    $home = Verify-JavaHome $env:JAVA_HOME
+    if ($home) { return $home }
+
+    # 2. Try NetBeans properties
+    if (Test-Path "nbproject/private/private.properties") {
+        $userProps = Get-PropertyFromFile "nbproject/private/private.properties" "user.properties.file"
+        if ($userProps -and (Test-Path $userProps)) {
+            $lines = Get-Content $userProps -ErrorAction SilentlyContinue
+            foreach ($line in $lines) {
+                if ($line -match '^platforms\.[^.]+\.home\s*=\s*(.+)') {
+                    $p = $Matches[1].Trim()
+                    $home = Verify-JavaHome $p
+                    if ($home) { return $home }
+                }
+            }
+        }
+    }
+
+    # 3. Check Registry (Windows)
+    $regPaths = @(
+        "HKLM:\SOFTWARE\JavaSoft\JDK",
+        "HKLM:\SOFTWARE\JavaSoft\Java Development Kit",
+        "HKLM:\SOFTWARE\JavaSoft\Java Runtime Environment"
+    )
+    foreach ($regPath in $regPaths) {
+        if (Test-Path $regPath) {
+            $jh = Get-ItemProperty -Path $regPath -Name "JavaHome" -ErrorAction SilentlyContinue
+            if ($jh) {
+                $home = Verify-JavaHome $jh.JavaHome
+                if ($home) { return $home }
+            }
+            $subKeys = Get-ChildItem -Path $regPath -ErrorAction SilentlyContinue
+            foreach ($sub in $subKeys) {
+                $jhSub = Get-ItemProperty -Path $sub.PSPath -Name "JavaHome" -ErrorAction SilentlyContinue
+                if ($jhSub) {
+                    $home = Verify-JavaHome $jhSub.JavaHome
+                    if ($home) { return $home }
+                }
+            }
+        }
+    }
+
+    # 4. Check typical locations
+    $commonDirs = @(
+        "C:\Program Files\Java",
+        "C:\Program Files (x86)\Java"
+    )
+    foreach ($dir in $commonDirs) {
+        if (Test-Path $dir) {
+            $jdks = Get-ChildItem -Path $dir -Directory -Filter "jdk-*" -ErrorAction SilentlyContinue
+            $jdks = $jdks | Sort-Object Name -Descending
+            foreach ($jdk in $jdks) {
+                $home = Verify-JavaHome $jdk.FullName
+                if ($home) { return $home }
+            }
+        }
+    }
+
+    # 5. Check PATH command 'where java'
+    $javaCmd = Get-Command java -ErrorAction SilentlyContinue
+    if ($javaCmd) {
+        $javaExe = $javaCmd.Source
+        $parent = Split-Path (Split-Path $javaExe -Parent) -Parent
+        $home = Verify-JavaHome $parent
+        if ($home) { return $home }
+    }
+
+    return $null
+}
+
+function Find-CatalinaHome {
+    # 1. Try env variable
+    $home = Verify-CatalinaHome $env:CATALINA_HOME
+    if ($home) { return $home }
+
+    # 2. Try NetBeans configuration
+    if (Test-Path "nbproject/private/private.properties") {
+        $nbHome = Get-PropertyFromFile "nbproject/private/private.properties" "j2ee.server.home"
+        $home = Verify-CatalinaHome $nbHome
+        if ($home) { return $home }
+
+        $antProps = Get-PropertyFromFile "nbproject/private/private.properties" "deploy.ant.properties.file"
+        if ($antProps -and (Test-Path $antProps)) {
+            $tcHome = Get-PropertyFromFile $antProps "tomcat.home"
+            $home = Verify-CatalinaHome $tcHome
+            if ($home) { return $home }
+        }
+    }
+
+    # 3. Check typical directories
+    $userProfile = $env:USERPROFILE
+    $commonDirs = @(
+        "C:\Program Files\Apache Software Foundation",
+        "C:\apache-tomcat-*",
+        "C:\",
+        "$userProfile\Downloads",
+        "$userProfile"
+    )
+    foreach ($dir in $commonDirs) {
+        if ($dir.Contains("*")) {
+            $matches = Get-Item $dir -ErrorAction SilentlyContinue
+            foreach ($m in $matches) {
+                if ($m.PSIsContainer) {
+                    $home = Verify-CatalinaHome $m.FullName
+                    if ($home) { return $home }
+                }
+            }
+        } elseif (Test-Path $dir) {
+            $tcDirs = Get-ChildItem -Path $dir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*tomcat*" -or $_.Name -like "*apache-tomcat*" }
+            $tcDirs = $tcDirs | Sort-Object Name -Descending
+            foreach ($tcd in $tcDirs) {
+                $home = Verify-CatalinaHome $tcd.FullName
+                if ($home) { return $home }
+                
+                $subDirs = Get-ChildItem -Path $tcd.FullName -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*tomcat*" -or $_.Name -like "*apache-tomcat*" }
+                foreach ($sub in $subDirs) {
+                    $home = Verify-CatalinaHome $sub.FullName
+                    if ($home) { return $home }
+                }
+            }
+        }
+    }
+
+    return $null
+}
+
+function Find-CatalinaBase {
+    param([string]$catalinaHome)
+    if ($env:CATALINA_BASE -and (Test-Path "$env:CATALINA_BASE\conf")) {
+        return (Get-Item $env:CATALINA_BASE).FullName
+    }
+
+    $userProfile = $env:USERPROFILE
+    $bases = @(
+        "$userProfile\.tomcat",
+        "$userProfile\AppData\Roaming\NetBeans\*\apache-tomcat-*"
+    )
+    foreach ($b in $bases) {
+        if ($b.Contains("*")) {
+            $matches = Get-Item $b -ErrorAction SilentlyContinue
+            foreach ($m in $matches) {
+                if ($m.PSIsContainer -and (Test-Path "$($m.FullName)\conf")) {
+                    return $m.FullName
+                }
+            }
+        } elseif (Test-Path "$b\conf") {
+            return (Get-Item $b).FullName
+        }
+    }
+
+    return $catalinaHome
+}
+
+# 1. Initialize empty vars
+$JAVA_HOME = $null
+$CATALINA_HOME = $null
+$CATALINA_BASE = $null
+
+# 2. Check if .env and tomcat_config.ini exist or create from templates
 if (-not (Test-Path "tomcat_config.ini") -and (Test-Path "tomcat_config.ini.template")) {
     Copy-Item "tomcat_config.ini.template" "tomcat_config.ini"
     Log-Message "Created tomcat_config.ini from template." "INFO"
@@ -46,7 +238,7 @@ if (-not (Test-Path ".env") -and (Test-Path ".env.template")) {
     Log-Message "Created .env from template." "INFO"
 }
 
-# Load .env variables into Process environment
+# 3. Load env variables into process
 if (Test-Path ".env") {
     Get-Content ".env" | ForEach-Object {
         $line = $_.Trim()
@@ -64,7 +256,7 @@ if (Test-Path ".env") {
     }
 }
 
-# 2. Load config from ini if exists
+# 4. Try loading from tomcat_config.ini
 if (Test-Path "tomcat_config.ini") {
     Get-Content "tomcat_config.ini" | ForEach-Object {
         $line = $_.Trim()
@@ -73,47 +265,71 @@ if (Test-Path "tomcat_config.ini") {
             if ($parts.Length -eq 2) {
                 $key = $parts[0].Trim()
                 $val = $parts[1].Trim()
-                if ($key -eq "JAVA_HOME") { $JAVA_HOME = $val }
-                elseif ($key -eq "CATALINA_HOME" -and $val) { $CATALINA_HOME = $val }
-                elseif ($key -eq "CATALINA_BASE" -and $val -ne "auto-detect") { $CATALINA_BASE = $val }
+                if ($key -eq "JAVA_HOME") { $JAVA_HOME = Verify-JavaHome $val }
+                elseif ($key -eq "CATALINA_HOME") { $CATALINA_HOME = Verify-CatalinaHome $val }
+                elseif ($key -eq "CATALINA_BASE" -and $val -and $val -ne "auto-detect") { 
+                    if (Test-Path "$val\conf") { $CATALINA_BASE = (Get-Item $val).FullName }
+                }
             }
         }
     }
 }
 
-# 3. Auto-detect Tomcat Home if not set yet
-if (-not $CATALINA_HOME -or -not (Test-Path "$CATALINA_HOME\bin\startup.bat")) {
-    $commonPaths = @(
-        "C:\Users\Admin\Downloads\apache-tomcat-10.1.55-windows-x64\apache-tomcat-10.1.55",
-        "C:\Program Files\Apache Software Foundation\Tomcat 10.1",
-        "C:\apache-tomcat-10.1.55",
-        "C:\Program Files\Apache Software Foundation\Tomcat 10.0",
-        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 10.1"
-    )
-    foreach ($path in $commonPaths) {
-        if (Test-Path "$path\bin\startup.bat") {
-            $CATALINA_HOME = $path
-            break
-        }
-    }
+# 5. Fallback auto-detection if still null or invalid
+if (-not $JAVA_HOME) {
+    $JAVA_HOME = Find-JavaHome
+}
+if (-not $CATALINA_HOME) {
+    $CATALINA_HOME = Find-CatalinaHome
 }
 
-# 4. Auto-detect Tomcat Base (Default to CATALINA_HOME if no custom base is found)
-if (-not $CATALINA_BASE -or -not (Test-Path "$CATALINA_BASE\conf")) {
-    $commonBases = @(
-        "C:\Users\Admin\.tomcat"
-    )
-    foreach ($base in $commonBases) {
-        if (Test-Path "$base\conf") {
-            $CATALINA_BASE = $base
-            break
-        }
+# 6. Interactive prompt if still not found and save configuration
+$saveConfig = $false
+if (-not $JAVA_HOME) {
+    Write-Host "`n====================================================================" -ForegroundColor Red
+    Write-Host " [!] KHONG TIM THAY THU MUC JDK PHU HOP (Can bin\javac.exe de compile)" -ForegroundColor Red
+    Write-Host "====================================================================" -ForegroundColor Red
+    $javaInput = Read-Host "Nhap duong dan den JDK cua ban (vi du: C:\Program Files\Java\jdk-17)"
+    $JAVA_HOME = Verify-JavaHome $javaInput
+    while (-not $JAVA_HOME -and $javaInput) {
+        Write-Host "[ERROR] Duong dan JDK khong hop le (khong tim thay bin\javac.exe)!" -ForegroundColor Red
+        $javaInput = Read-Host "Nhap lai hoac nhan Ctrl+C de thoat"
+        $JAVA_HOME = Verify-JavaHome $javaInput
     }
-    
-    if (-not $CATALINA_BASE) {
-        $CATALINA_BASE = $CATALINA_HOME
-    }
+    if ($JAVA_HOME) { $saveConfig = $true }
 }
+
+if (-not $CATALINA_HOME) {
+    Write-Host "`n====================================================================" -ForegroundColor Red
+    Write-Host " [!] KHONG TIM THAY THU MUC TOMCAT HOME PHU HOP" -ForegroundColor Red
+    Write-Host "====================================================================" -ForegroundColor Red
+    $tomcatInput = Read-Host "Nhap duong dan den Tomcat cua ban (vi du: C:\apache-tomcat-10.1.55)"
+    $CATALINA_HOME = Verify-CatalinaHome $tomcatInput
+    while (-not $CATALINA_HOME -and $tomcatInput) {
+        Write-Host "[ERROR] Duong dan Tomcat khong hop le (khong tim thay bin\startup.bat hoac lib\catalina.jar)!" -ForegroundColor Red
+        $tomcatInput = Read-Host "Nhap lai hoac nhan Ctrl+C de thoat"
+        $CATALINA_HOME = Verify-CatalinaHome $tomcatInput
+    }
+    if ($CATALINA_HOME) { $saveConfig = $true }
+}
+
+# Resolve base
+if (-not $CATALINA_BASE -and $CATALINA_HOME) {
+    $CATALINA_BASE = Find-CatalinaBase $CATALINA_HOME
+}
+
+# Save configuration back to ini if we prompted or if we detected new working paths
+if ($saveConfig -and $JAVA_HOME -and $CATALINA_HOME) {
+    $configContent = "# Tomcat Configuration - Generated $(Get-Date)`r`n" +
+                     "JAVA_HOME=$JAVA_HOME`r`n" +
+                     "CATALINA_HOME=$CATALINA_HOME`r`n" +
+                     "CATALINA_BASE=$CATALINA_BASE"
+    $configContent | Out-File "tomcat_config.ini" -Encoding utf8
+    Log-Message "Saved working configuration to tomcat_config.ini" "INFO"
+}
+
+# Set JRE_HOME same as JAVA_HOME
+$JRE_HOME = $JAVA_HOME
 
 # Set environment variables so Tomcat startup.bat and commands see them
 $env:JAVA_HOME = $JAVA_HOME
@@ -332,21 +548,51 @@ function Reset-All {
 
 function Install-Config {
     Write-Host "`n===== TOMCAT CONFIGURATION =====" -ForegroundColor Cyan
-    Write-Host "Enter Tomcat paths (or press Enter to skip):" -ForegroundColor Yellow
+    Write-Host "Enter Tomcat paths (or press Enter to keep current/detected values):" -ForegroundColor Yellow
     Write-Host ""
     
-    $java = Read-Host "Java Home [C:\Program Files\Java\jdk-26.0.1]"
-    $catalina = Read-Host "Tomcat Home [C:\apache-tomcat-10.1.55]"
-    $base = Read-Host "Tomcat Instance [leave empty to auto-detect]"
+    $defaultJava = if ($JAVA_HOME) { $JAVA_HOME } else { "C:\Program Files\Java\jdk-17" }
+    $defaultCatalina = if ($CATALINA_HOME) { $CATALINA_HOME } else { "C:\apache-tomcat-10.1.55" }
+    $defaultBase = if ($CATALINA_BASE) { $CATALINA_BASE } else { "auto-detect" }
+
+    $java = Read-Host "Java Home [$defaultJava]"
+    $catalina = Read-Host "Tomcat Home [$defaultCatalina]"
+    $base = Read-Host "Tomcat Instance [$defaultBase]"
+    
+    $finalJava = if ($java) { Verify-JavaHome $java } else { $defaultJava }
+    if ($java -and -not $finalJava) {
+        Write-Host "[WARN] Duong dan JDK vua nhap khong hop le (khong tim thay bin\javac.exe). Giu nguyen gia tri mac dinh." -ForegroundColor Yellow
+        $finalJava = $defaultJava
+    }
+    
+    $finalCatalina = if ($catalina) { Verify-CatalinaHome $catalina } else { $defaultCatalina }
+    if ($catalina -and -not $finalCatalina) {
+        Write-Host "[WARN] Duong dan Tomcat vua nhap khong hop le (khong tim thay bin\startup.bat hoac lib\catalina.jar). Giu nguyen gia tri mac dinh." -ForegroundColor Yellow
+        $finalCatalina = $defaultCatalina
+    }
+    
+    $finalBase = if ($base) { $base } else { $defaultBase }
     
     $config = "# Tomcat Configuration - Generated $(Get-Date)`r`n" +
-              "JAVA_HOME=$($java -or 'C:\Program Files\Java\jdk-26.0.1')`r`n" +
-              "CATALINA_HOME=$($catalina -or 'C:\apache-tomcat-10.1.55')`r`n" +
-              "CATALINA_BASE=$($base -or 'auto-detect')"
+              "JAVA_HOME=$finalJava`r`n" +
+              "CATALINA_HOME=$finalCatalina`r`n" +
+              "CATALINA_BASE=$finalBase"
     
     $config | Out-File "tomcat_config.ini" -Encoding utf8
     Write-Host "Configuration saved to tomcat_config.ini" -ForegroundColor Green
-    Log-Message "Install-config executed"
+    
+    # Reload local variables
+    $global:JAVA_HOME = $finalJava
+    $global:JRE_HOME = $finalJava
+    $global:CATALINA_HOME = $finalCatalina
+    $global:CATALINA_BASE = if ($finalBase -eq "auto-detect") { Find-CatalinaBase $finalCatalina } else { $finalBase }
+    
+    $env:JAVA_HOME = $global:JAVA_HOME
+    $env:JRE_HOME = $global:JRE_HOME
+    $env:CATALINA_HOME = $global:CATALINA_HOME
+    $env:CATALINA_BASE = $global:CATALINA_BASE
+    
+    Log-Message "Install-config executed, updated configuration saved."
 }
 
 function Open-App {
@@ -645,15 +891,7 @@ function Run-Tests {
     
     # Recompile main classes first
     $webBuildDir = "build/web"
-    $tomcatHome = ""
-    if ($env:CATALINA_HOME) { $tomcatHome = $env:CATALINA_HOME }
-    if (-not $tomcatHome) {
-        # Check standard tomcat path
-        $tomcatHome = "C:\Users\Admin\Downloads\apache-tomcat-10.1.55-windows-x64\apache-tomcat-10.1.55"
-        if (-not (Test-Path $tomcatHome)) {
-            $tomcatHome = "C:\apache-tomcat-10.1.55"
-        }
-    }
+    $tomcatHome = $env:CATALINA_HOME
     
     $classpath = "web/WEB-INF/lib/*;$tomcatHome/lib/*"
     $compileLogFile = "compile_output.log"
