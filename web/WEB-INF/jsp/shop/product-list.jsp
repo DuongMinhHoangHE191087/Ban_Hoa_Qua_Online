@@ -1191,7 +1191,7 @@
                     <label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Tồn kho</label>
                     <input type="hidden" name="variantStock" value="${stock}">
                     <div class="form-control-custom py-1.5 text-xs bg-slate-100 text-txt-2 cursor-not-allowed">
-                        ${stock !== '' ? stock : '0 (Cập nhật khi nhập hàng)'}
+                        ${stock != '' ? stock : '0 (Cập nhật khi nhập hàng)'}
                     </div>
                 </div>
 

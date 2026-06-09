@@ -62,3 +62,5 @@ Tài liệu này ghi chú lại danh sách các file mã nguồn đã được t
 - **[Modified]** `src/java/com/fruitmkt/servlet/shop/PromotionServlet.java` (Chuyển sang dùng urlPatterns rõ ràng cho annotation WebServlet).
 - **[Modified]** `src/java/com/fruitmkt/servlet/admin/AdminProductServlet.java` (Chuyển sang dùng urlPatterns rõ ràng cho annotation WebServlet).
 - **[Modified]** `web/WEB-INF/jsp/common/admin-sidebar.jsp` (Sửa sai đường dẫn Yêu cầu đổi trả từ /admin/returns thành /admin/refunds).
+- **[Modified]** `web/WEB-INF/jsp/common/header.jsp` (Xóa dòng khai báo pageEncoding bị trùng lặp gây ra lỗi 500 JasperException toàn trang).
+- **[Modified]** `web/WEB-INF/jsp/common/error.jsp` (Xóa dòng khai báo pageEncoding bị trùng lặp gây ra lỗi 500 JasperException toàn trang).

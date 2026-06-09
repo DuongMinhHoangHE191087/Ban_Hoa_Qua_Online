@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+
 <%-- header.jsp — Include vào đầu mỗi JSP page.
      Khai báo taglib, set content type, include alert và navbar.
 
