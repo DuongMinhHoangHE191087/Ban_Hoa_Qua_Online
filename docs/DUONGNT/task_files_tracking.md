@@ -49,3 +49,17 @@ Tài liệu này ghi chú lại danh sách các file mã nguồn đã được t
 - **[Modified]** `src/java/com/fruitmkt/dao/UserDAO.java` (Thêm hàm `deleteAllSessions()`)
 - **[Modified]** `src/java/com/fruitmkt/servlet/admin/AdminConfigServlet.java` (Xử lý `action=clearAllSessions`)
 - **[Modified]** `web/WEB-INF/jsp/admin/admin-config.jsp` (Thêm giao diện Tác vụ bảo trì)
+
+## 9. Bug Fixes & Encoding (Bảo trì)
+- **[Modified]** `web/WEB-INF/jsp/shop/product-list.jsp` (Thêm dấu escape `\${...}` cho JavaScript template literal để tránh xung đột với JSP EL sau khi gộp code).
+- **[Modified]** Toàn bộ các file `.jsp` dùng chung (Fix lỗi sai font chữ Tiếng Việt khi Tomcat biên dịch bằng cách thêm rõ `pageEncoding="UTF-8"`):
+  - `web/WEB-INF/jsp/common/admin-sidebar.jsp`
+  - `web/WEB-INF/jsp/common/alert.jsp`
+  - `web/WEB-INF/jsp/common/error.jsp`
+  - `web/WEB-INF/jsp/common/footer.jsp`
+  - `web/WEB-INF/jsp/common/header.jsp`
+  - `web/WEB-INF/jsp/common/navbar.jsp`
+  - `web/WEB-INF/jsp/common/profile.jsp`
+  - `web/WEB-INF/jsp/common/shop-sidebar.jsp`
+  - `web/index.jsp`
+  - *(Và tất cả các file JSP thuộc thư mục admin, customer, shop, guest...)*
