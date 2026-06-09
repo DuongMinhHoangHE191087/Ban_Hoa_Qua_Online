@@ -64,3 +64,8 @@ Tài liệu này ghi chú lại danh sách các file mã nguồn đã được t
 - **[Modified]** `web/WEB-INF/jsp/common/admin-sidebar.jsp` (Sửa sai đường dẫn Yêu cầu đổi trả từ /admin/returns thành /admin/refunds).
 - **[Modified]** `web/WEB-INF/jsp/common/header.jsp` (Xóa dòng khai báo pageEncoding bị trùng lặp gây ra lỗi 500 JasperException toàn trang).
 - **[Modified]** `web/WEB-INF/jsp/common/error.jsp` (Xóa dòng khai báo pageEncoding bị trùng lặp gây ra lỗi 500 JasperException toàn trang).
+
+## 10. User Management Updates
+- **[Deleted]** `src/java/com/fruitmkt/servlet/admin/AdminUserEditServlet.java` (Xóa chức năng chỉnh sửa thông tin người dùng từ phía admin theo yêu cầu).
+- **[Deleted]** `web/WEB-INF/jsp/admin/user-edit.jsp` (Xóa giao diện chỉnh sửa).
+- **[Modified]** `web/WEB-INF/jsp/admin/user-list.jsp` (Xóa nút 'Sửa' khỏi bảng danh sách người dùng).
