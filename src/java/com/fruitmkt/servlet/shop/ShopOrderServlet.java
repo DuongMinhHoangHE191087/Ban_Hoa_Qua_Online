@@ -3,12 +3,12 @@ package com.fruitmkt.servlet.shop;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.OrderService;
-import com.fruitmkt.service.DeliveryService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 /**
  * ShopOrderServlet — Controller cho chức năng: Đơn hàng của shop, filter theo status
@@ -30,7 +30,6 @@ import java.io.IOException;
 public class ShopOrderServlet extends HttpServlet {
 
     private final OrderService orderService = new OrderService();
-    private final DeliveryService deliveryService = new DeliveryService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -90,15 +89,11 @@ public class ShopOrderServlet extends HttpServlet {
                 SessionUtil.setFlashMessage(req.getSession(), "Đã hủy đơn hàng và hoàn lại tồn kho!", "success");
             } else if ("dispatch".equals(action)) {
                 String estimateStr = req.getParameter("estimatedDeliveryTime");
-                orderService.dispatchOrder(orderId, user.getUserId());
-                
-                // B2 Fix: staffId=0 maps to NULL in DAO (unassigned) — delivery staff can self-pick from dashboard
-                java.time.LocalDateTime estimatedTime = null;
+                LocalDateTime estimatedTime = null;
                 if (estimateStr != null && !estimateStr.trim().isEmpty()) {
-                    estimatedTime = java.time.LocalDateTime.parse(estimateStr);
+                    estimatedTime = LocalDateTime.parse(estimateStr);
                 }
-                deliveryService.assignShipper(orderId, 0, estimatedTime);
-                
+                orderService.dispatchOrder(orderId, user.getUserId(), estimatedTime);
                 SessionUtil.setFlashMessage(req.getSession(), "Đã giao đơn hàng cho vận chuyển!", "success");
             }
         } catch (Exception e) {

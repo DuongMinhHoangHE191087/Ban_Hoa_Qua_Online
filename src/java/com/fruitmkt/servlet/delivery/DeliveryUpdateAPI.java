@@ -20,7 +20,7 @@ public class DeliveryUpdateAPI extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setContentType("application/json");
+        resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
         Map<String, Object> response = new HashMap<>();
 

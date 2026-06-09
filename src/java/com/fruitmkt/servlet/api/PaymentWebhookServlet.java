@@ -38,7 +38,7 @@ public class PaymentWebhookServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         resp.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-        resp.setContentType("application/json");
+        resp.setContentType("application/json;charset=UTF-8");
         resp.getWriter().write("{\"error\":\"Method Not Allowed\"}");
     }
 

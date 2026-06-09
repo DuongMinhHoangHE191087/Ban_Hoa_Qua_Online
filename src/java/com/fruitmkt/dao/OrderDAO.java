@@ -323,6 +323,68 @@ public class OrderDAO extends BaseDAO {
     /**
      * Cập nhật trạng thái đơn hàng.
      */
+    public int save(Connection conn, Order order) throws SQLException {
+        String sql = "INSERT INTO orders (customer_id, owner_id, parent_order_id, order_type, delivery_address, "
+                + "recipient_name, recipient_phone, delivery_time_slot, notes, cancelled_at, cancelled_by, "
+                + "cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, "
+                + "shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, "
+                + "shop_acceptance_deadline, created_at, updated_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, order.getCustomerId());
+            if (order.getOwnerIdObject() != null && order.getOwnerIdObject() > 0) {
+                ps.setInt(2, order.getOwnerIdObject());
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
+            if (order.getParentOrderId() != null && order.getParentOrderId() > 0) {
+                ps.setInt(3, order.getParentOrderId());
+            } else {
+                ps.setNull(3, Types.INTEGER);
+            }
+            ps.setString(4, order.getOrderType() != null ? order.getOrderType() : "CHILD");
+            ps.setString(5, order.getDeliveryAddress());
+            ps.setString(6, order.getRecipientName());
+            ps.setString(7, order.getRecipientPhone());
+            ps.setString(8, order.getDeliveryTimeSlot());
+            ps.setString(9, order.getNotes());
+            if (order.getCancelledAt() != null) {
+                ps.setTimestamp(10, Timestamp.valueOf(order.getCancelledAt()));
+            } else {
+                ps.setNull(10, Types.TIMESTAMP);
+            }
+            if (order.getCancelledBy() != null) {
+                ps.setInt(11, order.getCancelledBy());
+            } else {
+                ps.setNull(11, Types.INTEGER);
+            }
+            ps.setString(12, order.getCancellationReason());
+            String status = order.getStatus() != null ? order.getStatus() : "PENDING_PAYMENT";
+            ps.setString(13, status);
+            ps.setBigDecimal(14, order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(15, order.getDeliveryFee() != null ? order.getDeliveryFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(16, order.getDiscountAmount() != null ? order.getDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(17, order.getSystemDiscountAmount() != null ? order.getSystemDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(18, order.getShopDiscountAmount() != null ? order.getShopDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(19, order.getPlatformFee() != null ? order.getPlatformFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(20, order.getFinalAmount() != null ? order.getFinalAmount() : java.math.BigDecimal.ZERO);
+            ps.setString(21, order.getPaymentMethod() != null ? order.getPaymentMethod() : "COD");
+            ps.setString(22, order.getRefundStatus() != null ? order.getRefundStatus() : "NONE");
+            if ("CONFIRMED".equals(status)) {
+                ps.setTimestamp(23, Timestamp.valueOf(java.time.LocalDateTime.now().plusMinutes(30)));
+            } else {
+                ps.setNull(23, Types.TIMESTAMP);
+            }
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        throw new SQLException("Luu don hang that bai, khong lay duoc ma khoa tu tang.");
+    }
+
     public void updateStatus(int orderId, String status) throws SQLException {
         String sql;
         if ("CONFIRMED".equals(status)) {
@@ -426,6 +488,15 @@ public class OrderDAO extends BaseDAO {
      */
     public Connection openConnection() throws SQLException {
         return getConnection();
+    }
+
+    public void updatePlatformFee(Connection conn, int orderId, java.math.BigDecimal platformFee) throws SQLException {
+        String sql = "UPDATE orders SET platform_fee = ?, updated_at = GETDATE() WHERE order_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, platformFee != null ? platformFee : java.math.BigDecimal.ZERO);
+            ps.setInt(2, orderId);
+            ps.executeUpdate();
+        }
     }
 
 

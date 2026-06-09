@@ -34,6 +34,10 @@ public class PaymentService {
      * Gọi ngay sau khi INSERT orders thành công.
      */
     public PaymentTransaction initPayment(int orderId, String method) throws SQLException {
+        return initPayment(orderId, method, null);
+    }
+
+    public PaymentTransaction initPayment(int orderId, String method, String ipAddress) throws SQLException {
         List<Order> orders = orderDAO.findById(orderId);
         if (orders.isEmpty()) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
         Order order = orders.get(0);
@@ -43,7 +47,7 @@ public class PaymentService {
 
         int txId = paymentDAO.initTransaction(
             orderId, method, order.getFinalAmount(),
-            reference, null, expiresAt
+            reference, ipAddress, expiresAt
         );
 
         PaymentTransaction tx = new PaymentTransaction();

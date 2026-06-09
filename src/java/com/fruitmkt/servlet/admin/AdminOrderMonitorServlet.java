@@ -1,0 +1,69 @@
+package com.fruitmkt.servlet.admin;
+
+import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.dao.OrderDAO;
+import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.dto.PagedResultDTO;
+import com.fruitmkt.util.SessionUtil;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.*;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
+
+/**
+ * AdminOrderMonitorServlet — Monitor và giám sát tất cả đơn hàng trên sàn.
+ * URL: /admin/order-monitor
+ */
+@WebServlet("/admin/order-monitor")
+public class AdminOrderMonitorServlet extends HttpServlet {
+
+    private final OrderDAO orderDAO = new OrderDAO();
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        HttpSession session = req.getSession();
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        String statusFilter = req.getParameter("status");
+        String paymentMethod = req.getParameter("paymentMethod");
+        String paymentStatus = req.getParameter("paymentStatus");
+        String pageStr = req.getParameter("page");
+        int page = 1;
+        try {
+            if (pageStr != null) {
+                page = Integer.parseInt(pageStr);
+            }
+        } catch (NumberFormatException ignored) {}
+
+        try {
+            int pageSize = AppConfig.PAGE_SIZE_ORDERS;
+            List<Order> orders = orderDAO.findAll(statusFilter, paymentMethod, paymentStatus, page, pageSize);
+            int totalCount = orderDAO.countAll(statusFilter, paymentMethod, paymentStatus);
+            int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+            if (totalPages < 1) {
+                totalPages = 1;
+            }
+
+            PagedResultDTO pagedResult = new PagedResultDTO(orders, page, totalPages, totalCount, pageSize);
+
+            req.setAttribute("pagedResult", pagedResult);
+            req.setAttribute("statusFilter", statusFilter);
+            req.setAttribute("paymentMethod", paymentMethod);
+            req.setAttribute("paymentStatus", paymentStatus);
+
+            req.getRequestDispatcher("/WEB-INF/jsp/admin/order-monitor.jsp").forward(req, resp);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+}

@@ -261,7 +261,11 @@ public class ChatDAO extends BaseDAO {
      */
     public List<ChatMessage> findMessages(int sessionId) throws SQLException {
         List<ChatMessage> list = new ArrayList<>();
-        String sql = "SELECT * FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC";
+        String sql = "SELECT cm.*, u.full_name AS sender_name, u.role AS sender_role " +
+                     "FROM chat_messages cm " +
+                     "LEFT JOIN users u ON cm.sender_id = u.user_id " +
+                     "WHERE cm.session_id = ? " +
+                     "ORDER BY cm.created_at ASC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, sessionId);
@@ -320,6 +324,10 @@ public class ChatDAO extends BaseDAO {
         cm.setIsRead(rs.getBoolean("is_read"));
         Timestamp ca = rs.getTimestamp("created_at");
         if (ca != null) cm.setCreatedAt(ca.toLocalDateTime());
+        
+        try { cm.setSenderName(rs.getString("sender_name")); } catch (SQLException ignored) {}
+        try { cm.setSenderRole(rs.getString("sender_role")); } catch (SQLException ignored) {}
+        
         return cm;
     }
 }

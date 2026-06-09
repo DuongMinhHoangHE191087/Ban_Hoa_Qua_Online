@@ -32,7 +32,7 @@ public class ChatAPI extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         PrintWriter out = response.getWriter();
         Map<String, Object> result = new HashMap<>();
@@ -70,6 +70,16 @@ public class ChatAPI extends HttpServlet {
 
                 chatDAO.markRead(sessionId, currentUser.getUserId());
                 List<ChatMessage> messages = chatDAO.findMessages(sessionId);
+                
+                // Che giấu tên thật của Admin đối với Customer và Shop Owner
+                if (!isAdmin) {
+                    for (ChatMessage msg : messages) {
+                        if ("ADMIN".equals(msg.getSenderRole())) {
+                            msg.setSenderName("Hỗ trợ Admin");
+                        }
+                    }
+                }
+
                 result.put("success", true);
                 result.put("messages", messages);
                 result.put("currentUserId", currentUser.getUserId());
@@ -101,7 +111,7 @@ public class ChatAPI extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         PrintWriter out = response.getWriter();
         Map<String, Object> result = new HashMap<>();
@@ -138,23 +148,28 @@ public class ChatAPI extends HttpServlet {
                     return;
                 }
 
-                if (content == null || content.trim().isEmpty()) {
+                String mediaUrl = request.getParameter("mediaUrl");
+                String mediaType = request.getParameter("mediaType");
+
+                if ((content == null || content.trim().isEmpty()) && (mediaUrl == null || mediaUrl.trim().isEmpty())) {
                     result.put("success", false);
-                    result.put("message", "Nội dung tin nhắn không được rỗng");
+                    result.put("message", "Nội dung tin nhắn hoặc tệp đính kèm không được rỗng");
                 } else {
                     ChatMessage msg = new ChatMessage();
                     msg.setSessionId(sessionId);
                     msg.setSenderId(currentUser.getUserId());
-                    msg.setContent(content.trim());
+                    msg.setContent(content != null ? content.trim() : null);
+                    msg.setMediaUrl(mediaUrl != null ? mediaUrl.trim() : null);
+                    msg.setMediaType(mediaType != null ? mediaType.trim() : null);
                     msg.setIsRead(false);
                     chatDAO.saveMessage(msg);
                     result.put("success", true);
                     result.put("message", "Đã gửi tin nhắn");
                 }
             } else if ("createAdminSession".equals(action)) {
-                if (!AppConfig.ROLE_CUSTOMER.equals(currentUser.getRole())) {
+                if (AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
                     result.put("success", false);
-                    result.put("message", "Chỉ khách hàng mới có thể tạo session với Admin");
+                    result.put("message", "Admin không thể tạo phiên hỗ trợ với chính mình");
                     out.print(JsonUtil.toJson(result));
                     return;
                 }

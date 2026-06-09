@@ -1,13 +1,16 @@
 package com.fruitmkt.dao;
 
 import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.model.entity.CartItem;
 import com.fruitmkt.model.entity.OrderItem;
+import com.fruitmkt.model.entity.ProductVariant;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class OrderItemDAO extends BaseDAO {
 
@@ -35,5 +38,38 @@ public class OrderItemDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    public void saveBatch(Connection conn, int orderId, List<CartItem> items, Map<Integer, ProductVariant> variantMap)
+            throws SQLException {
+        String sql = "INSERT INTO order_items (order_id, variant_id, product_name_snapshot, variant_label_snapshot, "
+                + "quantity, unit_price, subtotal, packaging_label_snapshot, packaging_price_snapshot) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (CartItem item : items) {
+                ProductVariant variant = variantMap.get(item.getVariantId());
+                java.math.BigDecimal latestPrice = variant != null ? variant.getActivePrice() : item.getPrice();
+                java.math.BigDecimal packagingPriceAdd = item.getPackagingPriceAdd() != null
+                        ? item.getPackagingPriceAdd() : java.math.BigDecimal.ZERO;
+                java.math.BigDecimal subtotal = latestPrice.add(packagingPriceAdd)
+                        .multiply(new java.math.BigDecimal(item.getQuantity()));
+
+                ps.setInt(1, orderId);
+                ps.setInt(2, item.getVariantId());
+                ps.setString(3, item.getProductName());
+                ps.setString(4, item.getVariantLabel());
+                ps.setInt(5, item.getQuantity());
+                ps.setBigDecimal(6, latestPrice);
+                ps.setBigDecimal(7, subtotal);
+                if (item.getPackagingLabel() != null) {
+                    ps.setString(8, item.getPackagingLabel());
+                } else {
+                    ps.setNull(8, java.sql.Types.NVARCHAR);
+                }
+                ps.setBigDecimal(9, packagingPriceAdd);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
     }
 }

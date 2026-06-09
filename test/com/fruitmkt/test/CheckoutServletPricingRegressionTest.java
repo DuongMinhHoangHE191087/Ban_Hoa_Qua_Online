@@ -14,11 +14,13 @@ import com.fruitmkt.model.dto.CartSummaryDTO;
 import com.fruitmkt.model.entity.Delivery;
 import com.fruitmkt.model.entity.DeliveryTrip;
 import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.model.entity.PaymentTransaction;
 import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.servlet.customer.CheckoutServlet;
 import com.fruitmkt.service.DeliveryService;
+import com.fruitmkt.service.PaymentService;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -60,6 +62,7 @@ public class CheckoutServletPricingRegressionTest {
     private final DeliveryDAO deliveryDAO = new DeliveryDAO();
     private final DeliveryTripDAO deliveryTripDAO = new DeliveryTripDAO();
     private final DeliveryService deliveryService = new DeliveryService();
+    private final PaymentService paymentService = new PaymentService();
 
     private MockHttpEnvironment env;
 
@@ -73,13 +76,15 @@ public class CheckoutServletPricingRegressionTest {
     private int variantBId = -1;
     private int cartId = -1;
     private int createdOrderId = -1;
+    private String customerPhone;
 
     @Before
     public void setUp() throws SQLException {
         env = new MockHttpEnvironment();
         ownerAId = createUser("Checkout Owner A", "checkout_owner_a_" + System.currentTimeMillis() + "@test.com", "SHOP_OWNER", buildUniquePhone(1));
         ownerBId = createUser("Checkout Owner B", "checkout_owner_b_" + System.currentTimeMillis() + "@test.com", "SHOP_OWNER", buildUniquePhone(2));
-        customerId = createUser("Checkout Customer", "checkout_customer_" + System.currentTimeMillis() + "@test.com", "CUSTOMER", buildUniquePhone(3));
+        customerPhone = buildUniquePhone(3);
+        customerId = createUser("Checkout Customer", "checkout_customer_" + System.currentTimeMillis() + "@test.com", "CUSTOMER", customerPhone);
         env.setCurrentUser(buildCustomer(customerId));
         env.sessionAttributes.put("_csrfToken", CSRF_TOKEN);
 
@@ -135,6 +140,7 @@ public class CheckoutServletPricingRegressionTest {
             ownerAId = -1;
             ownerBId = -1;
             customerId = -1;
+            customerPhone = null;
         }
     }
 
@@ -159,8 +165,9 @@ public class CheckoutServletPricingRegressionTest {
         env.clearRequestState();
         env.putParam("_csrf", CSRF_TOKEN);
         env.putParam("fullName", "Checkout Customer");
-        env.putParam("phone", "0912345678");
+        env.putParam("phone", customerPhone);
         env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
         env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
         env.putParam("variantIds", variantAId + "," + variantBId);
 
@@ -202,8 +209,9 @@ public class CheckoutServletPricingRegressionTest {
         env.clearRequestState();
         env.putParam("_csrf", CSRF_TOKEN);
         env.putParam("fullName", "Checkout Customer");
-        env.putParam("phone", "0912345678");
+        env.putParam("phone", customerPhone);
         env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
         env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
         env.putParam("variantIds", variantAId + "," + variantBId);
         env.putParam("shopCouponCode", "SHOP10");
@@ -231,8 +239,9 @@ public class CheckoutServletPricingRegressionTest {
         env.clearRequestState();
         env.putParam("_csrf", CSRF_TOKEN);
         env.putParam("fullName", "Checkout Customer");
-        env.putParam("phone", "0912345678");
+        env.putParam("phone", customerPhone);
         env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
         env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
         env.putParam("variantIds", String.valueOf(variantAId));
         env.putParam("shopCouponCode", "SHOP10");
@@ -268,6 +277,124 @@ public class CheckoutServletPricingRegressionTest {
         assertEquals(0, order.getFinalAmount().compareTo(expectedFinalAmount));
         assertEquals(ownerAId, order.getOwnerId());
         assertEquals(AppConfig.PAYMENT_COD, order.getPaymentMethod());
+    }
+
+    @Test
+    public void rejectCheckoutForShopOwnerRole() throws Exception {
+        env.clearRequestState();
+        env.setCurrentUser(buildShopOwner(ownerAId));
+
+        servlet.doGetPublic(env.request, env.response);
+
+        assertEquals(Integer.valueOf(HttpServletResponse.SC_FORBIDDEN), env.errorStatus);
+        assertNull(env.forwardedPath);
+        assertNull(env.redirectLocation);
+    }
+
+    @Test
+    public void rejectCheckoutWhenCsrfTokenMissing() throws Exception {
+        env.clearRequestState();
+        env.sessionAttributes.remove("_csrfToken");
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/cart", env.redirectLocation);
+        assertEquals("error", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
+        assertNotNull(env.sessionAttributes.get(AppConfig.SESSION_FLASH_MSG));
+    }
+
+    @Test
+    public void rejectUnknownPaymentMethodOnCheckout() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
+        env.putParam("paymentMethod", "BANKING");
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/checkout?variantIds=" + variantAId, env.redirectLocation);
+        assertEquals("error", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
+        assertNotNull(env.sessionAttributes.get(AppConfig.SESSION_FLASH_MSG));
+    }
+
+    @Test
+    public void rejectCheckoutWhenDeliveryTimeSlotMissing() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/checkout?variantIds=" + variantAId, env.redirectLocation);
+        assertEquals("error", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
+        assertNotNull(env.sessionAttributes.get(AppConfig.SESSION_FLASH_MSG));
+    }
+
+    @Test
+    public void rejectCheckoutWhenDeliveryTimeSlotBlank() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "   ");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/checkout?variantIds=" + variantAId, env.redirectLocation);
+        assertEquals("error", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
+        assertNotNull(env.sessionAttributes.get(AppConfig.SESSION_FLASH_MSG));
+    }
+
+    @Test
+    public void checkoutMultipleShopsWithBankTransferCreatesParentPaymentFlow() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "12:00-16:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_CK);
+        env.putParam("variantIds", variantAId + "," + variantBId);
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        assertTrue(env.redirectLocation.contains("/checkout?action=payment&orderId="));
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        Order parent = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_TYPE_PARENT, parent.getOrderType());
+        assertEquals(AppConfig.ORDER_PENDING_PAYMENT, parent.getStatus());
+        assertEquals(AppConfig.PAYMENT_CK, parent.getPaymentMethod());
+
+        List<Order> children = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, children.size());
+        for (Order child : children) {
+            assertEquals(AppConfig.ORDER_PENDING_PAYMENT, child.getStatus());
+            assertEquals(AppConfig.PAYMENT_CK, child.getPaymentMethod());
+        }
+
+        PaymentTransaction paymentTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        assertNotNull(paymentTransaction);
+        assertEquals("SEPAY", paymentTransaction.getPaymentMethod());
+        assertEquals(0, parent.getFinalAmount().compareTo(paymentTransaction.getAmount()));
     }
 
     private void assertChildOrder(Order child, int expectedOwnerId, BigDecimal expectedSubtotal,
@@ -423,6 +550,15 @@ public class CheckoutServletPricingRegressionTest {
         user.setUserId(userId);
         user.setFullName("Checkout Regression Customer");
         user.setRole(AppConfig.ROLE_CUSTOMER);
+        user.setStatus(AppConfig.ACCOUNT_STATUS_ACTIVE);
+        return user;
+    }
+
+    private User buildShopOwner(int userId) {
+        User user = new User();
+        user.setUserId(userId);
+        user.setFullName("Checkout Regression Shop Owner");
+        user.setRole(AppConfig.ROLE_SHOP_OWNER);
         user.setStatus(AppConfig.ACCOUNT_STATUS_ACTIVE);
         return user;
     }

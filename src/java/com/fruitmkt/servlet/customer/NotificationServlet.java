@@ -157,6 +157,11 @@ public class NotificationServlet extends HttpServlet {
             SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());
         }
 
-        resp.sendRedirect(req.getContextPath() + "/notifications");
+        String redirectUrl = req.getParameter("redirectUrl");
+        if (redirectUrl != null && !redirectUrl.trim().isEmpty()) {
+            resp.sendRedirect(req.getContextPath() + redirectUrl);
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/notifications");
+        }
     }
 }

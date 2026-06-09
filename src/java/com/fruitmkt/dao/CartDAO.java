@@ -170,6 +170,28 @@ public class CartDAO extends BaseDAO {
         return findCartById(cartId);
     }
 
+    public void deleteItemsByCustomer(Connection conn, int customerId, List<Integer> variantIds) throws SQLException {
+        if (variantIds == null || variantIds.isEmpty()) {
+            return;
+        }
+        StringBuilder sql = new StringBuilder(
+                "DELETE FROM cart_items WHERE cart_id = (SELECT cart_id FROM cart WHERE customer_id = ?) AND variant_id IN (");
+        for (int i = 0; i < variantIds.size(); i++) {
+            sql.append("?");
+            if (i < variantIds.size() - 1) {
+                sql.append(",");
+            }
+        }
+        sql.append(")");
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setInt(1, customerId);
+            for (int i = 0; i < variantIds.size(); i++) {
+                ps.setInt(i + 2, variantIds.get(i));
+            }
+            ps.executeUpdate();
+        }
+    }
+
     /**
      * Lấy danh sách sản phẩm trong giỏ hàng.
      */
