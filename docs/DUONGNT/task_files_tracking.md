@@ -69,3 +69,6 @@ Tài liệu này ghi chú lại danh sách các file mã nguồn đã được t
 - **[Deleted]** `src/java/com/fruitmkt/servlet/admin/AdminUserEditServlet.java` (Xóa chức năng chỉnh sửa thông tin người dùng từ phía admin theo yêu cầu).
 - **[Deleted]** `web/WEB-INF/jsp/admin/user-edit.jsp` (Xóa giao diện chỉnh sửa).
 - **[Modified]** `web/WEB-INF/jsp/admin/user-list.jsp` (Xóa nút 'Sửa' khỏi bảng danh sách người dùng).
+- **[New]** `src/java/com/fruitmkt/servlet/admin/AdminUserViewServlet.java` (Thêm Servlet xử lý chức năng xem chi tiết người dùng dạng Read-only).
+- **[New]** `web/WEB-INF/jsp/admin/user-view.jsp` (Thêm giao diện xem thông tin người dùng mới).
+- **[Modified]** `web/WEB-INF/jsp/admin/user-list.jsp` (Thêm nút 'Xem' thay cho nút 'Sửa').
