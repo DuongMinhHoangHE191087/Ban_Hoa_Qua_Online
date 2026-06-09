@@ -1,10 +1,10 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Äáº·t hÃ ng thÃ nh cÃ´ng - Verdant Market"/></jsp:include>
+<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Đặt hàng thành công - Verdant Market"/></jsp:include>
 
-<!-- TÃ­ch há»£p Tailwind CSS CDN, Lexend Font vÃ  Material Symbols Outlined -->
+<!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
@@ -106,55 +106,55 @@
         <c:when test="${not empty order}">
             <div class="max-w-2xl mx-auto text-center py-12 glass-card rounded-2xl p-8 flex flex-col items-center gap-6 shadow-xl border border-white/60">
                 
-                <!-- Icon Checked Hoáº¡t Há»a Premium -->
+                <!-- Icon Checked Hoạt Họa Premium -->
                 <div class="w-24 h-24 rounded-full bg-emerald-100/80 flex items-center justify-center text-primary border border-emerald-200 shadow-md animate-bounce">
                     <span class="material-symbols-outlined text-[56px] font-bold text-[#14532D]">verified</span>
                 </div>
                 
                 <div>
-                    <h1 class="text-3xl font-extrabold text-[#00210d] tracking-tight">Äáº·t HÃ ng ThÃ nh CÃ´ng!</h1>
+                    <h1 class="text-3xl font-extrabold text-[#00210d] tracking-tight">Đặt Hàng Thành Công!</h1>
                     <p class="text-on-surface-variant mt-3 text-sm leading-relaxed max-w-md mx-auto">
-                        Cáº£m Æ¡n báº¡n Ä‘Ã£ tin chá»n nÃ´ng sáº£n sáº¡ch cháº¥t lÆ°á»£ng cao táº¡i <strong>MetaFruit Premium</strong>. ÄÆ¡n hÃ ng cá»§a báº¡n Ä‘Ã£ Ä‘Æ°á»£c tiáº¿p nháº­n vÃ  xá»­ lÃ½.
+                        Cảm ơn bạn đã tin chọn nông sản sạch chất lượng cao tại <strong>MetaFruit Premium</strong>. Đơn hàng của bạn đã được tiếp nhận và xử lý.
                     </p>
                 </div>
 
                 <!-- Order Summary Card -->
                 <div class="w-full bg-white/60 border border-[#bcfdc9] rounded-xl p-6 text-start text-sm text-on-surface-variant space-y-4 shadow-sm">
-                    <h3 class="text-base font-bold text-[#00210d] border-b border-emerald-100/50 pb-2">ThÃ´ng tin Ä‘Æ¡n hÃ ng</h3>
+                    <h3 class="text-base font-bold text-[#00210d] border-b border-emerald-100/50 pb-2">Thông tin đơn hàng</h3>
                     
                     <div class="flex justify-between items-center py-1">
-                        <span class="text-on-surface-variant font-medium">MÃ£ Ä‘Æ¡n hÃ ng:</span>
+                        <span class="text-on-surface-variant font-medium">Mã đơn hàng:</span>
                         <span class="text-inverse-surface font-extrabold text-base text-[#14532D]">#<c:out value="${order.orderId}"/></span>
                     </div>
                     
                     <div class="flex justify-between items-center py-1">
-                        <span class="text-on-surface-variant font-medium">Tá»•ng tiá»n thanh toÃ¡n:</span>
+                        <span class="text-on-surface-variant font-medium">Tổng tiền thanh toán:</span>
                         <span class="text-[#ba1a1a] font-bold text-lg"><ft:currency value="${order.finalAmount}"/></span>
                     </div>
                     
                     <div class="flex justify-between items-center py-1">
-                        <span class="text-on-surface-variant font-medium">PhÆ°Æ¡ng thá»©c thanh toÃ¡n:</span>
+                        <span class="text-on-surface-variant font-medium">Phương thức thanh toán:</span>
                         <span class="text-inverse-surface font-semibold text-sm">
                             <c:choose>
                                 <c:when test="${order.paymentMethod eq 'CK'}">
-                                    Chuyá»ƒn khoáº£n QR ngÃ¢n hÃ ng
+                                    Chuyển khoản QR ngân hàng
                                 </c:when>
                                 <c:otherwise>
-                                    Thanh toÃ¡n khi nháº­n hÃ ng (COD)
+                                    Thanh toán khi nhận hàng (COD)
                                 </c:otherwise>
                             </c:choose>
                         </span>
                     </div>
                     
                     <div class="flex justify-between items-center py-1">
-                        <span class="text-on-surface-variant font-medium">Tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng:</span>
+                        <span class="text-on-surface-variant font-medium">Trạng thái đơn hàng:</span>
                         <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
                             <c:choose>
                                 <c:when test="${order.status eq 'PENDING_PAYMENT'}">
-                                    Chá» thanh toÃ¡n
+                                    Chờ thanh toán
                                 </c:when>
                                 <c:otherwise>
-                                    ÄÃ£ xÃ¡c nháº­n
+                                    Đã xác nhận
                                 </c:otherwise>
                             </c:choose>
                             </span>
@@ -162,33 +162,33 @@
 
                     <!-- Destination Address -->
                     <div class="border-t border-emerald-100/50 pt-3 mt-1">
-                        <span class="text-xs font-bold text-primary block mb-1">Äá»‹a chá»‰ nháº­n hÃ ng:</span>
+                        <span class="text-xs font-bold text-primary block mb-1">Địa chỉ nhận hàng:</span>
                         <p class="text-xs text-on-surface-variant leading-relaxed font-medium"><c:out value="${order.deliveryAddress}"/></p>
                     </div>
                 </div>
 
-                <!-- HÆ°á»›ng dáº«n cháº·ng tiáº¿p theo (Next Step Instructions) -->
+                <!-- Hướng dẫn chặng tiếp theo (Next Step Instructions) -->
                 <div class="w-full bg-[#d1ffd8]/50 border border-[#bcfdc9] rounded-xl p-5 text-start">
                     <h4 class="text-sm font-bold text-[#14532D] flex items-center gap-1.5 mb-2">
                         <span class="material-symbols-outlined text-[18px]">info</span>
-                        HÆ°á»›ng dáº«n cháº·ng tiáº¿p theo:
+                        Hướng dẫn chặng tiếp theo:
                     </h4>
                     <c:choose>
                         <c:when test="${order.paymentMethod eq 'CK'}">
                             <p class="text-xs text-on-surface-variant leading-relaxed">
-                                Báº¡n Ä‘Ã£ chá»n phÆ°Æ¡ng thá»©c <strong>Chuyá»ƒn khoáº£n QR ngÃ¢n hÃ ng</strong>. Äá»ƒ Ä‘Æ¡n hÃ ng Ä‘Æ°á»£c xÃ¡c nháº­n ngay láº­p tá»©c vÃ  giá»¯ chá»— tá»“n kho nÃ´ng sáº£n, vui lÃ²ng hoÃ n táº¥t giao dá»‹ch thanh toÃ¡n.
+                                Bạn đã chọn phương thức <strong>Chuyển khoản QR ngân hàng</strong>. Để đơn hàng được xác nhận ngay lập tức và giữ chỗ tồn kho nông sản, vui lòng hoàn tất giao dịch thanh toán.
                             </p>
                             <div class="mt-4 flex justify-center">
                                 <a href="${pageContext.request.contextPath}/checkout?action=payment&orderId=${order.orderId}" class="w-full sm:w-auto bg-[#14532D] text-white font-bold py-3 px-8 rounded-lg hover:bg-opacity-95 transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
                                     <span class="material-symbols-outlined text-lg">qr_code_scanner</span>
-                                    <span>Thanh toÃ¡n ngay qua mÃ£ QR</span>
+                                    <span>Thanh toán ngay qua mã QR</span>
                                 </a>
                             </div>
                         </c:when>
                         <c:otherwise>
                             <p class="text-xs text-on-surface-variant leading-relaxed">
-                                ÄÆ¡n hÃ ng cá»§a báº¡n sáº½ Ä‘Æ°á»£c chuáº©n bá»‹ bá»Ÿi nhÃ  vÆ°á»n vÃ  bÃ n giao cho Ä‘Æ¡n vá»‹ váº­n chuyá»ƒn há»a tá»‘c. Thá»i gian dá»± kiáº¿n giao hÃ ng trong vÃ²ng <strong>2 - 3 tiáº¿ng</strong>.
-                                Vui lÃ²ng chuáº©n bá»‹ sáºµn sá»‘ tiá»n <strong class="text-[#ba1a1a]"><ft:currency value="${order.finalAmount}"/></strong> Ä‘á»ƒ thanh toÃ¡n cho nhÃ¢n viÃªn giao hÃ ng khi nháº­n sáº£n pháº©m.
+                                Đơn hàng của bạn sẽ được chuẩn bị bởi nhà vườn và bàn giao cho đơn vị vận chuyển hỏa tốc. Thời gian dự kiến giao hàng trong vòng <strong>2 - 3 tiếng</strong>.
+                                Vui lòng chuẩn bị sẵn số tiền <strong class="text-[#ba1a1a]"><ft:currency value="${order.finalAmount}"/></strong> để thanh toán cho nhân viên giao hàng khi nhận sản phẩm.
                             </p>
                         </c:otherwise>
                     </c:choose>
@@ -198,12 +198,12 @@
                 <div class="flex flex-col sm:flex-row gap-4 w-full justify-center border-t border-emerald-100/50 pt-6 mt-4">
                     <a href="${pageContext.request.contextPath}/home" class="bg-white text-[#14532D] border border-[#14532D] font-bold py-3.5 px-6 rounded-lg hover:bg-emerald-50 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer">
                         <span class="material-symbols-outlined text-lg">arrow_back</span>
-                        <span>Tiáº¿p tá»¥c mua sáº¯m</span>
+                        <span>Tiếp tục mua sắm</span>
                     </a>
                     
                     <a href="${pageContext.request.contextPath}/orders" class="bg-[#14532D] text-white font-bold py-3.5 px-6 rounded-lg hover:bg-opacity-90 transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
                         <span class="material-symbols-outlined text-lg">receipt_long</span>
-                        <span>Xem lá»‹ch sá»­ Ä‘Æ¡n hÃ ng</span>
+                        <span>Xem lịch sử đơn hàng</span>
                     </a>
                 </div>
             </div>
@@ -214,18 +214,18 @@
                     <span class="material-symbols-outlined text-[48px] font-bold">error</span>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-[#93000a]">KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng</h1>
-                    <p class="text-sm text-on-surface-variant mt-2">ThÃ´ng tin Ä‘Æ¡n hÃ ng khÃ´ng tá»“n táº¡i hoáº·c báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p thÃ´ng tin nÃ y.</p>
+                    <h1 class="text-2xl font-bold text-[#93000a]">Không tìm thấy đơn hàng</h1>
+                    <p class="text-sm text-on-surface-variant mt-2">Thông tin đơn hàng không tồn tại hoặc bạn không có quyền truy cập thông tin này.</p>
                 </div>
                 <a href="${pageContext.request.contextPath}/home" class="bg-[#14532D] text-white font-bold py-3 px-6 rounded-lg hover:bg-opacity-90 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer">
                     <span class="material-symbols-outlined">home</span>
-                    <span>Quay láº¡i Trang chá»§</span>
+                    <span>Quay lại Trang chủ</span>
                 </a>
             </div>
         </c:otherwise>
     </c:choose>
 
-    <%-- CRITICAL SCRIPT: RESET GIá»Ž HÃ€NG LOCAL STORAGE CHá»ŒN Lá»ŒC --%>
+    <%-- CRITICAL SCRIPT: RESET GIỎ HÀNG LOCAL STORAGE CHỌN LỌC --%>
     <c:set var="purgedIds" value="${sessionScope._purgedVariantIds}"/>
     <c:remove var="_purgedVariantIds" scope="session"/>
     <script>
@@ -244,7 +244,7 @@
                             localStorage.setItem(key, JSON.stringify(items));
                         }
                     } catch (e) {
-                        console.warn('[FruitMkt] Lá»—i lá»c giá» local ' + key + ':', e);
+                        console.warn('[FruitMkt] Lỗi lọc giỏ local ' + key + ':', e);
                     }
                 });
 

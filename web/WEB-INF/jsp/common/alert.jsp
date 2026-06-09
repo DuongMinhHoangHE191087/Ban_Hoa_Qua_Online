@@ -1,7 +1,7 @@
 ﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-<%-- alert.jsp â€” Hiá»ƒn thá»‹ flash message tá»« session (PRG pattern).
-     Include trong header.jsp Ä‘á»ƒ tá»± Ä‘á»™ng hiá»ƒn thá»‹ má»i trang.
-     Tá»± Ä‘á»™ng xÃ³a flash sau khi render.
+<%-- alert.jsp — Hiển thị flash message từ session (PRG pattern).
+     Include trong header.jsp để tự động hiển thị mọi trang.
+     Tự động xóa flash sau khi render.
 --%>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>

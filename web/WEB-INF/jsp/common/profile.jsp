@@ -1,10 +1,10 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Há»“ sÆ¡ cÃ¡ nhÃ¢n" />
+    <jsp:param name="pageTitle" value="Hồ sơ cá nhân" />
 </jsp:include>
 
 <!-- Load Tailwind CSS Play Script -->
@@ -35,14 +35,14 @@
         <div>
             <h1 class="text-2xl font-bold text-txt flex items-center gap-2">
                 <i class="fa-solid fa-circle-user text-primary text-3xl"></i>
-                TÃ i khoáº£n cÃ¡ nhÃ¢n
+                Tài khoản cá nhân
             </h1>
-            <p class="text-xs text-txt-2 mt-1">Quáº£n lÃ½ thÃ´ng tin tÃ i khoáº£n, Ä‘á»‹a chá»‰ nháº­n hÃ ng, lá»‹ch sá»­ Ä‘Æ¡n hÃ ng vÃ  báº£o máº­t.</p>
+            <p class="text-xs text-txt-2 mt-1">Quản lý thông tin tài khoản, địa chỉ nhận hàng, lịch sử đơn hàng và bảo mật.</p>
         </div>
         <div>
             <a href="${pageContext.request.contextPath}/" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:border-primary text-xs font-bold text-txt-2 hover:text-primary rounded-xl bg-white shadow-sm hover:shadow transition-all duration-200 cursor-pointer">
                 <i class="fa-solid fa-house"></i>
-                Quay vá» trang chá»§
+                Quay về trang chủ
             </a>
         </div>
     </div>
@@ -72,35 +72,35 @@
                     </div>
                 </div>
 
-                <h2 class="text-[10px] font-bold uppercase tracking-wider text-txt-3 mb-3 px-2">Menu quáº£n lÃ½</h2>
+                <h2 class="text-[10px] font-bold uppercase tracking-wider text-txt-3 mb-3 px-2">Menu quản lý</h2>
                 <nav class="flex flex-col gap-1" id="profile-tabs">
                     <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left bg-primary text-white" 
                             data-tab="profile-tab">
                         <i class="fa-solid fa-user text-sm w-4 text-center"></i>
-                        <span class="flex-1">ThÃ´ng tin cÃ¡ nhÃ¢n</span>
+                        <span class="flex-1">Thông tin cá nhân</span>
                     </button>
                     <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
                             data-tab="address-tab">
                         <i class="fa-solid fa-map-location-dot text-sm w-4 text-center"></i>
-                        <span class="flex-1">Sá»• Ä‘á»‹a chá»‰</span>
+                        <span class="flex-1">Sổ địa chỉ</span>
                         <c:if test="${not empty addresses}"><span class="ml-auto px-1.5 py-0.5 bg-gray-200 text-txt-3 rounded text-[9px] font-bold">${fn:length(addresses)}</span></c:if>
                     </button>
                     <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
                             data-tab="orders-tab">
                         <i class="fa-solid fa-box text-sm w-4 text-center"></i>
-                        <span class="flex-1">ÄÆ¡n hÃ ng cá»§a tÃ´i</span>
+                        <span class="flex-1">Đơn hàng của tôi</span>
                         <c:if test="${not empty orders}"><span class="ml-auto px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[9px] font-bold">${fn:length(orders)}</span></c:if>
                     </button>
                     <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
                             data-tab="payments-tab">
                         <i class="fa-solid fa-credit-card text-sm w-4 text-center"></i>
-                        <span class="flex-1">Lá»‹ch sá»­ thanh toÃ¡n</span>
+                        <span class="flex-1">Lịch sử thanh toán</span>
                         <c:if test="${not empty payments}"><span class="ml-auto px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">${fn:length(payments)}</span></c:if>
                     </button>
                     <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
                             data-tab="security-tab">
                         <i class="fa-solid fa-shield-halved text-sm w-4 text-center"></i>
-                        <span class="flex-1">Äá»•i máº­t kháº©u</span>
+                        <span class="flex-1">Đổi mật khẩu</span>
                     </button>
                 </nav>
             </div>
@@ -112,7 +112,7 @@
             <!-- 1. Profile Info Tab -->
             <div id="profile-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm">
                 <h2 class="text-base font-bold text-txt mb-6 pb-3 border-b border-gray-100 flex items-center gap-2">
-                    <i class="fa-solid fa-user text-primary"></i> ThÃ´ng tin tÃ i khoáº£n
+                    <i class="fa-solid fa-user text-primary"></i> Thông tin tài khoản
                 </h2>
                 
                 <form action="${pageContext.request.contextPath}/profile" method="post" enctype="multipart/form-data" class="space-y-6">
@@ -123,7 +123,7 @@
                     <div class="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-gray-100">
                         <div class="relative w-24 h-24 rounded-full overflow-hidden border border-primary/20 shadow-sm cursor-pointer group shrink-0" 
                              onclick="document.getElementById('avatarInput').click();" 
-                             title="Click Ä‘á»ƒ Ä‘á»•i áº£nh Ä‘áº¡i diá»‡n">
+                             title="Click để đổi ảnh đại diện">
                             <img id="avatarPreview" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                                  src="${not empty user.avatarUrl ? (fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" alt="Avatar">
                             <div class="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -133,38 +133,38 @@
                         <div class="text-center sm:text-left space-y-1.5">
                             <h3 class="text-sm font-bold text-txt"><c:out value="${user.fullName}"/></h3>
                             <div class="flex items-center justify-center sm:justify-start gap-2">
-                                <span class="text-[10px] text-txt-3">Vai trÃ²:</span>
+                                <span class="text-[10px] text-txt-3">Vai trò:</span>
                                 <span class="px-2 py-0.5 bg-primary-lt text-primary border border-primary/10 rounded-full text-[9px] font-bold uppercase"><c:out value="${user.role}"/></span>
                             </div>
                             <input type="file" name="avatar" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden">
                             <button type="button" class="px-3 py-1.5 border border-border hover:border-primary text-[10px] font-bold text-txt-2 hover:text-primary rounded-lg transition-colors cursor-pointer" 
-                                    onclick="document.getElementById('avatarInput').click();">Chá»n áº£nh má»›i</button>
+                                    onclick="document.getElementById('avatarInput').click();">Chọn ảnh mới</button>
                         </div>
                     </div>
 
                     <!-- Personal Information Form fields -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-bold text-txt-2" for="fullName">Há» vÃ  tÃªn <span class="text-red-500">*</span></label>
+                            <label class="text-xs font-bold text-txt-2" for="fullName">Họ và tên <span class="text-red-500">*</span></label>
                             <input type="text" id="fullName" name="fullName" value="<c:out value="${user.fullName}"/>" required
                                    class="w-full px-4 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/10 transition-all">
                         </div>
                         <div class="flex flex-col gap-1.5">
-                            <label class="text-xs font-bold text-txt-2" for="phone">Sá»‘ Ä‘iá»‡n thoáº¡i</label>
-                            <input type="text" id="phone" name="phone" value="<c:out value="${user.phone}"/>" placeholder="VÃ­ dá»¥: 0987654321"
+                            <label class="text-xs font-bold text-txt-2" for="phone">Số điện thoại</label>
+                            <input type="text" id="phone" name="phone" value="<c:out value="${user.phone}"/>" placeholder="Ví dụ: 0987654321"
                                    class="w-full px-4 py-2 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/10 transition-all">
                         </div>
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-txt-3" for="email">Äá»‹a chá»‰ Email (TÃªn Ä‘Äƒng nháº­p)</label>
+                        <label class="text-xs font-bold text-txt-3" for="email">Địa chỉ Email (Tên đăng nhập)</label>
                         <input type="email" id="email" name="email" value="<c:out value="${user.email}"/>" disabled
                                class="w-full px-4 py-2 bg-gray-50 border border-border rounded-xl text-xs text-txt-3 cursor-not-allowed">
                     </div>
 
                     <div class="flex justify-end pt-4">
                         <button type="submit" class="flex items-center gap-2 px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all shadow-sm border-0 cursor-pointer">
-                            <i class="fa-solid fa-floppy-disk"></i> LÆ°u thay Ä‘á»•i
+                            <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi
                         </button>
                     </div>
                 </form>
@@ -174,10 +174,10 @@
             <div id="address-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm hidden">
                 <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-100">
                     <h2 class="text-base font-bold text-txt flex items-center gap-2">
-                        <i class="fa-solid fa-map-location-dot text-primary"></i> Sá»• Ä‘á»‹a chá»‰ giao hÃ ng
+                        <i class="fa-solid fa-map-location-dot text-primary"></i> Sổ địa chỉ giao hàng
                     </h2>
                     <button onclick="openAddressModal()" class="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer">
-                        <i class="fa-solid fa-plus"></i> ThÃªm Ä‘á»‹a chá»‰ má»›i
+                        <i class="fa-solid fa-plus"></i> Thêm địa chỉ mới
                     </button>
                 </div>
 
@@ -193,7 +193,7 @@
                                             <span class="text-gray-300">|</span>
                                             <span class="text-xs text-txt-2"><c:out value="${addr.recipientPhone}"/></span>
                                             <c:if test="${addr['default']}">
-                                                <span class="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[9px] font-bold">Máº·c Ä‘á»‹nh</span>
+                                                <span class="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[9px] font-bold">Mặc định</span>
                                             </c:if>
                                         </div>
                                         <p class="text-xs text-txt-2 leading-relaxed"><c:out value="${addr.addressDetail}"/></p>
@@ -204,7 +204,7 @@
                                                 <input type="hidden" name="action" value="setDefaultAddress">
                                                 <input type="hidden" name="addressId" value="${addr.addressId}">
                                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                <button type="submit" class="px-2 py-1 text-[9px] border border-gray-200 text-txt-2 hover:border-primary hover:text-primary rounded transition-colors cursor-pointer bg-white">Äáº·t máº·c Ä‘á»‹nh</button>
+                                                <button type="submit" class="px-2 py-1 text-[9px] border border-gray-200 text-txt-2 hover:border-primary hover:text-primary rounded transition-colors cursor-pointer bg-white">Đặt mặc định</button>
                                             </form>
                                         </c:if>
                                         <button data-address-id="${addr.addressId}"
@@ -213,15 +213,15 @@
                                                 data-address-detail="<c:out value='${addr.addressDetail}'/>"
                                                 data-is-default="${addr['default']}"
                                                 onclick="openAddressModalFromBtn(this)" 
-                                                class="p-1.5 border border-gray-200 text-txt-2 hover:border-blue-500 hover:text-blue-500 rounded bg-white transition-colors cursor-pointer" title="Sá»­a">
+                                                class="p-1.5 border border-gray-200 text-txt-2 hover:border-blue-500 hover:text-blue-500 rounded bg-white transition-colors cursor-pointer" title="Sửa">
                                             <i class="fa-solid fa-pen text-xs"></i>
                                         </button>
                                         <c:if test="${not addr['default']}">
-                                            <form action="${pageContext.request.contextPath}/profile" method="post" class="inline" onsubmit="return confirm('Báº¡n cháº¯c cháº¯n muá»‘n xÃ³a Ä‘á»‹a chá»‰ nÃ y?');">
+                                            <form action="${pageContext.request.contextPath}/profile" method="post" class="inline" onsubmit="return confirm('Bạn chắc chắn muốn xóa địa chỉ này?');">
                                                 <input type="hidden" name="action" value="deleteAddress">
                                                 <input type="hidden" name="addressId" value="${addr.addressId}">
                                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                <button type="submit" class="p-1.5 border border-gray-200 text-txt-2 hover:border-red-500 hover:text-red-500 rounded bg-white transition-colors cursor-pointer" title="XÃ³a">
+                                                <button type="submit" class="p-1.5 border border-gray-200 text-txt-2 hover:border-red-500 hover:text-red-500 rounded bg-white transition-colors cursor-pointer" title="Xóa">
                                                     <i class="fa-solid fa-trash text-xs"></i>
                                                 </button>
                                             </form>
@@ -233,7 +233,7 @@
                         <c:otherwise>
                             <div class="text-center py-8 border-2 border-dashed border-gray-100 rounded-2xl">
                                 <i class="fa-solid fa-map-location text-gray-300 text-3xl mb-2.5"></i>
-                                <p class="text-xs text-txt-3">ChÆ°a lÆ°u Ä‘á»‹a chá»‰ giao hÃ ng nÃ o. Vui lÃ²ng thÃªm Ä‘á»‹a chá»‰ nháº­n hÃ ng!</p>
+                                <p class="text-xs text-txt-3">Chưa lưu địa chỉ giao hàng nào. Vui lòng thêm địa chỉ nhận hàng!</p>
                             </div>
                         </c:otherwise>
                     </c:choose>
@@ -245,16 +245,16 @@
             <div id="orders-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm hidden">
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-3 border-b border-gray-100">
                     <h2 class="text-base font-bold text-txt flex items-center gap-2">
-                        <i class="fa-solid fa-box text-primary"></i> ÄÆ¡n hÃ ng cá»§a tÃ´i
+                        <i class="fa-solid fa-box text-primary"></i> Đơn hàng của tôi
                     </h2>
                     <!-- Status Filter Tabs -->
                     <div class="flex flex-wrap gap-1" id="order-filter-tabs">
-                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-primary bg-primary text-white transition-all" data-status="ALL">Táº¥t cáº£</button>
-                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-amber-400 hover:text-amber-600 transition-all" data-status="PENDING_PAYMENT">Chá» TT</button>
-                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-blue-400 hover:text-blue-600 transition-all" data-status="CONFIRMED">ÄÃ£ nháº­n</button>
-                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-purple-400 hover:text-purple-600 transition-all" data-status="DISPATCHED">Äang giao</button>
-                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-green-400 hover:text-green-600 transition-all" data-status="DELIVERED">ÄÃ£ giao</button>
-                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-red-400 hover:text-red-600 transition-all" data-status="CANCELLED">ÄÃ£ há»§y</button>
+                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-primary bg-primary text-white transition-all" data-status="ALL">Tất cả</button>
+                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-amber-400 hover:text-amber-600 transition-all" data-status="PENDING_PAYMENT">Chờ TT</button>
+                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-blue-400 hover:text-blue-600 transition-all" data-status="CONFIRMED">Đã nhận</button>
+                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-purple-400 hover:text-purple-600 transition-all" data-status="DISPATCHED">Đang giao</button>
+                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-green-400 hover:text-green-600 transition-all" data-status="DELIVERED">Đã giao</button>
+                        <button class="order-filter-btn px-2.5 py-1 text-[9px] font-bold rounded-lg border border-gray-200 text-txt-2 hover:border-red-400 hover:text-red-600 transition-all" data-status="CANCELLED">Đã hủy</button>
                     </div>
                 </div>
 
@@ -266,40 +266,40 @@
                                     <!-- Header -->
                                     <div class="px-4 py-3 bg-gray-50 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3">
                                         <div class="flex items-center gap-3">
-                                            <span class="text-xs font-bold text-primary">ÄÆ¡n hÃ ng #<c:out value="${ord.orderId}"/></span>
-                                            <span class="text-[10px] text-txt-3">Äáº·t ngÃ y: <fmt:parseDate value="${ord.createdAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both" /><fmt:formatDate value="${parsedDate}" pattern="dd/MM/yyyy HH:mm"/></span>
+                                            <span class="text-xs font-bold text-primary">Đơn hàng #<c:out value="${ord.orderId}"/></span>
+                                            <span class="text-[10px] text-txt-3">Đặt ngày: <fmt:parseDate value="${ord.createdAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both" /><fmt:formatDate value="${parsedDate}" pattern="dd/MM/yyyy HH:mm"/></span>
                                         </div>
                                         <div class="flex items-center gap-2.5">
                                             <!-- Vietnamese status labels with icons -->
                                             <c:choose>
                                                 <c:when test="${ord.status == 'PENDING_PAYMENT'}">
                                                     <span class="px-2.5 py-0.5 border rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200">
-                                                        <i class="fa-solid fa-clock mr-0.5"></i> Chá» thanh toÃ¡n
+                                                        <i class="fa-solid fa-clock mr-0.5"></i> Chờ thanh toán
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${ord.status == 'CONFIRMED'}">
                                                     <span class="px-2.5 py-0.5 border rounded-full text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-200">
-                                                        <i class="fa-solid fa-clipboard-check mr-0.5"></i> ÄÃ£ xÃ¡c nháº­n
+                                                        <i class="fa-solid fa-clipboard-check mr-0.5"></i> Đã xác nhận
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${ord.status == 'PREPARING'}">
                                                     <span class="px-2.5 py-0.5 border rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border-indigo-200">
-                                                        <i class="fa-solid fa-box-open mr-0.5"></i> Äang chuáº©n bá»‹
+                                                        <i class="fa-solid fa-box-open mr-0.5"></i> Đang chuẩn bị
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${ord.status == 'DISPATCHED'}">
                                                     <span class="px-2.5 py-0.5 border rounded-full text-[9px] font-bold bg-purple-50 text-purple-700 border-purple-200">
-                                                        <i class="fa-solid fa-truck-fast mr-0.5"></i> Äang giao hÃ ng
+                                                        <i class="fa-solid fa-truck-fast mr-0.5"></i> Đang giao hàng
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${ord.status == 'DELIVERED'}">
                                                     <span class="px-2.5 py-0.5 border rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
-                                                        <i class="fa-solid fa-circle-check mr-0.5"></i> ÄÃ£ giao thÃ nh cÃ´ng
+                                                        <i class="fa-solid fa-circle-check mr-0.5"></i> Đã giao thành công
                                                     </span>
                                                 </c:when>
                                                 <c:when test="${ord.status == 'CANCELLED'}">
                                                     <span class="px-2.5 py-0.5 border rounded-full text-[9px] font-bold bg-red-50 text-red-700 border-red-200">
-                                                        <i class="fa-solid fa-xmark mr-0.5"></i> ÄÃ£ há»§y
+                                                        <i class="fa-solid fa-xmark mr-0.5"></i> Đã hủy
                                                     </span>
                                                 </c:when>
                                                 <c:otherwise>
@@ -316,28 +316,28 @@
                                         <div class="space-y-1.5 flex-1">
                                             <div class="text-[10px] text-txt-3 flex items-center gap-1.5">
                                                 <i class="fa-solid fa-store"></i>
-                                                <span>Cá»­a hÃ ng: <span class="font-semibold text-txt-2"><c:out value="${shopNamesMap[ord.orderId]}"/></span></span>
+                                                <span>Cửa hàng: <span class="font-semibold text-txt-2"><c:out value="${shopNamesMap[ord.orderId]}"/></span></span>
                                             </div>
                                             <!-- Items list -->
                                             <div class="space-y-1">
                                                 <c:forEach var="item" items="${orderItemsMap[ord.orderId]}" varStatus="st">
                                                     <c:if test="${st.index < 2}">
                                                         <p class="text-xs text-txt-2 flex justify-between">
-                                                            <span>â€¢ <c:out value="${item.productNameSnapshot}"/> (<c:out value="${item.variantLabelSnapshot}"/>) <span class="text-txt-3">x${item.quantity}</span></span>
-                                                            <span class="font-medium text-txt"><fmt:formatNumber value="${item.subtotal}" type="currency" currencySymbol="Ä‘" maxFractionDigits="0"/></span>
+                                                            <span>• <c:out value="${item.productNameSnapshot}"/> (<c:out value="${item.variantLabelSnapshot}"/>) <span class="text-txt-3">x${item.quantity}</span></span>
+                                                            <span class="font-medium text-txt"><fmt:formatNumber value="${item.subtotal}" type="currency" currencySymbol="đ" maxFractionDigits="0"/></span>
                                                         </p>
                                                     </c:if>
                                                 </c:forEach>
                                                 <c:if test="${st.count > 2}">
-                                                    <p class="text-[10px] text-txt-3 italic pl-3">... vÃ  ${st.count - 2} sáº£n pháº©m khÃ¡c</p>
+                                                    <p class="text-[10px] text-txt-3 italic pl-3">... và ${st.count - 2} sản phẩm khác</p>
                                                 </c:if>
                                             </div>
                                         </div>
                                         
                                         <!-- Actions and Total -->
                                         <div class="flex flex-col items-end gap-2 md:border-l md:border-gray-100 md:pl-4 shrink-0 min-w-[140px]">
-                                            <span class="text-[10px] text-txt-3">Tá»•ng sá»‘ tiá»n:</span>
-                                            <span class="text-xs font-bold text-primary"><fmt:formatNumber value="${ord.finalAmount}" type="currency" currencySymbol="Ä‘" maxFractionDigits="0"/></span>
+                                            <span class="text-[10px] text-txt-3">Tổng số tiền:</span>
+                                            <span class="text-xs font-bold text-primary"><fmt:formatNumber value="${ord.finalAmount}" type="currency" currencySymbol="đ" maxFractionDigits="0"/></span>
                                             
                                             <!-- Button detail trigger -->
                                             <button data-order-id="${ord.orderId}"
@@ -351,18 +351,18 @@
                                                     data-shop-name="<c:out value='${shopNamesMap[ord.orderId]}'/>"
                                                     onclick="openOrderDetailModalFromBtn(this)"
                                                     class="w-full px-2.5 py-1 bg-white border border-gray-200 text-txt-2 hover:border-primary hover:text-primary rounded text-[9px] font-bold transition-all cursor-pointer">
-                                                <i class="fa-solid fa-file-lines mr-0.5"></i> Chi tiáº¿t & Váº­n Ä‘Æ¡n
+                                                <i class="fa-solid fa-file-lines mr-0.5"></i> Chi tiết & Vận đơn
                                             </button>
 
                                             <!-- Cancel button: only for PENDING_PAYMENT -->
                                             <c:if test="${ord.status == 'PENDING_PAYMENT'}">
                                                 <form action="${pageContext.request.contextPath}/profile" method="post" class="w-full"
-                                                      onsubmit="return confirm('Báº¡n cháº¯c cháº¯n muá»‘n há»§y Ä‘Æ¡n hÃ ng #${ord.orderId}?\nHÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c!');">
+                                                      onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng #${ord.orderId}?\nHành động này không thể hoàn tác!');">
                                                     <input type="hidden" name="action" value="cancelOrder">
                                                     <input type="hidden" name="orderId" value="${ord.orderId}">
                                                     <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                     <button type="submit" class="w-full px-2.5 py-1 bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 rounded text-[9px] font-bold transition-all cursor-pointer">
-                                                        <i class="fa-solid fa-ban mr-0.5"></i> Há»§y Ä‘Æ¡n hÃ ng
+                                                        <i class="fa-solid fa-ban mr-0.5"></i> Hủy đơn hàng
                                                     </button>
                                                 </form>
                                             </c:if>
@@ -374,7 +374,7 @@
                         <c:otherwise>
                             <div class="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl">
                                 <i class="fa-solid fa-bag-shopping text-gray-300 text-3xl mb-3"></i>
-                                <p class="text-xs text-txt-3">Báº¡n chÆ°a Ä‘áº·t Ä‘Æ¡n hÃ ng nÃ o trÃªn MetaFruit.</p>
+                                <p class="text-xs text-txt-3">Bạn chưa đặt đơn hàng nào trên MetaFruit.</p>
                             </div>
                         </c:otherwise>
                     </c:choose>
@@ -382,27 +382,27 @@
                     <!-- Empty filter result placeholder -->
                     <div id="orders-empty-filter" class="hidden text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl">
                         <i class="fa-solid fa-filter-circle-xmark text-gray-300 text-3xl mb-3"></i>
-                        <p class="text-xs text-txt-3">KhÃ´ng cÃ³ Ä‘Æ¡n hÃ ng nÃ o theo bá»™ lá»c nÃ y.</p>
+                        <p class="text-xs text-txt-3">Không có đơn hàng nào theo bộ lọc này.</p>
                     </div>
                 </div>
             </div>
 
             <div id="payments-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm hidden">
                 <h2 class="text-base font-bold text-txt mb-6 pb-3 border-b border-gray-100 flex items-center gap-2">
-                    <i class="fa-solid fa-credit-card text-primary"></i> Lá»‹ch sá»­ giao dá»‹ch & Thanh toÃ¡n
+                    <i class="fa-solid fa-credit-card text-primary"></i> Lịch sử giao dịch & Thanh toán
                 </h2>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-100 text-txt-2 font-bold">
-                                <th class="p-3">Giao dá»‹ch</th>
-                                <th class="p-3">ÄÆ¡n hÃ ng</th>
-                                <th class="p-3">HÃ¬nh thá»©c</th>
-                                <th class="p-3">MÃ£ GD</th>
-                                <th class="p-3">Sá»‘ tiá»n</th>
-                                <th class="p-3">Thá»i gian</th>
-                                <th class="p-3">Tráº¡ng thÃ¡i</th>
+                                <th class="p-3">Giao dịch</th>
+                                <th class="p-3">Đơn hàng</th>
+                                <th class="p-3">Hình thức</th>
+                                <th class="p-3">Mã GD</th>
+                                <th class="p-3">Số tiền</th>
+                                <th class="p-3">Thời gian</th>
+                                <th class="p-3">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -414,7 +414,7 @@
                                             <td class="p-3 text-primary font-bold">#<c:out value="${pay.orderId}"/></td>
                                             <td class="p-3"><c:out value="${pay.paymentMethod}"/></td>
                                             <td class="p-3 text-txt-2 font-mono"><c:out value="${pay.sepayTransactionId != null ? pay.sepayTransactionId : '--'}"/></td>
-                                            <td class="p-3 font-bold text-txt"><fmt:formatNumber value="${pay.amount}" type="currency" currencySymbol="Ä‘" maxFractionDigits="0"/></td>
+                                            <td class="p-3 font-bold text-txt"><fmt:formatNumber value="${pay.amount}" type="currency" currencySymbol="đ" maxFractionDigits="0"/></td>
                                             <td class="p-3 text-txt-3">
                                                 <fmt:parseDate value="${pay.initiatedAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedInit" type="both" />
                                                 <fmt:formatDate value="${parsedInit}" pattern="dd/MM/yyyy HH:mm"/>
@@ -431,7 +431,7 @@
                                 </c:when>
                                 <c:otherwise>
                                     <tr>
-                                        <td colspan="7" class="text-center py-6 text-txt-3">ChÆ°a phÃ¡t sinh giao dá»‹ch thanh toÃ¡n nÃ o.</td>
+                                        <td colspan="7" class="text-center py-6 text-txt-3">Chưa phát sinh giao dịch thanh toán nào.</td>
                                     </tr>
                                 </c:otherwise>
                             </c:choose>
@@ -443,14 +443,14 @@
             <!-- 5. Password tab -->
             <div id="security-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm hidden">
                 <h2 class="text-base font-bold text-txt mb-6 pb-3 border-b border-gray-100 flex items-center gap-2">
-                    <i class="fa-solid fa-shield-halved text-primary"></i> Äá»•i máº­t kháº©u báº£o máº­t
+                    <i class="fa-solid fa-shield-halved text-primary"></i> Đổi mật khẩu bảo mật
                 </h2>
 
                 <c:choose>
                     <c:when test="${empty user.passwordHash}">
                         <div class="p-4 bg-emerald-50/50 border border-primary/20 rounded-xl text-primary text-xs font-medium flex items-center gap-2.5">
                             <i class="fa-solid fa-circle-info text-base"></i> 
-                            <span>TÃ i khoáº£n nÃ y Ä‘Æ°á»£c Ä‘Äƒng nháº­p trá»±c tiáº¿p qua <strong>Google OAuth</strong>. Máº­t kháº©u khÃ´ng Ã¡p dá»¥ng.</span>
+                            <span>Tài khoản này được đăng nhập trực tiếp qua <strong>Google OAuth</strong>. Mật khẩu không áp dụng.</span>
                         </div>
                     </c:when>
                     <c:otherwise>
@@ -459,7 +459,7 @@
                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
 
                             <div class="flex flex-col gap-1.5">
-                                <label class="text-xs font-bold text-txt-2" for="currentPassword">Máº­t kháº©u hiá»‡n táº¡i <span class="text-red-500">*</span></label>
+                                <label class="text-xs font-bold text-txt-2" for="currentPassword">Mật khẩu hiện tại <span class="text-red-500">*</span></label>
                                 <div class="relative w-full">
                                     <input type="password" id="currentPassword" name="currentPassword" required
                                            class="w-full pl-4 pr-10 py-2.5 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/10 transition-all">
@@ -472,7 +472,7 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="flex flex-col gap-1.5">
-                                    <label class="text-xs font-bold text-txt-2" for="newPassword">Máº­t kháº©u má»›i <span class="text-red-500">*</span></label>
+                                    <label class="text-xs font-bold text-txt-2" for="newPassword">Mật khẩu mới <span class="text-red-500">*</span></label>
                                     <div class="relative w-full">
                                         <input type="password" id="newPassword" name="newPassword" required
                                                class="w-full pl-4 pr-10 py-2.5 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/10 transition-all">
@@ -481,11 +481,11 @@
                                             <i class="fa-solid fa-eye text-xs"></i>
                                         </button>
                                     </div>
-                                    <div class="text-[10px] text-txt-3">Äá»™ dÃ i tá»« 8 Ä‘áº¿n 64 kÃ½ tá»±.</div>
+                                    <div class="text-[10px] text-txt-3">Độ dài từ 8 đến 64 ký tự.</div>
                                     <div class="mt-2 space-y-1.5">
                                         <div class="flex items-center justify-between text-[9px] font-semibold">
-                                            <span class="text-txt-3">Äá»™ máº¡nh máº­t kháº©u:</span>
-                                            <span id="strengthText" class="text-txt-3 font-bold">Trá»‘ng</span>
+                                            <span class="text-txt-3">Độ mạnh mật khẩu:</span>
+                                            <span id="strengthText" class="text-txt-3 font-bold">Trống</span>
                                         </div>
                                         <div class="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden flex gap-1">
                                             <div id="strengthSegment1" class="h-full w-1/3 bg-gray-300 rounded-full transition-all"></div>
@@ -496,7 +496,7 @@
                                 </div>
 
                                 <div class="flex flex-col gap-1.5">
-                                    <label class="text-xs font-bold text-txt-2" for="confirmPassword">XÃ¡c nháº­n máº­t kháº©u má»›i <span class="text-red-500">*</span></label>
+                                    <label class="text-xs font-bold text-txt-2" for="confirmPassword">Xác nhận mật khẩu mới <span class="text-red-500">*</span></label>
                                     <div class="relative w-full">
                                         <input type="password" id="confirmPassword" name="confirmPassword" required
                                                class="w-full pl-4 pr-10 py-2.5 border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/10 transition-all">
@@ -505,13 +505,13 @@
                                             <i class="fa-solid fa-eye text-xs"></i>
                                         </button>
                                     </div>
-                                    <span id="matchText" class="text-[9px] text-red-600 hidden">Máº­t kháº©u xÃ¡c nháº­n khÃ´ng khá»›p!</span>
+                                    <span id="matchText" class="text-[9px] text-red-600 hidden">Mật khẩu xác nhận không khớp!</span>
                                 </div>
                             </div>
 
                             <div class="flex justify-end pt-4">
                                 <button type="submit" id="submitPasswordBtn" class="flex items-center gap-2 px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all shadow-sm border-0 cursor-pointer">
-                                    <i class="fa-solid fa-key"></i> Äáº·t láº¡i máº­t kháº©u
+                                    <i class="fa-solid fa-key"></i> Đặt lại mật khẩu
                                 </button>
                             </div>
                         </form>
@@ -526,7 +526,7 @@
 <div id="addressModal" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md border border-gray-100 shadow-xl transform scale-95 transition-transform duration-300">
         <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
-            <h3 id="modalTitle" class="text-sm font-bold text-txt">ThÃªm Ä‘á»‹a chá»‰ giao hÃ ng má»›i</h3>
+            <h3 id="modalTitle" class="text-sm font-bold text-txt">Thêm địa chỉ giao hàng mới</h3>
             <button onclick="closeAddressModal()" class="text-txt-3 hover:text-txt border-0 bg-transparent cursor-pointer"><i class="fa-solid fa-xmark text-base"></i></button>
         </div>
 
@@ -536,31 +536,31 @@
             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
 
             <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold text-txt-2" for="recipientName">Há» vÃ  tÃªn ngÆ°á»i nháº­n *</label>
+                <label class="text-[10px] font-bold text-txt-2" for="recipientName">Họ và tên người nhận *</label>
                 <input type="text" id="recipientName" name="recipientName" required
                        class="w-full px-3 py-2 border border-border rounded-lg text-xs focus:outline-none focus:border-primary">
             </div>
 
             <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold text-txt-2" for="recipientPhone">Sá»‘ Ä‘iá»‡n thoáº¡i nháº­n hÃ ng *</label>
+                <label class="text-[10px] font-bold text-txt-2" for="recipientPhone">Số điện thoại nhận hàng *</label>
                 <input type="text" id="recipientPhone" name="recipientPhone" required
                        class="w-full px-3 py-2 border border-border rounded-lg text-xs focus:outline-none focus:border-primary">
             </div>
 
             <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] font-bold text-txt-2" for="addressDetail">Äá»‹a chá»‰ chi tiáº¿t *</label>
-                <textarea id="addressDetail" name="addressDetail" rows="3" required placeholder="Sá»‘ nhÃ , tÃªn Ä‘Æ°á»ng, phÆ°á»ng/xÃ£, quáº­n/huyá»‡n, tá»‰nh/thÃ nh phá»‘..."
+                <label class="text-[10px] font-bold text-txt-2" for="addressDetail">Địa chỉ chi tiết *</label>
+                <textarea id="addressDetail" name="addressDetail" rows="3" required placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."
                           class="w-full px-3 py-2 border border-border rounded-lg text-xs focus:outline-none focus:border-primary resize-none"></textarea>
             </div>
 
             <div class="flex items-center gap-2">
                 <input type="checkbox" id="isDefault" name="isDefault" value="true" class="rounded text-primary focus:ring-primary">
-                <label for="isDefault" class="text-[10px] text-txt-2 font-medium cursor-pointer">Äáº·t lÃ m Ä‘á»‹a chá»‰ nháº­n hÃ ng máº·c Ä‘á»‹nh</label>
+                <label for="isDefault" class="text-[10px] text-txt-2 font-medium cursor-pointer">Đặt làm địa chỉ nhận hàng mặc định</label>
             </div>
 
             <div class="flex justify-end gap-2.5 pt-3 border-t border-gray-100">
-                <button type="button" onclick="closeAddressModal()" class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-[10px] font-bold text-txt-2 rounded-lg transition-colors cursor-pointer bg-white">Há»§y bá»</button>
-                <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer">LÆ°u Ä‘á»‹a chá»‰</button>
+                <button type="button" onclick="closeAddressModal()" class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-[10px] font-bold text-txt-2 rounded-lg transition-colors cursor-pointer bg-white">Hủy bỏ</button>
+                <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer">Lưu địa chỉ</button>
             </div>
         </form>
     </div>
@@ -570,7 +570,7 @@
 <div id="orderDetailModal" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
     <div class="bg-white rounded-2xl p-6 w-full max-w-2xl border border-gray-100 shadow-xl transform scale-95 transition-transform duration-300 max-h-[85vh] overflow-y-auto">
         <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-5">
-            <h3 class="text-sm font-bold text-txt">Chi tiáº¿t Ä‘Æ¡n hÃ ng & Váº­n Ä‘Æ¡n</h3>
+            <h3 class="text-sm font-bold text-txt">Chi tiết đơn hàng & Vận đơn</h3>
             <button onclick="closeOrderDetailModal()" class="text-txt-3 hover:text-txt border-0 bg-transparent cursor-pointer"><i class="fa-solid fa-xmark text-base"></i></button>
         </div>
 
@@ -578,7 +578,7 @@
             
             <!-- Delivery Stepper Tracking Indicator -->
             <div>
-                <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3 mb-4">Tráº¡ng thÃ¡i váº­n chuyá»ƒn</h4>
+                <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3 mb-4">Trạng thái vận chuyển</h4>
                 <div class="flex items-center justify-between text-xs font-semibold relative px-6">
                     <!-- Line connector -->
                     <div class="absolute top-3.5 left-[15%] right-[15%] h-0.5 bg-gray-200 -z-10" id="stepperLine"></div>
@@ -588,31 +588,31 @@
                         <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-1">
                             <i class="fa-solid fa-wallet text-gray-300 text-xs"></i>
                         </div>
-                        <span class="text-[9px] text-txt-3">Chá» T.ToÃ¡n</span>
+                        <span class="text-[9px] text-txt-3">Chờ T.Toán</span>
                     </div>
                     <div class="flex flex-col items-center gap-1.5 step-node" id="step-CONFIRMED">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-2">
                             <i class="fa-solid fa-clipboard-check text-gray-300 text-xs"></i>
                         </div>
-                        <span class="text-[9px] text-txt-3">ÄÃ£ Nháº­n</span>
+                        <span class="text-[9px] text-txt-3">Đã Nhận</span>
                     </div>
                     <div class="flex flex-col items-center gap-1.5 step-node" id="step-PREPARING">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-3">
                             <i class="fa-solid fa-box-open text-gray-300 text-xs"></i>
                         </div>
-                        <span class="text-[9px] text-txt-3">Chuáº©n Bá»‹</span>
+                        <span class="text-[9px] text-txt-3">Chuẩn Bị</span>
                     </div>
                     <div class="flex flex-col items-center gap-1.5 step-node" id="step-DISPATCHED">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-4">
                             <i class="fa-solid fa-truck-fast text-gray-300 text-xs"></i>
                         </div>
-                        <span class="text-[9px] text-txt-3">Äang Giao</span>
+                        <span class="text-[9px] text-txt-3">Đang Giao</span>
                     </div>
                     <div class="flex flex-col items-center gap-1.5 step-node" id="step-DELIVERED">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-5">
                             <i class="fa-solid fa-circle-check text-gray-300 text-xs"></i>
                         </div>
-                        <span class="text-[9px] text-txt-3">ÄÃ£ Giao</span>
+                        <span class="text-[9px] text-txt-3">Đã Giao</span>
                     </div>
                 </div>
             </div>
@@ -620,29 +620,29 @@
             <!-- Details grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
                 <div class="space-y-3">
-                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3">ThÃ´ng tin nháº­n hÃ ng</h4>
+                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3">Thông tin nhận hàng</h4>
                     <div class="space-y-1.5 text-xs text-txt-2">
-                        <p>Cá»­a hÃ ng: <strong class="text-txt" id="detailShopName">Cá»­a hÃ ng A</strong></p>
-                        <p>Äá»‹a chá»‰ giao hÃ ng: <span id="detailAddress">Sá»‘ nhÃ  x, Ä‘Æ°á»ng y...</span></p>
-                        <p>PhÆ°Æ¡ng thá»©c thanh toÃ¡n: <strong id="detailPaymentMethod">Chuyá»ƒn khoáº£n</strong></p>
-                        <p>Ghi chÃº Ä‘Æ¡n hÃ ng: <span id="detailNotes" class="italic text-txt-3">KhÃ´ng cÃ³ ghi chÃº</span></p>
+                        <p>Cửa hàng: <strong class="text-txt" id="detailShopName">Cửa hàng A</strong></p>
+                        <p>Địa chỉ giao hàng: <span id="detailAddress">Số nhà x, đường y...</span></p>
+                        <p>Phương thức thanh toán: <strong id="detailPaymentMethod">Chuyển khoản</strong></p>
+                        <p>Ghi chú đơn hàng: <span id="detailNotes" class="italic text-txt-3">Không có ghi chú</span></p>
                     </div>
                 </div>
 
                 <div class="space-y-3">
-                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3">HÃ³a Ä‘Æ¡n thanh toÃ¡n</h4>
+                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3">Hóa đơn thanh toán</h4>
                     <div class="space-y-1.5 text-xs text-txt-2">
                         <div class="flex justify-between">
-                            <span>PhÃ­ váº­n chuyá»ƒn:</span>
-                            <span id="detailFee">0Ä‘</span>
+                            <span>Phí vận chuyển:</span>
+                            <span id="detailFee">0đ</span>
                         </div>
                         <div class="flex justify-between">
-                            <span>Giáº£m giÃ¡ khuyáº¿n mÃ£i:</span>
-                            <span id="detailDiscount">0Ä‘</span>
+                            <span>Giảm giá khuyến mãi:</span>
+                            <span id="detailDiscount">0đ</span>
                         </div>
                         <div class="flex justify-between border-t border-gray-100 pt-1.5 font-bold text-txt text-sm">
-                            <span>Tá»•ng tiá»n thá»±c nháº­n:</span>
-                            <span class="text-primary" id="detailFinalAmount">0Ä‘</span>
+                            <span>Tổng tiền thực nhận:</span>
+                            <span class="text-primary" id="detailFinalAmount">0đ</span>
                         </div>
                     </div>
                 </div>
@@ -651,7 +651,7 @@
             <!-- Close action -->
             <div class="flex justify-end pt-3 border-t border-gray-100">
                 <button type="button" onclick="closeOrderDetailModal()" class="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer">
-                    ÄÃ³ng cá»­a sá»•
+                    Đóng cửa sổ
                 </button>
             </div>
         </div>
@@ -683,7 +683,7 @@
         });
     });
 
-    // Order filter buttons â€” client-side filter for order cards
+    // Order filter buttons — client-side filter for order cards
     const orderFilterBtns = document.querySelectorAll('.order-filter-btn');
     const orderCards = document.querySelectorAll('.order-card');
     const emptyFilterMsg = document.getElementById('orders-empty-filter');
@@ -720,20 +720,20 @@
         });
     });
 
-    // Preview avatar image before uploading â€” enhanced with animation
+    // Preview avatar image before uploading — enhanced with animation
     const avatarInput = document.getElementById('avatarInput');
     if (avatarInput) {
         avatarInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('File áº£nh khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 5MB!');
+                    alert('File ảnh không được vượt quá 5MB!');
                     event.target.value = '';
                     return;
                 }
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
                 if (!allowedTypes.includes(file.type)) {
-                    alert('Chá»‰ cháº¥p nháº­n cÃ¡c Ä‘á»‹nh dáº¡ng áº£nh: JPG, PNG, WEBP');
+                    alert('Chỉ chấp nhận các định dạng ảnh: JPG, PNG, WEBP');
                     event.target.value = '';
                     return;
                 }
@@ -807,27 +807,27 @@
             seg3.className = 'h-full w-1/3 bg-gray-300 rounded-full transition-all';
             
             if (pwd.length === 0) {
-                strengthText.textContent = 'Trá»‘ng';
+                strengthText.textContent = 'Trống';
                 strengthText.className = 'text-txt-3 font-bold';
                 return;
             }
             if (pwd.length < 8) {
-                strengthText.textContent = 'Ráº¥t ngáº¯n (Yáº¿u)';
+                strengthText.textContent = 'Rất ngắn (Yếu)';
                 strengthText.className = 'text-red-500 font-bold';
                 seg1.className = 'h-full w-1/3 bg-red-500 rounded-full transition-all';
                 return;
             }
             if (score <= 1) {
-                strengthText.textContent = 'Yáº¿u';
+                strengthText.textContent = 'Yếu';
                 strengthText.className = 'text-red-500 font-bold';
                 seg1.className = 'h-full w-1/3 bg-red-500 rounded-full transition-all';
             } else if (score === 2 || score === 3) {
-                strengthText.textContent = 'Trung bÃ¬nh';
+                strengthText.textContent = 'Trung bình';
                 strengthText.className = 'text-orange-500 font-bold';
                 seg1.className = 'h-full w-1/3 bg-orange-500 rounded-full transition-all';
                 seg2.className = 'h-full w-1/3 bg-orange-500 rounded-full transition-all';
             } else if (score >= 4) {
-                strengthText.textContent = 'Máº¡nh';
+                strengthText.textContent = 'Mạnh';
                 strengthText.className = 'text-green-600 font-bold';
                 seg1.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
                 seg2.className = 'h-full w-1/3 bg-green-600 rounded-full transition-all';
@@ -857,12 +857,12 @@
         passwordForm.addEventListener('submit', function(e) {
             if (!checkPasswordMatch()) {
                 e.preventDefault();
-                alert('Máº­t kháº©u xÃ¡c nháº­n khÃ´ng khá»›p!');
+                alert('Mật khẩu xác nhận không khớp!');
                 return;
             }
             if (newPasswordInput.value.length < 8) {
                 e.preventDefault();
-                alert('Máº­t kháº©u má»›i pháº£i tá»« 8 kÃ½ tá»± trá»Ÿ lÃªn!');
+                alert('Mật khẩu mới phải từ 8 ký tự trở lên!');
                 return;
             }
         });
@@ -886,10 +886,10 @@
         document.getElementById('isDefault').checked = isDefault;
 
         if (id) {
-            document.getElementById('modalTitle').textContent = 'Chá»‰nh sá»­a Ä‘á»‹a chá»‰ giao hÃ ng';
+            document.getElementById('modalTitle').textContent = 'Chỉnh sửa địa chỉ giao hàng';
             document.getElementById('modalAction').value = 'updateAddress';
         } else {
-            document.getElementById('modalTitle').textContent = 'ThÃªm Ä‘á»‹a chá»‰ giao hÃ ng má»›i';
+            document.getElementById('modalTitle').textContent = 'Thêm địa chỉ giao hàng mới';
             document.getElementById('modalAction').value = 'addAddress';
         }
 
@@ -925,11 +925,11 @@
     function openOrderDetailModal(orderId, status, paymentMethod, deliveryAddress, deliveryFee, discountAmount, finalAmount, notes, shopName) {
         document.getElementById('detailShopName').textContent = shopName;
         document.getElementById('detailAddress').textContent = deliveryAddress;
-        document.getElementById('detailPaymentMethod').textContent = paymentMethod === 'COD' ? 'COD (Nháº­n hÃ ng thanh toÃ¡n)' : 'Chuyá»ƒn khoáº£n (CK)';
-        document.getElementById('detailNotes').textContent = notes ? notes : 'KhÃ´ng cÃ³ ghi chÃº';
-        document.getElementById('detailFee').textContent = deliveryFee + 'Ä‘';
-        document.getElementById('detailDiscount').textContent = discountAmount + 'Ä‘';
-        document.getElementById('detailFinalAmount').textContent = finalAmount + 'Ä‘';
+        document.getElementById('detailPaymentMethod').textContent = paymentMethod === 'COD' ? 'COD (Nhận hàng thanh toán)' : 'Chuyển khoản (CK)';
+        document.getElementById('detailNotes').textContent = notes ? notes : 'Không có ghi chú';
+        document.getElementById('detailFee').textContent = deliveryFee + 'đ';
+        document.getElementById('detailDiscount').textContent = discountAmount + 'đ';
+        document.getElementById('detailFinalAmount').textContent = finalAmount + 'đ';
 
         // Clear stepper highlight
         const statuses = ['PENDING_PAYMENT', 'CONFIRMED', 'PREPARING', 'DISPATCHED', 'DELIVERED'];

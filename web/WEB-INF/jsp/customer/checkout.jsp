@@ -1,10 +1,10 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Thanh toÃ¡n - Verdant Market"/></jsp:include>
+<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Thanh toán - Verdant Market"/></jsp:include>
 
-<!-- TÃ­ch há»£p Tailwind CSS CDN, Lexend Font vÃ  Material Symbols Outlined cho phong cÃ¡ch Verdant Clarity -->
+<!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined cho phong cách Verdant Clarity -->
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
@@ -116,7 +116,7 @@
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
     
     <c:choose>
-        <%-- MÃ€N HÃŒNH Äáº¶T HÃ€NG THÃ€NH CÃ”NG --%>
+        <%-- MÀN HÌNH ĐẶT HÀNG THÀNH CÔNG --%>
         <c:when test="${not empty isSuccess}">
             <div class="max-w-2xl mx-auto text-center py-16 glass-card rounded-xl border border-white/50 p-8 flex flex-col items-center gap-6 mt-12 shadow-xl">
                 <!-- Checkmark Icon Animated -->
@@ -125,37 +125,37 @@
                 </div>
                 
                 <div>
-                    <h1 class="text-3xl font-bold text-inverse-surface tracking-tight">Äáº·t HÃ ng ThÃ nh CÃ´ng!</h1>
+                    <h1 class="text-3xl font-bold text-inverse-surface tracking-tight">Đặt Hàng Thành Công!</h1>
                     <p class="text-on-surface-variant mt-3 text-sm leading-relaxed max-w-md mx-auto">
-                        Cáº£m Æ¡n báº¡n Ä‘Ã£ mua nÃ´ng sáº£n sáº¡ch táº¡i <strong>Verdant Market</strong>. ÄÆ¡n hÃ ng cá»§a báº¡n Ä‘Ã£ Ä‘Æ°á»£c chuyá»ƒn tá»›i nhÃ  vÆ°á»n Ä‘Ã³ng gÃ³i láº¡nh giao há»a tá»‘c!
+                        Cảm ơn bạn đã mua nông sản sạch tại <strong>Verdant Market</strong>. Đơn hàng của bạn đã được chuyển tới nhà vườn đóng gói lạnh giao hỏa tốc!
                     </p>
                 </div>
 
                 <div class="w-full bg-[#d1ffd8]/60 border border-[#bcfdc9] rounded-2xl p-5 text-start text-xs text-on-surface-variant space-y-2">
                     <div class="flex justify-between border-b border-emerald-100/30 pb-2">
-                        <span>Tráº¡ng thÃ¡i thanh toÃ¡n</span>
-                        <span class="text-primary font-bold">ThÃ nh cÃ´ng (COD / Chá» xá»­ lÃ½)</span>
+                        <span>Trạng thái thanh toán</span>
+                        <span class="text-primary font-bold">Thành công (COD / Chờ xử lý)</span>
                     </div>
                     <div class="flex justify-between border-b border-emerald-100/30 pb-2">
-                        <span>MÃ£ Ä‘Æ¡n hÃ ng</span>
+                        <span>Mã đơn hàng</span>
                         <span class="text-inverse-surface font-bold">#<c:out value="${param.orderId}"/></span>
                     </div>
                     <div class="flex justify-between">
-                        <span>Dá»± kiáº¿n giao hÃ ng</span>
-                        <span class="text-inverse-surface font-bold">Trong 2 - 3 tiáº¿ng (Giao Há»a Tá»‘c)</span>
+                        <span>Dự kiến giao hàng</span>
+                        <span class="text-inverse-surface font-bold">Trong 2 - 3 tiếng (Giao Hỏa Tốc)</span>
                     </div>
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-4 w-full justify-center">
                     <a href="${pageContext.request.contextPath}/home" class="bg-[#14532D] text-white font-bold py-3.5 px-8 rounded-lg hover:bg-opacity-90 transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
                         <span class="material-symbols-outlined text-lg">shopping_basket</span>
-                        <span>Tiáº¿p tá»¥c mua sáº¯m</span>
+                        <span>Tiếp tục mua sắm</span>
                     </a>
                 </div>
             </div>
 
-            <%-- CRITICAL SCRIPT: RESET GIá»Ž HÃ€NG LOCAL STORAGE CHá»ŒN Lá»ŒC --%>
-            <%-- [FIX] Äá»c purgedVariantIds tá»« session attribute (khÃ´ng lá»™ trÃªn URL) --%>
+            <%-- CRITICAL SCRIPT: RESET GIỎ HÀNG LOCAL STORAGE CHỌN LỌC --%>
+            <%-- [FIX] Đọc purgedVariantIds từ session attribute (không lộ trên URL) --%>
             <c:set var="purgedIds" value="${sessionScope._purgedVariantIds}"/>
             <c:remove var="_purgedVariantIds" scope="session"/>
             <script>
@@ -174,7 +174,7 @@
                                     localStorage.setItem(key, JSON.stringify(items));
                                 }
                             } catch (e) {
-                                console.warn('[FruitMkt] Lá»—i lá»c giá» local ' + key + ':', e);
+                                console.warn('[FruitMkt] Lỗi lọc giỏ local ' + key + ':', e);
                             }
                         });
 
@@ -188,7 +188,7 @@
                             }
                         }
                     } else {
-                        // Fallback: xÃ³a toÃ n bá»™
+                        // Fallback: xóa toàn bộ
                         localStorage.removeItem('userCart');
                         localStorage.removeItem('guestCart');
                         if (typeof GuestCart !== 'undefined') {
@@ -200,7 +200,7 @@
             </script>
         </c:when>
 
-        <%-- FORM THANH TOÃN chuáº©n máº«u Check_Out_UI.html --%>
+        <%-- FORM THANH TOÁN chuẩn mẫu Check_Out_UI.html --%>
         <c:otherwise>
             <!-- Dynamic Flash Message Alert -->
             <c:if test="${not empty sessionScope.flashMsg}">
@@ -217,12 +217,12 @@
 
             <div class="mb-8 flex items-baseline justify-between border-b border-[#b1f2be] pb-4">
                 <div>
-                    <h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">HoÃ n táº¥t Ä‘Æ¡n hÃ ng</h1>
-                    <p class="font-body-md text-body-md text-on-surface-variant">Vui lÃ²ng kiá»ƒm tra láº¡i thÃ´ng tin vÃ  xÃ¡c nháº­n thanh toÃ¡n.</p>
+                    <h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">Hoàn tất đơn hàng</h1>
+                    <p class="font-body-md text-body-md text-on-surface-variant">Vui lòng kiểm tra lại thông tin và xác nhận thanh toán.</p>
                 </div>
                 <a href="${pageContext.request.contextPath}/cart" class="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
                     <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Quay láº¡i giá» hÃ ng
+                    Quay lại giỏ hàng
                 </a>
             </div>
 
@@ -236,12 +236,12 @@
                     <section class="glass-card rounded-xl p-6 md:p-8">
                         <div class="flex items-center gap-3 mb-6 text-primary border-b border-[#b1f2be] pb-3">
                             <span class="material-symbols-outlined text-2xl">local_shipping</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">ThÃ´ng tin giao hÃ ng</h2>
+                            <h2 class="font-headline-md text-headline-md font-bold">Thông tin giao hàng</h2>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <%-- Shopee/TikTok Style Address Selector --%>
                             <div class="flex flex-col gap-2 md:col-span-2 mb-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold">Äá»‹a chá»‰ nháº­n hÃ ng</label>
+                                <label class="font-label-md text-label-md text-[#14532D] font-bold">Địa chỉ nhận hàng</label>
                                 
                                 <!-- 1. Selected Address Display Card -->
                                 <div id="selectedAddressCard" class="bg-white border border-[#bcfdc9] rounded-xl p-4 shadow-sm flex items-start justify-between gap-4 transition-all duration-200">
@@ -250,61 +250,61 @@
                                             <span id="displayRecipientName" class="font-bold text-sm text-slate-800"></span>
                                             <span class="text-gray-300">|</span>
                                             <span id="displayRecipientPhone" class="text-xs text-slate-600 font-semibold"></span>
-                                            <span id="defaultBadge" class="hidden px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full border border-red-200">Máº·c Ä‘á»‹nh</span>
+                                            <span id="defaultBadge" class="hidden px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full border border-red-200">Mặc định</span>
                                         </div>
                                         <p id="displayAddressDetail" class="text-xs text-slate-600 leading-relaxed"></p>
                                     </div>
                                     <button type="button" onclick="toggleAddressSelectionList()" class="text-primary hover:underline font-bold text-xs flex items-center gap-0.5 shrink-0 cursor-pointer">
-                                        Thay Ä‘á»•i <span class="material-symbols-outlined text-[16px] transition-transform duration-200" id="expandIcon">expand_more</span>
+                                        Thay đổi <span class="material-symbols-outlined text-[16px] transition-transform duration-200" id="expandIcon">expand_more</span>
                                     </button>
                                 </div>
 
                                 <!-- 2. Collapsible Address List -->
                                 <div id="addressSelectionList" class="hidden mt-3 space-y-3 bg-[#d1ffd8]/20 border border-[#bcfdc9]/40 rounded-xl p-4 transition-all duration-300">
-                                    <div class="text-[10px] font-bold uppercase tracking-wider text-[#31694b] mb-2">Chá»n Ä‘á»‹a chá»‰ nháº­n hÃ ng khÃ¡c</div>
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-[#31694b] mb-2">Chọn địa chỉ nhận hàng khác</div>
                                     <div id="addressOptionsContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1">
                                         <!-- Rendered dynamically by JS -->
                                     </div>
                                     <div class="flex justify-between items-center border-t border-emerald-100/50 pt-3 mt-3">
                                         <button type="button" onclick="showInlineAddressForm('add')" class="text-primary hover:underline text-xs font-bold flex items-center gap-0.5 cursor-pointer">
-                                            <span class="material-symbols-outlined text-[16px]">add</span> ThÃªm Ä‘á»‹a chá»‰ má»›i
+                                            <span class="material-symbols-outlined text-[16px]">add</span> Thêm địa chỉ mới
                                         </button>
                                         <button type="button" onclick="toggleAddressSelectionList()" class="text-slate-500 hover:text-slate-700 text-xs font-bold cursor-pointer">
-                                            ÄÃ³ng
+                                            Đóng
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- 3. Collapsible Inline Form -->
                                 <div id="inlineAddressForm" class="hidden overflow-hidden transition-all duration-300 border-t border-emerald-100 pt-4 mt-4 space-y-4">
-                                    <div class="text-xs font-bold text-[#14532D]" id="inlineFormTitle">ThÃªm Ä‘á»‹a chá»‰ giao hÃ ng má»›i</div>
+                                    <div class="text-xs font-bold text-[#14532D]" id="inlineFormTitle">Thêm địa chỉ giao hàng mới</div>
                                     <input type="hidden" id="inlineAddressId" value="">
                                     <input type="hidden" id="inlineAction" value="add">
                                     
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div class="flex flex-col gap-1.5">
-                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientName">Há» vÃ  tÃªn ngÆ°á»i nháº­n *</label>
+                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientName">Họ và tên người nhận *</label>
                                             <input type="text" id="mRecipientName" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
                                         </div>
                                         <div class="flex flex-col gap-1.5">
-                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientPhone">Sá»‘ Ä‘iá»‡n thoáº¡i nháº­n hÃ ng *</label>
+                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientPhone">Số điện thoại nhận hàng *</label>
                                             <input type="text" id="mRecipientPhone" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
                                         </div>
                                         <div class="flex flex-col gap-1.5 md:col-span-2">
-                                            <label class="text-[10px] font-bold text-slate-700" for="mAddressDetail">Äá»‹a chá»‰ chi tiáº¿t *</label>
-                                            <textarea id="mAddressDetail" rows="2" placeholder="Sá»‘ nhÃ , tÃªn Ä‘Æ°á»ng, phÆ°á»ng/xÃ£, quáº­n/huyá»‡n, tá»‰nh/thÃ nh phá»‘..."
+                                            <label class="text-[10px] font-bold text-slate-700" for="mAddressDetail">Địa chỉ chi tiết *</label>
+                                            <textarea id="mAddressDetail" rows="2" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."
                                                       class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] resize-none bg-white"></textarea>
                                         </div>
                                     </div>
                                     
                                     <div class="flex items-center gap-2">
                                         <input type="checkbox" id="mIsDefault" class="rounded text-[#14532D] focus:ring-[#14532D] h-4 w-4 cursor-pointer">
-                                        <label for="mIsDefault" class="text-[10px] text-slate-700 font-bold cursor-pointer select-none">Äáº·t lÃ m Ä‘á»‹a chá»‰ nháº­n hÃ ng máº·c Ä‘á»‹nh</label>
+                                        <label for="mIsDefault" class="text-[10px] text-slate-700 font-bold cursor-pointer select-none">Đặt làm địa chỉ nhận hàng mặc định</label>
                                     </div>
                                     
                                     <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-                                        <button type="button" id="btnCancelInlineAddress" onclick="hideInlineAddressForm()" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[10px] font-bold text-slate-600 rounded-lg transition-colors bg-white cursor-pointer">Há»§y bá»</button>
-                                        <button type="button" id="btnSaveCheckoutAddress" onclick="handleInlineAddressSubmit()" class="px-4 py-2 bg-[#14532D] text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer hover:bg-opacity-95">LÆ°u Ä‘á»‹a chá»‰</button>
+                                        <button type="button" id="btnCancelInlineAddress" onclick="hideInlineAddressForm()" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[10px] font-bold text-slate-600 rounded-lg transition-colors bg-white cursor-pointer">Hủy bỏ</button>
+                                        <button type="button" id="btnSaveCheckoutAddress" onclick="handleInlineAddressSubmit()" class="px-4 py-2 bg-[#14532D] text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer hover:bg-opacity-95">Lưu địa chỉ</button>
                                     </div>
                                 </div>
                             </div>
@@ -315,8 +315,8 @@
                             <input type="hidden" id="deliveryAddress" name="deliveryAddress">
                             <input type="hidden" id="saveAddressToBook" name="saveAddressToBook" value="false">
                             <div class="flex flex-col gap-2 md:col-span-2">
-                                <label class="font-label-md text-label-md text-[#14532D]" for="notes">Ghi chÃº (Tuá»³ chá»n)</label>
-                                <textarea class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="notes" name="notes" placeholder="Ghi chÃº thÃªm cho ngÆ°á»i giao hÃ ng..." rows="3"></textarea>
+                                <label class="font-label-md text-label-md text-[#14532D]" for="notes">Ghi chú (Tuỳ chọn)</label>
+                                <textarea class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="notes" name="notes" placeholder="Ghi chú thêm cho người giao hàng..." rows="3"></textarea>
                             </div>
                         </div>
                     </section>
@@ -325,7 +325,7 @@
                     <section class="glass-card rounded-xl p-6 md:p-8">
                         <div class="flex items-center gap-3 mb-6 text-primary border-b border-[#b1f2be] pb-3">
                             <span class="material-symbols-outlined text-2xl">payments</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">PhÆ°Æ¡ng thá»©c thanh toÃ¡n</h2>
+                            <h2 class="font-headline-md text-headline-md font-bold">Phương thức thanh toán</h2>
                         </div>
                         <div class="flex flex-col gap-4">
                             <!-- Option 1: COD -->
@@ -334,8 +334,8 @@
                                     <input checked="" class="custom-radio w-5 h-5 text-primary focus:ring-primary border-[#14532D]" name="paymentMethod" type="radio" value="COD">
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="font-label-md text-label-md text-on-surface font-bold">Thanh toÃ¡n khi nháº­n hÃ ng (COD)</span>
-                                    <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Thanh toÃ¡n báº±ng tiá»n máº·t khi giao hÃ ng táº­n nÆ¡i.</span>
+                                    <span class="font-label-md text-label-md text-on-surface font-bold">Thanh toán khi nhận hàng (COD)</span>
+                                    <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Thanh toán bằng tiền mặt khi giao hàng tận nơi.</span>
                                 </div>
                                 <span class="material-symbols-outlined ml-auto text-primary opacity-70">local_atm</span>
                             </label>
@@ -346,44 +346,44 @@
                                     <input class="custom-radio w-5 h-5 text-primary focus:ring-primary border-[#14532D]" name="paymentMethod" type="radio" value="CK">
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="font-label-md text-label-md text-on-surface font-bold">Chuyá»ƒn khoáº£n QR ngÃ¢n hÃ ng</span>
-                                    <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">ThÃ´ng tin vÃ  mÃ£ QR chuyá»ƒn khoáº£n sáº½ hiá»ƒn thá»‹ sau khi Ä‘áº·t hÃ ng.</span>
+                                    <span class="font-label-md text-label-md text-on-surface font-bold">Chuyển khoản QR ngân hàng</span>
+                                    <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Thông tin và mã QR chuyển khoản sẽ hiển thị sau khi đặt hàng.</span>
                                 </div>
                                 <span class="material-symbols-outlined ml-auto text-primary opacity-70">account_balance</span>
                             </label>
                         </div>
                     </section>
 
-                    <!-- Section 3: MÃ£ Giáº£m GiÃ¡ -->
+                    <!-- Section 3: Mã Giảm Giá -->
                     <section class="glass-card rounded-xl p-6 md:p-8" id="coupon-section">
                         <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
                             <span class="material-symbols-outlined text-2xl">loyalty</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sÃ n</h2>
+                            <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sàn</h2>
                         </div>
-                        <!-- Má»™t Ã´ nháº­p mÃ£ giáº£m giÃ¡ duy nháº¥t -->
+                        <!-- Một ô nhập mã giảm giá duy nhất -->
                         <div>
-                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nháº­p mÃ£ voucher shop hoáº·c voucher sÃ n</label>
+                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã voucher shop hoặc voucher sàn</label>
                             <div class="flex gap-2">
-                                <input type="text" id="couponInput" placeholder="Nháº­p mÃ£ voucher (VD: SHOP10, SAAN5, SALE20)"
+                                <input type="text" id="couponInput" placeholder="Nhập mã voucher (VD: SHOP10, SAAN5, SALE20)"
                                     class="form-input rounded-lg px-3 py-2.5 text-sm flex-1 uppercase font-semibold tracking-wider"
                                     style="text-transform:uppercase"/>
                                 <button type="button" onclick="applyCoupon()"
                                     class="bg-[#14532D] text-white font-bold px-5 py-2.5 rounded-lg text-sm hover:bg-opacity-90 transition-all cursor-pointer flex-shrink-0 active:scale-95 duration-150 shadow-md">
-                                    Ãp dá»¥ng
+                                    Áp dụng
                                 </button>
                             </div>
                             <p id="couponMsg" class="text-xs mt-2 hidden"></p>
                         </div>
                         
-                        <!-- Container hiá»ƒn thá»‹ cÃ¡c mÃ£ Ä‘Ã£ Ã¡p dá»¥ng -->
+                        <!-- Container hiển thị các mã đã áp dụng -->
                         <div id="appliedCouponsContainer" class="mt-4 hidden border-t border-dashed border-emerald-200 pt-3">
-                            <span class="text-xs font-bold text-on-surface-variant block mb-2">MÃ£ Ä‘Ã£ Ã¡p dá»¥ng:</span>
+                            <span class="text-xs font-bold text-on-surface-variant block mb-2">Mã đã áp dụng:</span>
                             <div id="appliedCouponsList" class="flex flex-col gap-2">
                                 <!-- Rendered dynamically via JS -->
                             </div>
                         </div>
 
-                        <!-- Hidden inputs Ä‘á»ƒ gá»­i lÃªn Servlet khi Submit -->
+                        <!-- Hidden inputs để gửi lên Servlet khi Submit -->
                         <input type="hidden" name="shopCouponCode" id="shopCouponCode"/>
                         <input type="hidden" name="systemCouponCode" id="systemCouponCode"/>
 
@@ -394,10 +394,10 @@
                         <div class="flex items-center justify-between mb-6 border-b border-[#b1f2be] pb-3">
                             <div class="flex items-center gap-3 text-primary">
                                 <span class="material-symbols-outlined text-2xl">shopping_basket</span>
-                                <h2 class="font-headline-md text-headline-md font-bold">Sáº£n pháº©m trong Ä‘Æ¡n</h2>
+                                <h2 class="font-headline-md text-headline-md font-bold">Sản phẩm trong đơn</h2>
                             </div>
                             <a class="font-label-md text-label-md text-primary hover:underline flex items-center gap-1 font-semibold text-sm" href="${pageContext.request.contextPath}/cart">
-                                Sá»­a giá» hÃ ng <span class="material-symbols-outlined text-sm">edit</span>
+                                Sửa giỏ hàng <span class="material-symbols-outlined text-sm">edit</span>
                             </a>
                         </div>
                         <div class="flex flex-col gap-4">
@@ -427,11 +427,11 @@
                                     </div>
                                     <div class="flex flex-col flex-grow">
                                         <span class="font-label-md text-label-md text-on-surface text-lg font-bold"><c:out value="${item.productName}"/></span>
-                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Biáº¿n thá»ƒ: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></span>
-                                        <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">Trá»ng lÆ°á»£ng: <c:out value="${item.weightKg}"/> kg</span>
+                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Biến thể: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></span>
+                                        <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">Trọng lượng: <c:out value="${item.weightKg}"/> kg</span>
                                         <c:if test="${not empty item.packagingLabel}">
                                             <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 block">
-                                                ÄÃ³ng gÃ³i: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold border border-[#BBF7D0]/40"><c:out value="${item.packagingLabel}"/> (+<ft:currency value="${item.packagingPriceAdd}"/>)</span>
+                                                Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold border border-[#BBF7D0]/40"><c:out value="${item.packagingLabel}"/> (+<ft:currency value="${item.packagingPriceAdd}"/>)</span>
                                             </span>
                                         </c:if>
                                     </div>
@@ -440,7 +440,7 @@
                                             <ft:currency value="${item.price + item.packagingPriceAdd}"/>
                                         </span>
                                         <c:if test="${item.packagingPriceAdd > 0}">
-                                            <span class="text-[10px] text-gray-400 block">Gá»“m Ä‘Ã³ng gÃ³i +<ft:currency value="${item.packagingPriceAdd}"/></span>
+                                            <span class="text-[10px] text-gray-400 block">Gồm đóng gói +<ft:currency value="${item.packagingPriceAdd}"/></span>
                                         </c:if>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-sm font-semibold">SL: <c:out value="${item.quantity}"/></span>
                                     </div>
@@ -453,47 +453,47 @@
                 <!-- RIGHT COLUMN: Sidebar Summary -->
                 <div class="lg:col-span-4">
                     <div class="glass-card rounded-xl p-6 sticky top-24 border border-white/50 shadow-xl">
-                        <h2 class="font-headline-md text-headline-md text-primary mb-6 font-bold border-b border-[#b1f2be] pb-3">Tá»•ng káº¿t Ä‘Æ¡n hÃ ng</h2>
+                        <h2 class="font-headline-md text-headline-md text-primary mb-6 font-bold border-b border-[#b1f2be] pb-3">Tổng kết đơn hàng</h2>
                         <div class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-6">
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">Táº¡m tÃ­nh sau sale trá»±c tiáº¿p (<c:out value="${fn:length(cartSummary.items)}"/> sáº£n pháº©m)</span>
+                                <span class="text-on-surface-variant">Tạm tính sau sale trực tiếp (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
                                 <span class="font-bold text-inverse-surface" id="summary-subtotal"><ft:currency value="${cartSummary.subtotal}"/></span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">Sale trá»±c tiáº¿p</span>
+                                <span class="text-on-surface-variant">Sale trực tiếp</span>
                                 <span class="font-bold text-red-600" id="summary-direct-sale">- <ft:currency value="${directSaleAmount}"/></span>
                             </div>
                             <div class="flex justify-between items-center" id="shop-discount-row" style="display:none!important">
                                 <span class="text-on-surface-variant">Voucher shop</span>
-                                <span class="font-bold text-red-600" id="summary-shop-discount">- 0 Ä‘</span>
+                                <span class="font-bold text-red-600" id="summary-shop-discount">- 0 đ</span>
                             </div>
                             <div class="flex justify-between items-center" id="system-discount-row" style="display:none!important">
-                                <span class="text-on-surface-variant">Voucher sÃ n</span>
-                                <span class="font-bold text-red-600" id="summary-system-discount">- 0 Ä‘</span>
+                                <span class="text-on-surface-variant">Voucher sàn</span>
+                                <span class="font-bold text-red-600" id="summary-system-discount">- 0 đ</span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">Tá»•ng trá»ng lÆ°á»£ng</span>
+                                <span class="text-on-surface-variant">Tổng trọng lượng</span>
                                 <span class="font-bold text-inverse-surface"><c:out value="${cartSummary.totalWeight}"/> kg</span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">PhÃ­ váº­n chuyá»ƒn (Giao há»a tá»‘c)</span>
+                                <span class="text-on-surface-variant">Phí vận chuyển (Giao hỏa tốc)</span>
                                 <span class="font-bold text-inverse-surface" id="summary-delivery"><ft:currency value="${cartSummary.deliveryFee}"/></span>
                             </div>
                         </div>
                         <div class="border-t border-[#BBF7D0] pt-4 mb-8">
                             <div class="flex justify-between items-end">
-                                <span class="font-label-md text-label-md text-on-surface font-bold">Tá»•ng cá»™ng</span>
+                                <span class="font-label-md text-label-md text-on-surface font-bold">Tổng cộng</span>
                                 <span class="font-headline-md text-headline-md text-primary font-black text-2xl" id="summary-total"><ft:currency value="${cartSummary.total}"/></span>
                             </div>
-                            <span class="block text-right text-xs text-on-surface-variant mt-1">(ÄÃ£ bao gá»“m VAT & CÆ°á»›c báº£o Ã´n cold-chain)</span>
+                            <span class="block text-right text-xs text-on-surface-variant mt-1">(Đã bao gồm VAT & Cước bảo ôn cold-chain)</span>
                         </div>
                         <button id="submitBtn" type="submit" class="w-full py-4 rounded-lg bg-[#14532D] text-white font-label-md text-label-md flex justify-center items-center gap-2 hover:bg-opacity-90 transition-all font-bold cursor-pointer active:scale-95 shadow-md">
-                            Äáº·t hÃ ng ngay
+                            Đặt hàng ngay
                             <span class="material-symbols-outlined">arrow_forward</span>
                         </button>
                         <p class="text-center text-xs text-on-surface-variant mt-4 font-body-md flex items-center justify-center gap-1 opacity-80">
                             <span class="material-symbols-outlined text-sm">shield</span>
-                            ThÃ´ng tin cá»§a báº¡n Ä‘Æ°á»£c báº£o máº­t tuyá»‡t Ä‘á»‘i
+                            Thông tin của bạn được bảo mật tuyệt đối
                         </p>
                     </div>
                 </div>
@@ -520,7 +520,7 @@
 </c:forEach>
 
 <script>
-// â”€â”€â”€ Coupon AJAX Logic (Merged Input) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Coupon AJAX Logic (Merged Input) ─────────────────────────────
 const SUBTOTAL    = parseFloat(document.getElementById('js-subtotal').value || '0');
 const DELIVERY    = parseFloat(document.getElementById('js-delivery').value || '0');
 const CTX         = document.getElementById('js-ctx').value;
@@ -538,11 +538,11 @@ function applyCoupon() {
 
     // Check if coupon is already applied
     if (code === shopCouponCode || code === systemCouponCode) {
-        showCouponMsg('MÃ£ voucher nÃ y Ä‘Ã£ Ä‘Æ°á»£c Ã¡p dá»¥ng rá»“i.', 'text-red-600 font-bold');
+        showCouponMsg('Mã voucher này đã được áp dụng rồi.', 'text-red-600 font-bold');
         return;
     }
 
-    showCouponMsg('Äang kiá»ƒm tra...', 'text-on-surface-variant');
+    showCouponMsg('Đang kiểm tra...', 'text-on-surface-variant');
 
     // Step 1: Validate as SHOP coupon first
     validateCouponAPI(code, 'SHOP')
@@ -552,7 +552,7 @@ function applyCoupon() {
                 shopCouponCode = code;
                 shopDiscount = data.discountAmount || 0;
                 document.getElementById('shopCouponCode').value = code;
-                showCouponMsg('âœ” ' + data.message + ' (MÃ£ cá»§a Shop)', 'text-emerald-700 font-bold');
+                showCouponMsg('✔ ' + data.message + ' (Mã của Shop)', 'text-emerald-700 font-bold');
                 inputEl.value = '';
 
                 // Stacking adjustment: if we already have a system coupon, we must revalidate it 
@@ -574,13 +574,13 @@ function applyCoupon() {
                             systemCouponCode = code;
                             systemDiscount = sysData.discountAmount || 0;
                             document.getElementById('systemCouponCode').value = code;
-                            showCouponMsg('âœ” ' + sysData.message + ' (MÃ£ cá»§a SÃ n)', 'text-emerald-700 font-bold');
+                            showCouponMsg('✔ ' + sysData.message + ' (Mã của Sàn)', 'text-emerald-700 font-bold');
                             inputEl.value = '';
                             updateSummary();
                             renderAppliedCoupons();
                         } else {
                             // If both failed, show error message
-                            showCouponMsg('âœ˜ MÃ£ voucher khÃ´ng há»£p lá»‡, Ä‘Ã£ háº¿t háº¡n, hoáº·c khÃ´ng Ä‘á»§ Ä‘iá»u kiá»‡n tá»‘i thiá»ƒu.', 'text-red-600 font-bold');
+                            showCouponMsg('✘ Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.', 'text-red-600 font-bold');
                             console.log('[Coupon Log] Shop check error:', data.message);
                             console.log('[Coupon Log] System check error:', sysData.message);
                         }
@@ -589,7 +589,7 @@ function applyCoupon() {
         })
         .catch(err => {
             console.error('[Coupon Log] Error validating coupon:', err);
-            showCouponMsg('âœ˜ Lá»—i káº¿t ná»‘i. Vui lÃ²ng thá»­ láº¡i.', 'text-red-600 font-bold');
+            showCouponMsg('✘ Lỗi kết nối. Vui lòng thử lại.', 'text-red-600 font-bold');
         });
 }
 
@@ -626,7 +626,7 @@ function removeCoupon(scope) {
         shopCouponCode = '';
         shopDiscount = 0;
         document.getElementById('shopCouponCode').value = '';
-        showCouponMsg('ÄÃ£ xÃ³a mÃ£ cá»§a Shop.', 'text-on-surface-variant');
+        showCouponMsg('Đã xóa mã của Shop.', 'text-on-surface-variant');
         
         if (systemCouponCode) {
             revalidateSystemCoupon().then(() => {
@@ -641,7 +641,7 @@ function removeCoupon(scope) {
         systemCouponCode = '';
         systemDiscount = 0;
         document.getElementById('systemCouponCode').value = '';
-        showCouponMsg('ÄÃ£ xÃ³a mÃ£ cá»§a SÃ n.', 'text-on-surface-variant');
+        showCouponMsg('Đã xóa mã của Sàn.', 'text-on-surface-variant');
         updateSummary();
         renderAppliedCoupons();
     }
@@ -669,9 +669,9 @@ function renderAppliedCoupons() {
         item.innerHTML = '<div>' +
             '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">Voucher shop</span>' +
             '<span class="font-bold text-on-surface">' + shopCouponCode + '</span>' +
-            '<span class="text-on-surface-variant ml-1">(Giáº£m ' + fmt(shopDiscount) + ')</span>' +
+            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(shopDiscount) + ')</span>' +
             '</div>' +
-            '<button type="button" onclick="removeCoupon(\'SHOP\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">XÃ³a</button>';
+            '<button type="button" onclick="removeCoupon(\'SHOP\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
         listEl.appendChild(item);
     }
     
@@ -680,11 +680,11 @@ function renderAppliedCoupons() {
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
         item.innerHTML = '<div>' +
-            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sÃ n</span>' +
+            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sàn</span>' +
             '<span class="font-bold text-on-surface">' + systemCouponCode + '</span>' +
-            '<span class="text-on-surface-variant ml-1">(Giáº£m ' + fmt(systemDiscount) + ')</span>' +
+            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(systemDiscount) + ')</span>' +
             '</div>' +
-            '<button type="button" onclick="removeCoupon(\'SYSTEM\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">XÃ³a</button>';
+            '<button type="button" onclick="removeCoupon(\'SYSTEM\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
         listEl.appendChild(item);
     }
     
@@ -727,7 +727,7 @@ document.getElementById('couponInput').addEventListener('keydown', e => {
     } 
 });
 
-// â”€â”€â”€ Shopee/TikTok Style Address Widget Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Shopee/TikTok Style Address Widget Logic ──────────────────────
 let userAddresses = Array.from(document.querySelectorAll('.js-user-address-data')).map(el => ({
     addressId: parseInt(el.getAttribute('data-address-id')),
     recipientName: el.getAttribute('data-recipient-name'),
@@ -804,12 +804,12 @@ function renderAddressList() {
                         <span class="font-bold text-slate-800">${addr.recipientName}</span>
                         <span class="text-slate-300">|</span>
                         <span class="text-slate-600 font-semibold">${addr.recipientPhone}</span>
-                        \${addr.isDefault ? '<span class="px-1.5 py-0.2 bg-red-100 text-red-700 text-[8px] font-bold rounded border border-red-200">Máº·c Ä‘á»‹nh</span>' : ''}
+                        \${addr.isDefault ? '<span class="px-1.5 py-0.2 bg-red-100 text-red-700 text-[8px] font-bold rounded border border-red-200">Mặc định</span>' : ''}
                     </div>
                     <p class="text-[11px] text-slate-500 leading-relaxed">\${addr.addressDetail}</p>
                 </div>
             </div>
-            <button type="button" onclick="event.stopPropagation(); showInlineAddressForm('edit', \${addr.addressId})" class="text-[#14532D] hover:underline font-bold shrink-0 text-[11px] cursor-pointer">Sá»­a</button>
+            <button type="button" onclick="event.stopPropagation(); showInlineAddressForm('edit', \${addr.addressId})" class="text-[#14532D] hover:underline font-bold shrink-0 text-[11px] cursor-pointer">Sửa</button>
         `;
         
         container.appendChild(card);
@@ -842,7 +842,7 @@ function showInlineAddressForm(mode, addressId = null) {
     actionInput.value = mode;
 
     if (mode === 'add') {
-        title.textContent = 'ThÃªm Ä‘á»‹a chá»‰ giao hÃ ng má»›i';
+        title.textContent = 'Thêm địa chỉ giao hàng mới';
         addressIdInput.value = '';
         nameInput.value = '';
         phoneInput.value = '';
@@ -850,7 +850,7 @@ function showInlineAddressForm(mode, addressId = null) {
         defaultInput.checked = (userAddresses.length === 0);
         defaultInput.disabled = (userAddresses.length === 0);
     } else {
-        title.textContent = 'Cáº­p nháº­t Ä‘á»‹a chá»‰ giao hÃ ng';
+        title.textContent = 'Cập nhật địa chỉ giao hàng';
         const addr = userAddresses.find(a => a.addressId === addressId);
         if (!addr) return;
         
@@ -884,18 +884,18 @@ function handleInlineAddressSubmit() {
     const isDefault = document.getElementById('mIsDefault').checked;
 
     if (name.length < 3) {
-        alert('Há» vÃ  tÃªn ngÆ°á»i nháº­n pháº£i tá»« 3 kÃ½ tá»± trá»Ÿ lÃªn.');
+        alert('Họ và tên người nhận phải từ 3 ký tự trở lên.');
         document.getElementById('mRecipientName').focus();
         return;
     }
     const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
     if (!phoneRegex.test(phone)) {
-        alert('Sá»‘ Ä‘iá»‡n thoáº¡i khÃ´ng há»£p lá»‡ (pháº£i lÃ  sá»‘ Ä‘iá»‡n thoáº¡i Viá»‡t Nam gá»“m 10 chá»¯ sá»‘).');
+        alert('Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam gồm 10 chữ số).');
         document.getElementById('mRecipientPhone').focus();
         return;
     }
     if (detail.length < 5) {
-        alert('Äá»‹a chá»‰ chi tiáº¿t pháº£i tá»« 5 kÃ½ tá»± trá»Ÿ lÃªn.');
+        alert('Địa chỉ chi tiết phải từ 5 ký tự trở lên.');
         document.getElementById('mAddressDetail').focus();
         return;
     }
@@ -903,7 +903,7 @@ function handleInlineAddressSubmit() {
     const btn = document.getElementById('btnSaveCheckoutAddress');
     btn.disabled = true;
     btn.classList.add('opacity-50');
-    btn.textContent = 'Äang lÆ°u...';
+    btn.textContent = 'Đang lưu...';
 
     const params = new URLSearchParams({
         action: mode === 'edit' ? 'update' : mode,
@@ -924,7 +924,7 @@ function handleInlineAddressSubmit() {
     .then(data => {
         btn.disabled = false;
         btn.classList.remove('opacity-50');
-        btn.textContent = 'LÆ°u Ä‘á»‹a chá»‰';
+        btn.textContent = 'Lưu địa chỉ';
 
         if (data.success) {
             const updatedAddr = {
@@ -957,15 +957,15 @@ function handleInlineAddressSubmit() {
             selectAddress(updatedAddr.addressId);
             hideInlineAddressForm();
         } else {
-            alert('Lá»—i: ' + data.error);
+            alert('Lỗi: ' + data.error);
         }
     })
     .catch(err => {
         btn.disabled = false;
         btn.classList.remove('opacity-50');
-        btn.textContent = 'LÆ°u Ä‘á»‹a chá»‰';
+        btn.textContent = 'Lưu địa chỉ';
         console.error(err);
-        alert('ÄÃ£ xáº£y ra lá»—i káº¿t ná»‘i.');
+        alert('Đã xảy ra lỗi kết nối.');
     });
 }
 
@@ -975,13 +975,13 @@ function validateCheckoutForm() {
     const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
 
     if (userAddresses.length === 0) {
-        alert('Vui lÃ²ng thÃªm Ä‘á»‹a chá»‰ nháº­n hÃ ng trÆ°á»›c khi thanh toÃ¡n.');
+        alert('Vui lòng thêm địa chỉ nhận hàng trước khi thanh toán.');
         showInlineAddressForm('add');
         return false;
     }
 
     if (!fullName || !phone || !deliveryAddress) {
-        alert('Vui lÃ²ng chá»n hoáº·c Ä‘iá»n thÃ´ng tin Ä‘á»‹a chá»‰ giao hÃ ng há»£p lá»‡.');
+        alert('Vui lòng chọn hoặc điền thông tin địa chỉ giao hàng hợp lệ.');
         return false;
     }
 
@@ -989,7 +989,7 @@ function validateCheckoutForm() {
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.classList.add('opacity-50');
-        submitBtn.innerHTML = 'Äang xá»­ lÃ½ Ä‘áº·t Ä‘Æ¡n... <span class="material-symbols-outlined animate-spin text-sm">sync</span>';
+        submitBtn.innerHTML = 'Đang xử lý đặt đơn... <span class="material-symbols-outlined animate-spin text-sm">sync</span>';
     }
     return true;
 }
