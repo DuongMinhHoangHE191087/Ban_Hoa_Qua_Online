@@ -58,3 +58,7 @@ Tài liệu này ghi chú lại danh sách các file mã nguồn đã được t
   - `web/WEB-INF/jsp/common/error.jsp`
   - `web/WEB-INF/jsp/common/header.jsp`
   - `web/WEB-INF/jsp/common/profile.jsp`
+- **[Modified]** `src/java/com/fruitmkt/service/ProductService.java` (Sửa lỗi trùng lặp phương thức gây lỗi Compile khiến Tomcat không nhận diện được các Servlet mới).
+- **[Modified]** `src/java/com/fruitmkt/servlet/shop/PromotionServlet.java` (Chuyển sang dùng urlPatterns rõ ràng cho annotation WebServlet).
+- **[Modified]** `src/java/com/fruitmkt/servlet/admin/AdminProductServlet.java` (Chuyển sang dùng urlPatterns rõ ràng cho annotation WebServlet).
+- **[Modified]** `web/WEB-INF/jsp/common/admin-sidebar.jsp` (Sửa sai đường dẫn Yêu cầu đổi trả từ /admin/returns thành /admin/refunds).

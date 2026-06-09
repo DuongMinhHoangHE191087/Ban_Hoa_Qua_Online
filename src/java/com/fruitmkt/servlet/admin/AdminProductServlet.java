@@ -24,7 +24,7 @@ import java.util.List;
  *
  * @author fruitmkt-team
  */
-@WebServlet("/admin/products")
+@WebServlet(name = "AdminProductServlet", urlPatterns = {"/admin/products"})
 public class AdminProductServlet extends HttpServlet {
 
     private final ProductService productService = new ProductService();

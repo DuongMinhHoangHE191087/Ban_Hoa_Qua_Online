@@ -230,7 +230,7 @@
                 </a>
             </li>
             <li class="sb-nav-item">
-                <a href="${pageContext.request.contextPath}/admin/returns"
+                <a href="${pageContext.request.contextPath}/admin/refunds"
                    class="sb-nav-link ${param.activeMenu == 'returns' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-rotate-left"></i></span>
                     <span>Yêu cầu Đổi trả</span>
