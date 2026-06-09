@@ -100,23 +100,7 @@ public class ProductService {
      * @return Product hoặc null nếu không tìm thấy
      * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
      */
-    public Product getProductDetail(int productId) throws SQLException {
-        return getProductById(productId);
-    }
-
-    /**
-     * Lấy danh sách sản phẩm của một shop owner.
-     *
-     * @param ownerId ID chủ shop
-     * @return danh sách sản phẩm theo owner
-     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
-     */
-    public List<Product> getProductsByOwner(int ownerId) throws SQLException {
-        if (ownerId <= 0) {
-            throw new IllegalArgumentException("ownerId không hợp lệ.");
-        }
-        return productDAO.findByOwner(ownerId);
-    }
+    
 
     /**
      * Tạo sản phẩm mới — chỉ dành cho SHOP_OWNER.
