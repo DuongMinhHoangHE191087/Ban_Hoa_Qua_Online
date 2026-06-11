@@ -1,5 +1,7 @@
 package com.fruitmkt.util;
 
+import com.fruitmkt.config.AppConfig;
+
 /**
  * PaginationUtil — Tính toán offset và tổng trang cho phân trang.
  *
@@ -7,8 +9,8 @@ package com.fruitmkt.util;
  */
 public final class PaginationUtil {
 
-    private static final int MAX_PAGE_SIZE = com.fruitmkt.config.AppConfig.MAX_PAGE_SIZE;
-    private static final int DEFAULT_PAGE_SIZE = com.fruitmkt.config.AppConfig.DEFAULT_PAGE_SIZE;
+    private static final int MAX_PAGE_SIZE = AppConfig.MAX_PAGE_SIZE;
+    private static final int DEFAULT_PAGE_SIZE = AppConfig.DEFAULT_PAGE_SIZE;
 
     /**
      * Tính offset (dùng trong SQL OFFSET ? ROWS)

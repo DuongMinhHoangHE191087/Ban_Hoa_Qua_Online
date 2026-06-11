@@ -1,6 +1,7 @@
 package com.fruitmkt.servlet.admin;
 
 import com.fruitmkt.service.UserService;
+import com.fruitmkt.util.LoggerUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -12,9 +13,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/users/status")
 public class AdminUserStatusAPI extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminUserStatusAPI.class.getName());
+
     private final UserService userService = new UserService();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -39,7 +44,7 @@ public class AdminUserStatusAPI extends HttpServlet {
                 result.put("message", "Không tìm thấy user");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi cập nhật trạng thái người dùng userId=" + request.getParameter("userId"), e);
             result.put("success", false);
             result.put("message", "Lỗi server: " + e.getMessage());
         }

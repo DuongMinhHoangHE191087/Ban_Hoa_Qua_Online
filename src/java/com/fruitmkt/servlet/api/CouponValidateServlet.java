@@ -3,11 +3,15 @@ package com.fruitmkt.servlet.api;
 import com.fruitmkt.model.entity.Promotion;
 import com.fruitmkt.service.PromotionService;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.logging.Logger;
 
 /**
  * CouponValidateServlet — AJAX endpoint xác thực mã giảm giá.
@@ -28,6 +32,8 @@ import java.math.BigDecimal;
  */
 @WebServlet("/api/coupon/validate")
 public class CouponValidateServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(CouponValidateServlet.class.getName());
 
     private final PromotionService promotionService = new PromotionService();
 
@@ -88,7 +94,7 @@ public class CouponValidateServlet extends HttpServlet {
                 + ",\"message\":\"Áp dụng thành công! Giảm " + displayAmt + "\"}");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi validate coupon code=" + req.getParameter("code"), e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().write("{\"valid\":false,\"discountAmount\":0,\"message\":\"Lỗi hệ thống. Vui lòng thử lại.\"}");
         }

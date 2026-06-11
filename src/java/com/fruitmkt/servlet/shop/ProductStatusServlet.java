@@ -9,13 +9,18 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.FileUploadUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ProductStatusServlet — API Servlet phục vụ AJAX Toggle, Soft Delete, và Xóa ảnh nhanh
@@ -23,6 +28,8 @@ import java.util.List;
  */
 @WebServlet("/shop/product-status")
 public class ProductStatusServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ProductStatusServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
@@ -135,7 +142,9 @@ public class ProductStatusServlet extends HttpServlet {
                         // Verify ownership via product lookup would be expensive in loop;
                         // trust that only valid ids reach here (UI controls access)
                         productImageDAO.updateDisplayOrder(imgId, i);
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException e) {
+                        LoggerUtil.warn(log, "ID ảnh không hợp lệ khi sắp xếp: " + idParts[i], e);
+                    }
                 }
                 out.print("{\"success\":true}");
 
@@ -145,7 +154,7 @@ public class ProductStatusServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             out.print("{\"success\":false,\"message\":\"ID sai định dạng số\"}");
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi cập nhật trạng thái sản phẩm", e);
             // Escape message to avoid JSON injection
             String safeMsg = e.getMessage() == null ? "Lỗi cơ sở dữ liệu" : e.getMessage().replace("\\", "\\\\").replace("\"", "\\\"");
             out.print("{\"success\":false,\"message\":\"Lỗi cơ sở dữ liệu: " + safeMsg + "\"}");

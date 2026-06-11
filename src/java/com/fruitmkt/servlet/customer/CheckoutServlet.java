@@ -17,6 +17,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.math.RoundingMode;
@@ -25,12 +26,15 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Controller cho checkout.
  */
 @WebServlet("/checkout")
 public class CheckoutServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(CheckoutServlet.class.getName());
 
     private static final String BANK_ID = AppConfig.SEPAY_BANK_ID;
     private static final String ACCOUNT_NO = AppConfig.SEPAY_ACCOUNT_NO;
@@ -169,7 +173,8 @@ public class CheckoutServlet extends HttpServlet {
             if (paymentTx != null) {
                 req.setAttribute("paymentTx", paymentTx);
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
         }
         req.getRequestDispatcher("/WEB-INF/jsp/customer/order-payment.jsp").forward(req, resp);
     }
@@ -233,7 +238,8 @@ public class CheckoutServlet extends HttpServlet {
         for (String part : variantIdsParam.split(",")) {
             try {
                 variantIds.add(Integer.parseInt(part.trim()));
-            } catch (NumberFormatException ignored) {
+            } catch (NumberFormatException e) {
+                LoggerUtil.warn(log, "ID biến thể không hợp lệ: " + part, e);
             }
         }
         return variantIds;

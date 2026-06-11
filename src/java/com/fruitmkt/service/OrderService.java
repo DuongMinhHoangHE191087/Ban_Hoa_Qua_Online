@@ -13,14 +13,22 @@ import com.fruitmkt.model.entity.Cart;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.OrderItem;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.util.LoggerUtil;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * OrderService - Tang business logic cho nghiep vu don hang.
  */
 public class OrderService {
+
+    private static final Logger log = LoggerUtil.getLogger(OrderService.class);
 
     private final OrderDAO orderDAO = new OrderDAO();
     private final SystemConfigDAO configDAO = new SystemConfigDAO();
@@ -189,9 +197,9 @@ public class OrderService {
 
     public void autoCancelUnacceptedOrders() throws SQLException {
         String sql = "SELECT * FROM orders WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL AND shop_acceptance_deadline < GETDATE()";
-        try (java.sql.Connection conn = orderDAO.openConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-            try (java.sql.ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     int orderId = rs.getInt("order_id");
                     int customerId = rs.getInt("customer_id");
@@ -217,7 +225,7 @@ public class OrderService {
                                         + "Vui lòng đặt lại đơn hàng khác.",
                                 "/customer/orders");
                     } catch (Exception e) {
-                        System.err.println("Failed to notify customer of auto cancellation: " + e.getMessage());
+                        LoggerUtil.warn(log, "Failed to notify customer of auto cancellation for orderId=" + orderId, e);
                     }
 
                     try {
@@ -225,7 +233,7 @@ public class OrderService {
                                 "Đơn hàng #" + orderId + " đã bị hệ thống tự động hủy và hoàn tiền vì bạn không bấm nhận đơn trong vòng 30 phút.",
                                 "/shop/orders");
                     } catch (Exception e) {
-                        System.err.println("Failed to notify shop owner of auto cancellation: " + e.getMessage());
+                        LoggerUtil.warn(log, "Failed to notify shop owner of auto cancellation for orderId=" + orderId, e);
                     }
                 }
             }
@@ -239,16 +247,15 @@ public class OrderService {
                 + "WHERE o.status = 'DELIVERED' "
                 + "AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
                 + "AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
-        try (java.sql.Connection conn = orderDAO.openConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, -freezeDays);
-            try (java.sql.ResultSet rs = ps.executeQuery()) {
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     int orderId = rs.getInt("order_id");
-                    System.out.println("[OrderService] Auto-confirming settlement eligibility for order #" + orderId
-                            + " after " + freezeDays + " freeze days.");
+                    LoggerUtil.info(log, "Auto-confirming settlement eligibility for order #%d after %d freeze days.", orderId, freezeDays);
                     String updateSql = "UPDATE orders SET updated_at = GETDATE() WHERE order_id = ?";
-                    try (java.sql.PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
+                    try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
                         psUpdate.setInt(1, orderId);
                         psUpdate.executeUpdate();
                     }
@@ -257,7 +264,7 @@ public class OrderService {
         }
     }
 
-    public java.math.BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
+    public BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
         return orderDAO.getRevenueByOwner(ownerId);
     }
 

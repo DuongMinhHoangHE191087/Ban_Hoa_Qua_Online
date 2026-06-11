@@ -6,6 +6,7 @@ import com.fruitmkt.model.entity.ChatMessage;
 import com.fruitmkt.model.entity.ChatSession;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.JsonUtil;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -20,12 +21,15 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * ChatAPI - REST endpoints hỗ trợ HTTP fallback và các thao tác chat.
  */
 @WebServlet("/api/chat")
 public class ChatAPI extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ChatAPI.class.getName());
 
     private final ChatDAO chatDAO = new ChatDAO();
 
@@ -94,15 +98,19 @@ public class ChatAPI extends HttpServlet {
             result.put("message", "Tham số không hợp lệ");
             try {
                 out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
+            } catch (Exception writeEx) {
+                LoggerUtil.warn(log, "Không thể ghi JSON lỗi tham số", writeEx);
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi server khi xử lý GET chat", e);
             result.clear();
             result.put("success", false);
             result.put("message", "Lỗi server: " + e.getMessage());
             try {
                 out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
+            } catch (Exception writeEx) {
+                LoggerUtil.warn(log, "Không thể ghi JSON lỗi server", writeEx);
+            }
         } finally {
             out.flush();
         }
@@ -229,15 +237,19 @@ public class ChatAPI extends HttpServlet {
             result.put("message", "Tham số không hợp lệ");
             try {
                 out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
+            } catch (Exception writeEx) {
+                LoggerUtil.warn(log, "Không thể ghi JSON lỗi tham số", writeEx);
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi server khi xử lý POST chat", e);
             result.clear();
             result.put("success", false);
             result.put("message", "Lỗi server: " + e.getMessage());
             try {
                 out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
+            } catch (Exception writeEx) {
+                LoggerUtil.warn(log, "Không thể ghi JSON lỗi server", writeEx);
+            }
         } finally {
             out.flush();
         }

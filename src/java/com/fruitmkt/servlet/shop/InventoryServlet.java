@@ -10,14 +10,22 @@ import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.InventoryLog;
 import com.fruitmkt.model.entity.User;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * InventoryServlet — Controller for Restock Management and inventory logs.
@@ -25,6 +33,8 @@ import java.util.*;
  */
 @WebServlet("/shop/inventory")
 public class InventoryServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(InventoryServlet.class.getName());
 
     private final InventoryService inventoryService = new InventoryService();
     private final ProductDAO productDAO = new ProductDAO();
@@ -67,7 +77,7 @@ public class InventoryServlet extends HttpServlet {
             history = inventoryService.getRestockHistory(currentUser.getUserId());
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Không thể tải danh sách sản phẩm hoặc lịch sử nhập kho", e);
             errorMsg = "Không thể tải danh sách sản phẩm hoặc lịch sử: " + e.getMessage();
         }
 
@@ -165,12 +175,12 @@ public class InventoryServlet extends HttpServlet {
             SessionUtil.flashSuccess(session, "Nhập kho sản phẩm thành công!");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi nhập kho", e);
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi không xác định khi nhập kho", e);
             SessionUtil.flashError(session, "Đã xảy ra lỗi không xác định.");
         }
 

@@ -6,14 +6,17 @@ import com.fruitmkt.model.entity.Delivery;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.DeliveryService;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * DeliveryDashboardServlet — Dashboard giao hàng cho Delivery Staff.
@@ -30,6 +33,8 @@ import java.util.List;
  */
 @WebServlet("/delivery/dashboard")
 public class DeliveryDashboardServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(DeliveryDashboardServlet.class.getName());
 
     private final DeliveryService deliveryService = new DeliveryService();
     private final OrderDAO orderDAO = new OrderDAO();
@@ -61,7 +66,9 @@ public class DeliveryDashboardServlet extends HttpServlet {
                     if (!orders.isEmpty()) {
                         order = orders.get(0);
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    LoggerUtil.warn(log, "Không thể tải thông tin đơn hàng cho delivery " + del.getDeliveryId(), e);
+                }
                 enrichedList.add(new DeliveryWithOrderDTO(del, order));
             }
 
@@ -69,7 +76,7 @@ public class DeliveryDashboardServlet extends HttpServlet {
             req.setAttribute("filterStatus", filterStatus);
             req.getRequestDispatcher("/WEB-INF/jsp/delivery/dashboard.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải danh sách đơn hàng cần giao", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải danh sách đơn hàng cần giao.");
         }
     }

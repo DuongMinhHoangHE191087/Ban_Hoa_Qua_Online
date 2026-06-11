@@ -8,7 +8,13 @@ import com.fruitmkt.model.entity.ChatSession;
 import com.fruitmkt.model.entity.Notification;
 import com.fruitmkt.model.entity.User;
 import jakarta.servlet.http.HttpSession;
-import jakarta.websocket.*;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnMessage;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 

@@ -1,6 +1,7 @@
 package com.fruitmkt.servlet.admin;
 
 import com.fruitmkt.service.UserService;
+import com.fruitmkt.util.LoggerUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -12,9 +13,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/users/revoke-sessions")
 public class AdminUserRevokeSessionsAPI extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminUserRevokeSessionsAPI.class.getName());
+
     private final UserService userService = new UserService();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -33,7 +38,7 @@ public class AdminUserRevokeSessionsAPI extends HttpServlet {
             result.put("success", true);
             result.put("message", "Đã thu hồi tất cả phiên đăng nhập (Refresh Tokens) của người dùng thành công.");
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi thu hồi phiên đăng nhập userId=" + request.getParameter("userId"), e);
             result.put("success", false);
             result.put("message", "Lỗi server: " + e.getMessage());
         }

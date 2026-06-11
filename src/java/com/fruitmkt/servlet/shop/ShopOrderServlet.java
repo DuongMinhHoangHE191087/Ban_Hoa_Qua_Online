@@ -6,7 +6,9 @@ import com.fruitmkt.service.OrderService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
@@ -46,7 +48,9 @@ public class ShopOrderServlet extends HttpServlet {
         if (pageStr != null && !pageStr.trim().isEmpty()) {
             try {
                 page = Integer.parseInt(pageStr);
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+                // Keep default page=1 for invalid input — no logging needed here
+            }
         }
 
         try {

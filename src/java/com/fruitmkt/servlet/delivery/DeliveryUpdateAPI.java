@@ -3,18 +3,24 @@ package com.fruitmkt.servlet.delivery;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.DeliveryService;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/delivery/api/update")
 public class DeliveryUpdateAPI extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(DeliveryUpdateAPI.class.getName());
+
     private final DeliveryService deliveryService = new DeliveryService();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -66,7 +72,7 @@ public class DeliveryUpdateAPI extends HttpServlet {
             response.put("message", e.getMessage());
             mapper.writeValue(resp.getWriter(), response);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi máy chủ khi cập nhật trạng thái giao hàng", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.put("success", false);
             response.put("message", "Lỗi máy chủ");

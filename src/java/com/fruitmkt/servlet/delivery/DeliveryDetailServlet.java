@@ -7,13 +7,16 @@ import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.ShopProfile;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.DeliveryService;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * DeliveryDetailServlet — Xem chi tiết đơn giao hàng.
@@ -21,6 +24,8 @@ import java.util.List;
  */
 @WebServlet("/delivery/detail")
 public class DeliveryDetailServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(DeliveryDetailServlet.class.getName());
 
     private final DeliveryService deliveryService = new DeliveryService();
     private final OrderDAO orderDAO = new OrderDAO();
@@ -93,7 +98,7 @@ public class DeliveryDetailServlet extends HttpServlet {
             req.setAttribute("pickupAddress", pickupAddress);
             req.getRequestDispatcher("/WEB-INF/jsp/delivery/delivery-detail.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải chi tiết đơn hàng", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải chi tiết đơn hàng.");
         }
     }

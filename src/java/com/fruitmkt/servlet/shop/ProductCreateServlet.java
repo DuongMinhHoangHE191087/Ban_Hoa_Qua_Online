@@ -13,12 +13,18 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.FileUploadUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.logging.Logger;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -36,6 +42,8 @@ import java.util.List;
     maxRequestSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 10 // 50MB
 )//upload file
 public class ProductCreateServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ProductCreateServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -243,7 +251,9 @@ public class ProductCreateServlet extends HttpServlet {
                 if (seasonEndMonthStr != null && !seasonEndMonthStr.trim().isEmpty()) {
                     p.setSeasonEndMonth(Integer.parseInt(seasonEndMonthStr.trim()));
                 }
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException e) {
+                LoggerUtil.warn(log, "Tháng mùa vụ không hợp lệ", e);
+            }
 
             // Lưu sản phẩm và nhận ID tự sinh
             int productId = productDAO.save(p);
@@ -275,7 +285,9 @@ public class ProductCreateServlet extends HttpServlet {
                     if (variantPrices != null && variantPrices.length > i && variantPrices[i] != null) {
                         try {
                             vPrice = new BigDecimal(variantPrices[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "Giá biến thể không hợp lệ: " + variantPrices[i], e);
+                        }
                     }
                     variant.setPrice(vPrice);
 
@@ -283,7 +295,9 @@ public class ProductCreateServlet extends HttpServlet {
                     if (variantStocks != null && variantStocks.length > i && variantStocks[i] != null) {
                         try {
                             vStock = Integer.parseInt(variantStocks[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "Số lượng tồn kho biến thể không hợp lệ: " + variantStocks[i], e);
+                        }
                     }
                     variant.setStockQuantity(vStock);
 
@@ -291,7 +305,9 @@ public class ProductCreateServlet extends HttpServlet {
                     if (variantWeights != null && variantWeights.length > i && variantWeights[i] != null && !variantWeights[i].trim().isEmpty()) {
                         try {
                             vWeight = new BigDecimal(variantWeights[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "Cân nặng biến thể không hợp lệ: " + variantWeights[i], e);
+                        }
                     }
                     variant.setWeightKg(vWeight);
 
@@ -299,7 +315,9 @@ public class ProductCreateServlet extends HttpServlet {
                     if (variantDiscountPrices != null && variantDiscountPrices.length > i && variantDiscountPrices[i] != null && !variantDiscountPrices[i].trim().isEmpty()) {
                         try {
                             vDiscPrice = new BigDecimal(variantDiscountPrices[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "Giá khuyến mãi biến thể không hợp lệ: " + variantDiscountPrices[i], e);
+                        }
                     }
                     variant.setDiscountPrice(vDiscPrice);
 
@@ -307,7 +325,9 @@ public class ProductCreateServlet extends HttpServlet {
                     if (variantDiscountStarts != null && variantDiscountStarts.length > i && variantDiscountStarts[i] != null && !variantDiscountStarts[i].trim().isEmpty()) {
                         try {
                             vDiscStart = java.time.LocalDateTime.parse(variantDiscountStarts[i].trim());
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Ngày bắt đầu giảm giá không hợp lệ: " + variantDiscountStarts[i], e);
+                        }
                     }
                     variant.setDiscountStart(vDiscStart);
 
@@ -315,7 +335,9 @@ public class ProductCreateServlet extends HttpServlet {
                     if (variantDiscountEnds != null && variantDiscountEnds.length > i && variantDiscountEnds[i] != null && !variantDiscountEnds[i].trim().isEmpty()) {
                         try {
                             vDiscEnd = java.time.LocalDateTime.parse(variantDiscountEnds[i].trim());
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Ngày kết thúc giảm giá không hợp lệ: " + variantDiscountEnds[i], e);
+                        }
                     }
                     variant.setDiscountEnd(vDiscEnd);
 
@@ -334,7 +356,9 @@ public class ProductCreateServlet extends HttpServlet {
                         if (packagingPriceAdds != null && packagingPriceAdds.length > i && packagingPriceAdds[i] != null) {
                             try {
                                 priceAdd = new BigDecimal(packagingPriceAdds[i].trim());
-                            } catch (NumberFormatException ignored) {}
+                            } catch (NumberFormatException e) {
+                                LoggerUtil.warn(log, "Giá bao bì không hợp lệ: " + packagingPriceAdds[i], e);
+                            }
                         }
                         com.fruitmkt.model.entity.ProductPackagingOption option = new com.fruitmkt.model.entity.ProductPackagingOption();
                         option.setProductId(productId);
@@ -358,7 +382,7 @@ public class ProductCreateServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi lưu sản phẩm mới", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
                 java.util.Map<String, Object> responseData = new java.util.HashMap<>();
                 responseData.put("success", false);

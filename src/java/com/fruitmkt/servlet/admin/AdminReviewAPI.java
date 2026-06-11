@@ -1,6 +1,7 @@
 package com.fruitmkt.servlet.admin;
 
 import com.fruitmkt.service.ReviewService;
+import com.fruitmkt.util.LoggerUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -12,9 +13,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/reviews/visibility")
 public class AdminReviewAPI extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminReviewAPI.class.getName());
+
     private final ReviewService reviewService = new ReviewService();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -39,7 +44,7 @@ public class AdminReviewAPI extends HttpServlet {
             result.put("message", rejected ? "Đã từ chối và ẩn đánh giá" : "Đã duyệt đánh giá");
             
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi kiểm duyệt review", e);
             result.put("success", false);
             result.put("message", "Lỗi server: " + e.getMessage());
         }

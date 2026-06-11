@@ -7,12 +7,17 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.model.dto.PagedResultDTO;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * AdminOrderMonitorServlet — Monitor và giám sát tất cả đơn hàng trên sàn.
@@ -20,6 +25,8 @@ import java.util.List;
  */
 @WebServlet("/admin/order-monitor")
 public class AdminOrderMonitorServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminOrderMonitorServlet.class.getName());
 
     private final OrderDAO orderDAO = new OrderDAO();
 
@@ -42,7 +49,9 @@ public class AdminOrderMonitorServlet extends HttpServlet {
             if (pageStr != null) {
                 page = Integer.parseInt(pageStr);
             }
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException e) {
+            LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
+        }
 
         try {
             int pageSize = AppConfig.PAGE_SIZE_ORDERS;
@@ -62,7 +71,7 @@ public class AdminOrderMonitorServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/order-monitor.jsp").forward(req, resp);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi truy vấn đơn hàng trong order-monitor", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage());
         }
     }

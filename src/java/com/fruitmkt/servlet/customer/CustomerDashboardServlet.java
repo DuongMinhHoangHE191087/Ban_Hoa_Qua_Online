@@ -8,12 +8,17 @@ import com.fruitmkt.model.entity.Promotion;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * CustomerDashboardServlet — Controller cho Bảng điều khiển của Khách hàng.
@@ -21,6 +26,8 @@ import java.util.List;
  */
 @WebServlet("/customer/dashboard")
 public class CustomerDashboardServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(CustomerDashboardServlet.class.getName());
 
     private final OrderDAO orderDAO = new OrderDAO();
     private final PromotionDAO promotionDAO = new PromotionDAO();
@@ -46,7 +53,7 @@ public class CustomerDashboardServlet extends HttpServlet {
             req.setAttribute("activeVouchers", activeVouchers);
             req.getRequestDispatcher("/WEB-INF/jsp/customer/dashboard.jsp").forward(req, resp);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Không thể tải bảng điều khiển", e);
             SessionUtil.flashError(session, "Không thể tải bảng điều khiển: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + "/home");
         }

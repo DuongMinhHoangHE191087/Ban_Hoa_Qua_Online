@@ -4,10 +4,14 @@ import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.SettlementService;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * AdminSettlementServlet — Controller cho chức năng: Confirm và chốt settlement cho shop
@@ -28,6 +32,8 @@ import java.io.IOException;
 @WebServlet("/admin/settlements")
 public class AdminSettlementServlet extends HttpServlet {
 
+    private static final Logger log = Logger.getLogger(AdminSettlementServlet.class.getName());
+
     private final SettlementService settlementService = new SettlementService();
 
     @Override
@@ -37,7 +43,9 @@ public class AdminSettlementServlet extends HttpServlet {
             int page = 1;
             String pageStr = req.getParameter("page");
             if (pageStr != null && !pageStr.trim().isEmpty()) {
-                try { page = Integer.parseInt(pageStr); } catch (Exception e) {}
+                try { page = Integer.parseInt(pageStr); } catch (NumberFormatException e) {
+                    LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
+                }
             }
             int pageSize = 20;
 
@@ -52,7 +60,7 @@ public class AdminSettlementServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-settlements.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải danh sách đối soát", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách đối soát");
         }
     }
@@ -74,7 +82,7 @@ public class AdminSettlementServlet extends HttpServlet {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi cập nhật đối soát", e);
             SessionUtil.flashError(req.getSession(), "Lỗi cập nhật đối soát: " + e.getMessage());
         }
         resp.sendRedirect(req.getContextPath() + "/admin/settlements");

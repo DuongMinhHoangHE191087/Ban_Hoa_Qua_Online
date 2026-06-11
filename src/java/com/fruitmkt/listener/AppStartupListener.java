@@ -1,9 +1,11 @@
 package com.fruitmkt.listener;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
+import java.util.logging.Logger;
 
 /**
  * AppStartupListener — Validates critical configuration at application startup.
@@ -16,13 +18,15 @@ import jakarta.servlet.annotation.WebListener;
 @WebListener
 public class AppStartupListener implements ServletContextListener {
 
+    private static final Logger log = Logger.getLogger(AppStartupListener.class.getName());
+
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         try {
             AppConfig.validateSecretsForProduction();
-            System.out.println("[AppStartup] ✓ Configuration validation passed");
+            LoggerUtil.info(log, "[AppStartup] Configuration validation passed");
         } catch (IllegalStateException ex) {
-            System.err.println("[AppStartup] ✗ FATAL: " + ex.getMessage());
+            LoggerUtil.error(log, "[AppStartup] FATAL: " + ex.getMessage(), ex);
             throw ex;
         }
     }

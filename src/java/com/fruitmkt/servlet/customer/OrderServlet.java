@@ -8,18 +8,22 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.OrderService;
 import com.fruitmkt.service.OrderViewService;
 import com.fruitmkt.util.SessionUtil;
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Controller cho lich su don hang, chi tiet va invoice.
  */
 @WebServlet("/orders")
 public class OrderServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(OrderServlet.class.getName());
 
     private final OrderService orderService = new OrderService();
     private final OrderViewService orderViewService = new OrderViewService();
@@ -138,7 +142,7 @@ public class OrderServlet extends HttpServlet {
                 return;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải chi tiết đơn hàng", e);
         }
         resp.sendRedirect(req.getContextPath() + "/orders");
     }
@@ -161,7 +165,7 @@ public class OrderServlet extends HttpServlet {
             SessionUtil.setFlashMessage(req.getSession(),
                     "Hoa don dien tu chi kha dung khi don hang da giao thanh cong.", "warning");
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải hóa đơn đơn hàng", e);
         }
         resp.sendRedirect(req.getContextPath() + "/orders");
     }

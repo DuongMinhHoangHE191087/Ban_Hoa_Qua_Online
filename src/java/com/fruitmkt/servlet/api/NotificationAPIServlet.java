@@ -7,13 +7,18 @@ import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.config.AppConfig;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * NotificationAPIServlet — Endpoint API cho thông báo.
@@ -21,6 +26,8 @@ import java.util.Map;
  */
 @WebServlet("/api/notifications")
 public class NotificationAPIServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(NotificationAPIServlet.class.getName());
 
     private final NotificationService notificationService = new NotificationService();
 
@@ -43,7 +50,9 @@ public class NotificationAPIServlet extends HttpServlet {
             if (limitStr != null && !limitStr.trim().isEmpty()) {
                 try {
                     limit = Integer.parseInt(limitStr);
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException e) {
+                    LoggerUtil.warn(log, "Tham số limit không hợp lệ: " + limitStr, e);
+                }
             }
 
             List<Notification> unreadNotifs = notificationService.getUnread(user.getUserId());

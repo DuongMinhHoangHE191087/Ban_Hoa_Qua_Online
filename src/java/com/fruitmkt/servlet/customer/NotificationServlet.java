@@ -66,7 +66,9 @@ public class NotificationServlet extends HttpServlet {
                 result.put("message", e.getMessage());
                 try {
                     out.print(JsonUtil.toJson(result));
-                } catch (Exception ignored) {}
+                } catch (Exception writeEx) {
+                    LOG.log(Level.WARNING, "Không thể ghi JSON lỗi", writeEx);
+                }
             } finally {
                 out.flush();
             }
@@ -90,7 +92,9 @@ public class NotificationServlet extends HttpServlet {
                 result.put("message", e.getMessage());
                 try {
                     out.print(JsonUtil.toJson(result));
-                } catch (Exception ignored) {}
+                } catch (Exception writeEx) {
+                    LOG.log(Level.WARNING, "Không thể ghi JSON lỗi", writeEx);
+                }
             } finally {
                 out.flush();
             }

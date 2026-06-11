@@ -2,12 +2,20 @@ package com.fruitmkt.filter;
 
 import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.TokenUtil;
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 /**
  * SessionRestoreFilter — Tự động phục hồi phiên đăng nhập từ Cookie Access/Refresh Token cho tất cả các trang.
@@ -19,6 +27,7 @@ import java.sql.SQLException;
  */
 public class SessionRestoreFilter implements Filter {
 
+    private static final Logger log = Logger.getLogger(SessionRestoreFilter.class.getName());
     private final UserDAO userDAO = new UserDAO();
 
     @Override
@@ -60,7 +69,7 @@ public class SessionRestoreFilter implements Filter {
                         return;
                     }
                 } catch (SQLException e) {
-                    req.getServletContext().log("SessionRestoreFilter: Lỗi khôi phục session bằng Access Token: " + e.getMessage(), e);
+                    LoggerUtil.warn(log, "SessionRestoreFilter: Lỗi khôi phục session bằng Access Token", e);
                 }
             }
         }
@@ -85,7 +94,7 @@ public class SessionRestoreFilter implements Filter {
                     TokenUtil.clearTokens(req, resp);
                 }
             } catch (SQLException e) {
-                req.getServletContext().log("SessionRestoreFilter: Lỗi khôi phục session bằng Refresh Token: " + e.getMessage(), e);
+                LoggerUtil.warn(log, "SessionRestoreFilter: Lỗi khôi phục session bằng Refresh Token", e);
             }
         }
 

@@ -17,6 +17,7 @@ import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.Promotion;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.UserLockManager;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,11 +32,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Logger;
 
 /**
  * Business logic cho luong checkout.
  */
 public class CheckoutService {
+
+    private static final Logger log = LoggerUtil.getLogger(CheckoutService.class);
 
     private static final BigDecimal DELIVERY_FEE_PER_SHOP = new BigDecimal("15000");
     private static final String PHONE_REGEX = "^(0|\\+84)[35789][0-9]{8}$";
@@ -435,8 +439,7 @@ public class CheckoutService {
         try {
             paymentService.initPayment(orderId, "SEPAY", remoteAddress);
         } catch (SQLException ex) {
-            System.err.println("[FruitMkt] WARN: Khong tao duoc payment transaction cho orderId=" + orderId
-                    + ": " + ex.getMessage());
+            LoggerUtil.warn(log, "Khong tao duoc payment transaction cho orderId=" + orderId, ex);
         }
     }
 
@@ -448,8 +451,7 @@ public class CheckoutService {
                         "Đơn hàng #" + entry.getValue() + " đã được tạo từ checkout nhiều shop. Vui lòng kiểm tra và chuẩn bị hàng.",
                         "/shop/orders");
             } catch (Exception ex) {
-                System.err.println("[FruitMkt] WARN: Khong gui duoc thong bao chuan bi hang cho ownerId="
-                        + entry.getKey() + ": " + ex.getMessage());
+                LoggerUtil.warn(log, "Khong gui duoc thong bao chuan bi hang cho ownerId=" + entry.getKey(), ex);
             }
         }
     }

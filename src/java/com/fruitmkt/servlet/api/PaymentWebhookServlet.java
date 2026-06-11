@@ -1,11 +1,16 @@
 package com.fruitmkt.servlet.api;
 
 import com.fruitmkt.service.PaymentService;
+import com.fruitmkt.util.LoggerUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
-import java.io.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * PaymentWebhookServlet — Nhận webhook từ SePay để tự động xác nhận thanh toán.
@@ -28,6 +33,8 @@ import java.io.*;
  */
 @WebServlet("/api/payment/webhook")
 public class PaymentWebhookServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(PaymentWebhookServlet.class.getName());
 
     private final PaymentService paymentService = new PaymentService();
 
@@ -54,7 +61,7 @@ public class PaymentWebhookServlet extends HttpServlet {
 
         // Đọc raw JSON body
         String jsonPayload = readBody(req);
-        System.out.println("[SePay Webhook] Received webhook payload from SePay");
+        LoggerUtil.info(log, "[SePay Webhook] Received webhook payload from SePay");
 
         try {
             paymentService.processWebhook(jsonPayload);
@@ -62,8 +69,7 @@ public class PaymentWebhookServlet extends HttpServlet {
             resp.getWriter().write("{\"success\":true}");
         } catch (Exception e) {
             // Log lỗi nhưng PHẢI trả 200 để SePay không retry
-            System.err.println("[SePay Webhook] Lỗi xử lý: " + e.getMessage());
-            e.printStackTrace();
+            LoggerUtil.error(log, "[SePay Webhook] Lỗi xử lý webhook", e);
             resp.setStatus(HttpServletResponse.SC_OK); // intentional — SePay rule
             resp.getWriter().write("{\"success\":false,\"error\":\"Internal processing error\"}");
         }

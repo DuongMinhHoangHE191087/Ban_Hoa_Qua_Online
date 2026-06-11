@@ -1,6 +1,11 @@
 package com.fruitmkt.service;
 
+import com.fruitmkt.dao.ChatDAO;
+import com.fruitmkt.model.entity.ChatMessage;
+import com.fruitmkt.model.entity.ChatSession;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * ChatService — Tầng business logic cho nghiệp vụ tương ứng.
@@ -15,12 +20,12 @@ import java.sql.SQLException;
  */
 public class ChatService {
 
-    private final com.fruitmkt.dao.ChatDAO chatDAO = new com.fruitmkt.dao.ChatDAO();
+    private final ChatDAO chatDAO = new ChatDAO();
 
     /**
      * Lấy hoặc tạo phiên chat mới giữa customer và shop owner. Không yêu cầu đơn hàng phải tồn tại.
      */
-    public com.fruitmkt.model.entity.ChatSession getOrCreateSession(int customerId, int ownerId) throws SQLException {
+    public ChatSession getOrCreateSession(int customerId, int ownerId) throws SQLException {
         if (customerId <= 0 || ownerId <= 0) {
             throw new IllegalArgumentException("ID khách hàng hoặc ID chủ shop không hợp lệ.");
         }
@@ -28,19 +33,19 @@ public class ChatService {
             throw new IllegalArgumentException("Không thể tự trò chuyện với chính mình.");
         }
 
-        java.util.List<com.fruitmkt.model.entity.ChatSession> existing = chatDAO.findSessionByParticipants(customerId, ownerId);
+        List<ChatSession> existing = chatDAO.findSessionByParticipants(customerId, ownerId);
         if (existing != null && !existing.isEmpty()) {
             return existing.get(0);
         }
 
         int newId = chatDAO.createSession(customerId, ownerId);
-        com.fruitmkt.model.entity.ChatSession session = new com.fruitmkt.model.entity.ChatSession();
+        ChatSession session = new ChatSession();
         session.setSessionId(newId);
         session.setCustomerId(customerId);
         session.setOwnerId(ownerId);
         session.setStatus("ACTIVE");
-        session.setCreatedAt(java.time.LocalDateTime.now());
-        session.setUpdatedAt(java.time.LocalDateTime.now());
+        session.setCreatedAt(LocalDateTime.now());
+        session.setUpdatedAt(LocalDateTime.now());
         return session;
     }
 
@@ -61,7 +66,7 @@ public class ChatService {
             throw new IllegalArgumentException("Nội dung tin nhắn không hợp lệ.");
         }
 
-        com.fruitmkt.model.entity.ChatMessage msg = new com.fruitmkt.model.entity.ChatMessage();
+        ChatMessage msg = new ChatMessage();
         msg.setSessionId(sessionId);
         msg.setSenderId(senderId);
         msg.setContent(sanitizedContent);
@@ -73,7 +78,7 @@ public class ChatService {
     /**
      * Lấy toàn bộ danh sách tin nhắn của 1 phiên.
      */
-    public java.util.List<com.fruitmkt.model.entity.ChatMessage> getMessages(int sessionId) throws SQLException {
+    public List<ChatMessage> getMessages(int sessionId) throws SQLException {
         if (sessionId <= 0) {
             throw new IllegalArgumentException("Session ID không hợp lệ.");
         }

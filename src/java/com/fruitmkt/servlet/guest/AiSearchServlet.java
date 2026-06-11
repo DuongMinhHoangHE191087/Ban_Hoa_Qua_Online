@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import com.fruitmkt.util.LoggerUtil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -22,10 +23,18 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/api/ai/search")
 public class AiSearchServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AiSearchServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -224,13 +233,13 @@ public class AiSearchServlet extends HttpServlet {
             mapper.writeValue(resp.getWriter(), responseJson);
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi kết nối cơ sở dữ liệu khi xử lý AI search", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             responseJson.put("success", false);
             responseJson.put("message", "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage());
             mapper.writeValue(resp.getWriter(), responseJson);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý AI search", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             responseJson.put("success", false);
             responseJson.put("message", "Lỗi hệ thống khi xử lý AI: " + e.getMessage());

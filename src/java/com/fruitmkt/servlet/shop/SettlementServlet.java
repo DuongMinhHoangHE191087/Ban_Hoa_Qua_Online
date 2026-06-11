@@ -6,12 +6,17 @@ import com.fruitmkt.service.SettlementService;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.model.entity.ShopSettlement;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * SettlementServlet — Controller cho chức năng: Xem settlement summary và chi tiết kỳ
@@ -24,6 +29,8 @@ import java.util.List;
  */
 @WebServlet("/shop/settlement")
 public class SettlementServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(SettlementServlet.class.getName());
 
     private final SettlementService settlementService = new SettlementService();
 
@@ -45,7 +52,7 @@ public class SettlementServlet extends HttpServlet {
             req.setAttribute("settlements", settlements);
             req.getRequestDispatcher("/WEB-INF/jsp/shop/settlement.jsp").forward(req, resp);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải lịch sử đối soát", e);
             SessionUtil.flashError(session, "Lỗi khi tải lịch sử đối soát: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
         }

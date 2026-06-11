@@ -9,16 +9,19 @@ import com.fruitmkt.model.entity.Delivery;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.PaymentTransaction;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.util.LoggerUtil;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Query/view service cho customer order pages.
  */
 public class OrderViewService {
 
+    private static final Logger log = LoggerUtil.getLogger(OrderViewService.class);
     private static final int ORDER_PAGE_SIZE = 10;
 
     private final OrderDAO orderDAO = new OrderDAO();
@@ -36,11 +39,13 @@ public class OrderViewService {
         view.setOrderItems(orderDAO.findItemsByOrderId(orderId));
         try {
             view.setPaymentTransaction(paymentService.getPaymentByOrder(orderId));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "Could not load payment transaction for orderId=" + orderId, e);
         }
         try {
             view.setDelivery(deliveryDAO.findByOrderId(orderId));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "Could not load delivery for orderId=" + orderId, e);
         }
         return view;
     }

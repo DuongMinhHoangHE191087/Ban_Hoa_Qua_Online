@@ -7,14 +7,17 @@ import com.fruitmkt.model.entity.Cart;
 import com.fruitmkt.model.entity.CartItem;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.util.JsonUtil;
+import com.fruitmkt.util.LoggerUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * CartService — Tầng business logic cho nghiệp vụ tương ứng.
@@ -28,6 +31,8 @@ import java.util.Set;
  * @author fruitmkt-team
  */
 public class CartService {
+
+    private static final Logger log = LoggerUtil.getLogger(CartService.class);
 
     private final CartDAO cartDAO = new CartDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
@@ -55,19 +60,19 @@ public class CartService {
             BigDecimal weight = item.getWeightKg() != null ? item.getWeightKg() : new BigDecimal("1.000");
             
             // 1. Tính toán tiền tệ trên số nguyên Long (VND không lẻ thập phân)
-            long unitPrice = totalItemUnitPrice.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            long unitPrice = totalItemUnitPrice.setScale(0, RoundingMode.HALF_UP).longValue();
             long itemSubtotal = unitPrice * item.getQuantity();
             accumulativeSubtotal += itemSubtotal;
 
             // 2. Tính toán trọng lượng quy đổi ra Grams (Kg * 1000) để triệt tiêu hoàn toàn sai số dấu phẩy động ở CPU
-            long weightGrams = weight.multiply(new BigDecimal("1000")).setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            long weightGrams = weight.multiply(new BigDecimal("1000")).setScale(0, RoundingMode.HALF_UP).longValue();
             long itemTotalGrams = weightGrams * item.getQuantity();
             accumulativeGrams += itemTotalGrams;
         }
 
         // 3. Dịch ngược lại sang BigDecimal để lưu trữ hiển thị
-        BigDecimal subtotal = new BigDecimal(accumulativeSubtotal).setScale(0, java.math.RoundingMode.HALF_UP);
-        BigDecimal totalWeight = new BigDecimal(accumulativeGrams).divide(new BigDecimal("1000"), 3, java.math.RoundingMode.HALF_UP);
+        BigDecimal subtotal = new BigDecimal(accumulativeSubtotal).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal totalWeight = new BigDecimal(accumulativeGrams).divide(new BigDecimal("1000"), 3, RoundingMode.HALF_UP);
 
         BigDecimal discountAmount = BigDecimal.ZERO; // Sẽ xử lý sau nếu có voucher
         BigDecimal deliveryFee = BigDecimal.ZERO;    // Tương tự phí ship
@@ -249,11 +254,11 @@ public class CartService {
                 try {
                     addToCart(customerId, variantId, qty);
                 } catch (IllegalArgumentException e) {
-                    System.err.println("[CartSync Warning] Không thể gộp variantId " + variantId + ": " + e.getMessage());
+                    LoggerUtil.warn(log, "[CartSync] Không thể gộp variantId %d: %s", variantId, e.getMessage());
                 }
             }
         } catch (Exception e) {
-            System.err.println("[CartSync Error] Lỗi giải mã dữ liệu giỏ hàng khách: " + e.getMessage());
+            LoggerUtil.warn(log, "[CartSync] Lỗi giải mã dữ liệu giỏ hàng khách", e);
         }
     }
 
@@ -296,7 +301,7 @@ public class CartService {
             
             cartDAO.replaceCartItems(cartId, itemsToReplace);
         } catch (Exception e) {
-            System.err.println("[UnloadSync Error] Lỗi ghi đè giỏ hàng: " + e.getMessage());
+            LoggerUtil.warn(log, "[UnloadSync] Lỗi ghi đè giỏ hàng", e);
         }
     }
 
@@ -376,7 +381,7 @@ public class CartService {
     /**
      * TODO: Triển khai áp dụng voucher (nếu cần)
      */
-    public java.math.BigDecimal applyVoucher(int cartId, String code) throws SQLException {
+    public BigDecimal applyVoucher(int cartId, String code) throws SQLException {
         throw new UnsupportedOperationException("Not implemented: applyVoucher(int cartId, String code)");
     }
 }

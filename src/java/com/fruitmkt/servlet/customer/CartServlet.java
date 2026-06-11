@@ -7,15 +7,20 @@ import com.fruitmkt.service.CartService;
 import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * CartServlet — Controller cho chức năng: Giỏ hàng
@@ -28,6 +33,8 @@ import java.util.Map;
  */
 @WebServlet("/cart")
 public class CartServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(CartServlet.class.getName());
 
     private final CartService cartService = new CartService();
 
@@ -65,7 +72,7 @@ public class CartServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi kết nối cơ sở dữ liệu khi tải giỏ hàng", e);
             if (isJson) {
                 JsonUtil.writeJson(resp, Map.of("success", false, "error", "Lỗi kết nối cơ sở dữ liệu."));
             } else {
@@ -211,7 +218,7 @@ public class CartServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             JsonUtil.writeJson(resp, Map.of("success", false, "error", e.getMessage(), "errorCode", "out_of_stock"));
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý giỏ hàng", e);
             JsonUtil.writeJson(resp, Map.of("success", false, "error", "Lỗi hệ thống khi xử lý giỏ hàng: " + e.getMessage()));
         }
     }
@@ -224,7 +231,8 @@ public class CartServlet extends HttpServlet {
         for (String part : variantIdsParam.split(",")) {
             try {
                 variantIds.add(Integer.parseInt(part.trim()));
-            } catch (NumberFormatException ignored) {
+            } catch (NumberFormatException e) {
+                LoggerUtil.warn(log, "ID biến thể không hợp lệ: " + part, e);
             }
         }
         return variantIds;
