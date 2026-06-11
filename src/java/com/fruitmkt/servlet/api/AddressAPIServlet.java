@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,15 +79,15 @@ public class AddressAPIServlet extends HttpServlet {
                 detail = detail != null ? detail.replaceAll("<[^>]*>", "").trim() : "";
 
                 if (name.length() < 3) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Ho va ten nguoi nhan phai tu 3 ky tu tro len."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Ho va ten nguoi nhan phai tu 3 ky tu tro len."));
                     return;
                 }
                 if (phone == null || !phone.matches("^(0|\\+84)[3|5|7|8|9][0-9]{8}$")) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "So dien thoai khong hop le (VN 10 chu so)."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("So dien thoai khong hop le (VN 10 chu so)."));
                     return;
                 }
                 if (detail.length() < 5) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Dia chi chi tiet phai tu 5 ky tu tro len."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Dia chi chi tiet phai tu 5 ky tu tro len."));
                     return;
                 }
 
