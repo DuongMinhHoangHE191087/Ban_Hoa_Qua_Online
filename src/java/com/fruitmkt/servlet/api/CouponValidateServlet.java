@@ -2,8 +2,9 @@ package com.fruitmkt.servlet.api;
 
 import com.fruitmkt.model.entity.Promotion;
 import com.fruitmkt.service.PromotionService;
-
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -46,11 +47,10 @@ public class CouponValidateServlet extends HttpServlet {
         String code     = req.getParameter("code");
         String subtotalStr = req.getParameter("subtotal");
         String ownerIdStr  = req.getParameter("ownerId");
-        String scope    = req.getParameter("scope"); // SHOP hoặc SYSTEM
+        String scope    = req.getParameter("scope");
 
-        // Validate params cơ bản
         if (code == null || code.trim().isEmpty()) {
-            resp.getWriter().write("{\"valid\":false,\"discountAmount\":0,\"message\":\"Vui lòng nhập mã giảm giá.\"}");
+            JsonUtil.writeJson(resp, ApiResponse.error("Vui lòng nhập mã giảm giá."));
             return;
         }
 
@@ -58,7 +58,7 @@ public class CouponValidateServlet extends HttpServlet {
         try {
             subtotal = new BigDecimal(subtotalStr != null ? subtotalStr.trim() : "0");
         } catch (NumberFormatException e) {
-            resp.getWriter().write("{\"valid\":false,\"discountAmount\":0,\"message\":\"Tổng tiền không hợp lệ.\"}");
+            JsonUtil.writeJson(resp, ApiResponse.error("Tổng tiền không hợp lệ."));
             return;
         }
 
@@ -69,18 +69,16 @@ public class CouponValidateServlet extends HttpServlet {
                 int ownerId;
                 try { ownerId = Integer.parseInt(ownerIdStr); }
                 catch (NumberFormatException e) {
-                    resp.getWriter().write("{\"valid\":false,\"discountAmount\":0,\"message\":\"Thiếu thông tin shop.\"}");
+                    JsonUtil.writeJson(resp, ApiResponse.error("Thiếu thông tin shop."));
                     return;
                 }
                 promo = promotionService.validateShopCoupon(code, ownerId, subtotal);
             } else {
-                // SYSTEM hoặc không rõ
                 promo = promotionService.validateSystemCoupon(code, subtotal);
             }
 
             if (promo == null) {
-                resp.getWriter().write("{\"valid\":false,\"discountAmount\":0,"
-                    + "\"message\":\"Mã không hợp lệ, đã hết hạn, hoặc không đủ điều kiện đơn tối thiểu.\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Mã không hợp lệ, đã hết hạn, hoặc không đủ điều kiện đơn tối thiểu."));
                 return;
             }
 
@@ -88,15 +86,18 @@ public class CouponValidateServlet extends HttpServlet {
             String fmtAmt = discountAmt.setScale(0, java.math.RoundingMode.HALF_UP).toPlainString();
             String displayAmt = formatVnd(discountAmt);
 
-            resp.getWriter().write("{\"valid\":true,\"discountAmount\":" + fmtAmt
-                + ",\"promoId\":" + promo.getPromoId()
-                + ",\"discountType\":\"" + promo.getDiscountType() + "\""
-                + ",\"message\":\"Áp dụng thành công! Giảm " + displayAmt + "\"}");
+            java.util.Map<String, Object> data = java.util.Map.of(
+                "discountAmount", Long.parseLong(fmtAmt),
+                "promoId", promo.getPromoId(),
+                "discountType", promo.getDiscountType(),
+                "message", "Áp dụng thành công! Giảm " + displayAmt
+            );
+            JsonUtil.writeJson(resp, ApiResponse.ok(data));
 
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi khi validate coupon code=" + req.getParameter("code"), e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.getWriter().write("{\"valid\":false,\"discountAmount\":0,\"message\":\"Lỗi hệ thống. Vui lòng thử lại.\"}");
+            JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống. Vui lòng thử lại."));
         }
     }
 

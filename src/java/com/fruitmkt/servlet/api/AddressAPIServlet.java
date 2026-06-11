@@ -4,6 +4,7 @@ import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.UserAddressDAO;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.model.entity.UserAddress;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.ValidationUtil;
@@ -40,7 +41,7 @@ public class AddressAPIServlet extends HttpServlet {
 
         if (user == null) {
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Nguoi dung chua dang nhap."));
+            JsonUtil.writeJson(resp, ApiResponse.error("Nguoi dung chua dang nhap."));
             return;
         }
 
@@ -52,7 +53,7 @@ public class AddressAPIServlet extends HttpServlet {
         }
         if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Yeu cau khong hop le (CSRF)."));
+            JsonUtil.writeJson(resp, ApiResponse.error("Yeu cau khong hop le (CSRF)."));
             return;
         }
 
@@ -64,7 +65,7 @@ public class AddressAPIServlet extends HttpServlet {
         try {
             if ("list".equals(action)) {
                 List<UserAddress> addresses = addressDAO.findByUser(user.getUserId());
-                JsonUtil.writeJson(resp, Map.of("success", true, "addresses", addresses));
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("addresses", addresses)));
                 return;
             }
 
@@ -108,9 +109,9 @@ public class AddressAPIServlet extends HttpServlet {
 
                 boolean ok = addressDAO.save(addr);
                 if (ok) {
-                    JsonUtil.writeJson(resp, Map.of("success", true, "address", addr));
+                    JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("address", addr)));
                 } else {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Khong the luu dia chi vao co so du lieu."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Khong the luu dia chi vao co so du lieu."));
                 }
                 return;
             }
@@ -118,13 +119,13 @@ public class AddressAPIServlet extends HttpServlet {
             if ("update".equals(action)) {
                 String addressIdStr = req.getParameter("addressId");
                 if (addressIdStr == null || addressIdStr.trim().isEmpty()) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Ma dia chi khong hop le."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Ma dia chi khong hop le."));
                     return;
                 }
                 int addressId = Integer.parseInt(addressIdStr.trim());
                 UserAddress addr = addressDAO.findById(addressId);
                 if (addr == null || addr.getUserId() != user.getUserId()) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Khong tim thay hoac khong co quyen chinh sua dia chi nay."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Khong tim thay hoac khong co quyen chinh sua dia chi nay."));
                     return;
                 }
 
@@ -138,15 +139,15 @@ public class AddressAPIServlet extends HttpServlet {
                 detail = detail != null ? detail.replaceAll("<[^>]*>", "").trim() : "";
 
                 if (name.length() < 3) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Ho va ten nguoi nhan phai tu 3 ky tu tro len."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Ho va ten nguoi nhan phai tu 3 ky tu tro len."));
                     return;
                 }
                 if (phone == null || !phone.matches("^(0|\\+84)[3|5|7|8|9][0-9]{8}$")) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "So dien thoai khong hop le (VN 10 chu so)."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("So dien thoai khong hop le (VN 10 chu so)."));
                     return;
                 }
                 if (detail.length() < 5) {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Dia chi chi tiet phai tu 5 ky tu tro len."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Dia chi chi tiet phai tu 5 ky tu tro len."));
                     return;
                 }
 
@@ -161,18 +162,18 @@ public class AddressAPIServlet extends HttpServlet {
 
                 boolean ok = addressDAO.update(addr);
                 if (ok) {
-                    JsonUtil.writeJson(resp, Map.of("success", true, "address", addr));
+                    JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("address", addr)));
                 } else {
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Khong the cap nhat dia chi."));
+                    JsonUtil.writeJson(resp, ApiResponse.error("Khong the cap nhat dia chi."));
                 }
                 return;
             }
 
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Hanh dong khong hop le."));
+            JsonUtil.writeJson(resp, ApiResponse.error("Hanh dong khong hop le."));
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Loi may chu: " + e.getMessage()));
+            JsonUtil.writeJson(resp, ApiResponse.error("Loi may chu: " + e.getMessage()));
         }
     }
 }
