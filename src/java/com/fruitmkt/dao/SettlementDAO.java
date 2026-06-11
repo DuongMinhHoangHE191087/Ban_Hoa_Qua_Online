@@ -245,6 +245,44 @@ public class SettlementDAO extends BaseDAO {
         return settlementsCreated;
     }
 
+    public ShopSettlement findById(int settlementId) throws SQLException {
+        String sql = "SELECT * FROM shop_settlements WHERE settlement_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, settlementId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<com.fruitmkt.model.entity.ShopSettlementOrder> findOrdersBySettlementId(int settlementId) throws SQLException {
+        List<com.fruitmkt.model.entity.ShopSettlementOrder> list = new ArrayList<>();
+        String sql = "SELECT * FROM shop_settlement_orders WHERE settlement_id = ? ORDER BY settlement_order_id ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, settlementId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    com.fruitmkt.model.entity.ShopSettlementOrder sso = new com.fruitmkt.model.entity.ShopSettlementOrder();
+                    sso.setSettlementOrderId(rs.getInt("settlement_order_id"));
+                    sso.setSettlementId(rs.getInt("settlement_id"));
+                    sso.setOrderId(rs.getInt("order_id"));
+                    sso.setOrderAmount(rs.getBigDecimal("order_amount"));
+                    sso.setPlatformFeeAmount(rs.getBigDecimal("platform_fee_amount"));
+                    sso.setDiscountAmount(rs.getBigDecimal("discount_amount"));
+                    sso.setRefundAmount(rs.getBigDecimal("refund_amount"));
+                    sso.setNetAmount(rs.getBigDecimal("net_amount"));
+                    list.add(sso);
+                }
+            }
+        }
+        return list;
+    }
+
     private ShopSettlement mapRow(ResultSet rs) throws SQLException {
         ShopSettlement s = new ShopSettlement();
         s.setSettlementId(rs.getInt("settlement_id"));
