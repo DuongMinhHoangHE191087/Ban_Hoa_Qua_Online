@@ -20,6 +20,7 @@ import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.servlet.customer.CheckoutServlet;
 import com.fruitmkt.service.DeliveryService;
+import com.fruitmkt.service.CartService;
 import com.fruitmkt.service.PaymentService;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -62,6 +63,7 @@ public class CheckoutServletPricingRegressionTest {
     private final DeliveryDAO deliveryDAO = new DeliveryDAO();
     private final DeliveryTripDAO deliveryTripDAO = new DeliveryTripDAO();
     private final DeliveryService deliveryService = new DeliveryService();
+    private final CartService cartService = new CartService();
     private final PaymentService paymentService = new PaymentService();
 
     private MockHttpEnvironment env;
@@ -395,6 +397,20 @@ public class CheckoutServletPricingRegressionTest {
         assertNotNull(paymentTransaction);
         assertEquals("SEPAY", paymentTransaction.getPaymentMethod());
         assertEquals(0, parent.getFinalAmount().compareTo(paymentTransaction.getAmount()));
+    }
+
+    @Test
+    public void stockCheckUsesOnlySelectedVariants() throws Exception {
+        ProductVariant inactiveVariant = variantDAO.findById(variantBId);
+        assertNotNull(inactiveVariant);
+        inactiveVariant.setIsActive(false);
+        variantDAO.update(inactiveVariant);
+
+        List<String> selectedErrors = cartService.checkCartStockBeforeCheckout(customerId, List.of(variantAId));
+        assertTrue(selectedErrors.isEmpty());
+
+        List<String> fullCartErrors = cartService.checkCartStockBeforeCheckout(customerId);
+        assertFalse(fullCartErrors.isEmpty());
     }
 
     private void assertChildOrder(Order child, int expectedOwnerId, BigDecimal expectedSubtotal,

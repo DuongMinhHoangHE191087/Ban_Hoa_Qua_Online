@@ -1,9 +1,19 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Review;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * ReviewDAO — DAO cho thực thể Review.
@@ -17,6 +27,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class ReviewDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(ReviewDAO.class.getName());
 
     /**
      * Tìm đánh giá dựa trên Order Item ID.
@@ -266,6 +278,7 @@ public class ReviewDAO extends BaseDAO {
                 try {
                     r.setProductName(rs.getString("product_name"));
                 } catch (SQLException e) {
+                    LoggerUtil.warn(log, "product_name column not present in this query, using fallback", e);
                     r.setProductName("Sản phẩm ẩn danh");
                 }
                 list.add(r);
@@ -383,7 +396,7 @@ public class ReviewDAO extends BaseDAO {
         try {
             r.setCustomerName(rs.getString("customer_name"));
         } catch (SQLException e) {
-            // Trường hợp truy vấn không có cột customer_name (an toàn dự phòng)
+            LoggerUtil.warn(log, "customer_name column not present in this query, using fallback", e);
             r.setCustomerName("Khách hàng ẩn danh");
         }
 

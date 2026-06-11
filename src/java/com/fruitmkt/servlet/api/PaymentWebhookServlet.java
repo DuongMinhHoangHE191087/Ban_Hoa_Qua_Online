@@ -54,7 +54,7 @@ public class PaymentWebhookServlet extends HttpServlet {
 
         // Đọc raw JSON body
         String jsonPayload = readBody(req);
-        System.out.println("[SePay Webhook] Nhận payload: " + jsonPayload);
+        System.out.println("[SePay Webhook] Received webhook payload from SePay");
 
         try {
             paymentService.processWebhook(jsonPayload);

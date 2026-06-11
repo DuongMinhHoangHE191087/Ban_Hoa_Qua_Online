@@ -317,7 +317,11 @@ public class AuthService {
             // Sync/update Google avatar if current avatar is null, default or if Google avatar was updated
             if (pictureUrl != null && !pictureUrl.trim().isEmpty()) {
                 String currentAvatar = existingUser.getAvatarUrl();
-                if (currentAvatar == null || currentAvatar.equals("assets/images/default-avatar.svg") || currentAvatar.startsWith("https://lh3.googleusercontent.com")) {
+                if (currentAvatar == null || currentAvatar.trim().isEmpty()
+                        || currentAvatar.equals("assets/images/default-avatar.svg")
+                        || currentAvatar.startsWith("https://lh3.googleusercontent.com")
+                        || currentAvatar.startsWith("https://openidconnect.googleapis.com")
+                        || currentAvatar.startsWith("https://www.googleapis.com")) {
                     userDAO.updateAvatar(existingUser.getUserId(), pictureUrl);
                     existingUser.setAvatarUrl(pictureUrl);
                 }

@@ -1,11 +1,22 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.HashUtil;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * UserDAO — DAO cho entity User.
@@ -19,6 +30,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class UserDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(UserDAO.class.getName());
 
     public List<User> findById(int id) throws SQLException {
         List<User> list = new ArrayList<>();

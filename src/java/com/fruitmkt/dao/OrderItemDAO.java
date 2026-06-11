@@ -1,9 +1,10 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.CartItem;
 import com.fruitmkt.model.entity.OrderItem;
 import com.fruitmkt.model.entity.ProductVariant;
+import com.fruitmkt.util.LoggerUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,8 +12,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class OrderItemDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(OrderItemDAO.class.getName());
 
     public List<OrderItem> findByOrderId(int orderId) throws SQLException {
         List<OrderItem> list = new ArrayList<>();

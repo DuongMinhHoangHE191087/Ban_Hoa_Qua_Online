@@ -1,15 +1,24 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Notification;
-import java.sql.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * NotificationDAO — DAO cho entity Notification.
  */
 public class NotificationDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(NotificationDAO.class.getName());
 
     public List<Notification> findByUser(int userId, boolean unreadOnly) throws SQLException {
         List<Notification> list = new ArrayList<>();

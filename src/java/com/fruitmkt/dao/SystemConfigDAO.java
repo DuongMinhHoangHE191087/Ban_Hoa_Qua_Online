@@ -1,8 +1,19 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
-import java.sql.*;
+import com.fruitmkt.dao.BaseDAO;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * SystemConfigDAO — Đọc/ghi bảng system_config.
@@ -13,6 +24,8 @@ import java.time.LocalDateTime;
  * @author fruitmkt-team
  */
 public class SystemConfigDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(SystemConfigDAO.class.getName());
 
     /**
      * Lấy giá trị config theo key. Trả null nếu không tồn tại.
@@ -87,19 +100,19 @@ public class SystemConfigDAO extends BaseDAO {
             ps.executeUpdate();
         }
 
-        // Log configuration change to standard output (App log) instead of system_config_history table
-        System.out.printf("[SystemConfig] CONFIG CHANGE: Key: %s, Old Value: %s, New Value: %s, Effective Date: %s, Changed By: %d, Reason: %s\n",
-                key, oldValue, newValue, effectiveDate, changedBy, reason);
+        // Log configuration change instead of system_config_history table
+        LoggerUtil.info(log, String.format("[SystemConfig] CONFIG CHANGE: Key: %s, Old Value: %s, New Value: %s, Effective Date: %s, Changed By: %d, Reason: %s",
+                key, oldValue, newValue, effectiveDate, changedBy, reason));
     }
 
     /** Lấy lịch sử thay đổi của một config key (trả về danh sách rỗng vì không dùng bảng history). */
-    public java.util.List<java.util.Map<String, Object>> getHistory(String key, int limit) throws SQLException {
-        return new java.util.ArrayList<>();
+    public List<Map<String, Object>> getHistory(String key, int limit) throws SQLException {
+        return new ArrayList<>();
     }
 
     /** Lấy tất cả config để hiển thị admin UI. */
-    public java.util.List<java.util.Map<String, Object>> findAll() throws SQLException {
-        java.util.List<java.util.Map<String, Object>> list = new java.util.ArrayList<>();
+    public List<Map<String, Object>> findAll() throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT c.*, u.full_name AS admin_name "
                    + "FROM system_config c "
                    + "LEFT JOIN users u ON u.user_id = c.changed_by "
@@ -109,7 +122,7 @@ public class SystemConfigDAO extends BaseDAO {
              ResultSet rs = ps.executeQuery()) {
             ResultSetMetaData md = rs.getMetaData();
             while (rs.next()) {
-                java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+                Map<String, Object> row = new LinkedHashMap<>();
                 for (int i = 1; i <= md.getColumnCount(); i++) {
                     row.put(md.getColumnName(i), rs.getObject(i));
                 }

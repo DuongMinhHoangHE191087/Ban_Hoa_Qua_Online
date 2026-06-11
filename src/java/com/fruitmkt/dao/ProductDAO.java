@@ -1,10 +1,22 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Product;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * ProductDAO — DAO cho entity Product.
@@ -18,6 +30,8 @@ import java.math.BigDecimal;
  * @author fruitmkt-team
  *///khang
 public class ProductDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(ProductDAO.class.getName());
 
 //khang
     /**

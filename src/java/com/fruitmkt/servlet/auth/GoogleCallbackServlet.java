@@ -135,7 +135,9 @@ public class GoogleCallbackServlet extends HttpServlet {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(java.net.URI.create(AppConfig.GOOGLE_LINK_GET_USER_INFO + accessToken))
+                .uri(java.net.URI.create(AppConfig.GOOGLE_LINK_GET_USER_INFO))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Accept", "application/json")
                 .GET()
                 .build();
 

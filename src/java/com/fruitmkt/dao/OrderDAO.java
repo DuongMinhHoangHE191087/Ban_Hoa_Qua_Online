@@ -1,10 +1,22 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.OrderItem;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * OrderDAO — DAO cho entity Order.
@@ -19,6 +31,7 @@ import java.util.*;
  */
 public class OrderDAO extends BaseDAO {
 
+    private static final Logger log = Logger.getLogger(OrderDAO.class.getName());
     private static boolean schemaChecked = false;
 
     public OrderDAO() {
@@ -32,16 +45,18 @@ public class OrderDAO extends BaseDAO {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT TOP 0 received_status FROM orders")) {
                 colExists = true;
-            } catch (SQLException e) {}
+            } catch (SQLException e) {
+                LoggerUtil.warn(log, "received_status column not yet present, will attempt to add", e);
+            }
             if (!colExists) {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.executeUpdate("ALTER TABLE orders ADD received_status NVARCHAR(30) NULL");
-                    System.out.println("[DB Migrator] Success: Added received_status column to orders.");
+                    LoggerUtil.info(log, "[DB Migrator] Success: Added received_status column to orders.");
                 }
             }
             schemaChecked = true;
         } catch (SQLException e) {
-            System.err.println("[DB Migrator] Error checking/adding orders columns: " + e.getMessage());
+            LoggerUtil.error(log, "[DB Migrator] Error checking/adding orders columns", e);
             schemaChecked = true;
         }
     }

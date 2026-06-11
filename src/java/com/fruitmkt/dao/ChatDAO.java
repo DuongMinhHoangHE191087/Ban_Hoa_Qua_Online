@@ -1,10 +1,18 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ChatMessage;
 import com.fruitmkt.model.entity.ChatSession;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ChatDAO — DAO cho entity ChatSession và ChatMessage.
@@ -18,6 +26,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class ChatDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(ChatDAO.class.getName());
 
     // ----------------------------------------------------------------
     // Session queries
@@ -303,7 +313,9 @@ public class ChatDAO extends BaseDAO {
         cs.setOwnerId(rs.getInt("owner_id"));
         cs.setStatus(rs.getString("status"));
         // session_type — cột mới; trả về chuỗi rỗng nếu cột chưa tồn tại (backward compat)
-        try { cs.setSessionType(rs.getString("session_type")); } catch (SQLException ignored) {}
+        try { cs.setSessionType(rs.getString("session_type")); } catch (SQLException e) {
+            LoggerUtil.warn(log, "session_type column not yet present, skipping", e);
+        }
         Timestamp ca = rs.getTimestamp("created_at");
         if (ca != null) cs.setCreatedAt(ca.toLocalDateTime());
         Timestamp ua = rs.getTimestamp("updated_at");
@@ -325,8 +337,12 @@ public class ChatDAO extends BaseDAO {
         Timestamp ca = rs.getTimestamp("created_at");
         if (ca != null) cm.setCreatedAt(ca.toLocalDateTime());
         
-        try { cm.setSenderName(rs.getString("sender_name")); } catch (SQLException ignored) {}
-        try { cm.setSenderRole(rs.getString("sender_role")); } catch (SQLException ignored) {}
+        try { cm.setSenderName(rs.getString("sender_name")); } catch (SQLException e) {
+            LoggerUtil.warn(log, "sender_name column not present in this query, skipping", e);
+        }
+        try { cm.setSenderRole(rs.getString("sender_role")); } catch (SQLException e) {
+            LoggerUtil.warn(log, "sender_role column not present in this query, skipping", e);
+        }
         
         return cm;
     }

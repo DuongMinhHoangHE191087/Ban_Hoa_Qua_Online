@@ -1,4 +1,4 @@
-package com.fruitmkt.servlet.common;
+package com.fruitmkt.servlet.base;
 
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;

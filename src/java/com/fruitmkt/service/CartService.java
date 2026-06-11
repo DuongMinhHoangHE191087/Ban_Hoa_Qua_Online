@@ -13,6 +13,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * CartService — Tầng business logic cho nghiệp vụ tương ứng.
@@ -303,6 +305,14 @@ public class CartService {
      * Trả về danh sách các thông báo lỗi nếu có sản phẩm hết hàng hoặc không đủ tồn kho.
      */
     public List<String> checkCartStockBeforeCheckout(int customerId) throws SQLException {
+        return checkCartStockBeforeCheckout(customerId, null);
+    }
+
+    /**
+     * Kiểm tra tồn kho trước khi Checkout (Thanh toán) cho danh sách variant được chọn.
+     * Trả về danh sách các thông báo lỗi nếu có sản phẩm hết hàng hoặc không đủ tồn kho.
+     */
+    public List<String> checkCartStockBeforeCheckout(int customerId, List<Integer> variantIds) throws SQLException {
         List<String> errors = new ArrayList<>();
         List<Cart> carts = cartDAO.findByCustomer(customerId);
         if (carts.isEmpty()) {
@@ -311,8 +321,30 @@ public class CartService {
 
         int cartId = carts.get(0).getCartId();
         List<CartItem> items = cartDAO.findItems(cartId);
+        if (items.isEmpty()) {
+            return errors;
+        }
 
+        Set<Integer> selectedIds = null;
+        if (variantIds != null) {
+            selectedIds = new HashSet<>();
+            for (Integer variantId : variantIds) {
+                if (variantId != null && variantId > 0) {
+                    selectedIds.add(variantId);
+                }
+            }
+            if (selectedIds.isEmpty()) {
+                errors.add("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+                return errors;
+            }
+        }
+
+        boolean matchedAnySelectedItem = selectedIds == null;
         for (CartItem item : items) {
+            if (selectedIds != null && !selectedIds.contains(item.getVariantId())) {
+                continue;
+            }
+            matchedAnySelectedItem = true;
             // Lấy trực tiếp stock từ DB để có giá trị mới nhất
             ProductVariant variant = productVariantDAO.findById(item.getVariantId());
             if (variant == null || !variant.getIsActive()) {
@@ -324,6 +356,9 @@ public class CartService {
                     errors.add("Sản phẩm '" + item.getProductName() + "' (" + item.getVariantLabel() + ") trong kho chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
                 }
             }
+        }
+        if (!matchedAnySelectedItem) {
+            errors.add("Không tìm thấy sản phẩm nào đã chọn trong giỏ hàng.");
         }
         return errors;
     }

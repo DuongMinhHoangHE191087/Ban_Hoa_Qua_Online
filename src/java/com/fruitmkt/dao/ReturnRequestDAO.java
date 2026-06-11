@@ -1,15 +1,25 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ReturnRequest;
-import java.sql.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ReturnRequestDAO — DAO cho entity ReturnRequest.
  */
 public class ReturnRequestDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(ReturnRequestDAO.class.getName());
 
     public ReturnRequest findById(int id) throws SQLException {
         String sql = "SELECT r.*, oi.product_name_snapshot, oi.variant_label_snapshot "
@@ -266,7 +276,9 @@ public class ReturnRequestDAO extends BaseDAO {
         try {
             req.setProductName(rs.getString("product_name_snapshot"));
             req.setVariantLabel(rs.getString("variant_label_snapshot"));
-        } catch (SQLException ignored) {}
+        } catch (SQLException e) {
+            LoggerUtil.warn(log, "product_name_snapshot/variant_label_snapshot not present in this query, skipping", e);
+        }
 
         return req;
     }

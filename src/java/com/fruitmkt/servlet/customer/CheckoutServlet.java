@@ -10,6 +10,7 @@ import com.fruitmkt.model.entity.PaymentTransaction;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.CheckoutService;
 import com.fruitmkt.service.PaymentService;
+import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -19,9 +20,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller cho checkout.
@@ -176,10 +179,10 @@ public class CheckoutServlet extends HttpServlet {
         resp.setCharacterEncoding("UTF-8");
         Order order = findCustomerOrder(req.getParameter("orderId"), user.getUserId());
         if (order != null) {
-            resp.getWriter().write("{\"status\":\"" + order.getStatus() + "\"}");
+            JsonUtil.writeJson(resp, Map.of("status", order.getStatus()));
             return;
         }
-        resp.getWriter().write("{\"status\":\"UNKNOWN\"}");
+        JsonUtil.writeJson(resp, Map.of("status", "UNKNOWN"));
     }
 
     private void handleConfirmPayment(HttpServletRequest req, HttpServletResponse resp, HttpSession session, User user)
@@ -238,12 +241,15 @@ public class CheckoutServlet extends HttpServlet {
 
     private boolean isValidCsrf(HttpSession session, String csrfParam) {
         String csrfSession = (String) session.getAttribute("_csrfToken");
-        return csrfSession != null && csrfParam != null && csrfSession.equals(csrfParam);
+        if (csrfSession == null || csrfParam == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(csrfSession.getBytes(), csrfParam.getBytes());
     }
 
     private String buildCheckoutRedirect(List<Integer> variantIds) {
         if (variantIds == null || variantIds.isEmpty()) {
-            return "/checkout";
+            return "/cart";
         }
         StringBuilder builder = new StringBuilder("/checkout?variantIds=");
         for (int i = 0; i < variantIds.size(); i++) {

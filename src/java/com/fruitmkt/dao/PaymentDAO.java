@@ -1,11 +1,21 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.PaymentTransaction;
+import com.fruitmkt.util.LoggerUtil;
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * PaymentDAO — DAO cho entity PaymentTransaction.
@@ -19,6 +29,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class PaymentDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(PaymentDAO.class.getName());
 
     /**
      * Tạo mới bản ghi payment_transactions khi đơn CK được đặt.

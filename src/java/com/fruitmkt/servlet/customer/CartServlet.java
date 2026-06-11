@@ -12,6 +12,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -194,7 +195,8 @@ public class CartServlet extends HttpServlet {
                         return;
                     }
 
-                    List<String> errors = cartService.checkCartStockBeforeCheckout(user.getUserId());
+                    List<Integer> variantIds = parseVariantIds(req.getParameter("variantIds"));
+                    List<String> errors = cartService.checkCartStockBeforeCheckout(user.getUserId(), variantIds);
                     if (errors.isEmpty()) {
                         JsonUtil.writeJson(resp, Map.of("success", true));
                     } else {
@@ -212,6 +214,20 @@ public class CartServlet extends HttpServlet {
             e.printStackTrace();
             JsonUtil.writeJson(resp, Map.of("success", false, "error", "Lỗi hệ thống khi xử lý giỏ hàng: " + e.getMessage()));
         }
+    }
+
+    private List<Integer> parseVariantIds(String variantIdsParam) {
+        List<Integer> variantIds = new ArrayList<>();
+        if (variantIdsParam == null || variantIdsParam.trim().isEmpty()) {
+            return variantIds;
+        }
+        for (String part : variantIdsParam.split(",")) {
+            try {
+                variantIds.add(Integer.parseInt(part.trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return variantIds;
     }
 
     private String readRequestBody(HttpServletRequest req) throws IOException {
