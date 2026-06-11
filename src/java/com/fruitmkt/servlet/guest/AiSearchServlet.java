@@ -7,6 +7,8 @@ import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.SystemConfigDAO;
 import com.fruitmkt.model.entity.Category;
 import com.fruitmkt.model.entity.Product;
+import com.fruitmkt.model.response.ApiResponse;
+import com.fruitmkt.util.JsonUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -50,8 +52,6 @@ public class AiSearchServlet extends HttpServlet {
         resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
 
-        Map<String, Object> responseJson = new HashMap<>();
-
         try {
             // 1. Lấy API Key từ DB, biến môi trường, hoặc file .env trực tiếp
             String apiKey = systemConfigDAO.getValue(AppConfig.CONFIG_GEMINI_API_KEY);
@@ -64,9 +64,8 @@ public class AiSearchServlet extends HttpServlet {
 
             if (apiKey == null || apiKey.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                responseJson.put("success", false);
-                responseJson.put("message", "API Key chưa được cấu hình. Vui lòng liên hệ Admin thiết lập gemini_api_key trong Cấu hình Hệ thống hoặc đặt biến môi trường GEMINI_API_KEY.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "API Key chưa được cấu hình. Vui lòng liên hệ Admin thiết lập gemini_api_key trong Cấu hình Hệ thống hoặc đặt biến môi trường GEMINI_API_KEY."));
                 return;
             }
 
@@ -76,9 +75,7 @@ public class AiSearchServlet extends HttpServlet {
 
             if (userMessage == null || userMessage.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                responseJson.put("success", false);
-                responseJson.put("message", "Nội dung tìm kiếm không được để trống.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Nội dung tìm kiếm không được để trống."));
                 return;
             }
 
@@ -175,9 +172,8 @@ public class AiSearchServlet extends HttpServlet {
 
             if (httpResponse.statusCode() != 200) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                responseJson.put("success", false);
-                responseJson.put("message", "Lỗi khi kết nối với dịch vụ AI: HTTP " + httpResponse.statusCode());
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Lỗi khi kết nối với dịch vụ AI: HTTP " + httpResponse.statusCode()));
                 return;
             }
 
@@ -186,9 +182,8 @@ public class AiSearchServlet extends HttpServlet {
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) geminiResponse.get("candidates");
             if (candidates == null || candidates.isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                responseJson.put("success", false);
-                responseJson.put("message", "Không nhận được phản hồi hợp lệ từ AI.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Không nhận được phản hồi hợp lệ từ AI."));
                 return;
             }
 
@@ -197,9 +192,8 @@ public class AiSearchServlet extends HttpServlet {
             List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
             if (partsList == null || partsList.isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                responseJson.put("success", false);
-                responseJson.put("message", "Phản hồi AI trống.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Phản hồi AI trống."));
                 return;
             }
 
@@ -226,24 +220,23 @@ public class AiSearchServlet extends HttpServlet {
             }
 
             // Gửi kết quả về cho frontend (đảm bảo cấu trúc reply + suggestedProductIds + products không đổi)
-            responseJson.put("success", true);
-            responseJson.put("reply", aiResult.get("reply"));
-            responseJson.put("suggestedProductIds", validIds);  // chỉ IDs hợp lệ
-            responseJson.put("products", productsDetails);
-            mapper.writeValue(resp.getWriter(), responseJson);
+            resp.setStatus(HttpServletResponse.SC_OK);
+            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of(
+                "reply", aiResult.get("reply"),
+                "suggestedProductIds", validIds,
+                "products", productsDetails
+            )));
 
         } catch (SQLException e) {
             LoggerUtil.error(log, "Lỗi kết nối cơ sở dữ liệu khi xử lý AI search", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            responseJson.put("success", false);
-            responseJson.put("message", "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage());
-            mapper.writeValue(resp.getWriter(), responseJson);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage()));
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi hệ thống khi xử lý AI search", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            responseJson.put("success", false);
-            responseJson.put("message", "Lỗi hệ thống khi xử lý AI: " + e.getMessage());
-            mapper.writeValue(resp.getWriter(), responseJson);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                "Lỗi hệ thống khi xử lý AI: " + e.getMessage()));
         }
     }
 
