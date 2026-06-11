@@ -2,7 +2,9 @@ package com.fruitmkt.servlet.delivery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.service.DeliveryService;
+import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
 import jakarta.servlet.ServletException;
@@ -12,7 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -28,15 +29,12 @@ public class DeliveryUpdateAPI extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
-        Map<String, Object> response = new HashMap<>();
 
         try {
             User currentUser = SessionUtil.getCurrentUser(req.getSession(false));
             if (currentUser == null || !"DELIVERY".equals(currentUser.getRole())) {
                 resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.put("success", false);
-                response.put("message", "Truy cập bị từ chối");
-                mapper.writeValue(resp.getWriter(), response);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Truy cập bị từ chối"));
                 return;
             }
 
@@ -50,7 +48,6 @@ public class DeliveryUpdateAPI extends HttpServlet {
                 String status = data.get("status");
                 String reason = data.get("failureReason");
                 String proofUrl = data.get("proofImageUrl");
-                // B5 Fix: DELIVERED must sync orders.status too — use dedicated method
                 if ("DELIVERED".equals(status)) {
                     deliveryService.markAsDelivered(currentUser.getUserId(), deliveryId, proofUrl);
                 } else {
@@ -64,19 +61,15 @@ public class DeliveryUpdateAPI extends HttpServlet {
                 }
             }
 
-            response.put("success", true);
-            mapper.writeValue(resp.getWriter(), response);
+            resp.setStatus(HttpServletResponse.SC_OK);
+            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of()));
         } catch (IllegalArgumentException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            mapper.writeValue(resp.getWriter(), response);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi máy chủ khi cập nhật trạng thái giao hàng", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.put("success", false);
-            response.put("message", "Lỗi máy chủ");
-            mapper.writeValue(resp.getWriter(), response);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi máy chủ"));
         }
     }
 }

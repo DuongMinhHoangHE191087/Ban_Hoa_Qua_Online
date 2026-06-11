@@ -12,8 +12,10 @@ import com.fruitmkt.model.entity.ProductImage;
 import com.fruitmkt.model.entity.ProductPackagingOption;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.FileUploadUtil;
+import com.fruitmkt.util.JsonUtil;
 
 import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -32,6 +34,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -104,13 +107,13 @@ public class ProductEditServlet extends HttpServlet {
             List<com.fruitmkt.model.entity.ProductPackagingOption> packagingOptions = packagingOptionDAO.findByProduct(productId);
 
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", true);
-                responseData.put("product", p);
-                responseData.put("images", images);
-                responseData.put("variants", variants);
-                responseData.put("packagingOptions", packagingOptions);
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of(
+                    "product", p,
+                    "images", images,
+                    "variants", variants,
+                    "packagingOptions", packagingOptions
+                )));
                 return;
             }
 
@@ -119,10 +122,9 @@ public class ProductEditServlet extends HttpServlet {
         } catch (SQLException e) {
             LoggerUtil.error(log, "Lỗi truy vấn cơ sở dữ liệu khi tải thông tin sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", false);
-                responseData.put("message", "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage());
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage()));
                 return;
             }
             SessionUtil.flashError(session, "Lỗi truy vấn cơ sở dữ liệu.");
@@ -363,10 +365,9 @@ public class ProductEditServlet extends HttpServlet {
             // 4. Nếu có lỗi, trả lại form chỉnh sửa
             if (!errors.isEmpty()) {
                 if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                    java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                    responseData.put("success", false);
-                    responseData.put("errors", errors);
-                    com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                        String.join("; ", errors)));
                     return;
                 }
                 SessionUtil.flashError(session, String.join("<br>", errors));
@@ -593,10 +594,8 @@ public class ProductEditServlet extends HttpServlet {
             }
 
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", true);
-                responseData.put("message", "Cập nhật sản phẩm thành công!");
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("message", "Cập nhật sản phẩm thành công!")));
                 return;
             }
 
@@ -606,10 +605,9 @@ public class ProductEditServlet extends HttpServlet {
         } catch (SQLException e) {
             LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", false);
-                responseData.put("errors", List.of("Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage()));
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage()));
                 return;
             }
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage());
