@@ -136,13 +136,15 @@ public class ProductCreateServlet extends HttpServlet {
                 }
                 
                 String sStr = (variantStocks != null && variantStocks.length > i) ? variantStocks[i] : null;
-                try {
-                    int stock = Integer.parseInt(sStr);
-                    if (stock < 0) {
-                        errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' không được âm.");
+                if (sStr != null && !sStr.trim().isEmpty()) {
+                    try {
+                        int stock = Integer.parseInt(sStr.trim());
+                        if (stock < 0) {
+                            errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' không được âm.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' phải là số nguyên.");
                     }
-                } catch (NumberFormatException e) {
-                    errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' phải là số nguyên.");
                 }
             }
         }
@@ -280,7 +282,7 @@ public class ProductCreateServlet extends HttpServlet {
                     variant.setPrice(vPrice);
 
                     int vStock = 0;
-                    if (variantStocks != null && variantStocks.length > i && variantStocks[i] != null) {
+                    if (variantStocks != null && variantStocks.length > i && variantStocks[i] != null && !variantStocks[i].trim().isEmpty()) {
                         try {
                             vStock = Integer.parseInt(variantStocks[i].trim());
                         } catch (NumberFormatException ignored) {}
