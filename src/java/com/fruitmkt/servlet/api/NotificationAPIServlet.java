@@ -1,6 +1,6 @@
 package com.fruitmkt.servlet.api;
 
-import com.fruitmkt.dto.ApiResponse;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.model.entity.Notification;
 import com.fruitmkt.service.NotificationService;

@@ -1,6 +1,6 @@
 package com.fruitmkt.servlet.api;
 
-import com.fruitmkt.dto.ApiResponse;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.service.PaymentService;
 import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.LoggerUtil;

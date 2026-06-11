@@ -1,13 +1,9 @@
-package com.fruitmkt.dto;
+package com.fruitmkt.model.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * ApiResponse<T> — Phong bì JSON chuẩn cho mọi API endpoint.
- *
- * DEPRECATED: Use {@link com.fruitmkt.model.response.ApiResponse} instead.
- * This class is kept for compatibility; all new code should use the standardized
- * location in com.fruitmkt.model.response.
  *
  * Mọi endpoint nên trả về cùng cấu trúc để frontend chỉ cần MỘT đường
  * parse/xử-lý-lỗi thay vì xử lý riêng từng endpoint.
@@ -23,9 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *
  * @param <T> kiểu của payload dữ liệu
  * @author fruitmkt-team
- * @deprecated Use {@link com.fruitmkt.model.response.ApiResponse}
  */
-@Deprecated(since = "1.0", forRemoval = false)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(boolean success, T data, String error, Object meta) {
 
@@ -42,6 +36,11 @@ public record ApiResponse<T>(boolean success, T data, String error, Object meta)
     /** Thất bại với thông điệp lỗi (dùng cho 4xx/5xx). */
     public static <T> ApiResponse<T> fail(String message) {
         return new ApiResponse<>(false, null, message, null);
+    }
+
+    /** Thất bại với thông điệp lỗi — alias cho compatibility. */
+    public static <T> ApiResponse<T> error(String message) {
+        return fail(message);
     }
 
     /**

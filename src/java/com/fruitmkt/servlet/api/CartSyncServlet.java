@@ -1,7 +1,7 @@
 package com.fruitmkt.servlet.api;
 
 import com.fruitmkt.config.AppConfig;
-import com.fruitmkt.dto.ApiResponse;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.CartService;
 import com.fruitmkt.util.JsonUtil;
