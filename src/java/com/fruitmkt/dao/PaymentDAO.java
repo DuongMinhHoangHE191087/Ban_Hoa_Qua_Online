@@ -3,6 +3,7 @@ package com.fruitmkt.dao;
 import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.PaymentTransaction;
 import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -285,15 +286,15 @@ public class PaymentDAO extends BaseDAO {
             params.add(like);
             params.add(like);
         }
-        sql.append("ORDER BY pt.initiated_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(Math.max(0, (page - 1) * pageSize));
-        params.add(pageSize);
+        sql.append("ORDER BY pt.initiated_at DESC ").append(PaginationHelper.OFFSET_FETCH_SQL);
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            paramIndex = PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> row = new HashMap<>();

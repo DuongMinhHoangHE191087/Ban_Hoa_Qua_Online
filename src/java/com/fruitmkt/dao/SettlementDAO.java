@@ -3,6 +3,7 @@ package com.fruitmkt.dao;
 import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ShopSettlement;
 import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -22,21 +23,20 @@ public class SettlementDAO extends BaseDAO {
 
     public List<ShopSettlement> findAll(String status, int page, int pageSize) throws SQLException {
         List<ShopSettlement> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
         StringBuilder sql = new StringBuilder("SELECT * FROM shop_settlements ");
         List<Object> params = new ArrayList<>();
         if (status != null && !status.trim().isEmpty()) {
             sql.append("WHERE status = ? ");
             params.add(status);
         }
-        sql.append("ORDER BY settlement_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(offset);
-        params.add(pageSize);
+        sql.append("ORDER BY settlement_id DESC ").append(PaginationHelper.OFFSET_FETCH_SQL);
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));

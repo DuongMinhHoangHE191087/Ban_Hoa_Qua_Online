@@ -4,6 +4,7 @@ import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.OrderItem;
 import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -91,27 +92,25 @@ public class OrderDAO extends BaseDAO {
      */
     public List<Order> findByCustomer(int customerId, String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
-        if (offset < 0) offset = 0;
-        
+
         StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE customer_id = ? AND parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         params.add(customerId);
-        
+
         if (status != null && !status.trim().isEmpty()) {
             sql.append("AND status = ? ");
             params.add(status);
         }
-        
-        sql.append("ORDER BY order_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(offset);
-        params.add(pageSize);
-        
+
+        sql.append("ORDER BY order_id DESC").append(PaginationHelper.OFFSET_FETCH_SQL);
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -127,7 +126,6 @@ public class OrderDAO extends BaseDAO {
      */
     public List<Order> findByOwner(int ownerId, String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
         StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE owner_id = ? ");
         List<Object> params = new ArrayList<>();
         params.add(ownerId);
@@ -135,14 +133,14 @@ public class OrderDAO extends BaseDAO {
             sql.append("AND status = ? ");
             params.add(status);
         }
-        sql.append("ORDER BY order_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(offset);
-        params.add(pageSize);
+        sql.append("ORDER BY order_id DESC").append(PaginationHelper.OFFSET_FETCH_SQL);
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));

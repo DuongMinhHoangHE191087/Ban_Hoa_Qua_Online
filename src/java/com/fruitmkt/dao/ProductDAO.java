@@ -3,6 +3,7 @@ package com.fruitmkt.dao;
 import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
@@ -64,17 +65,14 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> findAll(int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
         String sql = "SELECT " + DTO_SELECT_FIELDS + " FROM products p "
                    + "JOIN (SELECT product_id FROM products WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' "
-                   + "ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY) temp "
+                   + "ORDER BY product_id DESC " + PaginationHelper.OFFSET_FETCH_SQL + ") temp "
                    + "ON p.product_id = temp.product_id "
                    + "ORDER BY p.product_id DESC";
-        //khang
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, offset);
-            ps.setInt(2, pageSize);
+            PaginationHelper.bindOffsetFetch(ps, 1, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -108,18 +106,15 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> findByCategory(int categoryId, int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
         String sql = "SELECT " + DTO_SELECT_FIELDS + " FROM products p "
                    + "JOIN (SELECT product_id FROM products WHERE category_id = ? AND status = 'ACTIVE' AND approval_status = 'APPROVED' "
-                   + "ORDER BY product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY) temp "
+                   + "ORDER BY product_id DESC " + PaginationHelper.OFFSET_FETCH_SQL + ") temp "
                    + "ON p.product_id = temp.product_id "
                    + "ORDER BY p.product_id DESC";
-        //khang
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, categoryId);
-            ps.setInt(2, offset);
-            ps.setInt(3, pageSize);
+            PaginationHelper.bindOffsetFetch(ps, 2, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -158,8 +153,8 @@ public class ProductDAO extends BaseDAO {
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' ");//khang
-        
+        sql.append("WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' ");
+
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
@@ -179,17 +174,16 @@ public class ProductDAO extends BaseDAO {
             sql.append("AND pv.price <= ? ");
             params.add(maxPrice);
         }
-        
-        sql.append("ORDER BY p.product_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        int offset = (page - 1) * pageSize;
-        params.add(offset);
-        params.add(pageSize);
-        
+
+        sql.append("ORDER BY p.product_id DESC ").append(PaginationHelper.OFFSET_FETCH_SQL);
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));

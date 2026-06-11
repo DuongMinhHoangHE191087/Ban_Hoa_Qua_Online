@@ -3,6 +3,7 @@ package com.fruitmkt.dao;
 import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Review;
 import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -94,8 +95,6 @@ public class ReviewDAO extends BaseDAO {
      */
     public List<Review> findByProductPaginated(int productId, Integer ratingFilter, int page, int pageSize) throws SQLException {
         List<Review> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
-        if (offset < 0) offset = 0;
 
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT r.*, u.full_name AS customer_name FROM reviews r ")
@@ -109,18 +108,17 @@ public class ReviewDAO extends BaseDAO {
         }
 
         sql.append("ORDER BY r.created_at DESC ")
-           .append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+           .append(PaginationHelper.OFFSET_FETCH_SQL);
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            
+
             int paramIndex = 1;
             ps.setInt(paramIndex++, productId);
             if (ratingFilter != null) {
                 ps.setInt(paramIndex++, ratingFilter);
             }
-            ps.setInt(paramIndex++, offset);
-            ps.setInt(paramIndex++, pageSize);
+            paramIndex = PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
