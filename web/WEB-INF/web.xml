@@ -196,6 +196,15 @@
         <url-pattern>/admin/chat</url-pattern>
     </filter-mapping>
 
+    <servlet>
+        <servlet-name>AiSearchServlet</servlet-name>
+        <servlet-class>com.fruitmkt.servlet.guest.AiSearchServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AiSearchServlet</servlet-name>
+        <url-pattern>/api/ai/search</url-pattern>
+    </servlet-mapping>
+
     <jsp-config>
         <jsp-property-group>
             <url-pattern>*.jsp</url-pattern>

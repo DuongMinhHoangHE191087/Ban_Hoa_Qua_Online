@@ -10,6 +10,7 @@ import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.ProductImage;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.FileUploadUtil;
 
@@ -212,10 +213,7 @@ public class ProductCreateServlet extends HttpServlet {
         // 4. Nếu có lỗi, chuyển ngược lại form
         if (!errors.isEmpty()) {
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", false);
-                responseData.put("errors", errors);
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.ok(java.util.Map.of("errors", errors)));
                 return;
             }
             SessionUtil.flashError(session, String.join("<br>", errors));
@@ -371,10 +369,7 @@ public class ProductCreateServlet extends HttpServlet {
             }
 
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", true);
-                responseData.put("message", "Thêm sản phẩm mới thành công!");
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.ok(java.util.Map.of("message", "Thêm sản phẩm mới thành công!")));
                 return;
             }
 
@@ -384,10 +379,8 @@ public class ProductCreateServlet extends HttpServlet {
         } catch (SQLException e) {
             LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi lưu sản phẩm mới", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", false);
-                responseData.put("errors", List.of("Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage()));
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.error("Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage()));
                 return;
             }
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage());
