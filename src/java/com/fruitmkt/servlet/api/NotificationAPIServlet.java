@@ -1,5 +1,6 @@
 package com.fruitmkt.servlet.api;
 
+import com.fruitmkt.dto.ApiResponse;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.model.entity.Notification;
 import com.fruitmkt.service.NotificationService;
@@ -29,18 +30,19 @@ public class NotificationAPIServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(NotificationAPIServlet.class.getName());
 
+    public record NotificationListResponse(int unreadCount, List<Notification> notifications) {}
+
     private final NotificationService notificationService = new NotificationService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        resp.setContentType("application/json;charset=UTF-8");
         HttpSession session = req.getSession(false);
         User user = SessionUtil.getCurrentUser(session);
-        
+
         if (user == null) {
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Người dùng chưa đăng nhập."));
+            JsonUtil.writeJson(resp, ApiResponse.fail(401, "Người dùng chưa đăng nhập."));
             return;
         }
 
@@ -63,28 +65,24 @@ public class NotificationAPIServlet extends HttpServlet {
                 allNotifs = allNotifs.subList(0, limit);
             }
 
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("success", true);
-            responseData.put("unreadCount", unreadCount);
-            responseData.put("notifications", allNotifs);
-
-            JsonUtil.writeJson(resp, responseData);
+            JsonUtil.writeJson(resp, ApiResponse.ok(
+                    new NotificationListResponse(unreadCount, List.copyOf(allNotifs))));
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Lỗi máy chủ: " + e.getMessage()));
+            LoggerUtil.error(log, "Error fetching notifications", e);
+            JsonUtil.writeJson(resp, ApiResponse.fail("Lỗi máy chủ. Vui lòng thử lại."));
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        resp.setContentType("application/json;charset=UTF-8");
         HttpSession session = req.getSession(false);
         User user = SessionUtil.getCurrentUser(session);
 
         if (user == null) {
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Người dùng chưa đăng nhập."));
+            JsonUtil.writeJson(resp, ApiResponse.fail(401, "Người dùng chưa đăng nhập."));
             return;
         }
 
@@ -96,7 +94,7 @@ public class NotificationAPIServlet extends HttpServlet {
         }
         if (sessionToken == null || !sessionToken.equals(requestToken)) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "CSRF token không hợp lệ."));
+            JsonUtil.writeJson(resp, ApiResponse.fail(403, "CSRF token không hợp lệ."));
             return;
         }
 
@@ -106,22 +104,23 @@ public class NotificationAPIServlet extends HttpServlet {
                 String notifIdStr = req.getParameter("notificationId");
                 if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    JsonUtil.writeJson(resp, Map.of("success", false, "error", "Thiếu ID thông báo."));
+                    JsonUtil.writeJson(resp, ApiResponse.fail(400, "Thiếu ID thông báo."));
                     return;
                 }
                 int notifId = Integer.parseInt(notifIdStr);
                 notificationService.markRead(notifId);
-                JsonUtil.writeJson(resp, Map.of("success", true));
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
             } else if ("markAllRead".equals(action)) {
                 notificationService.markAllRead(user.getUserId());
-                JsonUtil.writeJson(resp, Map.of("success", true));
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
             } else {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(resp, Map.of("success", false, "error", "Hành động không hợp lệ."));
+                JsonUtil.writeJson(resp, ApiResponse.fail(400, "Hành động không hợp lệ."));
             }
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, Map.of("success", false, "error", "Lỗi máy chủ: " + e.getMessage()));
+            LoggerUtil.error(log, "Error processing notification action", e);
+            JsonUtil.writeJson(resp, ApiResponse.fail("Lỗi máy chủ. Vui lòng thử lại."));
         }
     }
 }

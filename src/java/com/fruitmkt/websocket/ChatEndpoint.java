@@ -186,21 +186,13 @@ public class ChatEndpoint {
 
     @OnClose
     public void onClose(Session wsSession, CloseReason reason) {
-        Integer sessionId = (Integer) wsSession.getUserProperties().get("sessionId");
-        if (sessionId != null) {
-            Set<Session> room = ROOM_MAP.get(sessionId);
-            if (room != null) {
-                room.remove(wsSession);
-                if (room.isEmpty()) {
-                    ROOM_MAP.remove(sessionId);
-                }
-            }
-        }
+        removeFromRoom(wsSession);
     }
 
     @OnError
     public void onError(Session wsSession, Throwable throwable) {
         LOG.log(Level.WARNING, "ChatEndpoint.onError: " + throwable.getMessage(), throwable);
+        removeFromRoom(wsSession);
     }
 
     // ----------------------------------------------------------------
@@ -288,6 +280,23 @@ public class ChatEndpoint {
         } catch (Exception e) {
             LOG.log(Level.WARNING, "ChatEndpoint: lỗi gửi offline notification", e);
         }
+    }
+
+    /**
+     * Xóa wsSession khỏi ROOM_MAP và dọn room rỗng.
+     * Được gọi từ cả @OnClose lẫn @OnError để đảm bảo mọi con đường thoát
+     * đều giải phóng session — tránh rò rỉ bộ nhớ.
+     *
+     * Thread-safe: ConcurrentHashMap.computeIfPresent + CopyOnWriteArraySet.remove
+     * đảm bảo an toàn khi nhiều thread gọi đồng thời.
+     */
+    private void removeFromRoom(Session wsSession) {
+        Integer sessionId = (Integer) wsSession.getUserProperties().get("sessionId");
+        if (sessionId == null) return;
+        ROOM_MAP.computeIfPresent(sessionId, (id, room) -> {
+            room.remove(wsSession);
+            return room.isEmpty() ? null : room;  // trả về null → ConcurrentHashMap tự xóa entry
+        });
     }
 
     /** Đóng WS session với mã 1008 (Policy Violation) khi không có quyền */

@@ -1,6 +1,8 @@
 package com.fruitmkt.servlet.api;
 
+import com.fruitmkt.dto.ApiResponse;
 import com.fruitmkt.service.PaymentService;
+import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.LoggerUtil;
 
 import jakarta.servlet.ServletException;
@@ -45,8 +47,7 @@ public class PaymentWebhookServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         resp.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-        resp.setContentType("application/json;charset=UTF-8");
-        resp.getWriter().write("{\"error\":\"Method Not Allowed\"}");
+        JsonUtil.writeJson(resp, ApiResponse.fail(405, "Method Not Allowed"));
     }
 
     /**
@@ -57,21 +58,21 @@ public class PaymentWebhookServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         req.setCharacterEncoding("UTF-8");
-        resp.setContentType("application/json;charset=UTF-8");
 
         // Đọc raw JSON body
         String jsonPayload = readBody(req);
         LoggerUtil.info(log, "[SePay Webhook] Received webhook payload from SePay");
 
+        // Webhook idempotent: LUÔN trả HTTP 200 để SePay không retry.
+        // Trạng thái xử lý nằm trong field "success" của body, KHÔNG ở HTTP status.
+        resp.setStatus(HttpServletResponse.SC_OK);
         try {
             paymentService.processWebhook(jsonPayload);
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.getWriter().write("{\"success\":true}");
+            JsonUtil.writeJson(resp, ApiResponse.ok(null));
         } catch (Exception e) {
-            // Log lỗi nhưng PHẢI trả 200 để SePay không retry
             LoggerUtil.error(log, "[SePay Webhook] Lỗi xử lý webhook", e);
-            resp.setStatus(HttpServletResponse.SC_OK); // intentional — SePay rule
-            resp.getWriter().write("{\"success\":false,\"error\":\"Internal processing error\"}");
+            // Vẫn 200 (đã set ở trên) — chỉ báo lỗi qua body.
+            JsonUtil.writeJson(resp, ApiResponse.fail("Internal processing error"));
         }
     }
 
