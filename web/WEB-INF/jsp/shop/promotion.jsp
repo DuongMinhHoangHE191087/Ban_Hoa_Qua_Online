@@ -45,6 +45,10 @@
         }
         tbody tr { transition:background .12s; }
         tbody tr:hover td { background:#f8fafc; }
+        
+        /* Layout structures to support flex horizontal layout for both admin and shop sidebars */
+        .admin-layout { display: flex; min-height: 100vh; }
+        .admin-main { flex: 1; display: flex; flex-direction: column; overflow-x: hidden; min-width: 0; }
     </style>
 </head>
 <body>
@@ -224,7 +228,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto pb-24">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
                         <tr class="bg-slate-50/50">
@@ -294,28 +298,34 @@
                                                 </c:otherwise>
                                             </c:choose>
                                         </td>
-                                        <td class="p-3">
-                                            <div class="flex justify-center gap-2 flex-wrap">
-                                                <a href="${pageContext.request.contextPath}${promotionBasePath}?editId=${p.promoId}"
-                                                   class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-border hover:bg-slate-100 text-txt-2 text-xs font-bold shadow-sm">
-                                                    <i class="fa-solid fa-pen"></i> Sửa
-                                                </a>
-                                                <form action="${pageContext.request.contextPath}${promotionBasePath}" method="POST" class="inline">
-                                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                    <input type="hidden" name="action" value="toggle">
-                                                    <input type="hidden" name="promoId" value="${p.promoId}">
-                                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm">
-                                                        <i class="fa-solid fa-power-off"></i> ${p.isActive ? 'Tắt' : 'Bật'}
-                                                    </button>
-                                                </form>
-                                                <form action="${pageContext.request.contextPath}${promotionBasePath}" method="POST" class="inline" onsubmit="return confirmDelete(event, '${p.code}')">
-                                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                    <input type="hidden" name="action" value="delete">
-                                                    <input type="hidden" name="promoId" value="${p.promoId}">
-                                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm">
-                                                        <i class="fa-solid fa-trash"></i> Xóa
-                                                    </button>
-                                                </form>
+                                        <td class="p-3 text-center">
+                                            <div class="relative inline-block text-left dropdown">
+                                                <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.promoId}')" class="inline-flex justify-center w-8 h-8 rounded-full text-[#475569] hover:bg-slate-100 flex items-center justify-center transition-all border-0 bg-transparent cursor-pointer">
+                                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                                </button>
+                                                <div id="dropdown-${p.promoId}" class="origin-top-right absolute right-0 mt-1 w-32 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none hidden z-30 border border-border">
+                                                    <div class="py-1">
+                                                        <a href="${pageContext.request.contextPath}${promotionBasePath}?editId=${p.promoId}" class="group flex items-center px-4 py-2 text-xs text-txt-2 hover:bg-slate-50 hover:text-primary font-bold transition-all text-decoration-none">
+                                                            <i class="fa-solid fa-pen mr-2 text-slate-400 group-hover:text-primary"></i> Sửa
+                                                        </a>
+                                                        <form action="${pageContext.request.contextPath}${promotionBasePath}" method="POST" class="m-0">
+                                                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                            <input type="hidden" name="action" value="toggle">
+                                                            <input type="hidden" name="promoId" value="${p.promoId}">
+                                                            <button type="submit" class="group flex w-full items-center px-4 py-2 text-xs text-txt-2 hover:bg-slate-50 hover:text-amber-600 font-bold text-left transition-all border-0 bg-transparent cursor-pointer">
+                                                                <i class="fa-solid fa-power-off mr-2 text-slate-400 group-hover:text-amber-600"></i> ${p.isActive ? 'Tắt' : 'Bật'}
+                                                            </button>
+                                                        </form>
+                                                        <form action="${pageContext.request.contextPath}${promotionBasePath}" method="POST" class="m-0" onsubmit="return confirmDelete(event, '${p.code}')">
+                                                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                            <input type="hidden" name="action" value="delete">
+                                                            <input type="hidden" name="promoId" value="${p.promoId}">
+                                                            <button type="submit" class="group flex w-full items-center px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 font-bold text-left transition-all border-0 bg-transparent cursor-pointer">
+                                                                <i class="fa-solid fa-trash mr-2 text-rose-400 group-hover:text-rose-600"></i> Xóa
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -347,6 +357,23 @@
         });
         return false;
     }
+
+    function toggleDropdown(event, id) {
+        event.stopPropagation();
+        // Close all other dropdowns
+        document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+            if (el.id !== id) el.classList.add('hidden');
+        });
+        const dropdown = document.getElementById(id);
+        dropdown.classList.toggle('hidden');
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+            el.classList.add('hidden');
+        });
+    });
 </script>
 </body>
 </html>
