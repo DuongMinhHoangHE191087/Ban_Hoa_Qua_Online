@@ -4,6 +4,7 @@ import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.ChatDAO;
 import com.fruitmkt.model.entity.Notification;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.service.NotificationService;
 import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.SessionUtil;
@@ -13,7 +14,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +40,7 @@ public class NotificationServlet extends HttpServlet {
             if ("XMLHttpRequest".equals(requestType) || req.getServletPath().contains("/api/")) {
                 resp.setContentType("application/json;charset=UTF-8");
                 resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                resp.getWriter().write("{\"success\":false,\"message\":\"Chưa đăng nhập.\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Chưa đăng nhập."));
             } else {
                 resp.sendRedirect(req.getContextPath() + "/auth/login");
             }
@@ -52,51 +52,26 @@ public class NotificationServlet extends HttpServlet {
 
         if ("getRecent".equals(action) || servletPath.contains("/api/notifications/recent")) {
             resp.setContentType("application/json;charset=UTF-8");
-            PrintWriter out = resp.getWriter();
-            Map<String, Object> result = new HashMap<>();
             try {
                 List<Notification> list = notificationService.getAllNotifications(currentUser.getUserId());
                 int limit = Math.min(5, list.size());
-                result.put("success", true);
-                result.put("notifications", list.subList(0, limit));
-                out.print(JsonUtil.toJson(result));
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("notifications", list.subList(0, limit))));
             } catch (Exception e) {
                 LOG.log(Level.SEVERE, "Lỗi lấy danh sách thông báo gần đây", e);
-                result.put("success", false);
-                result.put("message", e.getMessage());
-                try {
-                    out.print(JsonUtil.toJson(result));
-                } catch (Exception writeEx) {
-                    LOG.log(Level.WARNING, "Không thể ghi JSON lỗi", writeEx);
-                }
-            } finally {
-                out.flush();
+                JsonUtil.writeJson(resp, ApiResponse.error(e.getMessage()));
             }
             return;
         }
 
         if ("getUnreadCounts".equals(action) || servletPath.contains("/api/notifications/unread")) {
             resp.setContentType("application/json;charset=UTF-8");
-            PrintWriter out = resp.getWriter();
-            Map<String, Object> result = new HashMap<>();
             try {
                 int unreadNotifs = notificationService.getUnread(currentUser.getUserId()).size();
                 int unreadChats = chatDAO.countTotalUnread(currentUser.getUserId());
-                result.put("success", true);
-                result.put("unreadNotifications", unreadNotifs);
-                result.put("unreadChats", unreadChats);
-                out.print(JsonUtil.toJson(result));
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("unreadNotifications", unreadNotifs, "unreadChats", unreadChats)));
             } catch (Exception e) {
                 LOG.log(Level.SEVERE, "Lỗi lấy số lượng chưa đọc", e);
-                result.put("success", false);
-                result.put("message", e.getMessage());
-                try {
-                    out.print(JsonUtil.toJson(result));
-                } catch (Exception writeEx) {
-                    LOG.log(Level.WARNING, "Không thể ghi JSON lỗi", writeEx);
-                }
-            } finally {
-                out.flush();
+                JsonUtil.writeJson(resp, ApiResponse.error(e.getMessage()));
             }
             return;
         }
@@ -138,14 +113,14 @@ public class NotificationServlet extends HttpServlet {
                 }
                 if (isApi) {
                     resp.setContentType("application/json;charset=UTF-8");
-                    resp.getWriter().write("{\"success\":true,\"message\":\"Đã đánh dấu đọc.\"}");
+                    JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("message", "Đã đánh dấu đọc.")));
                     return;
                 }
             } else if ("markAllRead".equals(action) || servletPath.contains("/markAllRead")) {
                 notificationService.markAllRead(currentUser.getUserId());
                 if (isApi) {
                     resp.setContentType("application/json;charset=UTF-8");
-                    resp.getWriter().write("{\"success\":true,\"message\":\"Đã đánh dấu đọc tất cả.\"}");
+                    JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("message", "Đã đánh dấu đọc tất cả.")));
                     return;
                 }
                 SessionUtil.flashSuccess(req.getSession(), "Đã đánh dấu đọc tất cả thông báo.");
@@ -155,7 +130,7 @@ public class NotificationServlet extends HttpServlet {
             if (isApi) {
                 resp.setContentType("application/json;charset=UTF-8");
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                resp.getWriter().write("{\"success\":false,\"message\":\"Có lỗi xảy ra: " + e.getMessage() + "\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Có lỗi xảy ra: " + e.getMessage()));
                 return;
             }
             SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());
