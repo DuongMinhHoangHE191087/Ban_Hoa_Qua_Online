@@ -22,19 +22,19 @@ public final class AppConfig {
                         + ";databaseName=" + DB_NAME
                         + ";encrypt=false;trustServerCertificate=true";
 
-        public static final String GOOGLE_CLIENT_ID = System.getenv("GOOGLE_CLIENT_ID") != null ? System.getenv("GOOGLE_CLIENT_ID") : "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com";
-        public static final String GOOGLE_CLIENT_SECRET = System.getenv("GOOGLE_CLIENT_SECRET") != null ? System.getenv("GOOGLE_CLIENT_SECRET") : "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";
-        // Domain của bạn. Nếu code ở localhost thì để HTTP
-        public static final String GOOGLE_REDIRECT_URI = "http://localhost:8080/Ban_Hoa_Qua_Online/GoogleCallback";
+        public static final String GOOGLE_CLIENT_ID = getEnvOrDefault("GOOGLE_CLIENT_ID", null);
+        public static final String GOOGLE_CLIENT_SECRET = getEnvOrDefault("GOOGLE_CLIENT_SECRET", null);
+        // Domain của bạn. Nếu code ở localhost thì để HTTP. Set via GOOGLE_REDIRECT_URI env var in production
+        public static final String GOOGLE_REDIRECT_URI = getEnvOrDefault("GOOGLE_REDIRECT_URI", "http://localhost:8080/Ban_Hoa_Qua_Online/GoogleCallback");
         public static final String GOOGLE_LINK_GET_TOKEN = "https://oauth2.googleapis.com/token";
-        public static final String GOOGLE_LINK_GET_USER_INFO = "https://www.googleapis.com/oauth2/v1/userinfo?access_token=";
+        public static final String GOOGLE_LINK_GET_USER_INFO = "https://openidconnect.googleapis.com/v1/userinfo";
         public static final String GOOGLE_GRANT_TYPE = "authorization_code";
 
         public static final String EMAIL_SMTP_HOST = "smtp.gmail.com";
         public static final String EMAIL_SMTP_PORT = "587";
-        public static final String EMAIL_FROM = System.getenv("EMAIL_FROM") != null ? System.getenv("EMAIL_FROM") : "duongminhhoanginwork@gmail.com";
-        public static final String EMAIL_PASSWORD = System.getenv("EMAIL_PASSWORD") != null ? System.getenv("EMAIL_PASSWORD") : "jkhg przg aohf pwla";
-        public static final String SECRET_KEY = System.getenv("SECRET_KEY") != null ? System.getenv("SECRET_KEY") : "fruitmkt-super-secret-key-2026-secure-sha256";
+        public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "noreply@fruitmkt.local");
+        public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", null);
+        public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", null);
         public static final long ACCESS_TOKEN_EXPIRY_MS = System.getenv("ACCESS_TOKEN_EXPIRY_MS") != null 
                         ? Long.parseLong(System.getenv("ACCESS_TOKEN_EXPIRY_MS")) 
                         : 15L * 60 * 1000;
@@ -42,9 +42,9 @@ public final class AppConfig {
                         ? Integer.parseInt(System.getenv("REFRESH_TOKEN_EXPIRY_SECS")) 
                         : 7 * 24 * 60 * 60;
         public static final String APP_NAME = "MetaFruit";
-        public static final String APP_SUPPORT_EMAIL = System.getenv("EMAIL_FROM") != null ? System.getenv("EMAIL_FROM") : "duongminhhoanginwork@gmail.com";
+        public static final String APP_SUPPORT_EMAIL = EMAIL_FROM;
         public static final String APP_BRAND_COLOR = "#14532d";
-        public static final String APP_BASE_URL = "http://localhost:8080/Ban_Hoa_Qua_Online";
+        public static final String APP_BASE_URL = getEnvOrDefault("APP_BASE_URL", "http://localhost:8080/Ban_Hoa_Qua_Online");
 
         // ------------------------------------------------------------------
         // Email verification
@@ -248,9 +248,54 @@ public final class AppConfig {
                 /* Utility class — không khởi tạo */ }
 
         /**
+         * Helper to safely read environment variables with fallback.
+         * If env var is not set and default is null, returns null (trigger validation later).
+         * If env var is not set and default is provided, returns default.
+         */
+        private static String getEnvOrDefault(String varName, String defaultValue) {
+                String envValue = System.getenv(varName);
+                return envValue != null ? envValue : defaultValue;
+        }
+
+        /**
          * Đọc config theo ưu tiên: System property -> env variable -> default value.
          * Production: đặt JVM option (-Ddb.password=...) hoặc env variable
          * (DB_PASSWORD=...).
          */
+
+        /**
+         * Validate critical secrets are set via environment variables in production.
+         * Call this at application startup to fail fast if required secrets are missing.
+         *
+         * @throws IllegalStateException if critical secrets use hardcoded fallbacks
+         */
+        public static void validateSecretsForProduction() {
+                boolean isProduction = "production".equalsIgnoreCase(System.getenv("APP_ENV"));
+                if (!isProduction) {
+                        return; // Skip validation in development
+                }
+
+                StringBuilder missing = new StringBuilder();
+                if (System.getenv("GOOGLE_CLIENT_SECRET") == null) {
+                        missing.append("GOOGLE_CLIENT_SECRET ");
+                }
+                if (System.getenv("EMAIL_PASSWORD") == null) {
+                        missing.append("EMAIL_PASSWORD ");
+                }
+                if (System.getenv("SECRET_KEY") == null) {
+                        missing.append("SECRET_KEY ");
+                }
+                if (System.getenv("DB_PASSWORD") == null) {
+                        missing.append("DB_PASSWORD ");
+                }
+
+                if (missing.length() > 0) {
+                        throw new IllegalStateException(
+                                "SECURITY ERROR: The following required secrets must be set via environment variables in production: "
+                                        + missing.toString().trim()
+                                        + ". Do NOT use hardcoded default values in production."
+                        );
+                }
+        }
 
 }
