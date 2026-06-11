@@ -1,6 +1,7 @@
 package com.fruitmkt.servlet.base;
 
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
@@ -105,10 +106,7 @@ public abstract class BaseHttpServlet extends HttpServlet {
     protected void sendJsonError(HttpServletResponse resp, String message) throws IOException {
         setupJsonResponse(resp);
         resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        JsonUtil.writeJson(resp, Map.of(
-            "success", false,
-            "error", message
-        ));
+        JsonUtil.writeJson(resp, ApiResponse.error(message));
     }
 
     /**
@@ -117,10 +115,7 @@ public abstract class BaseHttpServlet extends HttpServlet {
     protected void sendJsonSuccess(HttpServletResponse resp, Object data) throws IOException {
         setupJsonResponse(resp);
         resp.setStatus(HttpServletResponse.SC_OK);
-        JsonUtil.writeJson(resp, Map.of(
-            "success", true,
-            "data", data
-        ));
+        JsonUtil.writeJson(resp, ApiResponse.ok(data));
     }
 
     /**
@@ -129,10 +124,7 @@ public abstract class BaseHttpServlet extends HttpServlet {
     protected void sendJsonError(HttpServletResponse resp, int statusCode, String message) throws IOException {
         setupJsonResponse(resp);
         resp.setStatus(statusCode);
-        JsonUtil.writeJson(resp, Map.of(
-            "success", false,
-            "error", message
-        ));
+        JsonUtil.writeJson(resp, ApiResponse.fail(statusCode, message));
     }
 
     /**

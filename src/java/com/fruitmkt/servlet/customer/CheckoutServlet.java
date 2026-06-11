@@ -8,6 +8,7 @@ import com.fruitmkt.model.dto.CheckoutViewData;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.PaymentTransaction;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.service.CheckoutService;
 import com.fruitmkt.service.PaymentService;
 import com.fruitmkt.util.JsonUtil;
@@ -184,10 +185,10 @@ public class CheckoutServlet extends HttpServlet {
         resp.setCharacterEncoding("UTF-8");
         Order order = findCustomerOrder(req.getParameter("orderId"), user.getUserId());
         if (order != null) {
-            JsonUtil.writeJson(resp, Map.of("status", order.getStatus()));
+            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("status", order.getStatus())));
             return;
         }
-        JsonUtil.writeJson(resp, Map.of("status", "UNKNOWN"));
+        JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("status", "UNKNOWN")));
     }
 
     private void handleConfirmPayment(HttpServletRequest req, HttpServletResponse resp, HttpSession session, User user)
