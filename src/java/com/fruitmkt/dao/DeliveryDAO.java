@@ -91,6 +91,39 @@ public class DeliveryDAO extends BaseDAO {
         }
     }
 
+    public void assignShipper(int orderId, Integer deliveryTripId, Integer tripStopSeq,
+                              int staffId, java.time.LocalDateTime estimatedTime) throws SQLException {
+        try (Connection conn = getConnection()) {
+            assignShipper(conn, orderId, deliveryTripId, tripStopSeq, staffId, estimatedTime);
+        }
+    }
+
+    public void assignShipper(Connection conn, int orderId, Integer deliveryTripId, Integer tripStopSeq,
+                              int staffId, java.time.LocalDateTime estimatedTime) throws SQLException {
+        String sql = "INSERT INTO deliveries (order_id, delivery_trip_id, trip_stop_seq, staff_id, status, estimated_delivery_time, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, 'ASSIGNED', ?, GETDATE(), GETDATE())";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            if (deliveryTripId != null && deliveryTripId > 0) {
+                ps.setInt(2, deliveryTripId);
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
+            if (tripStopSeq != null) {
+                ps.setInt(3, tripStopSeq);
+            } else {
+                ps.setNull(3, Types.INTEGER);
+            }
+            if (staffId > 0) {
+                ps.setInt(4, staffId);
+            } else {
+                ps.setNull(4, Types.INTEGER);
+            }
+            ps.setTimestamp(5, estimatedTime != null ? Timestamp.valueOf(estimatedTime) : null);
+            ps.executeUpdate();
+        }
+    }
+
     public boolean claimDelivery(int deliveryId, int staffId) throws SQLException {
         String sql = "UPDATE deliveries SET staff_id = ?, updated_at = GETDATE() WHERE delivery_id = ? AND staff_id IS NULL";
         try (Connection conn = getConnection();
@@ -151,6 +184,10 @@ public class DeliveryDAO extends BaseDAO {
         Delivery d = new Delivery();
         d.setDeliveryId(rs.getInt("delivery_id"));
         d.setOrderId(rs.getInt("order_id"));
+        int deliveryTripId = rs.getInt("delivery_trip_id");
+        d.setDeliveryTripId(rs.wasNull() ? null : deliveryTripId);
+        int tripStopSeq = rs.getInt("trip_stop_seq");
+        d.setTripStopSeq(rs.wasNull() ? null : tripStopSeq);
         d.setStaffId(rs.getObject("staff_id") != null ? rs.getInt("staff_id") : null);
         d.setStatus(rs.getString("status"));
         

@@ -81,9 +81,15 @@
             <h1 style="font-size: 1.5rem; margin-bottom: 20px;">Đánh giá Sản phẩm</h1>
             
             <form action="${pageContext.request.contextPath}/reviews" method="POST" enctype="multipart/form-data">
+                <c:if test="${not empty order}">
+                    <input type="hidden" name="orderId" value="${order.orderId}">
+                </c:if>
                 <input type="hidden" name="orderItemId" value="${orderItemId}">
                 <c:if test="${not empty action}">
                     <input type="hidden" name="action" value="${action}">
+                </c:if>
+                <c:if test="${review != null}">
+                    <input type="hidden" name="reviewId" value="${review.reviewId}">
                 </c:if>
                 
                 <div class="form-group">
@@ -117,7 +123,11 @@
                         <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--color-text-light); margin-bottom: 10px;"></i>
                         <p style="color: var(--color-text-light); margin: 0;">Nhấn để chọn ảnh tải lên</p>
                         <input type="file" name="reviewImage" id="reviewImage" accept="image/*" style="display: none;" onchange="previewImage(event)">
-                        <img id="imagePreview" src="<c:out value="${review != null && review.reviewImageUrl != null ? pageContext.request.contextPath += '/' += review.reviewImageUrl : '#'}" />" alt="Preview" style="${review != null && review.reviewImageUrl != null ? 'display:block;' : ''}">
+                        <c:set var="reviewImagePreviewSrc" value="#" />
+                        <c:if test="${review != null && review.reviewImageUrl != null}">
+                            <c:url value="/${review.reviewImageUrl}" var="reviewImagePreviewSrc" />
+                        </c:if>
+                        <img id="imagePreview" src="${reviewImagePreviewSrc}" alt="Preview" style="${review != null && review.reviewImageUrl != null ? 'display:block;' : ''}">
                     </div>
                 </div>
                 

@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
@@ -146,10 +146,20 @@
                             <td class="py-4 px-6 text-center text-slate-400">${status.index + 1}</td>
                             <td class="py-4 px-6">
                                 <div class="font-semibold text-slate-800">${item.productNameSnapshot}</div>
-                                <div class="text-xs text-slate-400 font-normal mt-0.5">Phân loại: ${item.variantLabelSnapshot}</div>
+                                <div class="text-xs text-slate-400 font-normal mt-0.5">
+                                    Phân loại: ${item.variantLabelSnapshot}
+                                    <c:if test="${not empty item.packagingLabelSnapshot}">
+                                        • Đóng gói: ${item.packagingLabelSnapshot}
+                                    </c:if>
+                                </div>
                             </td>
                             <td class="py-4 px-6 text-center">${item.quantity}</td>
-                            <td class="py-4 px-6 text-right"><ft:currency value="${item.unitPrice}"/></td>
+                            <td class="py-4 px-6 text-right font-medium">
+                                <ft:currency value="${item.unitPrice}"/>
+                                <c:if test="${item.packagingPriceSnapshot > 0}">
+                                    <div class="text-[10px] text-slate-400 font-normal">+<ft:currency value="${item.packagingPriceSnapshot}"/> bao bì</div>
+                                </c:if>
+                            </td>
                             <td class="py-4 px-6 text-right font-semibold text-slate-800"><ft:currency value="${item.subtotal}"/></td>
                         </tr>
                     </c:forEach>

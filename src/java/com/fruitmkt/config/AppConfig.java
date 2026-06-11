@@ -68,6 +68,10 @@ public final class AppConfig {
         public static final int PAGE_SIZE_ORDERS = 15;
         /** Số dòng admin table mỗi trang */
         public static final int PAGE_SIZE_ADMIN = 25;
+        /** Kích thước trang tối đa cho phép */
+        public static final int MAX_PAGE_SIZE = 100;
+        /** Kích thước trang mặc định */
+        public static final int DEFAULT_PAGE_SIZE = 10;
 
         // ------------------------------------------------------------------
         // Upload File
@@ -126,6 +130,9 @@ public final class AppConfig {
         public static final String ORDER_PAYMENT_FAILED = "PAYMENT_FAILED";
         public static final String ORDER_EXPIRED = "EXPIRED";
 
+        public static final String ORDER_TYPE_PARENT = "PARENT";
+        public static final String ORDER_TYPE_CHILD = "CHILD";
+
         // ------------------------------------------------------------------
         // Delivery Status
         // ------------------------------------------------------------------
@@ -134,6 +141,14 @@ public final class AppConfig {
         public static final String DELIVERY_IN_TRANSIT = "IN_TRANSIT";
         public static final String DELIVERY_DELIVERED = "DELIVERED";
         public static final String DELIVERY_FAILED = "FAILED";
+
+        public static final String DELIVERY_TRIP_PLANNED = "PLANNED";
+        public static final String DELIVERY_TRIP_ASSIGNED = "ASSIGNED";
+        public static final String DELIVERY_TRIP_PICKED_UP = "PICKED_UP";
+        public static final String DELIVERY_TRIP_IN_TRANSIT = "IN_TRANSIT";
+        public static final String DELIVERY_TRIP_DELIVERED = "DELIVERED";
+        public static final String DELIVERY_TRIP_FAILED = "FAILED";
+        public static final String DELIVERY_TRIP_CANCELLED = "CANCELLED";
 
         // ------------------------------------------------------------------
         // Shop Approval Status
@@ -227,6 +242,7 @@ public final class AppConfig {
         public static final String CONFIG_SEPAY_BANK_ID        = "sepay_bank_id";
         public static final String CONFIG_SEPAY_ACCOUNT_NO     = "sepay_account_no";
         public static final String CONFIG_SEPAY_ACCOUNT_NAME   = "sepay_account_name";
+        public static final String CONFIG_GEMINI_API_KEY       = "gemini_api_key";
 
         private AppConfig() {
                 /* Utility class — không khởi tạo */ }

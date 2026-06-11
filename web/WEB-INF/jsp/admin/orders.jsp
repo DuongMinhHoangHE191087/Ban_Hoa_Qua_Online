@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giám sát đơn hàng - Admin MetaFruit</title>
+    <title>Giám sát đơn hàng - Admin Verdant Market</title>
     <!-- Google Fonts & Tailwind CSS -->
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
@@ -63,7 +63,7 @@
                 </div>
                 <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
                     <i class="fa-solid fa-leaf text-[#84cc16]"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
+                    <span class="text-xs font-bold uppercase tracking-wider">Verdant Market Live</span>
                 </div>
             </div>
 

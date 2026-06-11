@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiểm duyệt đánh giá – Admin MetaFruit</title>
+    <title>Kiểm duyệt đánh giá – Admin Verdant Market</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -108,8 +108,8 @@
                             <th class="px-6 py-3.5 font-bold" style="width: 25%">Sản phẩm / Người dùng</th>
                             <th class="px-6 py-3.5 font-bold text-center">Rating</th>
                             <th class="px-6 py-3.5 font-bold" style="width: 40%">Nội dung đánh giá</th>
-                            <th class="px-6 py-3.5 font-bold text-center">Trạng thái hiển thị</th>
-                            <th class="px-6 py-3.5 font-bold text-center">Ẩn / Hiện</th>
+                            <th class="px-6 py-3.5 font-bold text-center">Trạng thái</th>
+                            <th class="px-6 py-3.5 font-bold text-center">Duyệt / Từ chối</th>
                         </tr>
                     </thead>
                     <tbody id="reviewTableBody" class="divide-y divide-[#f1f5f9]">
@@ -152,22 +152,32 @@
                                             <c:choose>
                                                 <c:when test="${review.isHidden}">
                                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold">
-                                                        <i class="fa-solid fa-eye-slash text-[10px]"></i> Đã Ẩn
+                                                        <i class="fa-solid fa-circle-xmark text-[10px]"></i> Đã từ chối
                                                     </span>
                                                 </c:when>
                                                 <c:otherwise>
                                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold">
-                                                        <i class="fa-solid fa-eye text-[10px]"></i> Đang Hiện
+                                                        <i class="fa-solid fa-circle-check text-[10px]"></i> Đã duyệt
                                                     </span>
                                                 </c:otherwise>
                                             </c:choose>
                                         </td>
-                                        <%-- Action Slider Toggle --%>
+                                        <%-- Action buttons --%>
                                         <td class="px-6 py-4 text-center">
-                                            <label class="switch">
-                                                <input type="checkbox" onchange="toggleReviewVisibility('${review.reviewId}', !this.checked)" ${!review.isHidden ? 'checked' : ''}>
-                                                <span class="slider"></span>
-                                            </label>
+                                            <div class="flex justify-center gap-2">
+                                                <c:if test="${review.isHidden}">
+                                                    <button type="button" onclick="moderateReview('${review.reviewId}', 'approve')"
+                                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all">
+                                                        <i class="fa-solid fa-check"></i> Duyệt
+                                                    </button>
+                                                </c:if>
+                                                <c:if test="${not review.isHidden}">
+                                                    <button type="button" onclick="moderateReview('${review.reviewId}', 'reject')"
+                                                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all">
+                                                        <i class="fa-solid fa-xmark"></i> Từ chối
+                                                    </button>
+                                                </c:if>
+                                            </div>
                                         </td>
                                     </tr>
                                 </c:forEach>
@@ -208,26 +218,21 @@
         });
     });
 
-    function toggleReviewVisibility(reviewId, isHidden) {
+    function moderateReview(reviewId, action) {
         fetch('${pageContext.request.contextPath}/admin/reviews/visibility', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: 'reviewId=' + reviewId + '&isHidden=' + isHidden + '&_csrf=${sessionScope._csrfToken}'
+            body: 'reviewId=' + reviewId + '&action=' + encodeURIComponent(action) + '&_csrf=${sessionScope._csrfToken}'
         })
         .then(handleJSONResponse)
         .then(data => {
             if(data.success) {
-                const statusCol = document.getElementById('status-col-' + reviewId);
-                if(isHidden) {
-                    statusCol.innerHTML = '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold"><i class="fa-solid fa-eye-slash text-[10px]"></i> Đã Ẩn</span>';
-                } else {
-                    statusCol.innerHTML = '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold"><i class="fa-solid fa-eye text-[10px]"></i> Đang Hiện</span>';
-                }
                 const Toast = Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
                 Toast.fire({ icon: 'success', title: data.message });
+                setTimeout(() => window.location.reload(), 800);
             } else {
                 Swal.fire('Lỗi', data.message, 'error');
                 setTimeout(() => window.location.reload(), 1500);

@@ -315,27 +315,40 @@ public class UserDAO extends BaseDAO {
     }
 
     /**
-     * TODO: Implement — incrementFailedLogin(int userId)
+     * Tăng số lần đăng nhập sai của người dùng
      */
     public void incrementFailedLogin(int userId) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: incrementFailedLogin(int userId)");
+        String sql = "UPDATE users SET failed_login_count = failed_login_count + 1, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.executeUpdate();
+        }
     }
 
     /**
-     * TODO: Implement — resetFailedLogin(int userId)
+     * Reset số lần đăng nhập sai và xóa khóa tài khoản
      */
     public void resetFailedLogin(int userId) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: resetFailedLogin(int userId)");
+        String sql = "UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.executeUpdate();
+        }
     }
 
     /**
-     * TODO: Implement — lockAccount(int userId, java.time.LocalDateTime until)
+     * Khóa tài khoản cho đến thời điểm chỉ định
      */
     public void lockAccount(int userId, java.time.LocalDateTime until) throws SQLException {
-        // TODO: Viết SQL và xử lý ResultSet ở đây
-        throw new UnsupportedOperationException("Not implemented yet: lockAccount(int userId, java.time.LocalDateTime until)");
+        String sql = "UPDATE users SET locked_until = ?, updated_at = GETDATE() WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setTimestamp(1, java.sql.Timestamp.valueOf(until));
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
     }
 
     /** Ánh xạ ResultSet -> User — gọi trong mọi query SELECT */
@@ -465,12 +478,13 @@ public class UserDAO extends BaseDAO {
     }
 
     /**
-     * Xóa toàn bộ phiên đăng nhập của TẤT CẢ người dùng (Dùng khi bảo trì hệ thống)
+     * Xóa toàn bộ phiên đăng nhập (Refresh Tokens) của một người dùng cụ thể
      */
-    public void deleteAllSessions() throws SQLException {
-        String sql = "DELETE FROM user_sessions";
+    public void deleteSessionsByUserId(int userId) throws SQLException {
+        String sql = "DELETE FROM user_sessions WHERE user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
             stmt.executeUpdate();
         }
     }
@@ -552,6 +566,8 @@ public class UserDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
     public void updateAvatar(int userId, String avatarUrl) throws SQLException {
         String sql = "UPDATE users SET avatar_url = ?, updated_at = GETDATE() WHERE user_id = ?";
         try (Connection conn = getConnection();

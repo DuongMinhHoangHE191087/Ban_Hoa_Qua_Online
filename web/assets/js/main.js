@@ -219,7 +219,7 @@ const CurrencyFmt = {
  * Thêm sản phẩm vào giỏ hàng qua AJAX (Dùng chung cho cả Home, Detail, List...)
  * Tự động gộp / cập nhật Local Storage userCart hoặc guestCart tương ứng.
  */
-window.addCartItem = async function(variantId, quantity, name, price, imagePath, stockQuantity, productId) {
+window.addCartItem = async function(variantId, quantity, name, price, imagePath, stockQuantity, productId, packagingId) {
     const isLoggedIn = window.isLoggedIn === true;
     const contextPath = window.contextPath || '';
     
@@ -243,7 +243,8 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
                     quantity: parseInt(quantity),
                     imagePath: imagePath || 'assets/img/placeholder.png',
                     stockQuantity: parseInt(stockQuantity) || 99,
-                    productId: parseInt(productId) || null
+                    productId: parseInt(productId) || null,
+                    packagingId: packagingId ? parseInt(packagingId) : null
                 });
             }
             localStorage.setItem('userCart', JSON.stringify(items));
@@ -261,7 +262,8 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
                     quantity: parseInt(quantity),
                     imagePath: imagePath || 'assets/img/placeholder.png',
                     stockQuantity: parseInt(stockQuantity) || 99,
-                    productId: parseInt(productId) || null
+                    productId: parseInt(productId) || null,
+                    packagingId: packagingId ? parseInt(packagingId) : null
                 });
             }
             localStorage.setItem('guestCart', JSON.stringify(items));
@@ -290,13 +292,18 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
     }
 
     // 2. Perform Backend Request Asynchronously in the Background
+    let requestBody = `variantId=${variantId}&quantity=${quantity}&_csrf=${window.csrfToken || ''}`;
+    if (packagingId) {
+        requestBody += `&packagingId=${packagingId}`;
+    }
+
     fetch(`${contextPath}/cart?action=add`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-Requested-With': 'XMLHttpRequest'
         },
-        body: `variantId=${variantId}&quantity=${quantity}&_csrf=${window.csrfToken || ''}`
+        body: requestBody
     })
     .then(response => {
         const contentType = response.headers.get("content-type");

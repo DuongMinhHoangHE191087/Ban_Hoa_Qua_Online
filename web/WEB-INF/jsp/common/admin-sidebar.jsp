@@ -1,20 +1,20 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%-- SweetAlert2: offline local asset --%>
 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 <script>
-    /* Global native-alert override → SweetAlert2 premium */
+    /* Global native-alert override ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ SweetAlert2 premium */
     window.alert = function(msg) {
-        Swal.fire({ icon:'info', title:'Thông báo', text:msg,
-            confirmButtonText:'Đồng ý', confirmButtonColor:'#4D661C',
+        Swal.fire({ icon:'info', title:'ThÃƒÆ’Ã‚Â´ng bÃƒÆ’Ã‚Â¡o', text:msg,
+            confirmButtonText:'Ãƒâ€žÃ‚ÂÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“ng ÃƒÆ’Ã‚Â½', confirmButtonColor:'#4D661C',
             background:'#fff', borderRadius:'12px' });
     };
 </script>
 
 <%-- ============================================================
-     ADMIN SIDEBAR — Light Premium + Tailwind
-     Sử dụng inline <style> vì đây là fragment được include, không phải full page
-     Tailwind CDN được load bởi trang cha (page-level)
+     ADMIN SIDEBAR ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Light Premium + Tailwind
+     SÃƒÂ¡Ã‚Â»Ã‚Â­ dÃƒÂ¡Ã‚Â»Ã‚Â¥ng inline <style> vÃƒÆ’Ã‚Â¬ Ãƒâ€žÃ¢â‚¬ËœÃƒÆ’Ã‚Â¢y lÃƒÆ’Ã‚Â  fragment Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c include, khÃƒÆ’Ã‚Â´ng phÃƒÂ¡Ã‚ÂºÃ‚Â£i full page
+     Tailwind CDN Ãƒâ€žÃ¢â‚¬ËœÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Â£c load bÃƒÂ¡Ã‚Â»Ã…Â¸i trang cha (page-level)
 ============================================================ --%>
 <style>
     /* Root layout */
@@ -127,7 +127,7 @@
     }
     .sb-btn-logout:hover { background:#fecaca; color:#991b1b; text-decoration:none; }
 
-    /* Main content area — set by sidebar */
+    /* Main content area ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â set by sidebar */
     .admin-main { flex:1; display:flex; flex-direction:column; overflow-x:hidden; min-width:0; }
 </style>
 
@@ -142,20 +142,27 @@
 
     <%-- Navigation --%>
     <nav class="sb-nav">
-        <div class="sb-section-label">Quản trị hệ thống</div>
+        <div class="sb-section-label">QuÃƒÂ¡Ã‚ÂºÃ‚Â£n trÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ hÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng</div>
         <ul class="sb-nav-list">
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/dashboard"
                    class="sb-nav-link ${param.activeMenu == 'dashboard' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-chart-pie"></i></span>
-                    <span>Tổng quan</span>
+                    <span>TÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¢ng quan</span>
                 </a>
             </li>
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/users"
                    class="sb-nav-link ${param.activeMenu == 'users' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-users"></i></span>
-                    <span>Quản lý người dùng</span>
+                    <span>QuÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ ngÃƒâ€ Ã‚Â°ÃƒÂ¡Ã‚Â»Ã‚Âi dÃƒÆ’Ã‚Â¹ng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/chat"
+                   class="sb-nav-link ${param.activeMenu == 'chat' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-comments"></i></span>
+                    <span>Chat HÃƒÂ¡Ã‚Â»Ã¢â‚¬â€ trÃƒÂ¡Ã‚Â»Ã‚Â£</span>
                 </a>
             </li>
             <li class="sb-nav-item">
@@ -167,27 +174,34 @@
             </li>
         </ul>
 
-        <div class="sb-section-label">Thương mại</div>
+        <div class="sb-section-label">ThÃƒâ€ Ã‚Â°Ãƒâ€ Ã‚Â¡ng mÃƒÂ¡Ã‚ÂºÃ‚Â¡i</div>
         <ul class="sb-nav-list">
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/shops"
                    class="sb-nav-link ${param.activeMenu == 'shops' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-store-slash"></i></span>
-                    <span>Phê duyệt Cửa hàng</span>
+                    <span>PhÃƒÆ’Ã‚Âª duyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡t CÃƒÂ¡Ã‚Â»Ã‚Â­a hÃƒÆ’Ã‚Â ng</span>
                 </a>
             </li>
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/shops/manage"
                    class="sb-nav-link ${param.activeMenu == 'manage-shops' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-store"></i></span>
-                    <span>Quản lý Cửa hàng</span>
+                    <span>QuÃƒÂ¡Ã‚ÂºÃ‚Â£n lÃƒÆ’Ã‚Â½ CÃƒÂ¡Ã‚Â»Ã‚Â­a hÃƒÆ’Ã‚Â ng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/products"
+                   class="sb-nav-link ${param.activeMenu == 'admin-products' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-clipboard-check"></i></span>
+                    <span>PhÃƒÆ’Ã‚Âª duyÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡t SÃƒÂ¡Ã‚ÂºÃ‚Â£n phÃƒÂ¡Ã‚ÂºÃ‚Â©m</span>
                 </a>
             </li>
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/categories"
                    class="sb-nav-link ${param.activeMenu == 'categories' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-tags"></i></span>
-                    <span>Danh mục Sản phẩm</span>
+                    <span>Danh mÃƒÂ¡Ã‚Â»Ã‚Â¥c SÃƒÂ¡Ã‚ÂºÃ‚Â£n phÃƒÂ¡Ã‚ÂºÃ‚Â©m</span>
                 </a>
             </li>
             <li class="sb-nav-item">
@@ -197,15 +211,29 @@
                     <span>Giám sát Đơn hàng</span>
                 </a>
             </li>
-        </ul>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/promotions"
+                   class="sb-nav-link ${param.activeMenu == 'promotions' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-tags"></i></span>
+                    <span>Voucher sàn</span>
+                </a>
+            </li>
 
-        <div class="sb-section-label">Tài chính</div>
+        </ul>
+        <div class="sb-section-label">TÃƒÆ’Ã‚Â i chÃƒÆ’Ã‚Â­nh</div>
         <ul class="sb-nav-list">
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/settlements"
                    class="sb-nav-link ${param.activeMenu == 'settlements' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                     <span>Đối soát Thanh toán</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/payments"
+                   class="sb-nav-link ${param.activeMenu == 'payments' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span>Giám sát Thanh toán</span>
                 </a>
             </li>
             <li class="sb-nav-item">
@@ -217,7 +245,7 @@
             </li>
         </ul>
 
-        <div class="sb-section-label">Nội dung</div>
+        <div class="sb-section-label">NÃƒÂ¡Ã‚Â»Ã¢â€žÂ¢i dung</div>
         <ul class="sb-nav-list">
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/reviews"
@@ -230,24 +258,24 @@
                 <a href="${pageContext.request.contextPath}/admin/notifications"
                    class="sb-nav-link ${param.activeMenu == 'notifications' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-bell"></i></span>
-                    <span>Gửi Thông báo</span>
+                    <span>GÃƒÂ¡Ã‚Â»Ã‚Â­i ThÃƒÆ’Ã‚Â´ng bÃƒÆ’Ã‚Â¡o</span>
                 </a>
             </li>
         </ul>
-        <div class="sb-section-label">Hệ thống</div>
+        <div class="sb-section-label">HÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng</div>
         <ul class="sb-nav-list">
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/config"
                    class="sb-nav-link ${param.activeMenu == 'config' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-cogs"></i></span>
-                    <span>Cấu hình Hệ thống</span>
+                    <span>CÃƒÂ¡Ã‚ÂºÃ‚Â¥u hÃƒÆ’Ã‚Â¬nh HÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¡ thÃƒÂ¡Ã‚Â»Ã¢â‚¬Ëœng</span>
                 </a>
             </li>
             <li class="sb-nav-item">
                 <a href="${pageContext.request.contextPath}/admin/profile"
                    class="sb-nav-link ${param.activeMenu == 'profile' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-user-shield"></i></span>
-                    <span>Hồ sơ Cá nhân</span>
+                    <span>HÃƒÂ¡Ã‚Â»Ã¢â‚¬Å“ sÃƒâ€ Ã‚Â¡ CÃƒÆ’Ã‚Â¡ nhÃƒÆ’Ã‚Â¢n</span>
                 </a>
             </li>
         </ul>
@@ -261,14 +289,14 @@
             </div>
             <div class="flex-1 min-w-0">
                 <p class="text-xs font-bold text-[#0f172a] truncate" style="margin: 0;"><c:out value="${sessionScope.currentUser.fullName}"/></p>
-                <p class="text-[10px] text-gray-400 truncate" style="margin: 0;">Quản trị viên</p>
+                <p class="text-[10px] text-gray-400 truncate" style="margin: 0;">QuÃƒÂ¡Ã‚ÂºÃ‚Â£n trÃƒÂ¡Ã‚Â»Ã¢â‚¬Â¹ viÃƒÆ’Ã‚Âªn</p>
             </div>
         </div>
         <a href="${pageContext.request.contextPath}/" class="sb-footer-btn sb-btn-home">
-            <i class="fa-solid fa-house"></i> Về trang chủ
+            <i class="fa-solid fa-house"></i> VÃƒÂ¡Ã‚Â»Ã‚Â trang chÃƒÂ¡Ã‚Â»Ã‚Â§
         </a>
         <a href="${pageContext.request.contextPath}/auth/logout" class="sb-footer-btn sb-btn-logout">
-            <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+            <i class="fa-solid fa-right-from-bracket"></i> Ãƒâ€žÃ‚ÂÃƒâ€žÃ†â€™ng xuÃƒÂ¡Ã‚ÂºÃ‚Â¥t
         </a>
     </div>
 </aside>

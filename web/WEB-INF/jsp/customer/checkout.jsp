@@ -239,40 +239,81 @@
                             <h2 class="font-headline-md text-headline-md font-bold">Thông tin giao hàng</h2>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <%-- Saved Addresses Dropdown --%>
-                            <c:if test="${not empty userAddresses}">
-                                <div class="flex flex-col gap-2 md:col-span-2 mb-2">
-                                    <label class="font-label-md text-label-md text-[#14532D] font-bold" for="savedAddressSelect">Chọn từ sổ địa chỉ của bạn</label>
-                                    <select id="savedAddressSelect" class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" onchange="onAddressSelectChange(this)">
-                                        <option value="">-- Chọn một địa chỉ đã lưu --</option>
-                                        <c:forEach var="addr" items="${userAddresses}">
-                                            <option value="${addr.addressId}" 
-                                                    data-name="<c:out value='${addr.recipientName}'/>" 
-                                                    data-phone="<c:out value='${addr.recipientPhone}'/>" 
-                                                    data-detail="<c:out value='${addr.addressDetail}'/>"
-                                                    ${addr.default ? 'selected' : ''}>
-                                                <c:out value="${addr.recipientName}"/> - <c:out value="${addr.recipientPhone}"/> (<c:out value="${addr.addressDetail}"/>) ${addr.default ? '[Mặc định]' : ''}
-                                            </option>
-                                        </c:forEach>
-                                    </select>
+                            <%-- Shopee/TikTok Style Address Selector --%>
+                            <div class="flex flex-col gap-2 md:col-span-2 mb-2">
+                                <label class="font-label-md text-label-md text-[#14532D] font-bold">Địa chỉ nhận hàng</label>
+                                
+                                <!-- 1. Selected Address Display Card -->
+                                <div id="selectedAddressCard" class="bg-white border border-[#bcfdc9] rounded-xl p-4 shadow-sm flex items-start justify-between gap-4 transition-all duration-200">
+                                    <div class="flex-grow space-y-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span id="displayRecipientName" class="font-bold text-sm text-slate-800"></span>
+                                            <span class="text-gray-300">|</span>
+                                            <span id="displayRecipientPhone" class="text-xs text-slate-600 font-semibold"></span>
+                                            <span id="defaultBadge" class="hidden px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full border border-red-200">Mặc định</span>
+                                        </div>
+                                        <p id="displayAddressDetail" class="text-xs text-slate-600 leading-relaxed"></p>
+                                    </div>
+                                    <button type="button" onclick="toggleAddressSelectionList()" class="text-primary hover:underline font-bold text-xs flex items-center gap-0.5 shrink-0 cursor-pointer">
+                                        Thay đổi <span class="material-symbols-outlined text-[16px] transition-transform duration-200" id="expandIcon">expand_more</span>
+                                    </button>
                                 </div>
-                            </c:if>
 
-                            <div class="flex flex-col gap-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="fullName">Họ và tên người nhận</label>
-                                <input class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="fullName" name="fullName"
-                                       value="<c:out value="${sessionScope.currentUser.fullName}"/>" placeholder="Nhập họ và tên" required type="text">
+                                <!-- 2. Collapsible Address List -->
+                                <div id="addressSelectionList" class="hidden mt-3 space-y-3 bg-[#d1ffd8]/20 border border-[#bcfdc9]/40 rounded-xl p-4 transition-all duration-300">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-[#31694b] mb-2">Chọn địa chỉ nhận hàng khác</div>
+                                    <div id="addressOptionsContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                        <!-- Rendered dynamically by JS -->
+                                    </div>
+                                    <div class="flex justify-between items-center border-t border-emerald-100/50 pt-3 mt-3">
+                                        <button type="button" onclick="showInlineAddressForm('add')" class="text-primary hover:underline text-xs font-bold flex items-center gap-0.5 cursor-pointer">
+                                            <span class="material-symbols-outlined text-[16px]">add</span> Thêm địa chỉ mới
+                                        </button>
+                                        <button type="button" onclick="toggleAddressSelectionList()" class="text-slate-500 hover:text-slate-700 text-xs font-bold cursor-pointer">
+                                            Đóng
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 3. Collapsible Inline Form -->
+                                <div id="inlineAddressForm" class="hidden overflow-hidden transition-all duration-300 border-t border-emerald-100 pt-4 mt-4 space-y-4">
+                                    <div class="text-xs font-bold text-[#14532D]" id="inlineFormTitle">Thêm địa chỉ giao hàng mới</div>
+                                    <input type="hidden" id="inlineAddressId" value="">
+                                    <input type="hidden" id="inlineAction" value="add">
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="flex flex-col gap-1.5">
+                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientName">Họ và tên người nhận *</label>
+                                            <input type="text" id="mRecipientName" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
+                                        </div>
+                                        <div class="flex flex-col gap-1.5">
+                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientPhone">Số điện thoại nhận hàng *</label>
+                                            <input type="text" id="mRecipientPhone" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
+                                        </div>
+                                        <div class="flex flex-col gap-1.5 md:col-span-2">
+                                            <label class="text-[10px] font-bold text-slate-700" for="mAddressDetail">Địa chỉ chi tiết *</label>
+                                            <textarea id="mAddressDetail" rows="2" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."
+                                                      class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] resize-none bg-white"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="mIsDefault" class="rounded text-[#14532D] focus:ring-[#14532D] h-4 w-4 cursor-pointer">
+                                        <label for="mIsDefault" class="text-[10px] text-slate-700 font-bold cursor-pointer select-none">Đặt làm địa chỉ nhận hàng mặc định</label>
+                                    </div>
+                                    
+                                    <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                                        <button type="button" id="btnCancelInlineAddress" onclick="hideInlineAddressForm()" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[10px] font-bold text-slate-600 rounded-lg transition-colors bg-white cursor-pointer">Hủy bỏ</button>
+                                        <button type="button" id="btnSaveCheckoutAddress" onclick="handleInlineAddressSubmit()" class="px-4 py-2 bg-[#14532D] text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer hover:bg-opacity-95">Lưu địa chỉ</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex flex-col gap-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="phone">Số điện thoại người nhận</label>
-                                <input class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="phone" name="phone"
-                                       value="<c:out value="${sessionScope.currentUser.phone}"/>" placeholder="Nhập số điện thoại" required type="tel">
-                            </div>
-                            <div class="flex flex-col gap-2 md:col-span-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="deliveryAddress">Địa chỉ giao hàng chi tiết</label>
-                                <input class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="deliveryAddress" name="deliveryAddress"
-                                       value="<c:out value="${sessionScope.currentUser.userAddress}"/>" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" required type="text">
-                            </div>
+
+                            <!-- Hidden inputs to be posted to the servlet -->
+                            <input type="hidden" id="fullName" name="fullName">
+                            <input type="hidden" id="phone" name="phone">
+                            <input type="hidden" id="deliveryAddress" name="deliveryAddress">
+                            <input type="hidden" id="saveAddressToBook" name="saveAddressToBook" value="false">
                             <div class="flex flex-col gap-2 md:col-span-2">
                                 <label class="font-label-md text-label-md text-[#14532D]" for="notes">Ghi chú (Tuỳ chọn)</label>
                                 <textarea class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="notes" name="notes" placeholder="Ghi chú thêm cho người giao hàng..." rows="3"></textarea>
@@ -317,13 +358,13 @@
                     <section class="glass-card rounded-xl p-6 md:p-8" id="coupon-section">
                         <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
                             <span class="material-symbols-outlined text-2xl">loyalty</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">Mã giảm giá</h2>
+                            <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sàn</h2>
                         </div>
                         <!-- Một ô nhập mã giảm giá duy nhất -->
                         <div>
-                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã giảm giá (Shop hoặc Sàn)</label>
+                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã voucher shop hoặc voucher sàn</label>
                             <div class="flex gap-2">
-                                <input type="text" id="couponInput" placeholder="Nhập mã giảm giá (VD: SHOP10, SAAN5, SALE20)"
+                                <input type="text" id="couponInput" placeholder="Nhập mã voucher (VD: SHOP10, SAAN5, SALE20)"
                                     class="form-input rounded-lg px-3 py-2.5 text-sm flex-1 uppercase font-semibold tracking-wider"
                                     style="text-transform:uppercase"/>
                                 <button type="button" onclick="applyCoupon()"
@@ -388,9 +429,19 @@
                                         <span class="font-label-md text-label-md text-on-surface text-lg font-bold"><c:out value="${item.productName}"/></span>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Biến thể: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></span>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">Trọng lượng: <c:out value="${item.weightKg}"/> kg</span>
+                                        <c:if test="${not empty item.packagingLabel}">
+                                            <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 block">
+                                                Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold border border-[#BBF7D0]/40"><c:out value="${item.packagingLabel}"/> (+<ft:currency value="${item.packagingPriceAdd}"/>)</span>
+                                            </span>
+                                        </c:if>
                                     </div>
                                     <div class="text-right">
-                                        <span class="font-label-md text-label-md text-primary font-bold text-lg block"><ft:currency value="${item.price}"/></span>
+                                        <span class="font-label-md text-label-md text-primary font-bold text-lg block">
+                                            <ft:currency value="${item.price + item.packagingPriceAdd}"/>
+                                        </span>
+                                        <c:if test="${item.packagingPriceAdd > 0}">
+                                            <span class="text-[10px] text-gray-400 block">Gồm đóng gói +<ft:currency value="${item.packagingPriceAdd}"/></span>
+                                        </c:if>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-sm font-semibold">SL: <c:out value="${item.quantity}"/></span>
                                     </div>
                                 </div>
@@ -405,15 +456,19 @@
                         <h2 class="font-headline-md text-headline-md text-primary mb-6 font-bold border-b border-[#b1f2be] pb-3">Tổng kết đơn hàng</h2>
                         <div class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-6">
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">Tạm tính (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
+                                <span class="text-on-surface-variant">Tạm tính sau sale trực tiếp (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
                                 <span class="font-bold text-inverse-surface" id="summary-subtotal"><ft:currency value="${cartSummary.subtotal}"/></span>
                             </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-on-surface-variant">Sale trực tiếp</span>
+                                <span class="font-bold text-red-600" id="summary-direct-sale">- <ft:currency value="${directSaleAmount}"/></span>
+                            </div>
                             <div class="flex justify-between items-center" id="shop-discount-row" style="display:none!important">
-                                <span class="text-on-surface-variant">Giảm giá Shop</span>
+                                <span class="text-on-surface-variant">Voucher shop</span>
                                 <span class="font-bold text-red-600" id="summary-shop-discount">- 0 đ</span>
                             </div>
                             <div class="flex justify-between items-center" id="system-discount-row" style="display:none!important">
-                                <span class="text-on-surface-variant">Giảm giá Sàn</span>
+                                <span class="text-on-surface-variant">Voucher sàn</span>
                                 <span class="font-bold text-red-600" id="summary-system-discount">- 0 đ</span>
                             </div>
                             <div class="flex justify-between items-center">
@@ -454,6 +509,16 @@
 <input type="hidden" id="js-ctx" value="${pageContext.request.contextPath}">
 <input type="hidden" id="js-owner-id" value="<c:out value='${shopOwnerId}' default='0'/>">
 
+<!-- Hidden address elements for JS -->
+<c:forEach var="addr" items="${userAddresses}">
+    <span class="js-user-address-data" style="display:none;"
+          data-address-id="${addr.addressId}"
+          data-recipient-name="<c:out value="${addr.recipientName}"/>"
+          data-recipient-phone="<c:out value="${addr.recipientPhone}"/>"
+          data-address-detail="<c:out value="${addr.addressDetail}"/>"
+          data-is-default="${addr['default'] ? 'true' : 'false'}"></span>
+</c:forEach>
+
 <script>
 // ─── Coupon AJAX Logic (Merged Input) ─────────────────────────────
 const SUBTOTAL    = parseFloat(document.getElementById('js-subtotal').value || '0');
@@ -473,7 +538,7 @@ function applyCoupon() {
 
     // Check if coupon is already applied
     if (code === shopCouponCode || code === systemCouponCode) {
-        showCouponMsg('Mã giảm giá này đã được áp dụng rồi.', 'text-red-600 font-bold');
+        showCouponMsg('Mã voucher này đã được áp dụng rồi.', 'text-red-600 font-bold');
         return;
     }
 
@@ -515,7 +580,7 @@ function applyCoupon() {
                             renderAppliedCoupons();
                         } else {
                             // If both failed, show error message
-                            showCouponMsg('✘ Mã giảm giá không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.', 'text-red-600 font-bold');
+                            showCouponMsg('✘ Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.', 'text-red-600 font-bold');
                             console.log('[Coupon Log] Shop check error:', data.message);
                             console.log('[Coupon Log] System check error:', sysData.message);
                         }
@@ -602,7 +667,7 @@ function renderAppliedCoupons() {
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
         item.innerHTML = '<div>' +
-            '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">SHOP</span>' +
+            '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">Voucher shop</span>' +
             '<span class="font-bold text-on-surface">' + shopCouponCode + '</span>' +
             '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(shopDiscount) + ')</span>' +
             '</div>' +
@@ -615,7 +680,7 @@ function renderAppliedCoupons() {
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
         item.innerHTML = '<div>' +
-            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">SÀN</span>' +
+            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sàn</span>' +
             '<span class="font-bold text-on-surface">' + systemCouponCode + '</span>' +
             '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(systemDiscount) + ')</span>' +
             '</div>' +
@@ -662,86 +727,276 @@ document.getElementById('couponInput').addEventListener('keydown', e => {
     } 
 });
 
-// Saved address select logic
-function onAddressSelectChange(selectElem) {
-    const selectedOption = selectElem.options[selectElem.selectedIndex];
-    if (selectedOption && selectedOption.value) {
-        document.getElementById('fullName').value = selectedOption.getAttribute('data-name') || '';
-        document.getElementById('phone').value = selectedOption.getAttribute('data-phone') || '';
-        document.getElementById('deliveryAddress').value = selectedOption.getAttribute('data-detail') || '';
+// ─── Shopee/TikTok Style Address Widget Logic ──────────────────────
+let userAddresses = Array.from(document.querySelectorAll('.js-user-address-data')).map(el => ({
+    addressId: parseInt(el.getAttribute('data-address-id')),
+    recipientName: el.getAttribute('data-recipient-name'),
+    recipientPhone: el.getAttribute('data-recipient-phone'),
+    addressDetail: el.getAttribute('data-address-detail'),
+    isDefault: el.getAttribute('data-is-default') === 'true'
+}));
+
+let selectedAddressId = null;
+
+// Populate initial address
+function initAddressWidget() {
+    // If no addresses, show the inline form immediately (in 'add' mode, permanently expanded)
+    if (userAddresses.length === 0) {
+        document.getElementById('selectedAddressCard').style.display = 'none';
+        showInlineAddressForm('add');
+        document.getElementById('btnCancelInlineAddress').style.display = 'none'; // No cancel since they must add an address
+        document.getElementById('mIsDefault').checked = true;
+        document.getElementById('mIsDefault').disabled = true; // Must be default since it's the first one
+        return;
+    }
+
+    // Find default or first address
+    let activeAddr = userAddresses.find(a => a.isDefault);
+    if (!activeAddr) activeAddr = userAddresses[0];
+
+    selectAddress(activeAddr.addressId);
+    renderAddressList();
+}
+
+function selectAddress(addressId) {
+    selectedAddressId = addressId;
+    const addr = userAddresses.find(a => a.addressId === addressId);
+    if (!addr) return;
+
+    // Update display card
+    document.getElementById('displayRecipientName').textContent = addr.recipientName;
+    document.getElementById('displayRecipientPhone').textContent = addr.recipientPhone;
+    document.getElementById('displayAddressDetail').textContent = addr.addressDetail;
+    
+    const defaultBadge = document.getElementById('defaultBadge');
+    if (addr.isDefault) {
+        defaultBadge.classList.remove('hidden');
+    } else {
+        defaultBadge.classList.add('hidden');
+    }
+
+    // Set form hidden inputs for submit
+    document.getElementById('fullName').value = addr.recipientName;
+    document.getElementById('phone').value = addr.recipientPhone;
+    document.getElementById('deliveryAddress').value = addr.addressDetail;
+
+    // Re-render list to show checked radio
+    renderAddressList();
+}
+
+function renderAddressList() {
+    const container = document.getElementById('addressOptionsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    userAddresses.forEach(addr => {
+        const isSelected = (addr.addressId === selectedAddressId);
+        
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-lg border text-xs flex items-start justify-between gap-3 cursor-pointer transition-all duration-150 ${isSelected ? 'bg-emerald-50/75 border-[#14532D]/40 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`;
+        card.onclick = () => selectAddress(addr.addressId);
+
+        card.innerHTML = `
+            <div class="flex items-start gap-2.5 flex-grow">
+                <input type="radio" name="addrSelect" value="${addr.addressId}" ${isSelected ? 'checked' : ''} class="mt-0.5 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer">
+                <div class="space-y-0.5 flex-grow">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-bold text-slate-800">${addr.recipientName}</span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-slate-600 font-semibold">${addr.recipientPhone}</span>
+                        \${addr.isDefault ? '<span class="px-1.5 py-0.2 bg-red-100 text-red-700 text-[8px] font-bold rounded border border-red-200">Mặc định</span>' : ''}
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">\${addr.addressDetail}</p>
+                </div>
+            </div>
+            <button type="button" onclick="event.stopPropagation(); showInlineAddressForm('edit', \${addr.addressId})" class="text-[#14532D] hover:underline font-bold shrink-0 text-[11px] cursor-pointer">Sửa</button>
+        `;
+        
+        container.appendChild(card);
+    });
+}
+
+function toggleAddressSelectionList() {
+    const list = document.getElementById('addressSelectionList');
+    const icon = document.getElementById('expandIcon');
+    if (list.classList.contains('hidden')) {
+        list.classList.remove('hidden');
+        if (icon) icon.classList.add('rotate-180');
+    } else {
+        list.classList.add('hidden');
+        if (icon) icon.classList.remove('rotate-180');
     }
 }
 
-// Client-side checkout validation
-function validateCheckoutForm() {
-    const fullNameElem = document.getElementById('fullName');
-    const phoneElem = document.getElementById('phone');
-    const addressElem = document.getElementById('deliveryAddress');
+function showInlineAddressForm(mode, addressId = null) {
+    const form = document.getElementById('inlineAddressForm');
+    const title = document.getElementById('inlineFormTitle');
+    const actionInput = document.getElementById('inlineAction');
+    const addressIdInput = document.getElementById('inlineAddressId');
+    
+    const nameInput = document.getElementById('mRecipientName');
+    const phoneInput = document.getElementById('mRecipientPhone');
+    const detailInput = document.getElementById('mAddressDetail');
+    const defaultInput = document.getElementById('mIsDefault');
 
-    // Remove old error alert if exists
-    const existingAlert = document.getElementById('js-validation-alert');
-    if (existingAlert) {
-        existingAlert.remove();
+    actionInput.value = mode;
+
+    if (mode === 'add') {
+        title.textContent = 'Thêm địa chỉ giao hàng mới';
+        addressIdInput.value = '';
+        nameInput.value = '';
+        phoneInput.value = '';
+        detailInput.value = '';
+        defaultInput.checked = (userAddresses.length === 0);
+        defaultInput.disabled = (userAddresses.length === 0);
+    } else {
+        title.textContent = 'Cập nhật địa chỉ giao hàng';
+        const addr = userAddresses.find(a => a.addressId === addressId);
+        if (!addr) return;
+        
+        addressIdInput.value = addr.addressId;
+        nameInput.value = addr.recipientName;
+        phoneInput.value = addr.recipientPhone;
+        detailInput.value = addr.addressDetail;
+        defaultInput.checked = addr.isDefault;
+        defaultInput.disabled = addr.isDefault; // If it's already default, cannot uncheck it
     }
 
-    const fullName = fullNameElem.value.trim();
-    const phone = phoneElem.value.trim();
-    const address = addressElem.value.trim();
+    form.classList.remove('hidden');
+    form.style.maxHeight = '500px';
+    nameInput.focus();
+}
 
-    let errors = [];
+function hideInlineAddressForm() {
+    const form = document.getElementById('inlineAddressForm');
+    form.style.maxHeight = '0px';
+    setTimeout(() => {
+        form.classList.add('hidden');
+    }, 300);
+}
 
-    if (fullName.length < 3) {
-        errors.push("Họ và tên người nhận phải từ 3 ký tự trở lên.");
+function handleInlineAddressSubmit() {
+    const mode = document.getElementById('inlineAction').value;
+    const addressId = document.getElementById('inlineAddressId').value;
+    const name = document.getElementById('mRecipientName').value.trim();
+    const phone = document.getElementById('mRecipientPhone').value.trim();
+    const detail = document.getElementById('mAddressDetail').value.trim();
+    const isDefault = document.getElementById('mIsDefault').checked;
+
+    if (name.length < 3) {
+        alert('Họ và tên người nhận phải từ 3 ký tự trở lên.');
+        document.getElementById('mRecipientName').focus();
+        return;
     }
-
     const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
     if (!phoneRegex.test(phone)) {
-        errors.push("Số điện thoại không hợp lệ (phải bắt đầu bằng 0 hoặc +84 và theo sau là 9 chữ số thuộc nhà mạng VN).");
+        alert('Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam gồm 10 chữ số).');
+        document.getElementById('mRecipientPhone').focus();
+        return;
+    }
+    if (detail.length < 5) {
+        alert('Địa chỉ chi tiết phải từ 5 ký tự trở lên.');
+        document.getElementById('mAddressDetail').focus();
+        return;
     }
 
-    if (address.length < 5) {
-        errors.push("Địa chỉ giao hàng chi tiết phải từ 5 ký tự trở lên.");
-    }
+    const btn = document.getElementById('btnSaveCheckoutAddress');
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+    btn.textContent = 'Đang lưu...';
 
-    if (errors.length > 0) {
-        let errorListHtml = "";
-        for (let i = 0; i < errors.length; i++) {
-            errorListHtml += "<li>" + errors[i] + "</li>";
+    const params = new URLSearchParams({
+        action: mode === 'edit' ? 'update' : mode,
+        addressId: addressId,
+        recipientName: name,
+        recipientPhone: phone,
+        addressDetail: detail,
+        isDefault: isDefault ? 'true' : 'false',
+        _csrf: '${sessionScope._csrfToken}'
+    });
+
+    fetch('${pageContext.request.contextPath}/api/address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        btn.textContent = 'Lưu địa chỉ';
+
+        if (data.success) {
+            const updatedAddr = {
+                addressId: data.address.addressId,
+                recipientName: data.address.recipientName,
+                recipientPhone: data.address.recipientPhone,
+                addressDetail: data.address.addressDetail,
+                isDefault: data.address.isDefault
+            };
+
+            if (updatedAddr.isDefault) {
+                // Set all other addresses isDefault to false
+                userAddresses.forEach(a => a.isDefault = false);
+            }
+
+            if (mode === 'add') {
+                userAddresses.push(updatedAddr);
+            } else {
+                const idx = userAddresses.findIndex(a => a.addressId === updatedAddr.addressId);
+                if (idx !== -1) {
+                    userAddresses[idx] = updatedAddr;
+                }
+            }
+
+            // Restore elements in case it was the first address
+            document.getElementById('selectedAddressCard').style.display = 'flex';
+            document.getElementById('btnCancelInlineAddress').style.display = 'inline-block';
+            document.getElementById('mIsDefault').disabled = false;
+
+            selectAddress(updatedAddr.addressId);
+            hideInlineAddressForm();
+        } else {
+            alert('Lỗi: ' + data.error);
         }
-        const alertHtml = 
-            '<div id="js-validation-alert" class="mb-6 p-4 rounded-2xl bg-red-50 flex flex-col gap-2 border-l-4 border-red-500 text-red-700 shadow-md">' +
-                '<div class="flex items-center gap-3">' +
-                    '<span class="material-symbols-outlined text-red-500">error</span>' +
-                    '<strong class="text-sm">Vui lòng sửa các lỗi sau trước khi thanh toán:</strong>' +
-                '</div>' +
-                '<ul class="list-disc pl-9 text-xs font-semibold space-y-1">' +
-                    errorListHtml +
-                '</ul>' +
-            '</div>';
-        
-        const form = document.getElementById('checkoutForm');
-        form.insertAdjacentHTML('beforebegin', alertHtml);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        btn.textContent = 'Lưu địa chỉ';
+        console.error(err);
+        alert('Đã xảy ra lỗi kết nối.');
+    });
+}
+
+function validateCheckoutForm() {
+    const fullName = document.getElementById('fullName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+
+    if (userAddresses.length === 0) {
+        alert('Vui lòng thêm địa chỉ nhận hàng trước khi thanh toán.');
+        showInlineAddressForm('add');
         return false;
     }
 
-    // Disable submit button to prevent double-submit
-    const btn = document.getElementById('submitBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
-        btn.innerHTML = 'Đang xử lý đơn hàng...';
+    if (!fullName || !phone || !deliveryAddress) {
+        alert('Vui lòng chọn hoặc điền thông tin địa chỉ giao hàng hợp lệ.');
+        return false;
     }
 
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50');
+        submitBtn.innerHTML = 'Đang xử lý đặt đơn... <span class="material-symbols-outlined animate-spin text-sm">sync</span>';
+    }
     return true;
 }
 
 // Prefill default address on load if available
 document.addEventListener('DOMContentLoaded', () => {
-    const selectElem = document.getElementById('savedAddressSelect');
-    if (selectElem && selectElem.value) {
-        onAddressSelectChange(selectElem);
-    }
+    initAddressWidget();
 });
 </script>
 

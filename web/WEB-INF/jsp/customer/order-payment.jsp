@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quét mã QR Thanh toán - Verdant Market"/></jsp:include>
@@ -100,6 +100,7 @@
 </style>
 
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
+    <input type="hidden" id="js-qr-expire-min" value="${qrExpireMin != null ? qrExpireMin : 15}">
     
     <div class="mb-8 flex items-baseline justify-between border-b border-[#b1f2be] pb-4">
         <div>
@@ -315,7 +316,7 @@
     }
 
     // Countdown Timer — dùng qrExpireMin từ server (mặc định 15 phút)
-    let totalSeconds = ${qrExpireMin != null ? qrExpireMin : 15} * 60;
+    let totalSeconds = parseInt(document.getElementById('js-qr-expire-min').value || '15') * 60;
     const countdownEl = document.getElementById('countdown');
     const qrOverlayEl = document.getElementById('qr-overlay');
     const renewFormEl = document.getElementById('renew-qr-form');

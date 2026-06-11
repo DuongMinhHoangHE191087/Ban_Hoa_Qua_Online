@@ -48,10 +48,12 @@ public class CartService {
 
         for (CartItem item : items) {
             BigDecimal price = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
+            BigDecimal packagingPriceAdd = item.getPackagingPriceAdd() != null ? item.getPackagingPriceAdd() : BigDecimal.ZERO;
+            BigDecimal totalItemUnitPrice = price.add(packagingPriceAdd);
             BigDecimal weight = item.getWeightKg() != null ? item.getWeightKg() : new BigDecimal("1.000");
             
             // 1. Tính toán tiền tệ trên số nguyên Long (VND không lẻ thập phân)
-            long unitPrice = price.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            long unitPrice = totalItemUnitPrice.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
             long itemSubtotal = unitPrice * item.getQuantity();
             accumulativeSubtotal += itemSubtotal;
 
@@ -79,6 +81,10 @@ public class CartService {
      * Thêm sản phẩm vào giỏ hàng. Kiểm tra giới hạn số lượng tồn kho.
      */
     public void addToCart(int customerId, int variantId, int qty) throws SQLException {
+        addToCart(customerId, variantId, qty, null);
+    }
+
+    public void addToCart(int customerId, int variantId, int qty, Integer packagingId) throws SQLException {
         if (qty <= 0) {
             throw new IllegalArgumentException("Số lượng thêm vào giỏ hàng phải lớn hơn 0.");
         }
@@ -96,11 +102,12 @@ public class CartService {
             cartId = carts.get(0).getCartId();
         }
 
-        // Kiểm tra xem đã có sản phẩm này trong giỏ chưa
+        // Kiểm tra xem đã có sản phẩm này trong giỏ với cùng tùy chọn bao bì chưa
         List<CartItem> items = cartDAO.findItems(cartId);
         int existingQty = 0;
         for (CartItem item : items) {
-            if (item.getVariantId() == variantId) {
+            if (item.getVariantId() == variantId && 
+                ((packagingId == null && item.getPackagingId() == null) || (packagingId != null && packagingId.equals(item.getPackagingId())))) {
                 existingQty = item.getQuantity();
                 break;
             }
@@ -112,7 +119,7 @@ public class CartService {
                 + ") vượt quá số lượng còn lại trong kho (" + variant.getStockQuantity() + ").");
         }
 
-        cartDAO.addItem(cartId, variantId, qty);
+        cartDAO.addItem(cartId, variantId, qty, packagingId);
     }
 
     /**

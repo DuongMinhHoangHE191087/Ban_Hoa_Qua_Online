@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đối soát Thanh toán – Admin MetaFruit</title>
+    <title>Đối soát Thanh toán – Admin Verdant Market</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -134,7 +134,7 @@
                             <th class="px-6 py-3.5 font-bold">Cửa Hàng</th>
                             <th class="px-6 py-3.5 font-bold">Kỳ Đối Soát</th>
                             <th class="px-6 py-3.5 font-bold text-right">Doanh thu gộp</th>
-                            <th class="px-6 py-3.5 font-bold text-right">Phí sàn</th>
+                            <th class="px-6 py-3.5 font-bold text-right">Phí nền tảng</th>
                             <th class="px-6 py-3.5 font-bold text-right">Hoàn tiền</th>
                             <th class="px-6 py-3.5 font-bold text-right">Số tiền thực nhận</th>
                             <th class="px-6 py-3.5 font-bold text-center">Trạng thái</th>

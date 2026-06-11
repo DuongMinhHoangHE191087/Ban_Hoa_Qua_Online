@@ -19,6 +19,15 @@ GO
 SET NOCOUNT ON;
 GO
 
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
 -- =========================================================
 -- Schema creation
 -- =========================================================
@@ -126,25 +135,72 @@ GO
 IF OBJECT_ID(N'dbo.products', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.products (
-        product_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_products PRIMARY KEY,
-        owner_id INT NOT NULL,
-        category_id INT NOT NULL,
-        name NVARCHAR(200) NOT NULL,
-        description NVARCHAR(MAX) NULL,
-        origin_country NVARCHAR(100) NULL,
-        origin_region NVARCHAR(150) NULL,
-        harvest_date DATE NULL,
-        shelf_life_days INT NULL,
+        product_id          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_products PRIMARY KEY,
+        owner_id            INT NOT NULL,
+        category_id         INT NOT NULL,
+        name                NVARCHAR(200) NOT NULL,
+        description         NVARCHAR(MAX) NULL,
+        origin_country      NVARCHAR(100) NULL,
+        origin_region       NVARCHAR(150) NULL,
+        harvest_date        DATE NULL,
+        shelf_life_days     INT NULL,
         storage_instruction NVARCHAR(300) NULL,
-        status NVARCHAR(20) NOT NULL CONSTRAINT CK_products_status DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'DELETED', 'OUT_OF_SEASON')),
-        view_count INT NOT NULL CONSTRAINT DF_products_view_count DEFAULT 0,
-        rating DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
-        sold_quantity INT NOT NULL CONSTRAINT DF_products_sold_quantity DEFAULT 0,
-        created_at DATETIME NOT NULL CONSTRAINT DF_products_created_at DEFAULT GETDATE(),
-        updated_at DATETIME NOT NULL CONSTRAINT DF_products_updated_at DEFAULT GETDATE(),
-        CONSTRAINT FK_products_users FOREIGN KEY (owner_id) REFERENCES dbo.users(user_id),
-        CONSTRAINT FK_products_categories FOREIGN KEY (category_id) REFERENCES dbo.categories(category_id)
+        status              NVARCHAR(20) NOT NULL
+                            CONSTRAINT DF_products_status  DEFAULT 'ACTIVE'
+                            CONSTRAINT CK_products_status  CHECK (status IN ('ACTIVE','INACTIVE','DELETED','OUT_OF_SEASON')),
+        view_count          INT NOT NULL CONSTRAINT DF_products_view_count     DEFAULT 0,
+        rating              DECIMAL(3,2) NOT NULL CONSTRAINT DF_products_rating DEFAULT 0,
+        sold_quantity       INT NOT NULL CONSTRAINT DF_products_sold_quantity   DEFAULT 0,
+        -- === FEATURE COLUMNS (formerly product_features_migration.sql) ===
+        is_organic          BIT NOT NULL CONSTRAINT DF_products_is_organic      DEFAULT 0,   -- Nhãn Hữu cơ
+        is_imported         BIT NOT NULL CONSTRAINT DF_products_is_imported     DEFAULT 0,   -- Nhãn Nhập khẩu
+        season_start_month  INT NULL                                                         -- Tháng bắt đầu mùa vụ (1-12)
+                            CONSTRAINT CK_products_season_start CHECK (season_start_month BETWEEN 1 AND 12),
+        season_end_month    INT NULL                                                         -- Tháng kết thúc mùa vụ (1-12)
+                            CONSTRAINT CK_products_season_end   CHECK (season_end_month   BETWEEN 1 AND 12),
+        -- === APPROVAL WORKFLOW COLUMNS (formerly product_approval_migration.sql) ===
+        approval_status     NVARCHAR(20) NOT NULL
+                            CONSTRAINT DF_products_approval_status  DEFAULT 'PENDING'
+                            CONSTRAINT CK_products_approval_status  CHECK (approval_status IN ('PENDING','APPROVED','REJECTED')),
+        verification_doc_path NVARCHAR(500) NULL,                                           -- Đường dẫn giấy tờ xác nhận
+        rejection_reason    NVARCHAR(500) NULL,                                             -- Lý do từ chối của Admin
+        created_at          DATETIME NOT NULL CONSTRAINT DF_products_created_at DEFAULT GETDATE(),
+        updated_at          DATETIME NOT NULL CONSTRAINT DF_products_updated_at DEFAULT GETDATE(),
+        CONSTRAINT FK_products_users       FOREIGN KEY (owner_id)    REFERENCES dbo.users(user_id),
+        CONSTRAINT FK_products_categories  FOREIGN KEY (category_id) REFERENCES dbo.categories(category_id)
     );
+    PRINT 'Created products table with full feature + approval columns.';
+END
+GO
+
+-- === MIGRATION GUARDS: Nâng cấp DB cũ không có các cột này (idempotent - chạy nhiều lần vẫn an toàn) ===
+IF OBJECT_ID(N'dbo.products', N'U') IS NOT NULL
+BEGIN
+    -- is_organic
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'is_organic')
+        ALTER TABLE dbo.products ADD is_organic BIT NOT NULL CONSTRAINT DF_products_is_organic DEFAULT 0;
+    -- is_imported
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'is_imported')
+        ALTER TABLE dbo.products ADD is_imported BIT NOT NULL CONSTRAINT DF_products_is_imported DEFAULT 0;
+    -- season_start_month
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'season_start_month')
+        ALTER TABLE dbo.products ADD season_start_month INT NULL CONSTRAINT CK_products_season_start CHECK (season_start_month BETWEEN 1 AND 12);
+    -- season_end_month
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'season_end_month')
+        ALTER TABLE dbo.products ADD season_end_month INT NULL CONSTRAINT CK_products_season_end CHECK (season_end_month BETWEEN 1 AND 12);
+    -- approval_status
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'approval_status')
+        ALTER TABLE dbo.products ADD approval_status NVARCHAR(20) NOT NULL CONSTRAINT DF_products_approval_status DEFAULT 'PENDING'
+            CONSTRAINT CK_products_approval_status CHECK (approval_status IN ('PENDING','APPROVED','REJECTED'));
+    -- verification_doc_path
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'verification_doc_path')
+        ALTER TABLE dbo.products ADD verification_doc_path NVARCHAR(500) NULL;
+    -- rejection_reason
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.products') AND name = N'rejection_reason')
+        ALTER TABLE dbo.products ADD rejection_reason NVARCHAR(500) NULL;
+    -- Tương thích ngược: sản phẩm cũ trước khi có luồng duyệt — mặc định là APPROVED
+    UPDATE dbo.products SET approval_status = 'APPROVED' WHERE approval_status = 'PENDING' AND name IS NOT NULL;
+    PRINT 'Migration guards for products table applied successfully.';
 END
 GO
 
@@ -165,18 +221,36 @@ GO
 IF OBJECT_ID(N'dbo.product_variants', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.product_variants (
-        variant_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_product_variants PRIMARY KEY,
-        product_id INT NOT NULL,
-        sku NVARCHAR(50) NOT NULL CONSTRAINT UQ_product_variants_sku UNIQUE,
-        variant_label NVARCHAR(100) NOT NULL,
-        price DECIMAL(12,2) NOT NULL,
-        stock_quantity INT NOT NULL CONSTRAINT DF_product_variants_stock_quantity DEFAULT 0,
-        weight_kg DECIMAL(6,3) NOT NULL CONSTRAINT DF_product_variants_weight_kg DEFAULT 1.000 CHECK (weight_kg > 0.000),
-        is_active BIT NOT NULL CONSTRAINT DF_product_variants_is_active DEFAULT 1,
-        created_at DATETIME NOT NULL CONSTRAINT DF_product_variants_created_at DEFAULT GETDATE(),
-        updated_at DATETIME NOT NULL CONSTRAINT DF_product_variants_updated_at DEFAULT GETDATE(),
+        variant_id      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_product_variants PRIMARY KEY,
+        product_id      INT NOT NULL,
+        sku             NVARCHAR(50) NOT NULL CONSTRAINT UQ_product_variants_sku UNIQUE,
+        variant_label   NVARCHAR(100) NOT NULL,
+        price           DECIMAL(12,2) NOT NULL,
+        stock_quantity  INT NOT NULL CONSTRAINT DF_product_variants_stock_quantity DEFAULT 0,
+        weight_kg       DECIMAL(6,3) NOT NULL CONSTRAINT DF_product_variants_weight_kg DEFAULT 1.000 CHECK (weight_kg > 0.000),
+        is_active       BIT NOT NULL CONSTRAINT DF_product_variants_is_active DEFAULT 1,
+        -- === GIÁ GIẢM GIÁ (formerly product_features_migration.sql) ===
+        discount_price  DECIMAL(12,2) NULL,         -- Giá giảm, NULL = không giảm
+        discount_start  DATETIME NULL,              -- Thời điểm bắt đầu giảm giá
+        discount_end    DATETIME NULL,              -- Thời điểm kết thúc giảm giá (hết hạn → giá gốc tự động có hiệu lực)
+        created_at      DATETIME NOT NULL CONSTRAINT DF_product_variants_created_at DEFAULT GETDATE(),
+        updated_at      DATETIME NOT NULL CONSTRAINT DF_product_variants_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_product_variants_products FOREIGN KEY (product_id) REFERENCES dbo.products(product_id) ON DELETE CASCADE
     );
+    PRINT 'Created product_variants table with discount pricing columns.';
+END
+GO
+
+-- Migration guard: thêm các cột giảm giá vào DB cũ — idempotent
+IF OBJECT_ID(N'dbo.product_variants', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.product_variants') AND name = N'discount_price')
+        ALTER TABLE dbo.product_variants ADD discount_price DECIMAL(12,2) NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.product_variants') AND name = N'discount_start')
+        ALTER TABLE dbo.product_variants ADD discount_start DATETIME NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.product_variants') AND name = N'discount_end')
+        ALTER TABLE dbo.product_variants ADD discount_end DATETIME NULL;
+    PRINT 'Migration guards for product_variants discount columns applied.';
 END
 GO
 
@@ -257,14 +331,48 @@ GO
 IF OBJECT_ID(N'dbo.cart_items', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.cart_items (
-        cart_item_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_cart_items PRIMARY KEY,
-        cart_id INT NOT NULL,
-        variant_id INT NOT NULL,
-        quantity INT NOT NULL CONSTRAINT CK_cart_items_quantity CHECK (quantity >= 1),
-        added_at DATETIME NOT NULL CONSTRAINT DF_cart_items_added_at DEFAULT GETDATE(),
-        CONSTRAINT FK_cart_items_cart FOREIGN KEY (cart_id) REFERENCES dbo.cart(cart_id) ON DELETE CASCADE,
+        cart_item_id    INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_cart_items PRIMARY KEY,
+        cart_id         INT NOT NULL,
+        variant_id      INT NOT NULL,
+        quantity        INT NOT NULL CONSTRAINT CK_cart_items_quantity CHECK (quantity >= 1),
+        packaging_id    INT NULL,   -- Lựa chọn đóng gói (nullable: khách không chọn giao thiết bao bì riêng)
+        added_at        DATETIME NOT NULL CONSTRAINT DF_cart_items_added_at DEFAULT GETDATE(),
+        CONSTRAINT FK_cart_items_cart     FOREIGN KEY (cart_id)  REFERENCES dbo.cart(cart_id) ON DELETE CASCADE,
         CONSTRAINT FK_cart_items_variants FOREIGN KEY (variant_id) REFERENCES dbo.product_variants(variant_id)
+        -- FK tới product_packaging_options được thêm sau khi tạo bảng đó
     );
+END
+GO
+
+-- Lựa chọn đóng gói sản phẩm (formerly product_features_migration.sql)
+IF OBJECT_ID(N'dbo.product_packaging_options', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.product_packaging_options (
+        packaging_id    INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_product_packaging_options PRIMARY KEY,
+        product_id      INT NOT NULL,
+        label           NVARCHAR(100) NOT NULL,          -- Nhãn hiển thị (VD: 'Hộp gỗ', 'Túi lưới')
+        price_add       DECIMAL(12,2) NOT NULL CONSTRAINT DF_packaging_price_add DEFAULT 0
+                        CONSTRAINT CK_packaging_price_add CHECK (price_add >= 0),
+        is_active       BIT NOT NULL CONSTRAINT DF_packaging_is_active DEFAULT 1,
+        CONSTRAINT FK_packaging_products FOREIGN KEY (product_id) REFERENCES dbo.products(product_id) ON DELETE CASCADE
+    );
+    -- Thêm FK packaging vào cart_items nếu chưa có
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.cart_items') AND name = N'FK_cart_items_packaging'
+    )
+        ALTER TABLE dbo.cart_items ADD CONSTRAINT FK_cart_items_packaging FOREIGN KEY (packaging_id) REFERENCES dbo.product_packaging_options(packaging_id);
+    PRINT 'Created product_packaging_options table and linked FK on cart_items.';
+END
+GO
+
+-- Migration guard: thêm cột packaging_id vào cart_items cũ — idempotent
+IF OBJECT_ID(N'dbo.cart_items', N'U') IS NOT NULL AND OBJECT_ID(N'dbo.product_packaging_options', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.cart_items') AND name = N'packaging_id')
+    BEGIN
+        ALTER TABLE dbo.cart_items ADD packaging_id INT NULL CONSTRAINT FK_cart_items_packaging FOREIGN KEY REFERENCES dbo.product_packaging_options(packaging_id);
+        PRINT 'Added packaging_id to cart_items (migration guard).';
+    END
 END
 GO
 
@@ -273,7 +381,9 @@ BEGIN
     CREATE TABLE dbo.orders (
         order_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_orders PRIMARY KEY,
         customer_id INT NOT NULL,
-        owner_id INT NOT NULL,
+        owner_id INT NULL,
+        parent_order_id INT NULL,
+        order_type NVARCHAR(10) NOT NULL CONSTRAINT DF_orders_order_type DEFAULT 'CHILD' CONSTRAINT CK_orders_order_type CHECK (order_type IN ('PARENT', 'CHILD')),
         delivery_address NVARCHAR(500) NOT NULL,
         recipient_name NVARCHAR(100) NULL,
         recipient_phone NVARCHAR(15) NULL,
@@ -298,8 +408,50 @@ BEGIN
         updated_at DATETIME NOT NULL CONSTRAINT DF_orders_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_orders_customer FOREIGN KEY (customer_id) REFERENCES dbo.users(user_id),
         CONSTRAINT FK_orders_owner FOREIGN KEY (owner_id) REFERENCES dbo.users(user_id),
+        CONSTRAINT FK_orders_parent FOREIGN KEY (parent_order_id) REFERENCES dbo.orders(order_id),
         CONSTRAINT FK_orders_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES dbo.users(user_id)
     );
+END
+GO
+
+-- Migration: Parent/child order columns for multi-shop checkout.
+IF OBJECT_ID(N'dbo.orders', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.orders') AND name = N'parent_order_id')
+        ALTER TABLE dbo.orders ADD parent_order_id INT NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.orders') AND name = N'order_type')
+        ALTER TABLE dbo.orders ADD order_type NVARCHAR(10) NOT NULL CONSTRAINT DF_orders_order_type DEFAULT 'CHILD';
+
+    EXEC(N'UPDATE dbo.orders SET order_type = ''CHILD'' WHERE order_type IS NULL');
+
+    IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.orders') AND name = N'owner_id' AND is_nullable = 0)
+    BEGIN
+        DECLARE @OwnerFkName NVARCHAR(255);
+        SELECT @OwnerFkName = fk.name
+        FROM sys.foreign_keys fk
+        JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+        JOIN sys.columns c ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
+        WHERE fk.parent_object_id = OBJECT_ID(N'dbo.orders') AND c.name = N'owner_id';
+
+        IF @OwnerFkName IS NOT NULL
+        BEGIN
+            DECLARE @DropOwnerFkSql NVARCHAR(MAX);
+            SET @DropOwnerFkSql = N'ALTER TABLE dbo.orders DROP CONSTRAINT ' + QUOTENAME(@OwnerFkName);
+            EXEC sp_executesql @DropOwnerFkSql;
+        END
+
+        ALTER TABLE dbo.orders ALTER COLUMN owner_id INT NULL;
+
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_orders_owner')
+            ALTER TABLE dbo.orders ADD CONSTRAINT FK_orders_owner FOREIGN KEY (owner_id) REFERENCES dbo.users(user_id);
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_orders_parent')
+        ALTER TABLE dbo.orders ADD CONSTRAINT FK_orders_parent FOREIGN KEY (parent_order_id) REFERENCES dbo.orders(order_id);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_orders_order_type')
+        EXEC(N'ALTER TABLE dbo.orders ADD CONSTRAINT CK_orders_order_type CHECK (order_type IN (''PARENT'', ''CHILD''))');
 END
 GO
 
@@ -325,17 +477,33 @@ GO
 IF OBJECT_ID(N'dbo.order_items', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.order_items (
-        order_item_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_order_items PRIMARY KEY,
-        order_id INT NOT NULL,
-        variant_id INT NULL,
-        product_name_snapshot NVARCHAR(200) NOT NULL,
-        variant_label_snapshot NVARCHAR(100) NOT NULL,
-        quantity INT NOT NULL CONSTRAINT CK_order_items_quantity CHECK (quantity >= 1),
-        unit_price DECIMAL(12,2) NOT NULL,
-        subtotal DECIMAL(14,2) NOT NULL,
-        CONSTRAINT FK_order_items_orders FOREIGN KEY (order_id) REFERENCES dbo.orders(order_id) ON DELETE CASCADE,
+        order_item_id           INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_order_items PRIMARY KEY,
+        order_id                INT NOT NULL,
+        variant_id              INT NULL,
+        product_name_snapshot   NVARCHAR(200) NOT NULL,
+        variant_label_snapshot  NVARCHAR(100) NOT NULL,
+        quantity                INT NOT NULL CONSTRAINT CK_order_items_quantity CHECK (quantity >= 1),
+        unit_price              DECIMAL(12,2) NOT NULL,
+        subtotal                DECIMAL(14,2) NOT NULL,
+        -- === PACKAGING SNAPSHOT (formerly product_features_migration.sql) ===
+        packaging_label_snapshot  NVARCHAR(100) NULL,      -- Nhãn đóng gói tại thời điểm đặt hàng (bất biến)
+        packaging_price_snapshot  DECIMAL(12,2) NOT NULL   -- Giá đóng gói tại thời điểm đặt hàng
+                                  CONSTRAINT DF_order_items_pkg_price_snapshot DEFAULT 0,
+        CONSTRAINT FK_order_items_orders   FOREIGN KEY (order_id)   REFERENCES dbo.orders(order_id) ON DELETE CASCADE,
         CONSTRAINT FK_order_items_variants FOREIGN KEY (variant_id) REFERENCES dbo.product_variants(variant_id) ON DELETE SET NULL
     );
+    PRINT 'Created order_items table with packaging snapshot columns.';
+END
+GO
+
+-- Migration guard: thêm cột snapshot đóng gói vào order_items cũ — idempotent
+IF OBJECT_ID(N'dbo.order_items', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_items') AND name = N'packaging_label_snapshot')
+        ALTER TABLE dbo.order_items ADD packaging_label_snapshot NVARCHAR(100) NULL;
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.order_items') AND name = N'packaging_price_snapshot')
+        ALTER TABLE dbo.order_items ADD packaging_price_snapshot DECIMAL(12,2) NOT NULL CONSTRAINT DF_order_items_pkg_price_snapshot DEFAULT 0;
+    PRINT 'Migration guards for order_items packaging snapshots applied.';
 END
 GO
 
@@ -462,11 +630,30 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.delivery_trips', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.delivery_trips (
+        trip_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_delivery_trips PRIMARY KEY,
+        parent_order_id INT NOT NULL,
+        shipper_id INT NULL,
+        status NVARCHAR(20) NOT NULL CONSTRAINT DF_delivery_trips_status DEFAULT 'PLANNED' CONSTRAINT CK_delivery_trips_status CHECK (status IN ('PLANNED','ASSIGNED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED')),
+        estimated_start_time DATETIME NULL,
+        estimated_end_time DATETIME NULL,
+        created_at DATETIME NOT NULL CONSTRAINT DF_delivery_trips_created_at DEFAULT GETDATE(),
+        updated_at DATETIME NOT NULL CONSTRAINT DF_delivery_trips_updated_at DEFAULT GETDATE(),
+        CONSTRAINT FK_delivery_trips_parent_order FOREIGN KEY (parent_order_id) REFERENCES dbo.orders(order_id),
+        CONSTRAINT FK_delivery_trips_shipper FOREIGN KEY (shipper_id) REFERENCES dbo.users(user_id)
+    );
+END
+GO
+
 IF OBJECT_ID(N'dbo.deliveries', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.deliveries (
         delivery_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_deliveries PRIMARY KEY,
         order_id INT NOT NULL CONSTRAINT UQ_deliveries_order_id UNIQUE,
+        delivery_trip_id INT NULL,
+        trip_stop_seq INT NULL,
         staff_id INT NULL,
         status NVARCHAR(20) NOT NULL CONSTRAINT DF_deliveries_status DEFAULT 'ASSIGNED' CONSTRAINT CK_deliveries_status CHECK (status IN ('ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'FAILED')),
         picked_up_at DATETIME NULL,
@@ -477,6 +664,7 @@ BEGIN
         created_at DATETIME NOT NULL CONSTRAINT DF_deliveries_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_deliveries_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_deliveries_order FOREIGN KEY (order_id) REFERENCES dbo.orders(order_id),
+        CONSTRAINT FK_deliveries_delivery_trip FOREIGN KEY (delivery_trip_id) REFERENCES dbo.delivery_trips(trip_id),
         CONSTRAINT FK_deliveries_staff FOREIGN KEY (staff_id) REFERENCES dbo.users(user_id)
     );
 END
@@ -492,6 +680,18 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.deliveries') AND name = N'estimated_delivery_time')
     BEGIN
         ALTER TABLE dbo.deliveries ADD estimated_delivery_time DATETIME NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.deliveries') AND name = N'delivery_trip_id')
+    BEGIN
+        ALTER TABLE dbo.deliveries ADD delivery_trip_id INT NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.deliveries') AND name = N'trip_stop_seq')
+    BEGIN
+        ALTER TABLE dbo.deliveries ADD trip_stop_seq INT NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_deliveries_delivery_trip')
+    BEGIN
+        ALTER TABLE dbo.deliveries ADD CONSTRAINT FK_deliveries_delivery_trip FOREIGN KEY (delivery_trip_id) REFERENCES dbo.delivery_trips(trip_id);
     END
 END
 GO
@@ -583,7 +783,8 @@ BEGIN
         ('platform_fee_rate',       '0.05', N'Tỷ lệ phí nền tảng (Platform Fee Rate). Mặc định 0.05 (5%).', 'DECIMAL'),
         ('settlement_freeze_days',  '15',   N'Số ngày đóng băng tiền quyết toán của shop.', 'INT'),
         ('shop_accept_timeout_min', '30',   N'Thời gian tối đa (phút) để shop chấp nhận đơn hàng trước khi tự hủy.', 'INT'),
-        ('return_request_max_hours','24',   N'Thời gian tối đa (giờ) để khách hàng gửi return request sau DELIVERED.', 'INT');
+        ('return_request_max_hours','24',   N'Thời gian tối đa (giờ) để khách hàng gửi return request sau DELIVERED.', 'INT'),
+        ('gemini_api_key',          '',     N'API Key cho mô hình Gemini 2.5 Flash để hỗ trợ AI Search & Tư vấn.', 'STRING');
 
     PRINT 'Created system_config table and seeded defaults.';
 END
@@ -611,6 +812,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_category_id_
 BEGIN
     CREATE INDEX IX_products_category_id_product_id_desc
         ON dbo.products (category_id, product_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_products_status_approval_product_id')
+BEGIN
+    CREATE INDEX IX_products_status_approval_product_id
+        ON dbo.products (status, approval_status, product_id DESC);
 END
 GO
 
@@ -646,6 +854,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_customer_id_or
 BEGIN
     CREATE INDEX IX_orders_customer_id_order_id_desc
         ON dbo.orders (customer_id, order_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_orders_parent_order_id')
+BEGIN
+    CREATE INDEX IX_orders_parent_order_id
+        ON dbo.orders (parent_order_id, order_id);
 END
 GO
 
@@ -751,6 +966,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_staff_id_s
 BEGIN
     CREATE INDEX IX_deliveries_staff_id_status_delivery_id_desc
         ON dbo.deliveries (staff_id, status, delivery_id DESC);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_deliveries_delivery_trip_id')
+BEGIN
+    CREATE INDEX IX_deliveries_delivery_trip_id
+        ON dbo.deliveries (delivery_trip_id, trip_stop_seq);
 END
 GO
 
@@ -977,6 +1199,30 @@ BEGIN TRY
 
         -- Category 4: Gift Boxes (ID 50)
         (50, 7, 4, N'Hộp Quà Trái Cây Phú Quý Cát Tường', N'Hộp quà gỗ thắt nơ đỏ cao cấp kết hợp táo Envy, nho ngón tay và lê Hàn Quốc. Lựa chọn quà biếu tặng hoàn hảo nhất.', N'Nhiều nước', N'Lắp ráp VIP', '2026-05-19', 5, N'Giữ mát toàn bộ hộp quà tránh va đập', N'ACTIVE', 880, 4.92, 29, GETDATE(), GETDATE());
+
+    -- Chèn thêm sản phẩm mới theo cấu trúc database nâng cấp
+    INSERT INTO dbo.products (product_id, owner_id, category_id, name, description, origin_country, origin_region, harvest_date, shelf_life_days, storage_instruction, status, view_count, rating, sold_quantity, is_organic, is_imported, season_start_month, season_end_month, approval_status, verification_doc_path, rejection_reason, created_at, updated_at)
+    VALUES
+        (51, 3, 6, N'Nho Mẫu Đơn Hữu Cơ Cao Cấp', N'Nho mẫu đơn hữu cơ quả to tròn giòn ngọt thơm sữa đặc trưng giống Nhật Bản.', N'Nhật Bản', N'Okayama', '2026-06-01', 10, N'Bảo quản mát 2-4 độ C', N'ACTIVE', 150, 5.0, 10, 1, 1, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (52, 7, 9, N'Cherry Hữu Cơ New Zealand', N'Cherry hữu cơ nhập khẩu chính ngạch từ New Zealand quả cứng giòn ngọt đậm đà.', N'New Zealand', N'Otago', '2026-06-02', 7, N'Bảo quản mát 0-2 độ C', N'ACTIVE', 80, 4.9, 5, 1, 1, 11, 2, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (53, 3, 1, N'Bưởi Da Xanh Hữu Cơ VietGAP', N'Bưởi da xanh hữu cơ bóc sẵn tép mọng nước ráo nước ngọt thanh.', N'Việt Nam', N'Bến Tre', '2026-06-03', 15, N'Nơi thoáng mát', N'ACTIVE', 95, 4.8, 12, 1, 0, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (54, 3, 1, N'Cam Sành Hữu Cơ Chờ Duyệt', N'Cam sành hữu cơ nhiều nước vỏ mỏng thơm mát đang chờ admin duyệt hồ sơ chứng nhận.', N'Việt Nam', N'Hòa Bình', '2026-06-04', 12, N'Bảo quản mát 6-10 độ C', N'ACTIVE', 0, 0.0, 0, 1, 0, NULL, NULL, N'PENDING', N'uploads/docs/cam_doc_confirm.pdf', NULL, GETDATE(), GETDATE()),
+        (55, 7, 5, N'Táo Envy Nhập Khẩu Bị Từ Chối', N'Táo Envy nhập khẩu nhưng hồ sơ chứng nhận bị admin từ chối duyệt.', N'Hoa Kỳ', N'Washington', '2026-06-05', 15, N'Bảo quản mát 2-4 độ C', N'ACTIVE', 0, 0.0, 0, 0, 1, NULL, NULL, N'REJECTED', N'uploads/docs/tao_doc_rejection.pdf', N'Thiếu giấy tờ kiểm định thực vật nhập khẩu.', GETDATE(), GETDATE()),
+        (56, 3, 2, N'Bơ Sáp Đắk Lắk Hữu Cơ VIP', N'Bơ sáp Đắk Lắk hữu cơ dẻo béo ngậy thơm ngon giàu dinh dưỡng tốt cho sức khỏe.', N'Việt Nam', N'Đắk Lắk', '2026-06-01', 7, N'Bảo quản nơi thoáng mát', N'ACTIVE', 120, 4.8, 15, 1, 0, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (57, 7, 1, N'Cam Vàng Ai Cập Nhập Khẩu', N'Cam vàng Ai Cập nhập khẩu chính ngạch mọng nước vị chua ngọt thanh mát.', N'Ai Cập', N'Cairo', '2026-06-02', 20, N'Bảo quản mát tủ lạnh 4-8 độ C', N'ACTIVE', 90, 4.6, 8, 0, 1, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (58, 7, 3, N'Dâu Tây Hàn Quốc Premium', N'Dâu tây Hàn Quốc quả to đều đỏ mọng thơm ngào ngạt vị ngọt thanh.', N'Hàn Quốc', N'Gyeonggi', '2026-06-03', 5, N'Bảo quản mát tủ lạnh 2-4 độ C', N'ACTIVE', 200, 4.9, 25, 0, 1, 12, 3, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (59, 7, 6, N'Nho Đen Ngón Tay Úc Hữu Cơ', N'Nho đen ngón tay Úc hữu cơ giòn ngọt đầm đà không hạt cực kỳ sang trọng.', N'Úc', N'Mildura', '2026-06-02', 12, N'Bảo quản mát tủ lạnh 0-2 độ C', N'ACTIVE', 310, 4.95, 45, 1, 1, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (60, 7, 2, N'Lê Nam Phi Nhập Khẩu Cao Cấp', N'Lê Nam Phi quả thon dài da sần đỏ vàng giòn ngọt mọng nước giải nhiệt cực tốt.', N'Nam Phi', N'Western Cape', '2026-06-01', 15, N'Bảo quản mát tủ lạnh 2-4 độ C', N'ACTIVE', 110, 4.7, 18, 0, 1, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (61, 3, 2, N'Măng Cụt Bến Tre Hữu Cơ', N'Măng cụt Bến Tre hữu cơ vỏ mỏng múi trắng ngần vị chua ngọt hài hòa.', N'Việt Nam', N'Bến Tre', '2026-06-03', 8, N'Bảo quản mát hoặc nhiệt độ thường', N'ACTIVE', 145, 4.85, 30, 1, 0, 5, 8, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (62, 3, 1, N'Quýt Đường Miền Tây Hữu Cơ', N'Quýt đường vỏ mỏng dễ bóc tép mọng nước ngọt đậm đà thơm tự nhiên.', N'Việt Nam', N'Đồng Tháp', '2026-06-02', 10, N'Bảo quản mát tủ lạnh hoặc nơi thoáng gió', N'ACTIVE', 85, 4.75, 14, 1, 0, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (63, 7, 5, N'Táo Rockit New Zealand Nhập Khẩu', N'Táo Rockit ống 4 quả giòn đanh ngọt đậm vỏ đỏ đẹp mắt rất được ưa chuộng.', N'New Zealand', N'Hawkes Bay', '2026-06-01', 30, N'Bảo quản mát tủ lạnh 2-4 độ C', N'ACTIVE', 400, 4.9, 100, 0, 1, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (64, 3, 7, N'Dưa Lưới Tabi Hữu Cơ VietGAP', N'Dưa lưới Tabi ruột cam giòn ngọt lịm thơm mát lưới dày đẹp mắt.', N'Việt Nam', N'Bình Dương', '2026-06-02', 14, N'Bảo quản mát hoặc nhiệt độ phòng', N'ACTIVE', 130, 4.8, 22, 1, 0, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (65, 7, 3, N'Việt Quất Mỹ Nhập Khẩu Hộp 125g', N'Việt quất quả to tròn cứng giòn ngọt lịm mọng nước cực nhiều dinh dưỡng.', N'Hoa Kỳ', N'Oregon', '2026-06-01', 10, N'Bảo quản mát 2-4 độ C giữ trong hộp kín', N'ACTIVE', 180, 4.9, 35, 0, 1, 6, 9, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (66, 7, 9, N'Cherry Đỏ Mỹ Size 9.5 Premium', N'Cherry đỏ Mỹ size lớn quả cứng như đá giòn ngọt đậm đà màu đỏ sẫm sang trọng.', N'Hoa Kỳ', N'California', '2026-06-02', 7, N'Bảo quản mát liên tục 0-2 độ C', N'ACTIVE', 280, 4.92, 50, 0, 1, 5, 8, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (67, 3, 2, N'Hồng Giòn Đà Lạt Hữu Cơ', N'Hồng giòn Đà Lạt hữu cơ quả vàng cam ăn giòn rôm rốp ngọt thanh không chát.', N'Việt Nam', N'Lâm Đồng', '2026-06-03', 10, N'Bảo quản mát để giữ độ giòn', N'ACTIVE', 95, 4.7, 19, 1, 0, 9, 11, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (68, 3, 2, N'Na Chi Lăng Lạng Sơn Hữu Cơ', N'Na Chi Lăng quả to mắt giãn đều thịt dày dai ngọt đậm đà thơm phức.', N'Việt Nam', N'Lạng Sơn', '2026-06-04', 5, N'Tránh va đập bảo quản nơi thoáng mát', N'ACTIVE', 110, 4.8, 12, 1, 0, 8, 10, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (69, 7, 2, N'Sầu Riêng Musang King Malaysia', N'Sầu riêng Musang King nhập khẩu múi vàng đậm cơm dẻo mịn béo ngậy ngọt lịm.', N'Malaysia', N'Pahang', '2026-06-02', 15, N'Bảo quản ngăn mát hoặc đông lạnh', N'ACTIVE', 350, 4.96, 40, 0, 1, NULL, NULL, N'APPROVED', NULL, NULL, GETDATE(), GETDATE()),
+        (70, 3, 2, N'Vải Thiều Lục Ngạn Hữu Cơ', N'Vải thiều Lục Ngạn hữu cơ quả to cùi dày hạt nhỏ ngọt lịm thơm nồng.', N'Việt Nam', N'Bắc Giang', '2026-06-05', 6, N'Bảo quản mát tránh để ngoài nhiệt độ cao', N'ACTIVE', 220, 4.88, 70, 1, 0, 5, 7, N'APPROVED', NULL, NULL, GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.products OFF;
 
     SET IDENTITY_INSERT dbo.product_images ON;
@@ -1072,7 +1318,47 @@ BEGIN TRY
         -- Cherry Vàng (49) -> Use local cherry_do.png
         (54, 49, N'assets/images/cherry_do.png', 1, 1, GETDATE()),
         -- Hộp Quà Phú Quý (50) -> Use local hop_qua_tet.png
-        (55, 50, N'assets/images/hop_qua_tet.png', 1, 1, GETDATE());
+        (55, 50, N'assets/images/hop_qua_tet.png', 1, 1, GETDATE()),
+        -- Nho Mẫu Đơn Hữu Cơ (51)
+        (56, 51, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        -- Cherry Hữu Cơ (52)
+        (57, 52, N'assets/images/cherry_do.png', 1, 1, GETDATE()),
+        -- Bưởi Da Xanh Hữu Cơ (53)
+        (58, 53, N'assets/images/buoi_da_xanh.png', 1, 1, GETDATE()),
+        -- Cam Sành Hữu Cơ (54)
+        (59, 54, N'assets/images/cam_sanh.png', 1, 1, GETDATE()),
+        -- Táo Envy Nhập Khẩu (55)
+        (60, 55, N'assets/images/tao_envy.png', 1, 1, GETDATE()),
+        -- Bơ Sáp Đắk Lắk (56)
+        (61, 56, N'assets/images/bo_sap.png', 1, 1, GETDATE()),
+        -- Cam Vàng Ai Cập (57)
+        (62, 57, N'assets/images/cam_sanh.png', 1, 1, GETDATE()),
+        -- Dâu Tây Hàn Quốc (58)
+        (63, 58, N'assets/images/dau_tay.png', 1, 1, GETDATE()),
+        -- Nho Đen Ngón Tay (59)
+        (64, 59, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        -- Lê Nam Phi (60)
+        (65, 60, N'assets/images/kiwi_vang.png', 1, 1, GETDATE()),
+        -- Măng Cụt Bến Tre (61)
+        (66, 61, N'assets/images/mang_cut.png', 1, 1, GETDATE()),
+        -- Quýt Đường Miền Tây (62)
+        (67, 62, N'assets/images/quat_duong.png', 1, 1, GETDATE()),
+        -- Táo Rockit (63)
+        (68, 63, N'assets/images/tao_envy.png', 1, 1, GETDATE()),
+        -- Dưa Lưới Tabi (64)
+        (69, 64, N'assets/images/dua_luoi.png', 1, 1, GETDATE()),
+        -- Việt Quất Mỹ (65)
+        (70, 65, N'assets/images/nho_xanh.png', 1, 1, GETDATE()),
+        -- Cherry Đỏ Mỹ (66)
+        (71, 66, N'assets/images/cherry_do.png', 1, 1, GETDATE()),
+        -- Hồng Giòn Đà Lạt (67)
+        (72, 67, N'assets/images/xoai_cat.png', 1, 1, GETDATE()),
+        -- Na Chi Lăng (68)
+        (73, 68, N'assets/images/na_dai.png', 1, 1, GETDATE()),
+        -- Sầu Riêng Musang King (69)
+        (74, 69, N'assets/images/sau_rieng_ri6.png', 1, 1, GETDATE()),
+        -- Vải Thiều Lục Ngạn (70)
+        (75, 70, N'assets/images/vai_thieu.png', 1, 1, GETDATE());
     SET IDENTITY_INSERT dbo.product_images OFF;
 
     SET IDENTITY_INSERT dbo.product_variants ON;
@@ -1177,6 +1463,31 @@ BEGIN TRY
         (62, 49, N'CHERRY-VANG-500G', N'Hộp 500g Orchard', 450000.00, 40, 1, GETDATE(), GETDATE()),
         -- Hộp Quà Phú Quý (50)
         (63, 50, N'HQ-PHU-QUY', N'Hộp gỗ VIP thắt nơ', 799000.00, 45, 1, GETDATE(), GETDATE());
+
+    -- Chèn thêm các biến thể mới của sản phẩm mới với thông tin chiết khấu
+    INSERT INTO dbo.product_variants (variant_id, product_id, sku, variant_label, price, stock_quantity, is_active, discount_price, discount_start, discount_end, created_at, updated_at)
+    VALUES
+        (64, 51, N'NHO-MAU-DON-500G', N'Hộp 500g', 250000.00, 100, 1, 199000.00, DATEADD(day, -2, GETDATE()), DATEADD(day, 5, GETDATE()), GETDATE(), GETDATE()),
+        (65, 51, N'NHO-MAU-DON-1KG', N'Hộp 1kg', 480000.00, 50, 1, 399000.00, DATEADD(day, -10, GETDATE()), DATEADD(day, -1, GETDATE()), GETDATE(), GETDATE()),
+        (66, 52, N'CHERRY-NZ-500G', N'Hộp 500g', 350000.00, 80, 1, 299000.00, DATEADD(day, -1, GETDATE()), DATEADD(day, 2, GETDATE()), GETDATE(), GETDATE()),
+        (67, 53, N'BUOI-DX-HC-1KG', N'Quả 1kg', 95000.00, 120, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (68, 54, N'CAM-SANH-HC-1KG', N'Hộp 1kg', 45000.00, 150, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (69, 55, N'TAO-ENVY-TC-1KG', N'Túi 1kg', 120000.00, 60, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (70, 56, N'BO-SAP-HC-1KG', N'Hộp 1kg', 65000.00, 100, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (71, 57, N'CAM-EG-1KG', N'Túi 1kg', 75000.00, 150, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (72, 58, N'DAU-HQ-330G', N'Hộp 330g', 180000.00, 60, 1, 149000.00, DATEADD(day, -2, GETDATE()), DATEADD(day, 4, GETDATE()), GETDATE(), GETDATE()),
+        (73, 59, N'NHO-NT-UC-500G', N'Hộp 500g', 220000.00, 80, 1, 199000.00, DATEADD(day, -1, GETDATE()), DATEADD(day, 5, GETDATE()), GETDATE(), GETDATE()),
+        (74, 60, N'LE-NP-1KG', N'Túi 1kg', 89000.00, 120, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (75, 61, N'MANG-CUT-HC-1KG', N'Túi 1kg', 95000.00, 90, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (76, 62, N'QUYT-DUONG-1KG', N'Hộp 1kg', 55000.00, 140, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (77, 63, N'TAO-ROCKIT-4QT', N'Ống 4 quả', 135000.00, 200, 1, 119000.00, DATEADD(day, -3, GETDATE()), DATEADD(day, 6, GETDATE()), GETDATE(), GETDATE()),
+        (78, 64, N'DUA-LUOI-TABI-1QT', N'Quả 1.5kg', 110000.00, 85, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (79, 65, N'VIET-QUAT-US-125G', N'Hộp 125g', 89000.00, 120, 1, 79000.00, DATEADD(day, -1, GETDATE()), DATEADD(day, 3, GETDATE()), GETDATE(), GETDATE()),
+        (80, 66, N'CHERRY-US-95-500G', N'Hộp 500g', 420000.00, 50, 1, 380000.00, DATEADD(day, -2, GETDATE()), DATEADD(day, 5, GETDATE()), GETDATE(), GETDATE()),
+        (81, 67, N'HONG-GIENT-1KG', N'Túi 1kg', 50000.00, 110, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (82, 68, N'NA-CHI-LANG-1KG', N'Hộp 1kg', 85000.00, 70, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (83, 69, N'SAU-RIENG-MSK-MUI', N'Khay múi 400g', 450000.00, 40, 1, NULL, NULL, NULL, GETDATE(), GETDATE()),
+        (84, 70, N'VAI-THIEU-LN-1KG', N'Túi 1kg', 45000.00, 250, 1, 39000.00, DATEADD(day, -5, GETDATE()), DATEADD(day, 5, GETDATE()), GETDATE(), GETDATE());
     SET IDENTITY_INSERT dbo.product_variants OFF;
 
     SET IDENTITY_INSERT dbo.inventory_logs ON;
@@ -1227,6 +1538,18 @@ BEGIN TRY
         (22, N'FREESHIPALL', N'FIXED', N'ALL', 0.00, 15000.00, 150000.00, N'ORDER', NULL, 2000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1);
     SET IDENTITY_INSERT dbo.promotions OFF;
 
+    -- Gieo dữ liệu đóng gói sản phẩm (product_packaging_options)
+    SET IDENTITY_INSERT dbo.product_packaging_options ON;
+    INSERT INTO dbo.product_packaging_options (packaging_id, product_id, label, price_add, is_active)
+    VALUES
+        (1, 1, N'Túi giấy thân thiện môi trường', 5000.00, 1),
+        (2, 1, N'Hộp gỗ thông sang trọng', 35000.00, 1),
+        (3, 51, N'Hộp giấy Carton cao cấp', 10000.00, 1),
+        (4, 51, N'Hộp quà thắt nơ nghệ thuật', 45000.00, 1),
+        (5, 52, N'Túi giữ nhiệt bảo quản lạnh', 15000.00, 1),
+        (6, 52, N'Hộp gỗ lót lụa Premium', 50000.00, 1);
+    SET IDENTITY_INSERT dbo.product_packaging_options OFF;
+
     SET IDENTITY_INSERT dbo.cart ON;
     INSERT INTO dbo.cart (cart_id, customer_id, created_at, updated_at)
     VALUES
@@ -1237,12 +1560,13 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.cart OFF;
 
     SET IDENTITY_INSERT dbo.cart_items ON;
-    INSERT INTO dbo.cart_items (cart_item_id, cart_id, variant_id, quantity, added_at)
+    INSERT INTO dbo.cart_items (cart_item_id, cart_id, variant_id, quantity, packaging_id, added_at)
     VALUES
-        (1, 1, 1, 1, '2026-05-15T08:12:00'),
-        (2, 1, 3, 1, '2026-05-15T08:12:00'),
-        (3, 2, 6, 1, '2026-05-15T09:12:00'),
-        (4, 2, 8, 1, '2026-05-15T09:12:00');
+        (1, 1, 1, 1, NULL, '2026-05-15T08:12:00'),
+        (2, 1, 3, 1, NULL, '2026-05-15T08:12:00'),
+        (3, 2, 6, 1, NULL, '2026-05-15T09:12:00'),
+        (4, 2, 8, 1, NULL, '2026-05-15T09:12:00'),
+        (5, 4, 64, 2, 3, GETDATE());
     SET IDENTITY_INSERT dbo.cart_items OFF;
 
     SET IDENTITY_INSERT dbo.orders ON;
@@ -1381,6 +1705,9 @@ BEGIN TRY
         (8, 26, N'Khách Hàng VIP', N'0988888005', N'50 Lý Tự Trọng, HCMC', 1, GETDATE());
     SET IDENTITY_INSERT dbo.user_addresses OFF;
 
+    -- Đảm bảo tất cả 50 sản phẩm hạt giống ban đầu được phê duyệt hoạt động
+    UPDATE dbo.products SET approval_status = 'APPROVED' WHERE approval_status = 'PENDING' AND product_id <= 50;
+
     COMMIT;
 END TRY
 BEGIN CATCH
@@ -1517,7 +1844,59 @@ UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -10, GETDATE()) AS DATE
 UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 0, status = 'ACTIVE' WHERE product_id = 5;
 UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = NULL, status = 'ACTIVE' WHERE product_id = 11;
 
+-- Loại D: Các sản phẩm hữu cơ/nhập khẩu nâng cấp (51-53, 56-70) giữ ACTIVE
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id BETWEEN 51 AND 53;
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id BETWEEN 56 AND 70;
 
+-- =========================================================
+-- Migration v2: Chat WebSocket — session_type + unread index
+-- =========================================================
 
+-- Thêm cột session_type vào chat_sessions nếu chưa có
+IF OBJECT_ID(N'dbo.chat_sessions', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.chat_sessions') AND name = N'session_type')
+    BEGIN
+        ALTER TABLE dbo.chat_sessions ADD session_type NVARCHAR(10) NOT NULL
+            CONSTRAINT DF_chat_sessions_session_type DEFAULT 'SHOP'
+            CONSTRAINT CK_chat_sessions_session_type CHECK (session_type IN ('SHOP', 'ADMIN'));
+        PRINT 'Migration v2: Added session_type to chat_sessions.';
+    END
+END
+GO
 
+-- Index hỗ trợ đếm unread nhanh (dùng bởi ChatDAO.countUnread)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_chat_messages_session_unread' AND object_id = OBJECT_ID(N'dbo.chat_messages'))
+BEGIN
+    CREATE INDEX IX_chat_messages_session_unread
+        ON dbo.chat_messages (session_id, is_read, sender_id);
+    PRINT 'Migration v2: Created IX_chat_messages_session_unread.';
+END
+GO
 
+-- =========================================================
+-- Migration v3: Chat Media Support (ảnh/video)
+-- =========================================================
+
+IF OBJECT_ID(N'dbo.chat_messages', N'U') IS NOT NULL
+BEGIN
+    -- Cho phép content NULL (để chỉ gửi ảnh/video không có text)
+    ALTER TABLE dbo.chat_messages ALTER COLUMN content NVARCHAR(MAX) NULL;
+    PRINT 'Migration v3: Altered chat_messages.content to NULL.';
+
+    -- Thêm cột media_url nếu chưa có
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.chat_messages') AND name = N'media_url')
+    BEGIN
+        ALTER TABLE dbo.chat_messages ADD media_url NVARCHAR(500) NULL;
+        PRINT 'Migration v3: Added media_url to chat_messages.';
+    END
+
+    -- Thêm cột media_type nếu chưa có
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.chat_messages') AND name = N'media_type')
+    BEGIN
+        ALTER TABLE dbo.chat_messages ADD media_type NVARCHAR(10) NULL 
+            CONSTRAINT CK_chat_messages_media_type CHECK (media_type IN ('IMAGE', 'VIDEO'));
+        PRINT 'Migration v3: Added media_type to chat_messages.';
+    END
+END
+GO

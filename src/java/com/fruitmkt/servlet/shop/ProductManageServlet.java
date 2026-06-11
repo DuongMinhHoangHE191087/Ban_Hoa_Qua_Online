@@ -79,6 +79,8 @@ public class ProductManageServlet extends HttpServlet {
                 map.put("viewCount", p.getViewCount());
                 map.put("rating", p.getRating());
                 map.put("soldQuantity", p.getSoldQuantity());
+                map.put("approvalStatus", p.getApprovalStatus());
+                map.put("rejectionReason", p.getRejectionReason());
                 map.put("categoryName", categoryMap.getOrDefault(p.getCategoryId(), "Không xác định"));
 
                 // Lấy ảnh chính thực tế

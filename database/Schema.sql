@@ -1,9 +1,16 @@
--- Create the database (Optional: uncomment to execute)
+-- ==========================================================================
+-- Schema.sql — Tham khảo cấu trúc bảng của OnlineFruitShopping
+-- 
+-- Mục đích: Đây là tài liệu tham khảo schema chức năng (conceptual DDL).
+-- ⓘ  Để khởi tạo và seed dữ liệu, hãy dùng: Setup_OnlineFruitShopping.sql
+-- ⓘ  Setup_OnlineFruitShopping.sql là nguồn thực thi duy nhất (idempotent).
+-- ==========================================================================
+-- USE [master];
+-- GO
 -- CREATE DATABASE OnlineFruitShopping;
 -- GO
 -- USE OnlineFruitShopping;
 -- GO
-drop database OnlineFruitShopping
 
 -- 1. users [cite: 36]
 CREATE TABLE users (
@@ -91,24 +98,35 @@ CREATE TABLE categories (
 
 );
 
--- 6. products [cite: 54]
+-- 6. products
 CREATE TABLE products (
-    product_id INT IDENTITY(1,1) PRIMARY KEY,
-    owner_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
-    category_id INT NOT NULL FOREIGN KEY REFERENCES categories(category_id),
-    name NVARCHAR(200) NOT NULL,
-    description NVARCHAR(MAX) NULL,
-    origin_country NVARCHAR(100) NULL,
-    origin_region NVARCHAR(150) NULL,
-    harvest_date DATE NULL,
-    shelf_life_days INT NULL,
-    storage_instruction NVARCHAR(300) NULL,
-    status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','DELETED','OUT_OF_SEASON')),
-    view_count INT NOT NULL DEFAULT 0,
-    rating DECIMAL(3,2) NOT NULL DEFAULT 0,
-    sold_quantity INT NOT NULL DEFAULT 0,
-    created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
-    updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
+    product_id            INT IDENTITY(1,1) PRIMARY KEY,
+    owner_id              INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
+    category_id           INT NOT NULL FOREIGN KEY REFERENCES categories(category_id),
+    name                  NVARCHAR(200) NOT NULL,
+    description           NVARCHAR(MAX) NULL,
+    origin_country        NVARCHAR(100) NULL,
+    origin_region         NVARCHAR(150) NULL,
+    harvest_date          DATE NULL,
+    shelf_life_days       INT NULL,
+    storage_instruction   NVARCHAR(300) NULL,
+    status                NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE'
+                          CHECK (status IN ('ACTIVE','INACTIVE','DELETED','OUT_OF_SEASON')),
+    view_count            INT NOT NULL DEFAULT 0,
+    rating                DECIMAL(3,2) NOT NULL DEFAULT 0,
+    sold_quantity         INT NOT NULL DEFAULT 0,
+    -- NHÃN VÀ MÙA VỤ
+    is_organic            BIT NOT NULL DEFAULT 0,       -- Nhãn Hữu cơ
+    is_imported           BIT NOT NULL DEFAULT 0,       -- Nhãn Nhập khẩu
+    season_start_month    INT NULL CHECK (season_start_month BETWEEN 1 AND 12),
+    season_end_month      INT NULL CHECK (season_end_month   BETWEEN 1 AND 12),
+    -- PHÊ DUYỆT
+    approval_status       NVARCHAR(20) NOT NULL DEFAULT 'PENDING'
+                          CHECK (approval_status IN ('PENDING','APPROVED','REJECTED')),
+    verification_doc_path NVARCHAR(500) NULL,           -- Giấy tờ xác nhận của shop
+    rejection_reason      NVARCHAR(500) NULL,           -- Lý do Admin từ chối
+    created_at            DATETIME NOT NULL DEFAULT GETDATE(),
+    updated_at            DATETIME NOT NULL DEFAULT GETDATE()
 );
 
 -- 7. product_images [cite: 57]
@@ -121,19 +139,31 @@ CREATE TABLE product_images (
     uploaded_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
--- 8. product_variants [cite: 61]
+-- 8. product_variants
 CREATE TABLE product_variants (
-    variant_id INT IDENTITY(1,1) PRIMARY KEY,
-    product_id INT NOT NULL FOREIGN KEY REFERENCES products(product_id) ON DELETE CASCADE,
-    sku NVARCHAR(50) NOT NULL UNIQUE,
-    variant_label NVARCHAR(100) NOT NULL,
-    price DECIMAL(12,2) NOT NULL,
+    variant_id     INT IDENTITY(1,1) PRIMARY KEY,
+    product_id     INT NOT NULL FOREIGN KEY REFERENCES products(product_id) ON DELETE CASCADE,
+    sku            NVARCHAR(50) NOT NULL UNIQUE,
+    variant_label  NVARCHAR(100) NOT NULL,
+    price          DECIMAL(12,2) NOT NULL,
     stock_quantity INT NOT NULL DEFAULT 0,
-    weight_kg DECIMAL(6,3) NOT NULL DEFAULT 1.000 CHECK (weight_kg > 0.000),
-   
-    is_active BIT NOT NULL DEFAULT 1,
-    created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
-    updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
+    weight_kg      DECIMAL(6,3) NOT NULL DEFAULT 1.000 CHECK (weight_kg > 0.000),
+    -- GIẢM GIÁ THEO THỜI GIAN
+    discount_price DECIMAL(12,2) NULL,       -- NULL = không giảm giá
+    discount_start DATETIME NULL,            -- Thời điểm bắt đầu khuyến mãi
+    discount_end   DATETIME NULL,            -- Hết hạn → tự động quày về giá gốc
+    is_active      BIT NOT NULL DEFAULT 1,
+    created_at     DATETIME NOT NULL DEFAULT GETDATE(),
+    updated_at     DATETIME NOT NULL DEFAULT GETDATE()
+);
+
+-- 8b. product_packaging_options — Lựa chọn đóng gói kèm theo sản phẩm
+CREATE TABLE product_packaging_options (
+    packaging_id INT IDENTITY(1,1) PRIMARY KEY,
+    product_id   INT NOT NULL FOREIGN KEY REFERENCES products(product_id) ON DELETE CASCADE,
+    label        NVARCHAR(100) NOT NULL,     -- VD: 'Hộp gỗ cao cấp', 'Túi lưới thân thiện'
+    price_add    DECIMAL(12,2) NOT NULL DEFAULT 0 CHECK (price_add >= 0),
+    is_active    BIT NOT NULL DEFAULT 1
 );
 
 -- 9. inventory_logs [cite: 65]
@@ -191,20 +221,23 @@ CREATE TABLE cart (
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
 
--- 12. cart_items [cite: 69]
+-- 12. cart_items
 CREATE TABLE cart_items (
     cart_item_id INT IDENTITY(1,1) PRIMARY KEY,
-    cart_id INT NOT NULL FOREIGN KEY REFERENCES cart(cart_id) ON DELETE CASCADE,
-    variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id),
-    quantity INT NOT NULL CHECK (quantity >= 1),
-    added_at DATETIME NOT NULL DEFAULT GETDATE()
+    cart_id      INT NOT NULL FOREIGN KEY REFERENCES cart(cart_id) ON DELETE CASCADE,
+    variant_id   INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id),
+    quantity     INT NOT NULL CHECK (quantity >= 1),
+    packaging_id INT NULL FOREIGN KEY REFERENCES product_packaging_options(packaging_id), -- Lựa chọn đóng gói
+    added_at     DATETIME NOT NULL DEFAULT GETDATE()
 );
 
 -- 13. orders [cite: 75]
 CREATE TABLE orders (
     order_id INT IDENTITY(1,1) PRIMARY KEY,
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
-    owner_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
+    owner_id INT NULL FOREIGN KEY REFERENCES users(user_id),
+    parent_order_id INT NULL FOREIGN KEY REFERENCES orders(order_id),
+    order_type NVARCHAR(10) NOT NULL DEFAULT 'CHILD' CHECK (order_type IN ('PARENT','CHILD')),
     delivery_address NVARCHAR(500) NOT NULL,
     recipient_name NVARCHAR(100) NULL,
     recipient_phone NVARCHAR(15) NULL,
@@ -231,16 +264,19 @@ CREATE TABLE orders (
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
 
--- 14. order_items [cite: 79]
+-- 14. order_items
 CREATE TABLE order_items (
-    order_item_id INT IDENTITY(1,1) PRIMARY KEY,
-    order_id INT NOT NULL FOREIGN KEY REFERENCES orders(order_id) ON DELETE CASCADE,
-    variant_id INT NULL FOREIGN KEY REFERENCES product_variants(variant_id) ON DELETE SET NULL,
-    product_name_snapshot NVARCHAR(200) NOT NULL,
-    variant_label_snapshot NVARCHAR(100) NOT NULL,
-    quantity INT NOT NULL CHECK (quantity >= 1),
-    unit_price DECIMAL(12,2) NOT NULL,
-    subtotal DECIMAL(14,2) NOT NULL
+    order_item_id            INT IDENTITY(1,1) PRIMARY KEY,
+    order_id                 INT NOT NULL FOREIGN KEY REFERENCES orders(order_id) ON DELETE CASCADE,
+    variant_id               INT NULL FOREIGN KEY REFERENCES product_variants(variant_id) ON DELETE SET NULL,
+    product_name_snapshot    NVARCHAR(200) NOT NULL,
+    variant_label_snapshot   NVARCHAR(100) NOT NULL,
+    quantity                 INT NOT NULL CHECK (quantity >= 1),
+    unit_price               DECIMAL(12,2) NOT NULL,
+    subtotal                 DECIMAL(14,2) NOT NULL,
+    -- SNAPSHOT ĐÓNG GÓI (bất biến theo thời gian)
+    packaging_label_snapshot NVARCHAR(100) NULL,
+    packaging_price_snapshot DECIMAL(12,2) NOT NULL DEFAULT 0
 );
 
 CREATE TABLE order_promotions (
@@ -334,9 +370,22 @@ CREATE TABLE sepay_webhook_dedup (
 );
 
 -- 16. deliveries [cite: 86]
+CREATE TABLE delivery_trips (
+    trip_id INT IDENTITY(1,1) PRIMARY KEY,
+    parent_order_id INT NOT NULL FOREIGN KEY REFERENCES orders(order_id),
+    shipper_id INT NULL FOREIGN KEY REFERENCES users(user_id),
+    status NVARCHAR(20) NOT NULL DEFAULT 'PLANNED' CHECK (status IN ('PLANNED','ASSIGNED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED')),
+    estimated_start_time DATETIME NULL,
+    estimated_end_time DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+    updated_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
 CREATE TABLE deliveries (
     delivery_id INT IDENTITY(1,1) PRIMARY KEY,
     order_id INT NOT NULL UNIQUE FOREIGN KEY REFERENCES orders(order_id),
+    delivery_trip_id INT NULL FOREIGN KEY REFERENCES delivery_trips(trip_id),
+    trip_stop_seq INT NULL,
     staff_id INT NULL FOREIGN KEY REFERENCES users(user_id),
     status NVARCHAR(20) NOT NULL DEFAULT 'ASSIGNED' CHECK (status IN ('ASSIGNED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED')),
     picked_up_at DATETIME NULL,
@@ -366,6 +415,9 @@ CREATE TABLE chat_sessions (
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     owner_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     
+    -- Phân loại session: SHOP = Chat với cửa hàng, ADMIN = Chat hỗ trợ admin
+    session_type NVARCHAR(10) NOT NULL DEFAULT 'SHOP' CHECK (session_type IN ('SHOP','ADMIN')),
+    
     -- Trạng thái để biết khung chat đang mở hay đã bị khóa/đóng
     status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','CLOSED')),
     
@@ -374,12 +426,15 @@ CREATE TABLE chat_sessions (
     closed_at DATETIME NULL
 );
 
+
 CREATE TABLE chat_messages (
     message_id INT IDENTITY(1,1) PRIMARY KEY,
     session_id INT NOT NULL FOREIGN KEY REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
     sender_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id), -- Ai là người gửi (Customer hay Owner)
     
-    content NVARCHAR(MAX) NOT NULL, -- Dùng MAX để hỗ trợ tin nhắn dài
+    content NVARCHAR(MAX) NULL, -- Dùng MAX để hỗ trợ tin nhắn dài, cho phép NULL nếu chỉ gửi ảnh/video
+    media_url NVARCHAR(500) NULL, -- Link ảnh/video
+    media_type NVARCHAR(10) NULL CHECK (media_type IN ('IMAGE','VIDEO')), -- Phân loại media
     is_read BIT NOT NULL DEFAULT 0, -- Cờ đánh dấu đã đọc chưa (rất quan trọng cho UI)
     
     created_at DATETIME NOT NULL DEFAULT GETDATE()
@@ -414,21 +469,15 @@ CREATE TABLE system_config (
     updated_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
-CREATE TABLE replenishment_logs (
-    log_id INT IDENTITY(1,1) PRIMARY KEY,
-    variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id) ON DELETE CASCADE,
-    replenished_by INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
-    quantity INT NOT NULL CHECK (quantity > 0),
-    supplier_details NVARCHAR(500) NULL,
-    replenishment_date DATE NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT GETDATE()
-);
+-- (replenishment_logs đã được khai báo ở mục 9b phía trên — bỏ block trùng lập này)
 
 CREATE INDEX IX_orders_acceptance_auto_cancel
 ON orders (status, shop_acceptance_deadline)
 WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL;
 
 CREATE INDEX IX_return_requests_status ON return_requests(status, created_at);
+
+CREATE INDEX IX_products_status_approval_product_id ON products(status, approval_status, product_id DESC);
 
 
 -- Optional: Create Full-Text Search configuration [cite: 19]

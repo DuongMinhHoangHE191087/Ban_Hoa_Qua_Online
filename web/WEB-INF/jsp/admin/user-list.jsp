@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý người dùng – Admin MetaFruit</title>
+    <title>Quản lý người dùng – Admin Verdant Market</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -202,6 +202,13 @@
                                                                 </c:otherwise>
                                                             </c:choose>
                                                         </button>
+                                                        
+                                                        <button class="revoke-sessions-btn bg-white border border-slate-200 text-amber-600 hover:bg-amber-50 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer"
+                                                                data-id="${u.userId}"
+                                                                data-name="<c:out value="${u.fullName}"/>"
+                                                                id="btn-revoke-${u.userId}">
+                                                            <i class="fa-solid fa-user-slash mr-0.5"></i> Thu hồi phiên
+                                                        </button>
                                                     </c:when>
                                                     <c:otherwise>
                                                         <span class="text-txt-3 text-xs italic block select-none">—</span>
@@ -303,6 +310,59 @@
                 Toast.fire({ icon: 'error', title: error.message || 'Lỗi kết nối mạng' });
                 this.disabled = false;
                 this.innerHTML = originalHtml;
+            });
+        });
+    });
+
+    document.querySelectorAll('.revoke-sessions-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-id');
+            const userName = this.getAttribute('data-name');
+            
+            Swal.fire({
+                title: 'Xác nhận thu hồi phiên đăng nhập?',
+                text: 'Hành động này sẽ xóa toàn bộ refresh tokens của ' + userName + '. Người dùng này sẽ phải đăng nhập lại.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Đồng ý thu hồi',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.disabled = true;
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-0.5"></i>';
+
+                    fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: 'userId=' + userId + '&_csrf=${sessionScope._csrfToken}'
+                    })
+                    .then(handleJSONResponse)
+                    .then(data => {
+                        this.disabled = false;
+                        this.innerHTML = originalHtml;
+                        if (data.success) {
+                            Swal.fire(
+                                'Thành công!',
+                                data.message,
+                                'success'
+                            );
+                        } else {
+                            Toast.fire({ icon: 'error', title: data.message || 'Có lỗi xảy ra' });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Toast.fire({ icon: 'error', title: error.message || 'Lỗi kết nối mạng' });
+                        this.disabled = false;
+                        this.innerHTML = originalHtml;
+                    });
+                }
             });
         });
     });

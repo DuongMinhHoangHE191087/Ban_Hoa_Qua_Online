@@ -63,7 +63,23 @@ public class ProductListServlet extends HttpServlet {
 
         try {
             categories  = categoryDAO.findAllActive();
-            pagedResult = productService.getProductList(page, keyword, categoryId, minPrice, maxPrice);
+            String suggestedIdsParam = req.getParameter("suggestedIds");
+            if (suggestedIdsParam != null && !suggestedIdsParam.trim().isEmpty()) {
+                String[] idsStr = suggestedIdsParam.split(",");
+                List<Product> productsList = new ArrayList<>();
+                for (String idStr : idsStr) {
+                    try {
+                        int id = Integer.parseInt(idStr.trim());
+                        Product p = productService.getProductById(id);
+                        if (p != null && "ACTIVE".equals(p.getStatus()) && "APPROVED".equals(p.getApprovalStatus())) {
+                            productsList.add(p);
+                        }
+                    } catch (NumberFormatException ignored) {}
+                }
+                pagedResult = new PagedResultDTO(productsList, 1, 1, productsList.size(), AppConfig.PAGE_SIZE_PRODUCTS);
+            } else {
+                pagedResult = productService.getProductList(page, keyword, categoryId, minPrice, maxPrice);
+            }
 
             // Chuyển đổi danh sách Product sang List<Map<String, Object>> để cung cấp đầy đủ thông tin (ảnh, giá, đơn vị) cho JSP
             if (pagedResult != null && pagedResult.getItems() != null) {
@@ -101,14 +117,20 @@ public class ProductListServlet extends HttpServlet {
                     BigDecimal basePrice = new BigDecimal("45000");
                     String unit = "kg";
                     int totalStock = 0;
+                    int defaultVariantId = 0;
+                    int cheapestStock = 0;
                     if (variants != null && !variants.isEmpty()) {
                         ProductVariant cheapestVariant = variants.get(0);
                         basePrice = cheapestVariant.getPrice();
                         unit = cheapestVariant.getVariantLabel();
+                        defaultVariantId = cheapestVariant.getVariantId();
+                        cheapestStock = cheapestVariant.getStockQuantity();
                         for (ProductVariant v : variants) {
                             totalStock += v.getStockQuantity();
                         }
                     }
+                    item.put("variantId", defaultVariantId);
+                    item.put("stockQuantity", cheapestStock);
                     item.put("unit", unit);
                     item.put("inStock", totalStock > 0);
 

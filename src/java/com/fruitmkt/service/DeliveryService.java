@@ -1,8 +1,12 @@
 package com.fruitmkt.service;
 
+import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.DeliveryDAO;
+import com.fruitmkt.dao.DeliveryTripDAO;
 import com.fruitmkt.dao.OrderDAO;
 import com.fruitmkt.model.entity.Delivery;
+import com.fruitmkt.model.entity.Order;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +25,7 @@ import java.util.List;
 public class DeliveryService {
 
     private final DeliveryDAO deliveryDAO = new DeliveryDAO();
+    private final DeliveryTripDAO deliveryTripDAO = new DeliveryTripDAO();
     private final OrderDAO orderDAO = new OrderDAO();
 
     public List<Delivery> getDeliveriesForStaff(int staffId) throws SQLException {
@@ -68,7 +73,25 @@ public class DeliveryService {
     }
 
     public void assignShipper(int orderId, int staffId, LocalDateTime estimatedTime) throws SQLException {
-        deliveryDAO.assignShipper(orderId, staffId, estimatedTime);
+        List<Order> orders = orderDAO.findById(orderId);
+        Order order = orders.isEmpty() ? null : orders.get(0);
+        if (order == null) {
+            throw new IllegalArgumentException("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng Ä‘á»ƒ táº¡o chuyáº¿n giao.");
+        }
+        int parentOrderId = order.getParentOrderId() != null ? order.getParentOrderId() : order.getOrderId();
+        String tripStatus = staffId > 0 ? AppConfig.DELIVERY_TRIP_ASSIGNED : AppConfig.DELIVERY_TRIP_PLANNED;
+        try (Connection conn = orderDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int tripId = deliveryTripDAO.save(conn, parentOrderId, staffId > 0 ? staffId : null,
+                        tripStatus, null, estimatedTime);
+                deliveryDAO.assignShipper(conn, orderId, tripId, 1, staffId, estimatedTime);
+                conn.commit();
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
     }
 
     public Delivery getDeliveryByOrderId(int orderId) throws SQLException {

@@ -1,7 +1,6 @@
 package com.fruitmkt.servlet.customer;
 
 import com.fruitmkt.config.AppConfig;
-import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.dao.ChatDAO;
 import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.ChatSession;
@@ -15,6 +14,15 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+/**
+ * ChatServlet — Trang chat của Customer.
+ * URL: /chat[?shopId=X]
+ *
+ * [UPGRADE]: findSessionsByCustomer JOIN trả về partner_name (tên shop/admin)
+ * Thêm nút "Chat với Admin" qua createAdminSession API.
+ *
+ * @author fruitmkt-team
+ */
 @WebServlet("/chat")
 public class ChatServlet extends HttpServlet {
 
@@ -29,36 +37,65 @@ public class ChatServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
+        // Chỉ CUSTOMER được vào màn hình này
+        if (!AppConfig.ROLE_CUSTOMER.equals(customer.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/");
+            return;
+        }
 
         try {
-            String shopIdStr = req.getParameter("shopId");
+            String shopIdStr  = req.getParameter("shopId");
+            String sessionIdStr = req.getParameter("sessionId");
             int activeSessionId = -1;
 
             if (shopIdStr != null && !shopIdStr.trim().isEmpty()) {
+                // Mở hoặc tạo session với shop
                 int shopId = Integer.parseInt(shopIdStr);
-                // Check if session exists
                 List<ChatSession> existing = chatDAO.findSessionByParticipants(customer.getUserId(), shopId);
                 if (existing.isEmpty()) {
-                    // Create new
-                    activeSessionId = chatDAO.createSession(customer.getUserId(), shopId);
+                    activeSessionId = chatDAO.createSession(customer.getUserId(), shopId, "SHOP");
                 } else {
                     activeSessionId = existing.get(0).getSessionId();
                 }
+            } else if (sessionIdStr != null && !sessionIdStr.trim().isEmpty()) {
+                // Mở session trực tiếp từ ID (dùng khi click từ notification)
+                activeSessionId = Integer.parseInt(sessionIdStr);
             }
 
-            // Get all sessions for sidebar
+            // [UPGRADE]: JOIN query trả về partner_name
             List<ChatSession> sessions = chatDAO.findSessionsByCustomer(customer.getUserId());
-            
-            // If shopId was not provided, but they have sessions, open the latest one
+
+            // Nếu chưa có sessionId, mặc định mở session đầu tiên
             if (activeSessionId == -1 && !sessions.isEmpty()) {
                 activeSessionId = sessions.get(0).getSessionId();
             }
 
             req.setAttribute("chatSessions", sessions);
             req.setAttribute("activeSessionId", activeSessionId);
-            
+
+            ChatSession activeSession = null;
+            for (ChatSession s : sessions) {
+                if (s.getSessionId() == activeSessionId) {
+                    activeSession = s;
+                    break;
+                }
+            }
+            if (activeSession == null && activeSessionId > 0) {
+                activeSession = chatDAO.findSessionById(activeSessionId);
+                if (activeSession != null) {
+                    User partner = userDAO.findUserById(activeSession.getOwnerId());
+                    if (partner != null) {
+                        activeSession.setPartnerName(partner.getFullName());
+                        activeSession.setPartnerAvatar(partner.getAvatarUrl());
+                    }
+                }
+            }
+            req.setAttribute("activeSession", activeSession);
+
             req.getRequestDispatcher("/WEB-INF/jsp/customer/chat.jsp").forward(req, resp);
 
+        } catch (NumberFormatException e) {
+            resp.sendRedirect(req.getContextPath() + "/chat");
         } catch (SQLException e) {
             e.printStackTrace();
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy dữ liệu chat");

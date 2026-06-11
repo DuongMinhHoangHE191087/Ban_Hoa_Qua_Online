@@ -85,44 +85,128 @@ public class InventoryService {
         return inventoryDAO.findByOwner(ownerId);
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
+    public void reserve(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
+        if (qty <= 0) return;
+        int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+        if (currentStock < qty) {
+            throw new RuntimeException("Không đủ số lượng hàng tồn kho cho sản phẩm.");
+        }
+        int stockAfter = currentStock - qty;
+
+        InventoryLog log = new InventoryLog();
+        log.setVariantId(variantId);
+        log.setChangedBy(userId);
+        log.setChangeType("ORDER_RESERVE");
+        log.setQuantityDelta(-qty);
+        log.setQuantityAfter(stockAfter);
+        log.setNote("Giữ hàng cho đơn hàng #" + orderId);
+        log.setChangedAt(java.time.LocalDateTime.now());
+        
+        inventoryDAO.save(conn, log);
+        productVariantDAO.updateStock(conn, variantId, -qty);
+    }
+
     public void reserve(int variantId, int qty, int orderId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: reserve(int variantId, int qty, int orderId)");
+        try (Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                reserve(conn, variantId, qty, orderId, 1);
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
+    public void release(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
+        if (qty <= 0) return;
+        int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+        int stockAfter = currentStock + qty;
+
+        InventoryLog log = new InventoryLog();
+        log.setVariantId(variantId);
+        log.setChangedBy(userId);
+        log.setChangeType("ORDER_RELEASE");
+        log.setQuantityDelta(qty);
+        log.setQuantityAfter(stockAfter);
+        log.setNote("Hoàn kho từ đơn hàng #" + orderId);
+        log.setChangedAt(java.time.LocalDateTime.now());
+
+        inventoryDAO.save(conn, log);
+        productVariantDAO.updateStock(conn, variantId, qty);
+    }
+
     public void release(int variantId, int qty, int orderId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: release(int variantId, int qty, int orderId)");
+        try (Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                release(conn, variantId, qty, orderId, 1);
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
+    public void confirm(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
+        int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+        InventoryLog log = new InventoryLog();
+        log.setVariantId(variantId);
+        log.setChangedBy(userId);
+        log.setChangeType("ORDER_CONFIRM");
+        log.setQuantityDelta(0);
+        log.setQuantityAfter(currentStock);
+        log.setNote("Xác nhận bán hàng cho đơn hàng #" + orderId);
+        log.setChangedAt(java.time.LocalDateTime.now());
+        inventoryDAO.save(conn, log);
+    }
+
     public void confirm(int variantId, int qty, int orderId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: confirm(int variantId, int qty, int orderId)");
+        try (Connection conn = inventoryDAO.openConnection()) {
+            confirm(conn, variantId, qty, orderId, 1);
+        }
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
     public void manualAdjust(int variantId, int delta, String note, int userId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: manualAdjust(int variantId, int delta, String note, int userId)");
+        if (delta == 0) return;
+        try (Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+                int stockAfter = currentStock + delta;
+                if (stockAfter < 0) {
+                    throw new IllegalArgumentException("Số lượng tồn kho sau điều chỉnh không được âm.");
+                }
+
+                InventoryLog log = new InventoryLog();
+                log.setVariantId(variantId);
+                log.setChangedBy(userId);
+                log.setChangeType("MANUAL_ADJUST");
+                log.setQuantityDelta(delta);
+                log.setQuantityAfter(stockAfter);
+                log.setNote(note != null ? note : "Điều chỉnh kho thủ công");
+                log.setChangedAt(java.time.LocalDateTime.now());
+
+                inventoryDAO.save(conn, log);
+                productVariantDAO.updateStock(conn, variantId, delta);
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public java.util.List getLogs(int variantId) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: getLogs(int variantId)");
+    public java.util.List<InventoryLog> getLogs(int variantId) throws SQLException {
+        return inventoryDAO.findByVariant(variantId);
     }
 
 }

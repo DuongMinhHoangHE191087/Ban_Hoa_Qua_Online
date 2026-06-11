@@ -126,6 +126,54 @@
                 </div>
             </div>
 
+            <c:if test="${lowStock > 0}">
+                <!-- Low Stock Alert Box -->
+                <div class="bg-red-50/80 backdrop-blur-sm border border-red-200/60 p-6 rounded-2xl shadow-sm mb-8">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg flex-shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <h3 class="text-sm font-bold text-red-800">Cảnh báo: Phát hiện ${lowStock} biến thể sản phẩm sắp hết hàng!</h3>
+                            <p class="text-xs text-red-700/80 mt-1">Các mặt hàng dưới đây có số lượng tồn kho thấp hơn hoặc bằng hạn mức tối thiểu (10 đơn vị). Hãy nhập thêm hàng để tránh gián đoạn kinh doanh.</p>
+                            
+                            <div class="mt-4 overflow-x-auto rounded-xl border border-red-200/40 bg-white/70">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-red-100/30 text-red-800 font-bold uppercase tracking-wider border-b border-red-200/30">
+                                            <th class="py-2.5 px-4">Sản phẩm</th>
+                                            <th class="py-2.5 px-4">Biến thể</th>
+                                            <th class="py-2.5 px-4">SKU</th>
+                                            <th class="py-2.5 px-4">Tồn kho</th>
+                                            <th class="py-2.5 px-4 text-right">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-red-100/40 text-red-900">
+                                        <c:forEach var="item" items="${lowStockVariants}">
+                                            <tr class="hover:bg-red-100/10">
+                                                <td class="py-2.5 px-4 font-semibold">${item.productName}</td>
+                                                <td class="py-2.5 px-4">${item.variantLabel}</td>
+                                                <td class="py-2.5 px-4 font-mono">${item.sku}</td>
+                                                <td class="py-2.5 px-4">
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                                        ${item.stockQuantity}
+                                                    </span>
+                                                </td>
+                                                <td class="py-2.5 px-4 text-right">
+                                                    <a href="${pageContext.request.contextPath}/shop/inventory" class="inline-flex items-center gap-1 font-bold text-red-700 hover:text-red-950 hover:underline">
+                                                        <i class="fa-solid fa-truck-ramp-box"></i> Nhập hàng nhanh
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </c:forEach>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </c:if>
+
             <!-- Main Layout Split Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Recent Orders Table (Col span 2) -->

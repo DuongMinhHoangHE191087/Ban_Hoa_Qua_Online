@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * PaymentService — Business logic cho thanh toán.
@@ -62,6 +63,21 @@ public class PaymentService {
     public PaymentTransaction getPaymentByOrder(int orderId) throws SQLException {
         List<PaymentTransaction> list = paymentDAO.findByOrder(orderId);
         return list.isEmpty() ? null : list.get(0);
+    }
+
+    /**
+     * Danh sách payment toàn sàn cho dashboard admin.
+     */
+    public List<Map<String, Object>> getAdminPayments(String status, String paymentMethod,
+                                                      String keyword, int page, int pageSize) throws SQLException {
+        return paymentDAO.findAdminPayments(status, paymentMethod, keyword, page, pageSize);
+    }
+
+    /**
+     * Đếm payment toàn sàn theo bộ lọc dashboard admin.
+     */
+    public int countAdminPayments(String status, String paymentMethod, String keyword) throws SQLException {
+        return paymentDAO.countAdminPayments(status, paymentMethod, keyword);
     }
 
     /**

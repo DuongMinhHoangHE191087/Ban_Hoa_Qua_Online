@@ -72,10 +72,12 @@
         }
     };
 
-    function quickAddProduct(event, productId) {
+    function quickAddProduct(event, productId, variantId, name, price, imagePath, stockQuantity) {
         event.preventDefault();
         event.stopPropagation();
-        if (window.quickAddProductGlobal) {
+        if (variantId > 0 && typeof window.addCartItem === 'function') {
+            window.addCartItem(variantId, 1, name + " - Mặc định", price, imagePath, stockQuantity, productId);
+        } else if (window.quickAddProductGlobal) {
             window.quickAddProductGlobal(productId);
         } else {
             // Fallback: Redirect to detail page
@@ -201,7 +203,7 @@
                             <span class="material-symbols-outlined text-[16px]">done</span>
                             Áp dụng bộ lọc
                         </button>
-                        <a href="${pageContext.request.contextPath}/products"
+                        <a href="${pageContext.request.contextPath}/products" onclick="sessionStorage.removeItem('aiFilteredProductIds')"
                            class="w-full border border-primary/20 bg-white/60 hover:bg-emerald-50 text-primary text-xs font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center">
                             <span class="material-symbols-outlined text-[16px]">refresh</span>
                             Đặt lại bộ lọc
@@ -231,6 +233,17 @@
                     </c:if>
                 </div>
 
+                <!-- AI Filter alert banner -->
+                <div id="aiFilterBanner" class="hidden flex items-center justify-between gap-3 mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 p-4 rounded-2xl shadow-sm">
+                    <div class="flex items-center gap-2 text-xs md:text-sm text-emerald-800 font-semibold">
+                        <span class="material-symbols-outlined text-[20px] text-emerald-600 animate-pulse">psychology</span>
+                        <span>Đang lọc danh sách sản phẩm theo gợi ý của Trợ lý AI.</span>
+                    </div>
+                    <button onclick="clearAiFilter()" class="bg-white hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-sm flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">refresh</span> Đặt lại
+                    </button>
+                </div>
+
                 <!-- Products Grid -->
                 <c:choose>
                     <c:when test="${empty pagedResult or empty pagedResult.items}">
@@ -251,7 +264,7 @@
                     </c:when>
                     <c:otherwise>
                         <!-- Grid layout -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                        <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                             <c:forEach var="p" items="${pagedResult.items}">
                                 <article data-product-id="${p.productId}"
                                          data-price="${p.price}"
@@ -307,7 +320,7 @@
                                             </span>
                                         </div>
 
-                                        <button type="button" onclick="quickAddProduct(event, '${p.productId}')"
+                                        <button type="button" onclick="quickAddProduct(event, '${p.productId}', '${not empty p.variantId ? p.variantId : 0}', '${fn:escapeXml(p.name)}', '${not empty p.price ? p.price : 0}', '${p.image}', '${not empty p.stockQuantity ? p.stockQuantity : 0}')"
                                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                                 title="Thêm vào giỏ hàng">
                                             <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
@@ -342,27 +355,40 @@
                                     </c:otherwise>
                                 </c:choose>
 
-                                <!-- Page Numbers -->
+                                <!-- Page Numbers with Ellipsis -->
                                 <c:forEach var="pageNum" begin="1" end="${pagedResult.totalPages}">
-                                    <c:url var="pageUrl" value="/products">
-                                        <c:param name="page" value="${pageNum}" />
-                                        <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
-                                        <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
-                                        <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
-                                        <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
-                                    </c:url>
                                     <c:choose>
-                                        <c:when test="${pagedResult.currentPage == pageNum}">
-                                            <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                                                ${pageNum}
-                                            </span>
+                                        <%-- Display conditions: first page, last page, and neighbor pages --%>
+                                        <c:when test="${pageNum == 1 || pageNum == pagedResult.totalPages || (pageNum >= pagedResult.currentPage - 1 && pageNum <= pagedResult.currentPage + 1)}">
+                                            <c:url var="pageUrl" value="/products">
+                                                <c:param name="page" value="${pageNum}" />
+                                                <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
+                                                <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
+                                                <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
+                                                <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
+                                            </c:url>
+                                            <c:choose>
+                                                <c:when test="${pagedResult.currentPage == pageNum}">
+                                                    <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
+                                                        ${pageNum}
+                                                    </span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <a href="${pageUrl}"
+                                                       class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                                        ${pageNum}
+                                                    </a>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </c:when>
-                                        <c:otherwise>
-                                            <a href="${pageUrl}"
-                                               class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                                ${pageNum}
-                                            </a>
-                                        </c:otherwise>
+                                        <%-- Ellipsis before active range --%>
+                                        <c:when test="${pageNum == 2 && pagedResult.currentPage > 3}">
+                                            <span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>
+                                        </c:when>
+                                        <%-- Ellipsis after active range --%>
+                                        <c:when test="${pageNum == pagedResult.totalPages - 1 && pagedResult.currentPage < pagedResult.totalPages - 2}">
+                                            <span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>
+                                        </c:when>
                                     </c:choose>
                                 </c:forEach>
 
@@ -411,6 +437,12 @@
 </div>
 
 <script>
+    // Helper to clear AI filter
+    function clearAiFilter() {
+        sessionStorage.removeItem('aiFilteredProductIds');
+        applyClientFilters();
+    }
+
     // Client-side Filter & Sort logic
     function applyClientFilters() {
         const minPriceInput = document.getElementById('minPriceInput');
@@ -424,7 +456,18 @@
         const inStockOnly = document.getElementById('inStockFilter')?.checked || false;
         const sortVal = document.getElementById('sortSelector')?.value || 'newest';
 
-        const grid = document.querySelector('.grid');
+        // Check for AI filter
+        const aiFilteredIdsRaw = sessionStorage.getItem('aiFilteredProductIds');
+        const aiFilteredIds = aiFilteredIdsRaw ? JSON.parse(aiFilteredIdsRaw) : null;
+
+        const banner = document.getElementById('aiFilterBanner');
+        if (aiFilteredIds && aiFilteredIds.length > 0) {
+            if (banner) banner.classList.remove('hidden');
+        } else {
+            if (banner) banner.classList.add('hidden');
+        }
+
+        const grid = document.getElementById('productsGrid');
         if (!grid) return;
         const items = Array.from(grid.querySelectorAll('article'));
 
@@ -433,11 +476,13 @@
             const price = parseFloat(item.getAttribute('data-price')) || 0;
             const rating = parseFloat(item.getAttribute('data-rating')) || 0;
             const inStock = item.getAttribute('data-in-stock') === 'true';
+            const productId = parseInt(item.getAttribute('data-product-id')) || 0;
 
             let show = true;
             if (price < minPrice || price > maxPrice) show = false;
             if (rating < minRating) show = false;
             if (inStockOnly && !inStock) show = false;
+            if (aiFilteredIds && aiFilteredIds.length > 0 && !aiFilteredIds.includes(productId)) show = false;
 
             if (show) {
                 item.style.setProperty('display', 'flex', 'important');
@@ -453,29 +498,25 @@
             resultsCountEl.textContent = visibleCount;
         }
 
-        // Show/hide empty fallback view if visibleCount is 0
+        // Hide old fallback view if present
         let noProductsEl = document.getElementById('noProductsFallback');
-        if (visibleCount === 0) {
-            if (!noProductsEl) {
-                noProductsEl = document.createElement('div');
-                noProductsEl.id = 'noProductsFallback';
-                noProductsEl.className = 'glass-panel rounded-3xl p-16 text-center max-w-xl mx-auto ambient-shadow flex flex-col items-center gap-4 bg-white/60 mt-10';
-                noProductsEl.innerHTML = `
-                    <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce">sentiment_dissatisfied</span>
-                    <div>
-                        <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
-                        <p class="text-xs text-on-surface-variant font-light mt-1.5 leading-relaxed">
-                            Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng đặt lại bộ lọc.
-                        </p>
-                    </div>
-                `;
-                grid.parentNode.appendChild(noProductsEl);
-            }
-            noProductsEl.style.display = 'flex';
-        } else {
-            if (noProductsEl) {
-                noProductsEl.style.display = 'none';
-            }
+        if (noProductsEl) {
+            noProductsEl.style.display = 'none';
+        }
+
+        // B4: Chỉ hiện SweetAlert khi AI filter đang hoạt động VÀ không tìm thấy sp
+        // Tránh toast lỗi xuất hiện ngay khi trang load bình thường không có sp
+        if (visibleCount === 0 && aiFilteredIds && aiFilteredIds.length > 0) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'warning',
+                title: 'Không tìm thấy sản phẩm',
+                text: 'Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng đặt lại bộ lọc.',
+                showConfirmButton: false,
+                timer: 4500,
+                timerProgressBar: true
+            });
         }
 
         // Sorting visible items
@@ -523,11 +564,23 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Clear AI filter if page is reloaded or if the URL does not contain fromAi=true
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFromAi = urlParams.get('fromAi') === 'true';
+        const isReload = (window.performance && window.performance.navigation && window.performance.navigation.type === 1) ||
+                         (window.performance && window.performance.getEntriesByType && window.performance.getEntriesByType("navigation")[0] && window.performance.getEntriesByType("navigation")[0].type === "reload");
+
+        if (isReload || !isFromAi) {
+            sessionStorage.removeItem('aiFilteredProductIds');
+        }
+
         // Submit handler for the filter form
         const form = document.querySelector('aside form');
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
+                // Clear AI filter when user manually submits the search/filter form
+                sessionStorage.removeItem('aiFilteredProductIds');
                 applyClientFilters();
             });
         }
@@ -541,6 +594,7 @@
         }
 
         loadRecentlyViewed();
+        applyClientFilters();
     });
 </script>
 

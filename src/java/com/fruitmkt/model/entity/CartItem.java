@@ -17,10 +17,19 @@ public class CartItem {
     private String productName;
     private String variantLabel;
     private java.math.BigDecimal price;
+    private java.math.BigDecimal basePrice;
     private java.math.BigDecimal weightKg;
     private String imagePath;
     private int stockQuantity;
     private int productId;
+
+    // Packaging option selection properties
+    private Integer packagingId;
+    private String packagingLabel;
+    private java.math.BigDecimal packagingPriceAdd;
+
+    public java.math.BigDecimal getBasePrice() { return basePrice; }
+    public void setBasePrice(java.math.BigDecimal basePrice) { this.basePrice = basePrice; }
 
     public CartItem() {}
 
@@ -60,4 +69,13 @@ public class CartItem {
 
     public int getProductId() { return productId; }
     public void setProductId(int productId) { this.productId = productId; }
+
+    public Integer getPackagingId() { return packagingId; }
+    public void setPackagingId(Integer packagingId) { this.packagingId = packagingId; }
+
+    public String getPackagingLabel() { return packagingLabel; }
+    public void setPackagingLabel(String packagingLabel) { this.packagingLabel = packagingLabel; }
+
+    public java.math.BigDecimal getPackagingPriceAdd() { return packagingPriceAdd; }
+    public void setPackagingPriceAdd(java.math.BigDecimal packagingPriceAdd) { this.packagingPriceAdd = packagingPriceAdd; }
 }

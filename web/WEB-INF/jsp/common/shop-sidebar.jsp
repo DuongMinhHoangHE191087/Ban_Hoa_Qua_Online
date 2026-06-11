@@ -42,7 +42,7 @@
            class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200
                   ${param.activePage == 'promotions' ? 'font-bold bg-[#edf7f2] text-[#4d661c] shadow-inner border-l-4 border-[#4d661c]' : 'font-medium text-[#475569] hover:bg-[#edf7f2] hover:text-[#4d661c]'}">
             <i class="fa-solid fa-tags w-5 text-center ${param.activePage == 'promotions' ? 'text-[#4d661c]' : 'text-gray-400'}"></i>
-            <span>Khuyến mãi</span>
+            <span>Voucher shop</span>
         </a>
         <a href="${pageContext.request.contextPath}/shop/inventory"
            class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200

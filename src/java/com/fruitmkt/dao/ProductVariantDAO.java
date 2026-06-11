@@ -74,7 +74,7 @@ public class ProductVariantDAO extends BaseDAO {
      * Lưu một biến thể sản phẩm mới vào cơ sở dữ liệu.
      */
     public int save(ProductVariant variant) throws SQLException {
-        String sql = "INSERT INTO product_variants (product_id, sku, variant_label, price, stock_quantity, weight_kg, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        String sql = "INSERT INTO product_variants (product_id, sku, variant_label, price, stock_quantity, weight_kg, is_active, discount_price, discount_start, discount_end, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, variant.getProductId());
@@ -84,6 +84,9 @@ public class ProductVariantDAO extends BaseDAO {
             ps.setInt(5, variant.getStockQuantity());
             ps.setBigDecimal(6, variant.getWeightKg() != null ? variant.getWeightKg() : new java.math.BigDecimal("1.0"));
             ps.setBoolean(7, variant.getIsActive());
+            ps.setBigDecimal(8, variant.getDiscountPrice());
+            ps.setTimestamp(9, variant.getDiscountStart() != null ? Timestamp.valueOf(variant.getDiscountStart()) : null);
+            ps.setTimestamp(10, variant.getDiscountEnd() != null ? Timestamp.valueOf(variant.getDiscountEnd()) : null);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -98,7 +101,7 @@ public class ProductVariantDAO extends BaseDAO {
      * Cập nhật thông tin của biến thể sản phẩm.
      */
     public void update(ProductVariant variant) throws SQLException {
-        String sql = "UPDATE product_variants SET sku = ?, variant_label = ?, price = ?, stock_quantity = ?, weight_kg = ?, is_active = ?, updated_at = GETDATE() WHERE variant_id = ?";
+        String sql = "UPDATE product_variants SET sku = ?, variant_label = ?, price = ?, stock_quantity = ?, weight_kg = ?, is_active = ?, discount_price = ?, discount_start = ?, discount_end = ?, updated_at = GETDATE() WHERE variant_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, variant.getSku());
@@ -107,7 +110,10 @@ public class ProductVariantDAO extends BaseDAO {
             ps.setInt(4, variant.getStockQuantity());
             ps.setBigDecimal(5, variant.getWeightKg() != null ? variant.getWeightKg() : new java.math.BigDecimal("1.0"));
             ps.setBoolean(6, variant.getIsActive());
-            ps.setInt(7, variant.getVariantId());
+            ps.setBigDecimal(7, variant.getDiscountPrice());
+            ps.setTimestamp(8, variant.getDiscountStart() != null ? Timestamp.valueOf(variant.getDiscountStart()) : null);
+            ps.setTimestamp(9, variant.getDiscountEnd() != null ? Timestamp.valueOf(variant.getDiscountEnd()) : null);
+            ps.setInt(10, variant.getVariantId());
             ps.executeUpdate();
         }
     }
@@ -197,6 +203,17 @@ public class ProductVariantDAO extends BaseDAO {
         pv.setStockQuantity(rs.getInt("stock_quantity"));
         pv.setIsActive(rs.getBoolean("is_active"));
         pv.setWeightKg(rs.getBigDecimal("weight_kg"));
+        pv.setDiscountPrice(rs.getBigDecimal("discount_price"));
+        
+        Timestamp discStartVal = rs.getTimestamp("discount_start");
+        if (discStartVal != null) {
+            pv.setDiscountStart(discStartVal.toLocalDateTime());
+        }
+        
+        Timestamp discEndVal = rs.getTimestamp("discount_end");
+        if (discEndVal != null) {
+            pv.setDiscountEnd(discEndVal.toLocalDateTime());
+        }
         
         Timestamp createdAtVal = rs.getTimestamp("created_at");
         if (createdAtVal != null) {

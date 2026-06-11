@@ -233,4 +233,129 @@ public class PaymentDAO extends BaseDAO {
         }
         return list;
     }
+
+    public List<Map<String, Object>> findAdminPayments(String status, String paymentMethod, String keyword,
+                                                       int page, int pageSize) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT pt.transaction_id, pt.order_id, pt.payment_method, pt.sepay_transaction_id, pt.sepay_reference, " +
+                "       pt.sepay_qr_code, pt.amount, pt.currency, pt.status AS payment_status, " +
+                "       pt.initiated_at, pt.completed_at, pt.expires_at, pt.provider_response, pt.error_code, pt.error_message, " +
+                "       pt.ip_address, o.status AS order_status, o.payment_method AS order_payment_method, " +
+                "       c.full_name AS customer_name, COALESCE(sop.shop_name, N'') AS shop_name " +
+                "FROM payment_transactions pt " +
+                "JOIN orders o ON pt.order_id = o.order_id " +
+                "JOIN users c ON o.customer_id = c.user_id " +
+                "LEFT JOIN shop_owner_profiles sop ON o.owner_id = sop.user_id " +
+                "WHERE 1=1 "
+        );
+        List<Object> params = new ArrayList<>();
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND pt.status = ? ");
+            params.add(status.trim());
+        }
+        if (paymentMethod != null && !paymentMethod.trim().isEmpty()) {
+            sql.append("AND pt.payment_method = ? ");
+            params.add(paymentMethod.trim());
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (CAST(pt.transaction_id AS NVARCHAR(20)) LIKE ? "
+                    + "OR CAST(pt.order_id AS NVARCHAR(20)) LIKE ? "
+                    + "OR pt.sepay_reference LIKE ? "
+                    + "OR ISNULL(pt.sepay_transaction_id, '') LIKE ? "
+                    + "OR c.full_name LIKE ? "
+                    + "OR ISNULL(sop.shop_name, '') LIKE ?) ");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+        }
+        sql.append("ORDER BY pt.initiated_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        params.add(Math.max(0, (page - 1) * pageSize));
+        params.add(pageSize);
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("transactionId", rs.getInt("transaction_id"));
+                    row.put("orderId", rs.getInt("order_id"));
+                    row.put("paymentMethod", rs.getString("payment_method"));
+                    row.put("sepayTransactionId", rs.getString("sepay_transaction_id"));
+                    row.put("sepayReference", rs.getString("sepay_reference"));
+                    row.put("sepayQrCode", rs.getString("sepay_qr_code"));
+                    row.put("amount", rs.getBigDecimal("amount"));
+                    row.put("currency", rs.getString("currency"));
+                    row.put("paymentStatus", rs.getString("payment_status"));
+                    row.put("orderStatus", rs.getString("order_status"));
+                    row.put("orderPaymentMethod", rs.getString("order_payment_method"));
+                    row.put("customerName", rs.getString("customer_name"));
+                    row.put("shopName", rs.getString("shop_name"));
+                    row.put("initiatedAt", rs.getTimestamp("initiated_at"));
+                    row.put("completedAt", rs.getTimestamp("completed_at"));
+                    row.put("expiresAt", rs.getTimestamp("expires_at"));
+                    row.put("providerResponse", rs.getString("provider_response"));
+                    row.put("errorCode", rs.getString("error_code"));
+                    row.put("errorMessage", rs.getString("error_message"));
+                    row.put("ipAddress", rs.getString("ip_address"));
+                    list.add(row);
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countAdminPayments(String status, String paymentMethod, String keyword) throws SQLException {
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) FROM payment_transactions pt " +
+                "JOIN orders o ON pt.order_id = o.order_id " +
+                "JOIN users c ON o.customer_id = c.user_id " +
+                "LEFT JOIN shop_owner_profiles sop ON o.owner_id = sop.user_id " +
+                "WHERE 1=1 "
+        );
+        List<Object> params = new ArrayList<>();
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND pt.status = ? ");
+            params.add(status.trim());
+        }
+        if (paymentMethod != null && !paymentMethod.trim().isEmpty()) {
+            sql.append("AND pt.payment_method = ? ");
+            params.add(paymentMethod.trim());
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (CAST(pt.transaction_id AS NVARCHAR(20)) LIKE ? "
+                    + "OR CAST(pt.order_id AS NVARCHAR(20)) LIKE ? "
+                    + "OR pt.sepay_reference LIKE ? "
+                    + "OR ISNULL(pt.sepay_transaction_id, '') LIKE ? "
+                    + "OR c.full_name LIKE ? "
+                    + "OR ISNULL(sop.shop_name, '') LIKE ?) ");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+            params.add(like);
+        }
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
 }

@@ -1163,6 +1163,16 @@
                             <span id="variant-status-badge" class="badge-stock badge-outstock"><i class="fa-solid fa-circle-xmark mr-1"></i> Hết hàng</span>
                         </c:otherwise>
                     </c:choose>
+                    <c:if test="${product.isOrganic}">
+                        <span class="badge-stock" style="background: linear-gradient(120deg, #dcfce7, #86efac); color: #14532d; border: 1px solid rgba(34,197,94,0.4);">
+                            <i class="fa-solid fa-leaf mr-1"></i> Hữu Cơ
+                        </span>
+                    </c:if>
+                    <c:if test="${product.isImported}">
+                        <span class="badge-stock" style="background: linear-gradient(120deg, #dbeafe, #93c5fd); color: #1e3a8a; border: 1px solid rgba(59,130,246,0.4);">
+                            <i class="fa-solid fa-globe mr-1"></i> Nhập Khẩu
+                        </span>
+                    </c:if>
                     <span class="badge-rating-top">
                         <i class="fa-solid fa-star text-[#F59E0B]"></i>
                         <c:out value="${product.rating}"/> (<c:out value="${totalReviewsCount}"/> Đánh giá)
@@ -1174,6 +1184,18 @@
                 <h1 class="font-bold text-3xl mb-2 text-[#00210D] font-headline-lg" style="letter-spacing: -0.5px;">
                     <c:out value="${product.name}"/>
                 </h1>
+
+                <c:if test="${isOutOfSeason && !isExpiredProduct}">
+                    <div class="out-of-season-banner" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin: 16px 0; display: flex; align-items: center; gap: 12px;">
+                        <div style="background: #f59e0b; color: white; min-width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                            <i class="fa-solid fa-cloud-sun-rain"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; color: #b45309; font-weight: bold; font-size: 14px;">Sản phẩm đã hết mùa vụ gieo trồng</h4>
+                            <p style="margin: 4px 0 0 0; color: #92400e; font-size: 12px;">Mùa vụ của sản phẩm này từ tháng ${product.seasonStartMonth} đến tháng ${product.seasonEndMonth}. Vui lòng quay lại khi đến mùa vụ hoặc liên hệ shop.</p>
+                        </div>
+                    </div>
+                </c:if>
 
                 <c:if test="${isExpiredProduct}">
                     <div class="expired-product-banner" style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
@@ -1212,7 +1234,7 @@
                     <c:set var="fp" value="${productPromotions[0]}"/>
                     <div class="flash-sale-badge">
                         <i class="fa-solid fa-bolt"></i>
-                        Flash Sale:
+                        Sale trực tiếp:
                         <c:choose>
                             <c:when test="${fp.discountType == 'PERCENT'}">Giảm <c:out value="${fp.discountValue}"/>%</c:when>
                             <c:otherwise>Giảm <ft:currency value="${fp.discountValue}"/></c:otherwise>
@@ -1222,14 +1244,21 @@
                 </c:if>
 
                 <!-- Price Area -->
-                <div class="price-area">
+                <div class="price-area" style="display: flex; flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                    <span id="original-price-container" class="${not empty variants && variants[0].isDiscounted ? '' : 'hidden'}">
+                        <span id="original-price" class="text-red-500 line-through text-base md:text-lg mr-2 font-semibold">
+                            <c:if test="${not empty variants}">
+                                <ft:currency value="${variants[0].price}"/>
+                            </c:if>
+                        </span>
+                    </span>
                     <span class="price-main" id="displayed-price">
                         <c:choose>
-                            <c:when test="${not empty variants}"><ft:currency value="${variants[0].price}"/></c:when>
+                            <c:when test="${not empty variants}"><ft:currency value="${variants[0].activePrice}"/></c:when>
                             <c:otherwise>0 ₫</c:otherwise>
                         </c:choose>
                     </span>
-                    <span class="price-unit" id="displayed-unit">/ đơn vị</span>
+                    <span class="price-unit" id="displayed-unit">/ <c:out value="${not empty variants ? variants[0].variantLabel : 'đơn vị'}"/></span>
                 </div>
 
                 <!-- Product Description -->
@@ -1251,6 +1280,8 @@
                                            class="variant-chip-input"
                                            value="${v.variantId}"
                                            data-price="${v.price}"
+                                           data-activeprice="${v.activePrice}"
+                                           data-isdiscounted="${v.isDiscounted}"
                                            data-label="${v.variantLabel}"
                                            data-stock="${v.stockQuantity}"
                                            ${status.index == 0 ? 'checked' : ''}
@@ -1261,6 +1292,23 @@
                                 </c:forEach>
                             </div>
                         </div>
+
+                        <!-- Packaging Options Selection -->
+                        <c:if test="${not empty packagingOptions}">
+                            <div class="variant-section my-5">
+                                <div class="section-sub-title">Chọn quy cách đóng gói (Tùy chọn):</div>
+                                <div class="mt-2">
+                                    <select id="packaging-selector" onchange="calculateSubtotal()" class="w-full md:max-w-xs px-4 py-2.5 rounded-full border-2 border-gray-200 focus:border-primary focus:ring-0 text-sm font-semibold text-gray-700 bg-white transition-all shadow-sm">
+                                        <option value="" data-price-add="0">Mặc định (Không thêm phụ phí)</option>
+                                        <c:forEach var="po" items="${packagingOptions}">
+                                            <option value="${po.packagingId}" data-price-add="${po.priceAdd}">
+                                                <c:out value="${po.label}"/> (+<ft:currency value="${po.priceAdd}"/>)
+                                            </option>
+                                        </c:forEach>
+                                    </select>
+                                </div>
+                            </div>
+                        </c:if>
                     </c:when>
                     <c:otherwise>
                         <div class="text-sm text-danger font-semibold my-4">Không có biến thể khả dụng cho sản phẩm này.</div>
@@ -1290,18 +1338,37 @@
                     </c:choose>
                 </div>
 
+                <!-- Subtotal display -->
+                <c:if test="${not empty variants && product.status == 'ACTIVE' && !isOutOfSeason}">
+                    <div class="flex items-center justify-between bg-[#f0fdf4] border border-[#dcfce7] rounded-2xl px-5 py-3.5 my-4" style="background: rgba(240, 253, 244, 0.6); border: 1.5px solid rgba(134, 239, 172, 0.35);">
+                        <span class="text-xs font-bold text-[#14532d] uppercase tracking-wider">Tạm tính (chưa gồm ship)</span>
+                        <strong id="purchase-subtotal" class="text-xl font-extrabold text-[#166534]">0 ₫</strong>
+                    </div>
+                </c:if>
+
                 <!-- Cart Action Row -->
                 <c:if test="${not empty variants && product.status == 'ACTIVE'}">
-                    <div class="cart-action-row" id="cart-action-controls">
-                        <div class="qty-selector" id="purchase-qty-selector">
-                            <button type="button" class="qty-btn" onclick="adjustQuantity(-1)"><i class="fa-solid fa-minus"></i></button>
-                            <input type="number" id="purchase-qty" class="qty-input" value="1" min="1" readonly>
-                            <button type="button" class="qty-btn" onclick="adjustQuantity(1)"><i class="fa-solid fa-plus"></i></button>
-                        </div>
-                        <button type="button" id="btn-add-to-cart" class="btn-add-to-cart-large" onclick="handleAddToCart()">
-                            <i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng
-                        </button>
-                    </div>
+                    <c:choose>
+                        <c:when test="${isOutOfSeason}">
+                            <div class="cart-action-row">
+                                <button type="button" disabled class="btn-add-to-cart-large" style="background: #cbd5e1; color: #64748b; cursor: not-allowed; box-shadow: none;">
+                                    <i class="fa-solid fa-calendar-xmark"></i> Hết mùa vụ gieo trồng
+                                </button>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="cart-action-row" id="cart-action-controls">
+                                <div class="qty-selector" id="purchase-qty-selector">
+                                    <button type="button" class="qty-btn" onclick="adjustQuantity(-1)"><i class="fa-solid fa-minus"></i></button>
+                                    <input type="number" id="purchase-qty" class="qty-input" value="1" min="1" readonly>
+                                    <button type="button" class="qty-btn" onclick="adjustQuantity(1)"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                                <button type="button" id="btn-add-to-cart" class="btn-add-to-cart-large" onclick="handleAddToCart()">
+                                    <i class="fa-solid fa-cart-arrow-down"></i> Thêm Vào Giỏ Hàng
+                                </button>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
                 </c:if>
             </div>
         </div>
@@ -1378,7 +1445,7 @@
                 <c:if test="${not empty productPromotions || not empty shopVouchers || not empty systemVouchers}">
                     <div class="shop-body-section">
                         <div class="shop-section-label">
-                            <i class="fa-solid fa-ticket"></i> Mã giảm giá &amp; Voucher
+                        <i class="fa-solid fa-ticket"></i> Ưu đãi: sale trực tiếp, voucher shop, voucher sàn
                         </div>
                         <div class="voucher-slider-wrapper">
                             <div class="voucher-slider-nav">
@@ -1393,12 +1460,12 @@
                             <div class="voucher-track-container">
                                 <div class="voucher-track" id="voucher-track">
 
-                                    <%-- Voucher sản phẩm (Flash Sale) --%>
+                                    <%-- Sale trực tiếp cho sản phẩm --%>
                                     <c:forEach var="pv" items="${productPromotions}">
                                         <div class="voucher-item type-product">
                                             <div class="voucher-ribbon">
                                                 <span class="voucher-ribbon-icon"><i class="fa-solid fa-bolt"></i></span>
-                                                FLASH
+                                                SALE
                                             </div>
                                             <div class="voucher-body">
                                                 <div class="voucher-code"><c:out value="${pv.code}"/></div>
@@ -1415,7 +1482,7 @@
                                         </div>
                                     </c:forEach>
 
-                                    <%-- Voucher của Shop --%>
+                                    <%-- Voucher shop --%>
                                     <c:forEach var="sv" items="${shopVouchers}">
                                         <div class="voucher-item type-shop">
                                             <div class="voucher-ribbon">
@@ -1436,7 +1503,7 @@
                                         </div>
                                     </c:forEach>
 
-                                    <%-- Voucher hệ thống --%>
+                                    <%-- Voucher sàn --%>
                                     <c:forEach var="syv" items="${systemVouchers}">
                                         <div class="voucher-item type-system">
                                             <div class="voucher-ribbon">
@@ -1815,13 +1882,27 @@
     // 2b. Variant change — update price, unit, stock, and check stock-out states
     function onVariantChange(radioElement) {
         const price = parseFloat(radioElement.getAttribute('data-price'));
+        const activePrice = parseFloat(radioElement.getAttribute('data-activeprice')) || price;
+        const isDiscounted = radioElement.getAttribute('data-isdiscounted') === 'true';
         const label = radioElement.getAttribute('data-label');
         const stock = parseInt(radioElement.getAttribute('data-stock'));
 
         const priceDisplay = document.getElementById('displayed-price');
         if (priceDisplay) {
-            priceDisplay.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+            priceDisplay.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(activePrice);
         }
+
+        const origPriceContainer = document.getElementById('original-price-container');
+        const origPriceDisplay = document.getElementById('original-price');
+        if (origPriceContainer && origPriceDisplay) {
+            if (isDiscounted) {
+                origPriceDisplay.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+                origPriceContainer.classList.remove('hidden');
+            } else {
+                origPriceContainer.classList.add('hidden');
+            }
+        }
+
         const unitDisplay = document.getElementById('displayed-unit');
         if (unitDisplay) unitDisplay.textContent = ' / ' + label;
 
@@ -1833,6 +1914,9 @@
 
         // Apply Out of Stock UI check
         updateStockUI(stock);
+
+        // Recalculate subtotal
+        calculateSubtotal();
     }
 
     // 3. Quantity adjustment
@@ -1850,6 +1934,32 @@
             alert('Số lượng yêu cầu vượt quá tồn kho khả dụng (' + maxStock + ')!');
         }
         qtyInput.value = currentQty;
+        calculateSubtotal();
+    }
+
+    // 3b. Calculate and display subtotal (active price + packaging)
+    function calculateSubtotal() {
+        const checkedVariant = document.querySelector('input[name="product_variant"]:checked');
+        if (!checkedVariant) return;
+
+        const activePrice = parseFloat(checkedVariant.getAttribute('data-activeprice')) || 0;
+        
+        const packagingSelect = document.getElementById('packaging-selector');
+        let packagingPriceAdd = 0;
+        if (packagingSelect) {
+            const selectedOpt = packagingSelect.options[packagingSelect.selectedIndex];
+            packagingPriceAdd = parseFloat(selectedOpt.getAttribute('data-price-add')) || 0;
+        }
+
+        const qtyInput = document.getElementById('purchase-qty');
+        const quantity = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+
+        const subtotal = (activePrice + packagingPriceAdd) * quantity;
+        
+        const subtotalDisplay = document.getElementById('purchase-subtotal');
+        if (subtotalDisplay) {
+            subtotalDisplay.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(subtotal);
+        }
     }
 
     // 4. Add to cart (Ajax Premium Unified Helper)
@@ -1860,8 +1970,26 @@
         const variantId = parseInt(checkedVariant.value);
         const qtyInput = document.getElementById('purchase-qty');
         const quantity = parseInt(qtyInput ? qtyInput.value : 1);
-        const name = "<c:out value='${product.name}'/> - " + checkedVariant.getAttribute('data-label');
-        const price = parseFloat(checkedVariant.getAttribute('data-price'));
+        
+        const packagingSelect = document.getElementById('packaging-selector');
+        let packagingId = null;
+        let packagingPriceAdd = 0;
+        let packagingLabel = '';
+        if (packagingSelect && packagingSelect.value) {
+            packagingId = parseInt(packagingSelect.value);
+            const selectedOpt = packagingSelect.options[packagingSelect.selectedIndex];
+            packagingPriceAdd = parseFloat(selectedOpt.getAttribute('data-price-add')) || 0;
+            packagingLabel = selectedOpt.textContent.trim().split(' (+')[0];
+        }
+
+        let name = "<c:out value='${product.name}'/> - " + checkedVariant.getAttribute('data-label');
+        if (packagingLabel) {
+            name += " (" + packagingLabel + ")";
+        }
+
+        const activePrice = parseFloat(checkedVariant.getAttribute('data-activeprice')) || parseFloat(checkedVariant.getAttribute('data-price'));
+        const totalPricePerItem = activePrice + packagingPriceAdd;
+
         const stockQuantity = parseInt(checkedVariant.getAttribute('data-stock')) || 0;
 
         // CRITICAL: Block out-of-stock actions and display Red Alert
@@ -1886,11 +2014,11 @@
         }
 
         if (window.addCartItem) {
-            await window.addCartItem(variantId, quantity, name, price, imagePath, stockQuantity, currentProductId);
+            await window.addCartItem(variantId, quantity, name, totalPricePerItem, imagePath, stockQuantity, currentProductId, packagingId);
         } else {
             console.warn('window.addCartItem not defined globally, falling back to Local Storage only.');
             if (typeof GuestCart !== 'undefined') {
-                GuestCart.add({ variantId, name, price, quantity, imagePath });
+                GuestCart.add({ variantId, name, price: totalPricePerItem, quantity, imagePath, packagingId });
                 showSuccessToast();
             } else {
                 alert('Thêm vào giỏ hàng thành công!');
@@ -2147,6 +2275,7 @@
             const initialStock = parseInt(firstVariant.getAttribute('data-stock')) || 0;
             updateStockUI(initialStock);
             updateStockIndicator(initialStock);
+            calculateSubtotal();
         } else {
             const fillIndicator = document.getElementById('stock-bar-fill-indicator');
             if (fillIndicator) {

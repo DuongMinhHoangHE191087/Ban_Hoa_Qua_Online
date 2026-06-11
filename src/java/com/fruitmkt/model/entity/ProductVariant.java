@@ -18,6 +18,10 @@ public class ProductVariant {
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
+    private java.math.BigDecimal discountPrice;
+    private java.time.LocalDateTime discountStart;
+    private java.time.LocalDateTime discountEnd;
+
     public ProductVariant() {}
 
     public int getVariantId() { return variantId; }
@@ -50,4 +54,32 @@ public class ProductVariant {
     public java.time.LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(java.time.LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
+    public java.math.BigDecimal getDiscountPrice() { return discountPrice; }
+    public void setDiscountPrice(java.math.BigDecimal discountPrice) { this.discountPrice = discountPrice; }
+
+    public java.time.LocalDateTime getDiscountStart() { return discountStart; }
+    public void setDiscountStart(java.time.LocalDateTime discountStart) { this.discountStart = discountStart; }
+
+    public java.time.LocalDateTime getDiscountEnd() { return discountEnd; }
+    public void setDiscountEnd(java.time.LocalDateTime discountEnd) { this.discountEnd = discountEnd; }
+
+    public java.math.BigDecimal getActivePrice() {
+        if (discountPrice != null && discountStart != null && discountEnd != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            if ((now.isAfter(discountStart) || now.isEqual(discountStart)) && 
+                (now.isBefore(discountEnd) || now.isEqual(discountEnd))) {
+                return discountPrice;
+            }
+        }
+        return price;
+    }
+
+    public boolean getIsDiscounted() {
+        if (discountPrice != null && discountStart != null && discountEnd != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            return (now.isAfter(discountStart) || now.isEqual(discountStart)) && 
+                   (now.isBefore(discountEnd) || now.isEqual(discountEnd));
+        }
+        return false;
+    }
 }
