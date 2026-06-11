@@ -3,385 +3,888 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quy Trình Nghiệp Vụ Nhập Hàng & Giải Thích Chi Tiết Mã Nguồn</title>
+    <title>Restock Process Flow — Ban Hoa Qua Online</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #f4fbf7;
-            --text-color: #00210d;
-            --primary: #4D661C;
-            --primary-dark: #364E03;
-            --primary-light: #d9f99d;
-            --surface: #ffffff;
-            --border-color: #e2ece7;
-            --code-bg: #1e1e1e;
-            --code-color: #d4d4d4;
-            --comment-color: #6a9955;
-            --keyword-color: #569cd6;
-            --string-color: #ce9178;
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #21242f;
+            --bg-hover: #282c3a;
+            --border: #2e3345;
+            --border-accent: #3d4460;
+            --text-primary: #e8eaed;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-green: #34d399;
+            --accent-green-bg: rgba(52, 211, 153, 0.08);
+            --accent-blue: #60a5fa;
+            --accent-blue-bg: rgba(96, 165, 250, 0.08);
+            --accent-orange: #fb923c;
+            --accent-orange-bg: rgba(251, 146, 60, 0.08);
+            --accent-red: #f87171;
+            --accent-red-bg: rgba(248, 113, 113, 0.08);
+            --accent-purple: #a78bfa;
+            --accent-purple-bg: rgba(167, 139, 250, 0.08);
+            --accent-yellow: #fbbf24;
+            --accent-yellow-bg: rgba(251, 191, 36, 0.08);
+            --accent-cyan: #22d3ee;
+            --accent-cyan-bg: rgba(34, 211, 238, 0.08);
+            --shadow: 0 4px 24px rgba(0,0,0,0.25);
+            --radius: 12px;
+            --radius-sm: 8px;
         }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
             line-height: 1.6;
-            margin: 0; padding: 25px;
         }
-        .container {
-            max-width: 1100px;
-            margin: auto;
-            background: var(--surface);
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(77, 102, 28, 0.08);
-            border: 1px solid var(--border-color);
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 32px 0 28px;
+            text-align: center;
+            position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(12px);
         }
-        h1, h2, h3 { color: var(--primary-dark); font-weight: 700; }
-        h1 { border-bottom: 2px solid var(--primary); padding-bottom: 10px; font-size: 1.8rem; }
-        h2 { font-size: 1.4rem; margin-top: 35px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
-        
-        /* Table of Contents & Explanations */
-        .card {
-            background-color: #fafdfb;
-            border-left: 4px solid var(--primary);
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            border-left-width: 4px;
+        .header h1 {
+            font-size: 1.75rem; font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background: white;
+        .header p { color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px; }
+
+        /* ── Tab Navigation ── */
+        .tabs {
+            display: flex; justify-content: center; gap: 8px;
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 92px; z-index: 99;
         }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: top;
-            font-size: 0.925rem;
+        .tab-btn {
+            padding: 10px 22px; border: 1px solid var(--border); border-radius: 999px;
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            font-size: 0.82rem; font-weight: 600; transition: all 0.25s;
+            font-family: inherit;
         }
-        th {
-            background-color: rgba(77, 102, 28, 0.05);
-            color: var(--primary-dark);
+        .tab-btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
+        .tab-btn.active {
+            background: var(--accent-green); color: #0f1117;
+            border-color: var(--accent-green); box-shadow: 0 0 20px rgba(52,211,153,0.25);
+        }
+
+        /* ── Panels ── */
+        .panel { display: none; padding: 32px 24px; max-width: 1100px; margin: 0 auto; }
+        .panel.active { display: block; animation: fadeIn 0.35s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Section Titles ── */
+        .section-title {
+            font-size: 1.15rem; font-weight: 700; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-title .badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 999px; font-size: 0.7rem;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge-green  { background: var(--accent-green-bg);  color: var(--accent-green);  border: 1px solid rgba(52,211,153,0.2); }
+        .badge-blue   { background: var(--accent-blue-bg);   color: var(--accent-blue);   border: 1px solid rgba(96,165,250,0.2); }
+        .badge-orange { background: var(--accent-orange-bg); color: var(--accent-orange); border: 1px solid rgba(251,146,60,0.2); }
+        .badge-red    { background: var(--accent-red-bg);    color: var(--accent-red);    border: 1px solid rgba(248,113,113,0.2); }
+        .badge-purple { background: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid rgba(167,139,250,0.2); }
+        .badge-yellow { background: var(--accent-yellow-bg); color: var(--accent-yellow); border: 1px solid rgba(251,191,36,0.2); }
+
+        /* ── Flow Container ── */
+        .flow {
+            display: flex; flex-direction: column; gap: 0; align-items: center;
+            position: relative;
+        }
+
+        /* ── Step Card ── */
+        .step {
+            width: 100%; max-width: 640px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            position: relative;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .step:hover {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow);
+        }
+        .step-number {
+            position: absolute; top: -12px; left: 20px;
+            width: 26px; height: 26px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 800;
+            border: 2px solid var(--bg-primary);
+        }
+        .step-number.green  { background: var(--accent-green);  color: #0f1117; }
+        .step-number.blue   { background: var(--accent-blue);   color: #0f1117; }
+        .step-number.orange { background: var(--accent-orange); color: #0f1117; }
+        .step-number.red    { background: var(--accent-red);    color: #0f1117; }
+        .step-number.purple { background: var(--accent-purple); color: #0f1117; }
+        .step-number.yellow { background: var(--accent-yellow); color: #0f1117; }
+        .step-number.cyan   { background: var(--accent-cyan);   color: #0f1117; }
+
+        .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .step-icon { font-size: 1.1rem; }
+        .step-title { font-size: 0.92rem; font-weight: 700; }
+        .step-desc { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.65; }
+        .step-desc code {
+            background: rgba(96,165,250,0.12); color: var(--accent-blue);
+            padding: 1px 6px; border-radius: 4px; font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .step-desc .file-ref {
+            background: rgba(167,139,250,0.12); color: var(--accent-purple);
+            padding: 1px 6px; border-radius: 4px; font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Arrow Connector ── */
+        .arrow {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 4px 0;
+            color: var(--text-muted);
+        }
+        .arrow .line {
+            width: 2px; height: 22px;
+            background: linear-gradient(180deg, var(--border-accent), var(--text-muted));
+            border-radius: 1px;
+        }
+        .arrow .head { font-size: 0.65rem; line-height: 1; margin-top: -3px; }
+        .arrow-label {
+            font-size: 0.65rem; color: var(--text-muted);
+            padding: 2px 10px; border: 1px solid var(--border);
+            border-radius: 999px; background: var(--bg-secondary);
+            margin-top: 2px; margin-bottom: 2px;
+        }
+
+        /* ── Decision Diamond ── */
+        .decision {
+            width: 100%; max-width: 640px;
+            background: linear-gradient(135deg, rgba(251,191,36,0.06), rgba(251,146,60,0.06));
+            border: 1px solid rgba(251,191,36,0.25);
+            border-radius: var(--radius);
+            padding: 16px 24px;
+            text-align: center;
+            position: relative;
+        }
+        .decision::before {
+            content: '◆'; position: absolute; top: -10px; left: 50%;
+            transform: translateX(-50%); font-size: 0.8rem;
+            color: var(--accent-yellow); background: var(--bg-primary);
+            padding: 0 6px;
+        }
+        .decision-title { font-size: 0.85rem; font-weight: 700; color: var(--accent-yellow); }
+        .decision-desc { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+        .decision-branches {
+            display: flex; gap: 16px; margin-top: 12px; justify-content: center;
+        }
+        .branch {
+            flex: 1; max-width: 260px; padding: 10px 14px;
+            border-radius: var(--radius-sm); font-size: 0.75rem;
+            text-align: center;
+        }
+        .branch-yes { background: var(--accent-green-bg); border: 1px solid rgba(52,211,153,0.2); color: var(--accent-green); }
+        .branch-no  { background: var(--accent-red-bg);   border: 1px solid rgba(248,113,113,0.2); color: var(--accent-red); }
+        .branch-label { font-weight: 700; margin-bottom: 3px; }
+
+        /* ── End Node ── */
+        .end-node {
+            width: 100%; max-width: 640px;
+            background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(34,211,238,0.08));
+            border: 1px solid rgba(52,211,153,0.3);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            text-align: center;
+        }
+        .end-node.error {
+            background: linear-gradient(135deg, rgba(248,113,113,0.08), rgba(251,146,60,0.08));
+            border-color: rgba(248,113,113,0.3);
+        }
+        .end-node .label { font-size: 0.85rem; font-weight: 700; }
+        .end-node .sub { font-size: 0.75rem; color: var(--text-secondary); margin-top: 3px; }
+
+        /* ── Detail List ── */
+        .detail-list {
+            margin-top: 10px; padding-left: 0; list-style: none;
+        }
+        .detail-list li {
+            position: relative; padding-left: 16px;
+            font-size: 0.78rem; color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .detail-list li::before {
+            content: '→'; position: absolute; left: 0; color: var(--accent-green);
             font-weight: 700;
         }
-        tr:hover td {
-            background-color: #f7faf8;
+
+        /* ── Transaction Block ── */
+        .tx-block {
+            border: 1px dashed rgba(96,165,250,0.35);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 10px;
+            background: rgba(96,165,250,0.03);
         }
-        code {
-            background-color: #eef5f1;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Consolas', 'Courier New', Courier, monospace;
-            color: var(--primary-dark);
-            font-weight: 600;
+        .tx-block-header {
+            font-size: 0.72rem; font-weight: 700; color: var(--accent-blue);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
         }
-        .code-block {
-            font-family: 'Consolas', 'Courier New', Courier, monospace;
-            background: var(--code-bg);
-            color: var(--code-color);
-            padding: 18px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin: 15px 0;
-            font-size: 13.5px;
-            line-height: 1.5;
+        .tx-step {
+            display: flex; align-items: flex-start; gap: 10px;
+            margin-bottom: 8px; font-size: 0.78rem;
         }
-        .flow-step { font-weight: 700; color: var(--primary); }
-        .highlight-line {
-            background-color: #2d2d2d;
-            display: inline-block;
-            width: 100%;
+        .tx-step:last-child { margin-bottom: 0; }
+        .tx-num {
+            min-width: 22px; height: 22px; border-radius: 50%;
+            background: var(--accent-blue-bg); color: var(--accent-blue);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; font-weight: 800;
+            border: 1px solid rgba(96,165,250,0.2);
         }
-        .kw { color: var(--keyword-color); }
-        .str { color: var(--string-color); }
-        .cmt { color: var(--comment-color); font-style: italic; }
+        .tx-content { color: var(--text-secondary); }
+        .tx-content code {
+            background: rgba(96,165,250,0.12); color: var(--accent-blue);
+            padding: 1px 5px; border-radius: 3px; font-size: 0.72rem;
+        }
+
+        /* ── Legend ── */
+        .legend {
+            display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+            padding: 20px 24px; margin-top: 32px;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius); max-width: 640px; margin-left: auto; margin-right: auto;
+        }
+        .legend-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; color: var(--text-secondary);
+        }
+        .legend-icon {
+            width: 12px; height: 12px; border-radius: 3px;
+        }
+
+        /* ── Overview Summary ── */
+        .overview-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px; margin-bottom: 28px;
+        }
+        .overview-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px 24px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .overview-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow); }
+        .overview-card h3 {
+            font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .overview-card p {
+            font-size: 0.78rem; color: var(--text-secondary); line-height: 1.6;
+        }
+        .overview-card ul {
+            list-style: none; padding: 0; margin-top: 8px;
+        }
+        .overview-card li {
+            font-size: 0.75rem; color: var(--text-secondary);
+            padding: 3px 0; padding-left: 14px; position: relative;
+        }
+        .overview-card li::before {
+            content: '•'; position: absolute; left: 0; color: var(--accent-green); font-weight: 700;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            .tabs { flex-wrap: wrap; }
+            .decision-branches { flex-direction: column; align-items: center; }
+            .branch { max-width: 100%; }
+            .overview-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Quy Trình Nhập Hàng & Giải Thích Chi Tiết Mã Nguồn (Line-by-Line Code Review)</h1>
-        <p><strong>Lập trình viên:</strong> Phạm Thanh Hải (HaiPT)</p>
-        <p>Tài liệu này giải thích chi tiết từng lớp đối tượng (Class) tham gia vào quy trình **Restock Management** (Nhập hàng). Dưới đây là mô tả chi tiết từng dòng code cốt lõi, lý do lựa chọn cú pháp và lợi ích bảo mật/vận hành thu được.</p>
 
-        <!-- Classes Overview Table -->
-        <div class="card">
-            <h2>1. Tổng Quan Lớp Đối Tượng Liên Quan</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tên Lớp (Class Name)</th>
-                        <th>Tầng (Layer)</th>
-                        <th>Trách Nhiệm Chính (Core Responsibility)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>InventoryLog.java</code></td>
-                        <td>Entity Model</td>
-                        <td>Ánh xạ cấu trúc bảng <code>inventory_logs</code> trong CSDL và chứa các thuộc tính bổ trợ hiển thị.</td>
-                    </tr>
-                    <tr>
-                        <td><code>InventoryDAO.java</code></td>
-                        <td>DAO (Data Access)</td>
-                        <td>Cô lập và trực tiếp thực thi các câu lệnh SQL INSERT và SELECT lên cơ sở dữ liệu.</td>
-                    </tr>
-                    <tr>
-                        <td><code>InventoryService.java</code></td>
-                        <td>Service (Business)</td>
-                        <td>Quản lý nghiệp vụ kiểm tra logic và chịu trách nhiệm điều phối Giao dịch CSDL (JDBC Transaction).</td>
-                    </tr>
-                    <tr>
-                        <td><code>InventoryServlet.java</code></td>
-                        <td>Controller (Servlet)</td>
-                        <td>Xác thực quyền hạn Shop Owner, chống ID-harvesting, trích xuất dữ liệu và điều hướng PRG.</td>
-                    </tr>
-                </tbody>
-            </table>
+<div class="header">
+    <h1>🔄 Restock Process Flow</h1>
+    <p>Ban Hoa Qua Online — Full Inventory Restock Lifecycle</p>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('overview')">📋 Overview</button>
+    <button class="tab-btn" onclick="switchTab('lifecycle')">🔁 Product Lifecycle</button>
+    <button class="tab-btn" onclick="switchTab('customer')">🛒 Customer Request</button>
+    <button class="tab-btn" onclick="switchTab('shopowner')">🏪 Shop Owner Restock</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OVERVIEW PANEL -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="panel-overview" class="panel active">
+    <div class="section-title">
+        <span>System Overview</span>
+        <span class="badge badge-green">3 Flows</span>
+    </div>
+
+    <div class="overview-grid">
+        <div class="overview-card">
+            <h3>🔁 Product Lifecycle</h3>
+            <p>Products automatically transition from <code>ACTIVE</code> → <code>OUT_OF_SEASON</code> when their harvest date + shelf-life expires.</p>
+            <ul>
+                <li>Triggered by <code>autoDeactivateExpiredProducts()</code></li>
+                <li>Runs on every product listing query</li>
+                <li>SQL: <code>harvest_date + shelf_life_days ≤ today</code></li>
+                <li>Class: <code>ProductDAO</code> → <code>ProductService</code></li>
+            </ul>
         </div>
-
-        <!-- Class 1: InventoryLog -->
-        <h2>2. Lớp InventoryLog.java (Entity Model)</h2>
-        <div class="card">
-            <p>Mã nguồn định nghĩa các thuộc tính ánh xạ cơ bản và thuộc tính hiển thị liên kết:</p>
-            <div class="code-block">
-                <span class="kw">public class</span> InventoryLog {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> logId;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> variantId;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> changedBy;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String changeType;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> quantityDelta;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private int</span> quantityAfter;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String note;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> LocalDateTime changedAt;<br>
-                <br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt">// Helper fields for UI display (not mapped in database tables)</span><br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String productName;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">private</span> String variantLabel;<br>
-                }
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Đoạn Mã / Thuộc tính</th>
-                        <th>Ý nghĩa & Lý do thực hiện</th>
-                        <th>Lợi ích thu được</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>private int variantId;</code></td>
-                        <td>Ánh xạ khóa ngoại <code>variant_id</code>. Nhập kho sẽ nhắm thẳng tới biến thể sản phẩm cụ thể.</td>
-                        <td>Cho phép kiểm soát tồn kho ở mức độ chi tiết nhất (ví dụ: quả táo đỏ loại 1kg, 2kg có tồn kho riêng).</td>
-                    </tr>
-                    <tr>
-                        <td><code>private int quantityDelta;</code></td>
-                        <td>Hiển thị số lượng thay đổi (+ khi nhập kho, - khi bán hàng/hủy hàng).</td>
-                        <td>Cho phép ghi nhận cả nghiệp vụ tăng lẫn giảm tồn kho một cách thống nhất trên một bảng dữ liệu.</td>
-                    </tr>
-                    <tr>
-                        <td><code>private String productName;</code><br><code>private String variantLabel;</code></td>
-                        <td>Các thuộc tính bổ trợ (helper fields) không ghi vào CSDL nhưng được SELECT kèm qua câu lệnh JOIN.</td>
-                        <td><strong>Tránh vấn đề N+1 query:</strong> JSP chỉ cần đọc trực tiếp thông tin tên sản phẩm từ đối tượng Log, không cần gọi query lẻ sang bảng Product/Variant để lấy tên hiển thị.</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="overview-card">
+            <h3>🛒 Customer Restock Request</h3>
+            <p>Logged-in customers viewing an <code>OUT_OF_SEASON</code> product can request the Shop Owner to restock the new harvest.</p>
+            <ul>
+                <li>Rate-limited: 1 request / customer / product / day</li>
+                <li>Creates a <code>notifications</code> row for Shop Owner</li>
+                <li>INACTIVE products are blocked entirely</li>
+                <li>Class: <code>ProductDetailServlet</code> POST</li>
+            </ul>
         </div>
-
-        <!-- Class 2: InventoryDAO -->
-        <h2>3. Lớp InventoryDAO.java (Data Access Object)</h2>
-        <div class="card">
-            <p>Trực tiếp tương tác với dữ liệu. Dưới đây là giải thích chi tiết các phương thức nghiệp vụ:</p>
-            
-            <h3>Hàm <code>openConnection()</code></h3>
-            <div class="code-block">
-                <span class="kw">public</span> Connection openConnection() <span class="kw">throws</span> SQLException {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> getConnection();<br>
-                }
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Dòng mã</th>
-                        <th>Ý nghĩa & Lý do thực hiện</th>
-                        <th>Lợi ích thu được</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>public Connection openConnection()</code></td>
-                        <td>Expose phương thức <code>getConnection()</code> kế thừa từ lớp cha <code>BaseDAO</code> (vốn là protected) thành public.</td>
-                        <td>Cho phép lớp <strong>Service</strong> chủ động lấy Connection để tự quản lý vòng đời Transaction (Commit/Rollback), trong khi Servlet hay các tầng khác vẫn không can thiệp trực tiếp vào kết nối gốc.</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h3>Hàm <code>save(Connection conn, InventoryLog log)</code></h3>
-            <div class="code-block">
-                String sql = <span class="str">"INSERT INTO inventory_logs (variant_id, changed_by, change_type, quantity_delta, quantity_after, note, changed_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())"</span>;<br>
-                <span class="kw">try</span> (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(1, log.getVariantId());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(2, log.getChangedBy());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setString(3, log.getChangeType());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(4, log.getQuantityDelta());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setInt(5, log.getQuantityAfter());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.setString(6, log.getNote());<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;ps.executeUpdate();<br>
-                }
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Dòng mã</th>
-                        <th>Ý nghĩa & Lý do thực hiện</th>
-                        <th>Lợi ích thu được</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>Connection conn</code> (tham số truyền vào)</td>
-                        <td>Nhận đối tượng <code>Connection</code> đang chạy dở của Transaction được mở ra từ tầng Service.</td>
-                        <td>Đảm bảo câu lệnh SQL INSERT này chạy chung một kết nối vật lý với câu lệnh UPDATE tồn kho, phục vụ mục đích commit/rollback đồng bộ.</td>
-                    </tr>
-                    <tr>
-                        <td><code>Statement.RETURN_GENERATED_KEYS</code></td>
-                        <td>Yêu cầu CSDL trả về các cột khóa tự tăng (Identity) vừa mới được sinh ra.</td>
-                        <td>Giúp lấy được <code>log_id</code> tự sinh ngay sau khi insert, phục vụ mục đích hiển thị ngay lập tức lên UI mà không cần SELECT lại.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Class 3: InventoryService -->
-        <h2>4. Lớp InventoryService.java (Service Layer - Transaction Orchestrator)</h2>
-        <div class="card">
-            <p>Tầng quản lý nghiệp vụ và thực thi giao dịch. Đảm bảo tính nguyên tử (Atomicity):</p>
-            <div class="code-block">
-                <span class="kw">try</span> (Connection conn = inventoryDAO.openConnection()) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;conn.setAutoCommit(<span class="kw">false</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">try</span> {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> currentStock = productVariantDAO.getStockQuantity(conn, variantId);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> stockAfter = currentStock + quantity;<br>
-                <br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InventoryLog log = <span class="kw">new</span> InventoryLog();<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setVariantId(variantId);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setChangedBy(userId);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setChangeType(<span class="str">"MANUAL_ADJUST"</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setQuantityDelta(quantity);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setQuantityAfter(stockAfter);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setNote(note != <span class="kw">null</span> && !note.trim().isEmpty() ? note.trim() : <span class="str">"Nhập kho"</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.setChangedAt(changedAt.atTime(LocalTime.now()));<br>
-                <br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inventoryDAO.save(conn, log);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;productVariantDAO.updateStock(conn, variantId, quantity);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.commit();<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;} <span class="kw">catch</span> (Exception e) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.rollback();<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">throw</span> e;<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;} <span class="kw">finally</span> {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.setAutoCommit(<span class="kw">true</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;}<br>
-                }
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Dòng mã</th>
-                        <th>Ý nghĩa & Lý do thực hiện</th>
-                        <th>Lợi ích thu được</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>try (Connection conn = ...)</code></td>
-                        <td>Sử dụng cú pháp <strong>try-with-resources</strong> để khai báo và khởi tạo kết nối Database.</td>
-                        <td><strong>Chống rò rỉ kết nối (Connection Leak):</strong> Java sẽ tự động đóng kết nối (gọi <code>conn.close()</code>) trong mọi trường hợp, bảo vệ tài nguyên Server.</td>
-                    </tr>
-                    <tr>
-                        <td><code>conn.setAutoCommit(false);</code></td>
-                        <td>Tắt chế độ tự động xác nhận câu lệnh của JDBC.</td>
-                        <td>Đánh dấu điểm bắt đầu của một <strong>Database Transaction</strong>. Mọi câu lệnh SQL chạy sau dòng này sẽ chỉ nằm ở trạng thái chờ xác nhận.</td>
-                    </tr>
-                    <tr>
-                        <td><code>conn.commit();</code></td>
-                        <td>Đồng ý lưu tất cả thay đổi (cả phiếu Log và số lượng cập nhật) vào ổ đĩa.</td>
-                        <td>Đảm bảo tính nhất quán (Consistency) của dữ liệu: cả hai tác vụ cùng hoàn thành.</td>
-                    </tr>
-                    <tr>
-                        <td><code>conn.rollback();</code></td>
-                        <td>Hủy bỏ toàn bộ các câu lệnh đã chạy từ lúc đặt <code>setAutoCommit(false)</code>.</td>
-                        <td>Hoàn trả cơ sở dữ liệu về trạng thái an toàn trước khi xảy ra lỗi. Không để xảy ra tình trạng mất mát dữ liệu hoặc log mồ côi.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Class 4: InventoryServlet -->
-        <h2>5. Lớp InventoryServlet.java (Controller / Security Guard)</h2>
-        <div class="card">
-            <p>Nơi tiếp nhận Request, thực thi các biện pháp phòng vệ và điều hướng dữ liệu:</p>
-            
-            <h3>Luồng xử lý GET (doGet)</h3>
-            <div class="code-block">
-                User currentUser = SessionUtil.getCurrentUser(session);<br>
-                <span class="kw">if</span> (currentUser == <span class="kw">null</span> || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;resp.sendRedirect(req.getContextPath() + <span class="str">"/auth/login"</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span>;<br>
-                }
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Dòng mã</th>
-                        <th>Ý nghĩa & Lý do thực hiện</th>
-                        <th>Lợi ích thu được</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>!AppConfig.ROLE_SHOP_OWNER.equals(...)</code></td>
-                        <td>Phân quyền ở mức Servlet. Kiểm tra vai trò của tài khoản trong session.</td>
-                        <td><strong>Bảo mật tài nguyên hệ thống:</strong> Ngăn chặn khách hàng (CUSTOMER) hay tài xế (DELIVERY) cố tình đoán URL nhập kho để tự tiện tăng số lượng hàng hóa.</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h3>Luồng xử lý POST (doPost - Chống giả mạo)</h3>
-            <div class="code-block">
-                ProductVariant pv = productVariantDAO.findById(variantId);<br>
-                List&lt;Product&gt; products = productDAO.findById(pv.getProductId());<br>
-                <span class="kw">if</span> (products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;SessionUtil.flashError(session, <span class="str">"Bạn không có quyền nhập kho cho sản phẩm này."</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;resp.sendRedirect(req.getContextPath() + <span class="str">"/shop/inventory"</span>);<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span>;<br>
-                }
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Dòng mã</th>
-                        <th>Ý nghĩa & Lý do thực hiện</th>
-                        <th>Lợi ích thu được</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>products.get(0).getOwnerId() != currentUser.getUserId()</code></td>
-                        <td><strong>Security Ownership Check (IDOR Prevention):</strong> Truy vết từ Biến thể ➔ Sản phẩm ➔ Lấy ID chủ shop của sản phẩm đó và so sánh với ID người dùng hiện tại.</td>
-                        <td>Ngăn chặn việc tin tặc dùng Inspect Element để đổi giá trị <code>variantId</code> trong thẻ <code>&lt;select&gt;</code> thành ID sản phẩm của shop khác để thực hiện nhập hàng khống.</td>
-                    </tr>
-                    <tr>
-                        <td><code>resp.sendRedirect(...)</code></td>
-                        <td>Sau khi xử lý thành công hoặc thất bại, gửi tín hiệu chuyển hướng về trình duyệt.</td>
-                        <td><strong>PRG (Post-Redirect-Get) Pattern:</strong> Giải quyết triệt để lỗi người dùng nhấn F5/Refresh trang làm gửi lại Form nhập kho nhiều lần (dẫn tới bị cộng dồn số lượng ảo liên tiếp).</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="overview-card">
+            <h3>🏪 Shop Owner Restock</h3>
+            <p>Shop Owner fills the restock form at <code>/shop/inventory</code>, which executes a DB transaction to update stock and reactivate the product.</p>
+            <ul>
+                <li>Validates: quantity &gt; 0, date ≤ today, ownership</li>
+                <li>DB Transaction: log + stock + harvest_date + status</li>
+                <li>Product status: → <code>ACTIVE</code></li>
+                <li>PRG pattern after POST</li>
+            </ul>
         </div>
     </div>
+
+    <div class="section-title" style="margin-top: 24px;">
+        <span>Status Transition Map</span>
+        <span class="badge badge-yellow">Product Statuses</span>
+    </div>
+    <div style="max-width: 640px; margin: 0 auto;">
+        <div class="step" style="text-align: center;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 16px;">
+                <span class="badge badge-green" style="font-size: 0.78rem; padding: 6px 14px;">ACTIVE</span>
+                <span style="color: var(--text-muted); align-self: center;">→</span>
+                <span class="badge badge-orange" style="font-size: 0.78rem; padding: 6px 14px;">OUT_OF_SEASON</span>
+                <span style="color: var(--text-muted); align-self: center;">→</span>
+                <span class="badge badge-green" style="font-size: 0.78rem; padding: 6px 14px;">ACTIVE</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
+                <span class="badge badge-red" style="font-size: 0.78rem; padding: 6px 14px;">INACTIVE</span>
+                <span style="color: var(--text-muted); align-self: center; font-size: 0.72rem;">(manual deactivation by owner)</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 8px;">
+                <span class="badge badge-red" style="font-size: 0.78rem; padding: 6px 14px;">DELETED</span>
+                <span style="color: var(--text-muted); align-self: center; font-size: 0.72rem;">(soft delete — not accessible)</span>
+            </div>
+            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px;">
+                <strong style="color: var(--accent-cyan);">Restock</strong> is the mechanism that transitions a product from <code>OUT_OF_SEASON</code> back to <code>ACTIVE</code>, by updating <code>harvest_date</code> and <code>status</code> inside a single DB transaction.
+            </p>
+        </div>
+    </div>
+
+    <div class="legend" style="margin-top: 28px;">
+        <div class="legend-item"><div class="legend-icon" style="background: var(--accent-green);"></div> Action Step</div>
+        <div class="legend-item"><div class="legend-icon" style="background: var(--accent-yellow); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div> Decision</div>
+        <div class="legend-item"><div class="legend-icon" style="background: var(--accent-blue); border: 1px dashed var(--accent-blue);"></div> DB Transaction</div>
+        <div class="legend-item"><div class="legend-icon" style="background: var(--accent-red);"></div> Error / Reject</div>
+        <div class="legend-item"><div class="legend-icon" style="background: var(--accent-purple);"></div> Code Reference</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- LIFECYCLE PANEL -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="panel-lifecycle" class="panel">
+    <div class="section-title">
+        <span>🔁 Automatic Product Expiry</span>
+        <span class="badge badge-orange">Lifecycle</span>
+    </div>
+    <div class="flow">
+        <!-- Step 1 -->
+        <div class="step">
+            <div class="step-number orange">1</div>
+            <div class="step-header">
+                <span class="step-icon">📦</span>
+                <span class="step-title">Product is ACTIVE</span>
+            </div>
+            <div class="step-desc">
+                Product has <code>status = 'ACTIVE'</code>, <code>harvest_date</code> set, and <code>shelf_life_days > 0</code>.
+                It is visible on the storefront and purchasable by customers.
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Step 2 -->
+        <div class="step">
+            <div class="step-number orange">2</div>
+            <div class="step-header">
+                <span class="step-icon">⏱️</span>
+                <span class="step-title">Expiry Check Trigger</span>
+            </div>
+            <div class="step-desc">
+                Every time a product listing is loaded, <span class="file-ref">ProductService</span> calls
+                <code>productDAO.autoDeactivateExpiredProducts()</code> before returning results.
+                <br>This ensures stale products are caught on every request cycle.
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Decision -->
+        <div class="decision">
+            <div class="decision-title">harvest_date + shelf_life_days ≤ TODAY?</div>
+            <div class="decision-desc">SQL: <code>DATEADD(day, shelf_life_days, harvest_date) &lt;= CAST(GETDATE() AS DATE)</code></div>
+            <div class="decision-branches">
+                <div class="branch branch-yes">
+                    <div class="branch-label">✅ YES — Expired</div>
+                    Continue to step 3
+                </div>
+                <div class="branch branch-no">
+                    <div class="branch-label">❌ NO — Still Fresh</div>
+                    Product remains ACTIVE
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span><div class="arrow-label">Expired</div></div>
+
+        <!-- Step 3 -->
+        <div class="step">
+            <div class="step-number orange">3</div>
+            <div class="step-header">
+                <span class="step-icon">🔄</span>
+                <span class="step-title">Status → OUT_OF_SEASON</span>
+            </div>
+            <div class="step-desc">
+                <span class="file-ref">ProductDAO.autoDeactivateExpiredProducts()</span><br>
+                SQL: <code>UPDATE products SET status = 'OUT_OF_SEASON'</code><br><br>
+                Product is now visible to customers on the detail page, but the "Add to Cart" button is replaced by a <strong>"Request Restock"</strong> button.
+                Customers who are logged in can send a restock notification to the shop owner.
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <div class="end-node">
+            <div class="label">⏸ Awaiting Restock by Shop Owner</div>
+            <div class="sub">Product is <code>OUT_OF_SEASON</code> — Customers can request a new harvest restock</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CUSTOMER REQUEST PANEL -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="panel-customer" class="panel">
+    <div class="section-title">
+        <span>🛒 Customer Restock Request</span>
+        <span class="badge badge-blue">Customer → Shop Owner</span>
+    </div>
+    <div class="flow">
+        <!-- Step 1 -->
+        <div class="step">
+            <div class="step-number blue">1</div>
+            <div class="step-header">
+                <span class="step-icon">👀</span>
+                <span class="step-title">Customer Views Product Detail</span>
+            </div>
+            <div class="step-desc">
+                Customer navigates to <code>/products/detail?id={productId}</code>.<br>
+                <span class="file-ref">ProductDetailServlet.doGet()</span> checks <code>product.getStatus()</code>.
+                <ul class="detail-list">
+                    <li>If <code>DELETED</code> → redirect to /home with warning</li>
+                    <li>If <code>INACTIVE</code> → redirect to /home ("ngừng bán")</li>
+                    <li>If <code>OUT_OF_SEASON</code> → show page with "Request Restock" button</li>
+                    <li>If <code>ACTIVE</code> → show normal purchase page</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Decision: OUT_OF_SEASON? -->
+        <div class="decision">
+            <div class="decision-title">Is product OUT_OF_SEASON?</div>
+            <div class="decision-desc"><code>isExpiredProduct = "OUT_OF_SEASON".equals(product.getStatus())</code></div>
+            <div class="decision-branches">
+                <div class="branch branch-yes">
+                    <div class="branch-label">✅ YES</div>
+                    Show "Request Restock" button
+                </div>
+                <div class="branch branch-no">
+                    <div class="branch-label">❌ NO</div>
+                    Normal product page (buy flow)
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span><div class="arrow-label">OUT_OF_SEASON</div></div>
+
+        <!-- Step 2 -->
+        <div class="step">
+            <div class="step-number blue">2</div>
+            <div class="step-header">
+                <span class="step-icon">📨</span>
+                <span class="step-title">Customer Clicks "Request Restock"</span>
+            </div>
+            <div class="step-desc">
+                JSP sends a <code>POST /products/detail?id={productId}</code> via AJAX.<br>
+                <span class="file-ref">ProductDetailServlet.doPost()</span> handles the request.
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Decision: Logged in? -->
+        <div class="decision">
+            <div class="decision-title">Is customer logged in?</div>
+            <div class="decision-desc"><code>currentUser = session.getAttribute(SESSION_USER)</code></div>
+            <div class="decision-branches">
+                <div class="branch branch-yes">
+                    <div class="branch-label">✅ YES</div>
+                    Continue
+                </div>
+                <div class="branch branch-no">
+                    <div class="branch-label">❌ NO</div>
+                    JSON response: "Bạn cần đăng nhập"
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Decision: INACTIVE block? -->
+        <div class="decision">
+            <div class="decision-title">Is product INACTIVE?</div>
+            <div class="decision-desc">Block restock requests for permanently discontinued products</div>
+            <div class="decision-branches">
+                <div class="branch branch-no">
+                    <div class="branch-label">✅ Not INACTIVE</div>
+                    Continue
+                </div>
+                <div class="branch branch-yes">
+                    <div class="branch-label">❌ INACTIVE</div>
+                    JSON: "Sản phẩm đã ngừng bán"
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Decision: Already requested today? -->
+        <div class="decision">
+            <div class="decision-title">Already requested today?</div>
+            <div class="decision-desc">
+                <code>productDAO.hasRequestedRestockToday(ownerId, customerId, productId)</code><br>
+                Checks <code>notifications</code> table for matching message pattern created today
+            </div>
+            <div class="decision-branches">
+                <div class="branch branch-no">
+                    <div class="branch-label">✅ First Request</div>
+                    Continue
+                </div>
+                <div class="branch branch-yes">
+                    <div class="branch-label">❌ Already Sent</div>
+                    JSON: "Bạn đã gửi yêu cầu hôm nay rồi"
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Step 3 -->
+        <div class="step">
+            <div class="step-number blue">3</div>
+            <div class="step-header">
+                <span class="step-icon">🔔</span>
+                <span class="step-title">Create Notification for Shop Owner</span>
+            </div>
+            <div class="step-desc">
+                <span class="file-ref">ProductDAO.createRestockNotification()</span><br>
+                Inserts a row into <code>notifications</code> table:
+                <ul class="detail-list">
+                    <li><code>user_id</code> = Shop Owner ID (recipient)</li>
+                    <li><code>type</code> = 'SYSTEM'</li>
+                    <li><code>title</code> = "Yêu cầu nhập kho vụ mới"</li>
+                    <li><code>message</code> = "[RestockRequest: customer={id}, product={id}] ..."</li>
+                    <li><code>action_url</code> = "/shop/inventory"</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <div class="end-node">
+            <div class="label">✅ Notification Sent to Shop Owner</div>
+            <div class="sub">JSON response: <code>{ success: true, message: "Gửi yêu cầu nhập kho vụ mới tới chủ cửa hàng thành công!" }</code></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SHOP OWNER RESTOCK PANEL -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="panel-shopowner" class="panel">
+    <div class="section-title">
+        <span>🏪 Shop Owner Restock Execution</span>
+        <span class="badge badge-green">Inventory Management</span>
+    </div>
+    <div class="flow">
+        <!-- Step 1: GET /shop/inventory -->
+        <div class="step">
+            <div class="step-number green">1</div>
+            <div class="step-header">
+                <span class="step-icon">🖥️</span>
+                <span class="step-title">Shop Owner Opens Inventory Page</span>
+            </div>
+            <div class="step-desc">
+                <code>GET /shop/inventory</code> →
+                <span class="file-ref">InventoryServlet.doGet()</span>
+                <ul class="detail-list">
+                    <li>Verify session: must be logged in with role <code>SHOP_OWNER</code></li>
+                    <li>Load all product variants owned by this Shop Owner</li>
+                    <li>Load restock history via <code>inventoryService.getRestockHistory(userId)</code></li>
+                    <li>Forward to <code>/WEB-INF/jsp/shop/inventory.jsp</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Step 2: Fill form -->
+        <div class="step">
+            <div class="step-number green">2</div>
+            <div class="step-header">
+                <span class="step-icon">📝</span>
+                <span class="step-title">Fill Restock Form</span>
+            </div>
+            <div class="step-desc">
+                Shop Owner selects a variant and fills the form:
+                <ul class="detail-list">
+                    <li><code>variantId</code> — Select dropdown of owned variants</li>
+                    <li><code>quantity</code> — Number of units to restock</li>
+                    <li><code>changedAt</code> — Harvest/restock date (date picker)</li>
+                    <li><code>note</code> — Optional note (default: "Nhập kho")</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Step 3: POST submit -->
+        <div class="step">
+            <div class="step-number green">3</div>
+            <div class="step-header">
+                <span class="step-icon">📤</span>
+                <span class="step-title">POST /shop/inventory</span>
+            </div>
+            <div class="step-desc">
+                <span class="file-ref">InventoryServlet.doPost()</span> — Validates all input:
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Validation Chain -->
+        <div class="decision">
+            <div class="decision-title">Input Validation Gate</div>
+            <div class="decision-desc">Sequential checks — first failure → flash error + redirect (PRG)</div>
+            <div style="text-align: left; margin-top: 14px;">
+                <ul class="detail-list">
+                    <li>Are <code>variantId</code>, <code>quantity</code>, <code>changedAt</code> all present?</li>
+                    <li>Can <code>variantId</code> & <code>quantity</code> parse to int?</li>
+                    <li>Can <code>changedAt</code> parse to <code>LocalDate</code>?</li>
+                    <li>Is <code>quantity > 0</code>?</li>
+                    <li>Is <code>changedAt ≤ today</code>? (no future dates)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span><div class="arrow-label">All Valid</div></div>
+
+        <!-- Step 4: Ownership check -->
+        <div class="decision">
+            <div class="decision-title">Ownership Verification</div>
+            <div class="decision-desc">Security: Does this variant belong to a product owned by the current user?</div>
+            <div class="decision-branches">
+                <div class="branch branch-yes">
+                    <div class="branch-label">✅ Owner Matches</div>
+                    <code style="font-size: 0.7rem;">products.owner_id == currentUser.userId</code>
+                </div>
+                <div class="branch branch-no">
+                    <div class="branch-label">❌ Not Owner</div>
+                    Flash: "Bạn không có quyền"
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span><div class="arrow-label">Authorized</div></div>
+
+        <!-- Step 5: Service call -->
+        <div class="step">
+            <div class="step-number green">5</div>
+            <div class="step-header">
+                <span class="step-icon">⚙️</span>
+                <span class="step-title">Call InventoryService.restock()</span>
+            </div>
+            <div class="step-desc">
+                <span class="file-ref">InventoryService.restock(variantId, quantity, note, changedAt, userId)</span><br>
+                Service-level validation (redundant safety):
+                <ul class="detail-list">
+                    <li><code>quantity > 0</code></li>
+                    <li><code>changedAt != null</code></li>
+                    <li><code>changedAt ≤ today</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Transaction Block -->
+        <div class="step" style="padding: 24px;">
+            <div class="step-number cyan">6</div>
+            <div class="step-header">
+                <span class="step-icon">🔒</span>
+                <span class="step-title">Database Transaction (conn.setAutoCommit(false))</span>
+            </div>
+
+            <div class="tx-block">
+                <div class="tx-block-header">
+                    🔗 Atomic Transaction — All-or-Nothing
+                </div>
+
+                <div class="tx-step">
+                    <div class="tx-num">1</div>
+                    <div class="tx-content">
+                        <strong>Read current stock</strong><br>
+                        <code>productVariantDAO.getStockQuantity(conn, variantId)</code><br>
+                        Calculate <code>stockAfter = currentStock + quantity</code>
+                    </div>
+                </div>
+
+                <div class="tx-step">
+                    <div class="tx-num">2</div>
+                    <div class="tx-content">
+                        <strong>Insert InventoryLog</strong><br>
+                        <code>inventoryDAO.save(conn, log)</code><br>
+                        Log fields: <code>changeType = "MANUAL_ADJUST"</code>, <code>quantityDelta = +quantity</code>, <code>quantityAfter = stockAfter</code>
+                    </div>
+                </div>
+
+                <div class="tx-step">
+                    <div class="tx-num">3</div>
+                    <div class="tx-content">
+                        <strong>Update variant stock</strong><br>
+                        <code>productVariantDAO.updateStock(conn, variantId, +quantity)</code>
+                    </div>
+                </div>
+
+                <div class="tx-step">
+                    <div class="tx-num">4</div>
+                    <div class="tx-content">
+                        <strong>Resolve productId from variantId</strong><br>
+                        <code>productVariantDAO.getProductId(conn, variantId)</code>
+                    </div>
+                </div>
+
+                <div class="tx-step">
+                    <div class="tx-num">5</div>
+                    <div class="tx-content">
+                        <strong>Update product harvest date & status</strong><br>
+                        <code>productDAO.updateHarvestDateAndStatus(conn, productId, changedAt, "ACTIVE")</code><br>
+                        This <strong style="color: var(--accent-green);">reactivates</strong> the product — making it purchasable again.
+                    </div>
+                </div>
+
+                <div style="border-top: 1px dashed rgba(96,165,250,0.2); margin-top: 12px; padding-top: 10px; font-size: 0.72rem; color: var(--text-muted);">
+                    <strong style="color: var(--accent-blue);">conn.commit()</strong> — If all 5 steps succeed<br>
+                    <strong style="color: var(--accent-red);">conn.rollback()</strong> — If any step throws an exception
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <!-- Step 7: PRG redirect -->
+        <div class="step">
+            <div class="step-number green">7</div>
+            <div class="step-header">
+                <span class="step-icon">↩️</span>
+                <span class="step-title">PRG Redirect</span>
+            </div>
+            <div class="step-desc">
+                Success flash message set via <code>SessionUtil.flashSuccess()</code>.<br>
+                <code>resp.sendRedirect(contextPath + "/shop/inventory")</code><br>
+                Page reloads showing updated stock numbers and new history log entry.
+            </div>
+        </div>
+
+        <div class="arrow"><div class="line"></div><span class="head">▼</span></div>
+
+        <div class="end-node">
+            <div class="label">✅ Restock Complete</div>
+            <div class="sub">
+                Product is now <code>ACTIVE</code> with new <code>harvest_date</code>. 
+                Stock increased by <code>+quantity</code>. 
+                Inventory log recorded for audit trail.
+            </div>
+        </div>
+
+        <!-- Error path summary -->
+        <div style="margin-top: 28px; width: 100%; max-width: 640px;">
+            <div class="section-title">
+                <span>Error Handling Summary</span>
+                <span class="badge badge-red">Exception Paths</span>
+            </div>
+            <div class="end-node error">
+                <div class="label" style="color: var(--accent-red);">Error Paths → Flash + Redirect</div>
+                <div style="text-align: left; margin-top: 10px;">
+                    <ul class="detail-list">
+                        <li style="color: var(--accent-red);">Missing required fields → "Vui lòng nhập đầy đủ các trường bắt buộc"</li>
+                        <li style="color: var(--accent-red);">Invalid number format → "Mã sản phẩm hoặc số lượng không hợp lệ"</li>
+                        <li style="color: var(--accent-red);">Invalid date format → "Định dạng ngày nhập kho không hợp lệ"</li>
+                        <li style="color: var(--accent-red);">Quantity ≤ 0 → "Số lượng nhập kho phải lớn hơn 0"</li>
+                        <li style="color: var(--accent-red);">Future date → "Ngày nhập kho không được lớn hơn ngày hiện tại"</li>
+                        <li style="color: var(--accent-red);">Variant not found → "Biến thể sản phẩm không tồn tại"</li>
+                        <li style="color: var(--accent-red);">Not owner → "Bạn không có quyền nhập kho cho sản phẩm này"</li>
+                        <li style="color: var(--accent-red);">SQLException → "Lỗi cơ sở dữ liệu: ..."</li>
+                        <li style="color: var(--accent-red);">Unknown exception → "Đã xảy ra lỗi không xác định"</li>
+                    </ul>
+                </div>
+                <div class="sub" style="margin-top: 10px;">
+                    All errors use <code>SessionUtil.flashError()</code> + <code>sendRedirect("/shop/inventory")</code> (PRG)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(name) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('panel-' + name).classList.add('active');
+        event.target.classList.add('active');
+    }
+</script>
+
 </body>
 </html>

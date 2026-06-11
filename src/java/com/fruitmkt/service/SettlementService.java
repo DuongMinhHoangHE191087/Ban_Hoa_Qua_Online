@@ -32,4 +32,12 @@ public class SettlementService {
     public void markPaid(int settlementId) throws SQLException {
         settlementDAO.markPaid(settlementId);
     }
+
+    public ShopSettlement getSettlementById(int settlementId) throws SQLException {
+        return settlementDAO.findById(settlementId);
+    }
+
+    public List<com.fruitmkt.model.entity.ShopSettlementOrder> getOrdersBySettlementId(int settlementId) throws SQLException {
+        return settlementDAO.findOrdersBySettlementId(settlementId);
+    }
 }
