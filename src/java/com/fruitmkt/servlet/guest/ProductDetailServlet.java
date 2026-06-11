@@ -1,6 +1,7 @@
 package com.fruitmkt.servlet.guest;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.service.ProductService;
 import com.fruitmkt.service.ReviewService;
 import com.fruitmkt.dao.ProductVariantDAO;
@@ -168,13 +169,12 @@ public class ProductDetailServlet extends HttpServlet {
                     packagingsMapList.add(poMap);
                 }
 
-                Map<String, Object> finalResponse = new java.util.HashMap<>();
-                finalResponse.put("success", true);
-                finalResponse.put("product", productMap);
-                finalResponse.put("variants", variantsMapList);
-                finalResponse.put("packagingOptions", packagingsMapList);
+                Map<String, Object> data = new java.util.HashMap<>();
+                data.put("product", productMap);
+                data.put("variants", variantsMapList);
+                data.put("packagingOptions", packagingsMapList);
 
-                com.fruitmkt.util.JsonUtil.writeJson(resp, finalResponse);
+                com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.ok(data));
                 return;
             }
 
@@ -343,21 +343,15 @@ public class ProductDetailServlet extends HttpServlet {
             if (idParam != null) productId = Integer.parseInt(idParam.trim());
         } catch (NumberFormatException e) {}
 
-        Map<String, Object> result = new java.util.HashMap<>();
-        
         // 1. Chỉ user đã đăng nhập mới có thể gửi yêu cầu
         com.fruitmkt.model.entity.User currentUser = (com.fruitmkt.model.entity.User) req.getSession().getAttribute(AppConfig.SESSION_USER);
         if (currentUser == null) {
-            result.put("success", false);
-            result.put("message", "Bạn cần đăng nhập để thực hiện gửi yêu cầu nhập kho.");
-            com.fruitmkt.util.JsonUtil.writeJson(resp, result);
+            com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.error("Bạn cần đăng nhập để thực hiện gửi yêu cầu nhập kho."));
             return;
         }
 
         if (productId <= 0) {
-            result.put("success", false);
-            result.put("message", "Mã sản phẩm không hợp lệ.");
-            com.fruitmkt.util.JsonUtil.writeJson(resp, result);
+            com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.error("Mã sản phẩm không hợp lệ."));
             return;
         }
 
@@ -368,34 +362,26 @@ public class ProductDetailServlet extends HttpServlet {
 
                 // Nếu sản phẩm INACTIVE thì chặn gửi yêu cầu restock
                 if ("INACTIVE".equals(p.getStatus())) {
-                    result.put("success", false);
-                    result.put("message", "Sản phẩm này đã ngừng bán, không thể gửi yêu cầu nhập kho.");
-                    com.fruitmkt.util.JsonUtil.writeJson(resp, result);
+                    com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.error("Sản phẩm này đã ngừng bán, không thể gửi yêu cầu nhập kho."));
                     return;
                 }
-                
+
                 // 2. Mỗi user chỉ gửi được 1 lần/ngày cho mỗi sản phẩm
                 boolean hasRequestedToday = productDAO.hasRequestedRestockToday(p.getOwnerId(), currentUser.getUserId(), p.getProductId());
                 if (hasRequestedToday) {
-                    result.put("success", false);
-                    result.put("message", "Bạn đã gửi yêu cầu nhập kho cho sản phẩm này hôm nay rồi. Vui lòng quay lại vào ngày mai!");
-                    com.fruitmkt.util.JsonUtil.writeJson(resp, result);
+                    com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.error("Bạn đã gửi yêu cầu nhập kho cho sản phẩm này hôm nay rồi. Vui lòng quay lại vào ngày mai!"));
                     return;
                 }
 
                 // Gọi DAO tạo thông báo cho chủ shop
                 productDAO.createRestockNotification(p.getOwnerId(), currentUser.getUserId(), p.getProductId(), p.getName());
-                result.put("success", true);
-                result.put("message", "Gửi yêu cầu nhập kho vụ mới tới chủ cửa hàng thành công!");
+                com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("message", "Gửi yêu cầu nhập kho vụ mới tới chủ cửa hàng thành công!")));
             } else {
-                result.put("success", false);
-                result.put("message", "Không tìm thấy thông tin sản phẩm.");
+                com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.error("Không tìm thấy thông tin sản phẩm."));
             }
         } catch (Exception e) {
             getServletContext().log("Error in sending restock request: " + e.getMessage(), e);
-            result.put("success", false);
-            result.put("message", "Lỗi hệ thống: " + e.getMessage());
+            com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
         }
-        com.fruitmkt.util.JsonUtil.writeJson(resp, result);
     }
 }
