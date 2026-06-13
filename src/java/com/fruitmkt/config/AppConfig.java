@@ -34,7 +34,7 @@ public final class AppConfig {
         public static final String EMAIL_SMTP_PORT = "587";
         public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "noreply@fruitmkt.local");
         public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", null);
-        public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", null);
+        public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", "fruitmkt-super-secret-key-2026-secure-sha256");
         public static final long ACCESS_TOKEN_EXPIRY_MS = System.getenv("ACCESS_TOKEN_EXPIRY_MS") != null 
                         ? Long.parseLong(System.getenv("ACCESS_TOKEN_EXPIRY_MS")) 
                         : 15L * 60 * 1000;
