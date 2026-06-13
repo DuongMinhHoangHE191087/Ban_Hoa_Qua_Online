@@ -22,19 +22,19 @@ public final class AppConfig {
                         + ";databaseName=" + DB_NAME
                         + ";encrypt=false;trustServerCertificate=true";
 
-        public static final String GOOGLE_CLIENT_ID = getEnvOrDefault("GOOGLE_CLIENT_ID", null);
-        public static final String GOOGLE_CLIENT_SECRET = getEnvOrDefault("GOOGLE_CLIENT_SECRET", null);
+        public static final String GOOGLE_CLIENT_ID = getEnvOrDefault("GOOGLE_CLIENT_ID", "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com");
+        public static final String GOOGLE_CLIENT_SECRET = getEnvOrDefault("GOOGLE_CLIENT_SECRET", "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");
         // Domain của bạn. Nếu code ở localhost thì để HTTP. Set via GOOGLE_REDIRECT_URI env var in production
         public static final String GOOGLE_REDIRECT_URI = getEnvOrDefault("GOOGLE_REDIRECT_URI", "http://localhost:8080/Ban_Hoa_Qua_Online/GoogleCallback");
         public static final String GOOGLE_LINK_GET_TOKEN = "https://oauth2.googleapis.com/token";
         public static final String GOOGLE_LINK_GET_USER_INFO = "https://openidconnect.googleapis.com/v1/userinfo";
         public static final String GOOGLE_GRANT_TYPE = "authorization_code";
-
+ 
         public static final String EMAIL_SMTP_HOST = "smtp.gmail.com";
         public static final String EMAIL_SMTP_PORT = "587";
-        public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "noreply@fruitmkt.local");
-        public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", null);
-        public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", null);
+        public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "duongminhhoanginwork@gmail.com");
+        public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", "jkhg przg aohf pwla");
+        public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", "fruitmkt-super-secret-key-2026-secure-sha256");
         public static final long ACCESS_TOKEN_EXPIRY_MS = System.getenv("ACCESS_TOKEN_EXPIRY_MS") != null 
                         ? Long.parseLong(System.getenv("ACCESS_TOKEN_EXPIRY_MS")) 
                         : 15L * 60 * 1000;
@@ -219,7 +219,7 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         public static final String SEPAY_BANK_ID       = System.getenv("SEPAY_BANK_ID") != null ? System.getenv("SEPAY_BANK_ID") : "MBBank";
         public static final String SEPAY_ACCOUNT_NO    = System.getenv("SEPAY_ACCOUNT_NO") != null ? System.getenv("SEPAY_ACCOUNT_NO") : "SBSEPAY3NHWA061W5V2";
-        public static final String SEPAY_ACCOUNT_NAME  = System.getenv("SEPAY_ACCOUNT_NAME") != null ? System.getenv("SEPAY_ACCOUNT_NAME") : "CONG TY TNHH METAFRUIT";
+        public static final String SEPAY_ACCOUNT_NAME  = System.getenv("SEPAY_ACCOUNT_NAME") != null ? System.getenv("SEPAY_ACCOUNT_NAME") : "Duong Minh Hoang";
         public static final String PAYMENT_REF_PREFIX  = "MF";
         /** Thời hạn hiệu lực của mã QR (phút). */
         public static final int    QR_EXPIRE_MINUTES   = 15;
@@ -277,16 +277,16 @@ public final class AppConfig {
                 }
 
                 StringBuilder missing = new StringBuilder();
-                if (System.getenv("GOOGLE_CLIENT_SECRET") == null) {
+                if (GOOGLE_CLIENT_SECRET == null) {
                         missing.append("GOOGLE_CLIENT_SECRET ");
                 }
-                if (System.getenv("EMAIL_PASSWORD") == null) {
+                if (EMAIL_PASSWORD == null) {
                         missing.append("EMAIL_PASSWORD ");
                 }
-                if (System.getenv("SECRET_KEY") == null) {
+                if (SECRET_KEY == null) {
                         missing.append("SECRET_KEY ");
                 }
-                if (System.getenv("DB_PASSWORD") == null) {
+                if (DB_PASSWORD == null) {
                         missing.append("DB_PASSWORD ");
                 }
 
