@@ -49,3 +49,26 @@ Tài liệu này ghi chú lại danh sách các file mã nguồn đã được t
 - **[Modified]** `src/java/com/fruitmkt/dao/UserDAO.java` (Thêm hàm `deleteAllSessions()`)
 - **[Modified]** `src/java/com/fruitmkt/servlet/admin/AdminConfigServlet.java` (Xử lý `action=clearAllSessions`)
 - **[Modified]** `web/WEB-INF/jsp/admin/admin-config.jsp` (Thêm giao diện Tác vụ bảo trì)
+
+## 9. Bug Fixes & Encoding (Bảo trì)
+- **[Modified]** `web/WEB-INF/jsp/shop/product-list.jsp` (Thêm dấu escape `\${...}` cho JavaScript template literal để tránh xung đột với JSP EL sau khi gộp code).
+- **[Modified]** Khôi phục file `web/WEB-INF/jsp/common/admin-sidebar.jsp` về trạng thái nguyên bản để sửa lỗi mojibake bị double-encode, và cập nhật thêm tính năng Voucher sàn.
+- **[Modified]** Thêm `pageEncoding="UTF-8"` thủ công vào các file:
+  - `web/WEB-INF/jsp/common/alert.jsp`
+  - `web/WEB-INF/jsp/common/error.jsp`
+  - `web/WEB-INF/jsp/common/header.jsp`
+  - `web/WEB-INF/jsp/common/profile.jsp`
+- **[Modified]** `src/java/com/fruitmkt/service/ProductService.java` (Sửa lỗi trùng lặp phương thức gây lỗi Compile khiến Tomcat không nhận diện được các Servlet mới).
+- **[Modified]** `src/java/com/fruitmkt/servlet/shop/PromotionServlet.java` (Chuyển sang dùng urlPatterns rõ ràng cho annotation WebServlet).
+- **[Modified]** `src/java/com/fruitmkt/servlet/admin/AdminProductServlet.java` (Chuyển sang dùng urlPatterns rõ ràng cho annotation WebServlet).
+- **[Modified]** `web/WEB-INF/jsp/common/admin-sidebar.jsp` (Sửa sai đường dẫn Yêu cầu đổi trả từ /admin/returns thành /admin/refunds).
+- **[Modified]** `web/WEB-INF/jsp/common/header.jsp` (Xóa dòng khai báo pageEncoding bị trùng lặp gây ra lỗi 500 JasperException toàn trang).
+- **[Modified]** `web/WEB-INF/jsp/common/error.jsp` (Xóa dòng khai báo pageEncoding bị trùng lặp gây ra lỗi 500 JasperException toàn trang).
+
+## 10. User Management Updates
+- **[Deleted]** `src/java/com/fruitmkt/servlet/admin/AdminUserEditServlet.java` (Xóa chức năng chỉnh sửa thông tin người dùng từ phía admin theo yêu cầu).
+- **[Deleted]** `web/WEB-INF/jsp/admin/user-edit.jsp` (Xóa giao diện chỉnh sửa).
+- **[Modified]** `web/WEB-INF/jsp/admin/user-list.jsp` (Xóa nút 'Sửa' khỏi bảng danh sách người dùng).
+- **[New]** `src/java/com/fruitmkt/servlet/admin/AdminUserViewServlet.java` (Thêm Servlet xử lý chức năng xem chi tiết người dùng dạng Read-only).
+- **[New]** `web/WEB-INF/jsp/admin/user-view.jsp` (Thêm giao diện xem thông tin người dùng mới).
+- **[Modified]** `web/WEB-INF/jsp/admin/user-list.jsp` (Thêm nút 'Xem' thay cho nút 'Sửa').
