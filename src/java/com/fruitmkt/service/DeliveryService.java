@@ -6,6 +6,10 @@ import com.fruitmkt.dao.DeliveryTripDAO;
 import com.fruitmkt.dao.OrderDAO;
 import com.fruitmkt.model.entity.Delivery;
 import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.dao.UserDAO;
+import com.fruitmkt.service.NotificationService;
+import com.fruitmkt.service.EmailService;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -118,6 +122,26 @@ public class DeliveryService {
         deliveryDAO.updateStatusAndProof(deliveryId, "DELIVERED", null, proofImageUrl);
         // Sync orders table: DISPATCHED -> DELIVERED
         orderDAO.updateStatus(del.getOrderId(), "DELIVERED");
+
+        // Gửi thông báo giao hàng thành công cho Customer
+        try {
+            List<Order> orders = orderDAO.findById(del.getOrderId());
+            if (!orders.isEmpty()) {
+                Order order = orders.get(0);
+                NotificationService notificationService = new NotificationService();
+                EmailService emailService = new EmailService();
+                UserDAO userDAO = new UserDAO();
+                User customer = userDAO.findUserById(order.getCustomerId());
+                if (customer != null) {
+                    String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã giao hàng thành công bởi người vận chuyển. Vui lòng xác nhận nhận hàng.";
+                    notificationService.send(customer.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thành công", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
+                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + order.getOrderId();
+                    emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(order.getOrderId()), "Giao hàng thành công", orderDetailUrl);
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("[DeliveryService] WARN: Không gửi được thông báo giao hàng thành công cho orderId=" + del.getOrderId() + ": " + ex.getMessage());
+        }
     }
 
     /**

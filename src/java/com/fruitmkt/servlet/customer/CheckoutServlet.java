@@ -12,6 +12,9 @@ import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.dao.OrderDAO;
 import com.fruitmkt.dao.PaymentDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
+import com.fruitmkt.service.NotificationService;
+import com.fruitmkt.service.EmailService;
+import com.fruitmkt.dao.UserDAO;
 
 import com.fruitmkt.model.entity.UserAddress;
 import com.fruitmkt.dao.UserAddressDAO;
@@ -632,6 +635,27 @@ public class CheckoutServlet extends HttpServlet {
                     }
                 }
 
+                // Gửi thông báo đặt hàng cho Customer và Shop Owner
+                try {
+                    NotificationService notificationService = new NotificationService();
+                    EmailService emailService = new EmailService();
+                    UserDAO userDAO = new UserDAO();
+                    
+                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                    String customerMsg = "Đơn hàng #" + orderId + " của bạn đã được tạo thành công.";
+                    notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+                    emailService.sendOrderNotificationEmail(user.getEmail(), user.getFullName(), String.valueOf(orderId), "Đặt hàng thành công", orderDetailUrl);
+                    
+                    User shopOwner = userDAO.findUserById(ownerId);
+                    if (shopOwner != null) {
+                        String shopMsg = "Bạn có đơn hàng mới #" + orderId + " cần chuẩn bị.";
+                        notificationService.send(ownerId, AppConfig.NOTIF_ORDER_UPDATE, "Có đơn hàng mới cần chuẩn bị", shopMsg, "/shop/orders");
+                        emailService.sendOrderNotificationEmail(shopOwner.getEmail(), shopOwner.getFullName(), String.valueOf(orderId), "Có đơn hàng mới cần chuẩn bị", AppConfig.APP_BASE_URL + "/shop/orders");
+                    }
+                } catch (Exception ex) {
+                    System.err.println("[FruitMkt] WARN: Không gửi được thông báo đặt hàng cho orderId=" + orderId + ": " + ex.getMessage());
+                }
+
                 // [FIX] Lưu purgedVariantIds vào session thay vì URL
                 StringBuilder purgedSb = new StringBuilder();
                 for (int i = 0; i < checkoutItems.size(); i++) {
@@ -838,6 +862,18 @@ public class CheckoutServlet extends HttpServlet {
                     LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN)
             );
         }
+
+        try {
+            com.fruitmkt.service.NotificationService notificationService = new com.fruitmkt.service.NotificationService();
+            com.fruitmkt.service.EmailService emailService = new com.fruitmkt.service.EmailService();
+            String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + parentOrderId;
+            String msg = "Đơn hàng tổng #" + parentOrderId + " đã đặt thành công và được tự động tách theo từng shop.";
+            notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", msg, "/orders/detail?orderId=" + parentOrderId);
+            emailService.sendOrderNotificationEmail(user.getEmail(), user.getFullName(), String.valueOf(parentOrderId), "Đặt hàng thành công", orderDetailUrl);
+        } catch (Exception ex) {
+            System.err.println("[FruitMkt] WARN: Không gửi được thông báo đặt hàng cho customerId=" + user.getUserId() + ": " + ex.getMessage());
+        }
+
         return parentOrderId;
     }
 
@@ -935,7 +971,7 @@ public class CheckoutServlet extends HttpServlet {
                 }
             }
             if (productId <= 0) {
-                throw new IllegalStateException("KhÃ´ng thá»ƒ xÃ¡c Ä‘á»‹nh shop cá»§a sáº£n pháº©m trong giá» hÃ ng.");
+                throw new IllegalStateException("KhÃ´ng thá»ƒ xÃ¡c Ä‘á»‹nh shop cá»§a sáº£n pháº©m trong giá»  hÃ ng.");
             }
             int ownerId = orderDAO.getOwnerIdByProductId(productId);
             if (ownerId <= 0) {
@@ -1081,15 +1117,28 @@ public class CheckoutServlet extends HttpServlet {
     }
 
     private void sendShopPreparationNotifications(java.util.Map<Integer, Integer> childOrderIdByOwner) {
-        com.fruitmkt.service.NotificationService notificationService = new com.fruitmkt.service.NotificationService();
+        NotificationService notificationService = new NotificationService();
+        com.fruitmkt.service.EmailService emailService = new com.fruitmkt.service.EmailService();
+        com.fruitmkt.dao.UserDAO userDAO = new com.fruitmkt.dao.UserDAO();
         for (java.util.Map.Entry<Integer, Integer> entry : childOrderIdByOwner.entrySet()) {
             Integer ownerId = entry.getKey();
             Integer childOrderId = entry.getValue();
             try {
+                String shopMsg = "Đơn hàng #" + childOrderId + " đã được tạo từ checkout nhiều shop. Vui lòng kiểm tra và chuẩn bị hàng.";
                 notificationService.send(ownerId, AppConfig.NOTIF_ORDER_UPDATE,
-                        "CÃ³ Ä‘Æ¡n hÃ ng cáº§n chuáº©n bá»‹",
-                        "ÄÆ¡n hÃ ng #" + childOrderId + " Ä‘Ã£ Ä‘Æ°á»£c táº¡o tá»« checkout nhiá»u shop. Vui lÃ²ng kiá»ƒm tra vÃ  chuáº©n bá»‹ hÃ ng.",
+                        "Có đơn hàng mới cần chuẩn bị",
+                        shopMsg,
                         "/shop/orders");
+                User shopOwner = userDAO.findUserById(ownerId);
+                if (shopOwner != null) {
+                    emailService.sendOrderNotificationEmail(
+                        shopOwner.getEmail(),
+                        shopOwner.getFullName(),
+                        String.valueOf(childOrderId),
+                        "Có đơn hàng mới cần chuẩn bị",
+                        AppConfig.APP_BASE_URL + "/shop/orders"
+                    );
+                }
             } catch (Exception ex) {
                 System.err.println("[FruitMkt] WARN: Khong gui duoc thong bao chuan bi hang cho ownerId=" + ownerId + ": " + ex.getMessage());
             }

@@ -5,6 +5,10 @@ import com.fruitmkt.dao.OrderDAO;
 import com.fruitmkt.dao.PaymentDAO;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.PaymentTransaction;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.dao.UserDAO;
+import com.fruitmkt.service.NotificationService;
+import com.fruitmkt.service.EmailService;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -136,6 +140,21 @@ public class PaymentService {
         orderDAO.updateStatus(orderId, AppConfig.ORDER_CONFIRMED);
         System.out.println("[PaymentService] Admin #" + adminId
             + " xác nhận thanh toán đơn #" + orderId);
+
+        // Gửi thông báo thanh toán thành công cho Customer
+        try {
+            NotificationService notificationService = new NotificationService();
+            EmailService emailService = new EmailService();
+            User customer = userDAO.findUserById(order.getCustomerId());
+            if (customer != null) {
+                String customerMsg = "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công.";
+                notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
+            }
+        } catch (Exception ex) {
+            System.err.println("[PaymentService] WARN: Không gửi được thông báo thanh toán cho orderId=" + orderId + ": " + ex.getMessage());
+        }
     }
 
     /**
@@ -229,6 +248,27 @@ public class PaymentService {
         paymentDAO.updateStatus(tx.getTransactionId(), "completed", sepayTxId, jsonPayload);
         // [AUTOMATED] SePay automatically confirms the order upon successful payment match
         orderDAO.updateStatus(tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
+        
+        // Gửi thông báo thanh toán thành công cho Customer
+        try {
+            List<Order> orders = orderDAO.findById(tx.getOrderId());
+            if (!orders.isEmpty()) {
+                Order order = orders.get(0);
+                NotificationService notificationService = new NotificationService();
+                EmailService emailService = new EmailService();
+                UserDAO userDAO = new UserDAO();
+                User customer = userDAO.findUserById(order.getCustomerId());
+                if (customer != null) {
+                    String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
+                    notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
+                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + order.getOrderId();
+                    emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(order.getOrderId()), "Xác nhận thanh toán thành công", orderDetailUrl);
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("[PaymentService] WARN: Không gửi được thông báo thanh toán webhook cho orderId=" + tx.getOrderId() + ": " + ex.getMessage());
+        }
+
         // Ghi dedup
         paymentDAO.insertDedup(sepayTxId, code, "processed");
         System.out.println("[Webhook] Thanh toán thành công orderId=" + tx.getOrderId()

@@ -227,4 +227,43 @@ public class ProductVariantDAO extends BaseDAO {
         
         return pv;
     }
+
+    public int getProductOwnerId(Connection conn, int variantId) throws SQLException {
+        String sql = "SELECT p.owner_id FROM product_variants pv JOIN products p ON pv.product_id = p.product_id WHERE pv.variant_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("owner_id");
+                }
+            }
+        }
+        throw new SQLException("Không tìm thấy chủ sở hữu của biến thể sản phẩm này.");
+    }
+
+    public int getProductOwnerId(int variantId) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return getProductOwnerId(conn, variantId);
+        }
+    }
+
+    public Map<String, Object> getVariantAndProductName(Connection conn, int variantId) throws SQLException {
+        String sql = "SELECT pv.sku, p.name FROM product_variants pv JOIN products p ON pv.product_id = p.product_id WHERE pv.variant_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("sku", rs.getString("sku"));
+                    map.put("name", rs.getString("name"));
+                    return map;
+                }
+            }
+        }
+        Map<String, Object> fallback = new HashMap<>();
+        fallback.put("sku", "Unknown SKU");
+        fallback.put("name", "Sản phẩm");
+        return fallback;
+    }
 }
+

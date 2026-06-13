@@ -2,6 +2,9 @@ package com.fruitmkt.service;
 
 import com.fruitmkt.config.AppConfig;
 import java.sql.SQLException;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.dao.UserDAO;
+import com.fruitmkt.service.EmailService;
 
 /**
  * OrderService — Tầng business logic cho nghiệp vụ tương ứng.
@@ -152,6 +155,21 @@ public class OrderService {
             throw new RuntimeException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
         }
         orderDAO.updateStatus(orderId, "DISPATCHED");
+
+        try {
+            UserDAO userDAO = new UserDAO();
+            User customer = userDAO.findUserById(order.getCustomerId());
+            if (customer != null) {
+                String customerMsg = "Đơn hàng #" + orderId + " của bạn đang được giao.";
+                notificationService.send(customer.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đơn hàng đang giao", customerMsg, "/orders/detail?orderId=" + orderId);
+                
+                EmailService emailService = new EmailService();
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Đơn hàng đang giao (DISPATCHED)", orderDetailUrl);
+            }
+        } catch (Exception ex) {
+            System.err.println("[OrderService] WARN: Không gửi được thông báo dispatch cho orderId=" + orderId + ": " + ex.getMessage());
+        }
     }
 
     /**
@@ -167,6 +185,21 @@ public class OrderService {
         }
         orderDAO.updateStatus(orderId, "DELIVERED");
         orderDAO.updateReceivedStatus(orderId, "RECEIVED");
+
+        try {
+            UserDAO userDAO = new UserDAO();
+            User customer = userDAO.findUserById(customerId);
+            if (customer != null) {
+                String customerMsg = "Đơn hàng #" + orderId + " đã giao thành công và được bạn xác nhận.";
+                notificationService.send(customerId, AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+                
+                EmailService emailService = new EmailService();
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Giao hàng thành công (DELIVERED)", orderDetailUrl);
+            }
+        } catch (Exception ex) {
+            System.err.println("[OrderService] WARN: Không gửi được thông báo delivery confirm cho orderId=" + orderId + ": " + ex.getMessage());
+        }
     }
 
     /**

@@ -104,6 +104,7 @@ public class InventoryService {
         
         inventoryDAO.save(conn, log);
         productVariantDAO.updateStock(conn, variantId, -qty);
+        checkAndSendLowStockAlert(conn, variantId, stockAfter);
     }
 
     public void reserve(int variantId, int qty, int orderId) throws SQLException {
@@ -195,12 +196,31 @@ public class InventoryService {
 
                 inventoryDAO.save(conn, log);
                 productVariantDAO.updateStock(conn, variantId, delta);
+                checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
             } finally {
                 conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    private void checkAndSendLowStockAlert(Connection conn, int variantId, int stockAfter) {
+        if (stockAfter < 5) {
+            try {
+                int ownerId = productVariantDAO.getProductOwnerId(conn, variantId);
+                java.util.Map<String, Object> info = productVariantDAO.getVariantAndProductName(conn, variantId);
+                String sku = (String) info.get("sku");
+                String productName = (String) info.get("name");
+                
+                com.fruitmkt.service.NotificationService notificationService = new com.fruitmkt.service.NotificationService();
+                String title = "Cảnh báo tồn kho thấp";
+                String message = "Sản phẩm \"" + productName + "\" (SKU: " + sku + ") sắp hết hàng. Chỉ còn " + stockAfter + " sản phẩm trong kho.";
+                notificationService.send(ownerId, com.fruitmkt.config.AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/products");
+            } catch (Exception ex) {
+                System.err.println("[InventoryService] WARN: Không thể gửi cảnh báo tồn kho thấp cho variantId=" + variantId + ": " + ex.getMessage());
             }
         }
     }
