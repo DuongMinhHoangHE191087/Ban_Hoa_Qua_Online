@@ -740,8 +740,7 @@ function Deploy-App {
         Write-Host "Context XML updated at: $contextXmlPath" -ForegroundColor Yellow
     }
 
-    Write-Host "`n===== [5/6] STARTING TOMCAT SERVER =====" -ForegroundColor Green
-    Start-Process -FilePath "$tomcatHome\bin\startup.bat" -NoNewWindow
+    Start-Process -FilePath "$tomcatHome\bin\startup.bat"
     Write-Host "Tomcat startup script executed." -ForegroundColor Yellow
 
     # Wait for Tomcat to start
