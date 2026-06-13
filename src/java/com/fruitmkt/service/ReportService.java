@@ -5,7 +5,8 @@ import com.fruitmkt.dao.UserDAO;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * ReportService — Xử lý logic và chuẩn bị dữ liệu báo cáo thống kê.

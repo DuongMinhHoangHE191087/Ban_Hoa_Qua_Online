@@ -6,27 +6,35 @@ import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.ProductImageDAO;
 import com.fruitmkt.dao.ProductVariantDAO;
 import com.fruitmkt.dao.ProductPackagingOptionDAO;
-import com.fruitmkt.dao.ProductVariantDAO;
 import com.fruitmkt.model.entity.Category;
 import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.ProductImage;
 import com.fruitmkt.model.entity.ProductPackagingOption;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.FileUploadUtil;
+import com.fruitmkt.util.JsonUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
+import java.util.logging.Logger;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -41,6 +49,8 @@ import java.util.HashSet;
     maxRequestSize = AppConfig.MAX_UPLOAD_SIZE_BYTES * 10 // 50MB
 )
 public class ProductEditServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ProductEditServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -97,25 +107,24 @@ public class ProductEditServlet extends HttpServlet {
             List<com.fruitmkt.model.entity.ProductPackagingOption> packagingOptions = packagingOptionDAO.findByProduct(productId);
 
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", true);
-                responseData.put("product", p);
-                responseData.put("images", images);
-                responseData.put("variants", variants);
-                responseData.put("packagingOptions", packagingOptions);
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of(
+                    "product", p,
+                    "images", images,
+                    "variants", variants,
+                    "packagingOptions", packagingOptions
+                )));
                 return;
             }
 
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi truy vấn cơ sở dữ liệu khi tải thông tin sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", false);
-                responseData.put("message", "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage());
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage()));
                 return;
             }
             SessionUtil.flashError(session, "Lỗi truy vấn cơ sở dữ liệu.");
@@ -356,10 +365,9 @@ public class ProductEditServlet extends HttpServlet {
             // 4. Nếu có lỗi, trả lại form chỉnh sửa
             if (!errors.isEmpty()) {
                 if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                    java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                    responseData.put("success", false);
-                    responseData.put("errors", errors);
-                    com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                        String.join("; ", errors)));
                     return;
                 }
                 SessionUtil.flashError(session, String.join("<br>", errors));
@@ -402,7 +410,9 @@ public class ProductEditServlet extends HttpServlet {
                     if (vidStr != null && !vidStr.trim().isEmpty()) {
                         try {
                             submittedIds.add(Integer.parseInt(vidStr.trim()));
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "ID biến thể không hợp lệ: " + vidStr, e);
+                        }
                     }
                 }
             }
@@ -420,47 +430,59 @@ public class ProductEditServlet extends HttpServlet {
             if (variantLabels != null) {
                 for (int i = 0; i < variantLabels.length; i++) {
                     String label = variantLabels[i].trim();
-                    
+
                     BigDecimal vPrice = BigDecimal.ZERO;
                     if (variantPrices != null && variantPrices.length > i && variantPrices[i] != null) {
                         try {
                             vPrice = new BigDecimal(variantPrices[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "Giá biến thể không hợp lệ: " + variantPrices[i], e);
+                        }
                     }
-                    
+
                     Integer currentVid = null;
                     if (variantIds != null && variantIds.length > i && variantIds[i] != null && !variantIds[i].trim().isEmpty()) {
                         try {
                             currentVid = Integer.parseInt(variantIds[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "ID biến thể không hợp lệ: " + variantIds[i], e);
+                        }
                     }
 
                     BigDecimal vWeight = new BigDecimal("1.000");
                     if (variantWeights != null && variantWeights.length > i && variantWeights[i] != null && !variantWeights[i].trim().isEmpty()) {
                         try {
                             vWeight = new BigDecimal(variantWeights[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "Cân nặng biến thể không hợp lệ: " + variantWeights[i], e);
+                        }
                     }
 
                     BigDecimal vDiscPrice = null;
                     if (variantDiscountPrices != null && variantDiscountPrices.length > i && variantDiscountPrices[i] != null && !variantDiscountPrices[i].trim().isEmpty()) {
                         try {
                             vDiscPrice = new BigDecimal(variantDiscountPrices[i].trim());
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "Giá khuyến mãi biến thể không hợp lệ: " + variantDiscountPrices[i], e);
+                        }
                     }
 
                     java.time.LocalDateTime vDiscStart = null;
                     if (variantDiscountStarts != null && variantDiscountStarts.length > i && variantDiscountStarts[i] != null && !variantDiscountStarts[i].trim().isEmpty()) {
                         try {
                             vDiscStart = java.time.LocalDateTime.parse(variantDiscountStarts[i].trim());
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Ngày bắt đầu giảm giá không hợp lệ: " + variantDiscountStarts[i], e);
+                        }
                     }
 
                     java.time.LocalDateTime vDiscEnd = null;
                     if (variantDiscountEnds != null && variantDiscountEnds.length > i && variantDiscountEnds[i] != null && !variantDiscountEnds[i].trim().isEmpty()) {
                         try {
                             vDiscEnd = java.time.LocalDateTime.parse(variantDiscountEnds[i].trim());
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Ngày kết thúc giảm giá không hợp lệ: " + variantDiscountEnds[i], e);
+                        }
                     }
 
                     if (currentVid == null || currentVid == 0) {
@@ -513,14 +535,18 @@ public class ProductEditServlet extends HttpServlet {
                         if (packagingPriceAdds != null && packagingPriceAdds.length > i && packagingPriceAdds[i] != null) {
                             try {
                                 priceAdd = new BigDecimal(packagingPriceAdds[i].trim());
-                            } catch (NumberFormatException ignored) {}
+                            } catch (NumberFormatException e) {
+                                LoggerUtil.warn(log, "Giá bao bì không hợp lệ: " + packagingPriceAdds[i], e);
+                            }
                         }
-                        
+
                         Integer currentPpid = null;
                         if (packagingIds != null && packagingIds.length > i && packagingIds[i] != null && !packagingIds[i].trim().isEmpty()) {
                             try {
                                 currentPpid = Integer.parseInt(packagingIds[i].trim());
-                            } catch (NumberFormatException ignored) {}
+                            } catch (NumberFormatException e) {
+                                LoggerUtil.warn(log, "ID bao bì không hợp lệ: " + packagingIds[i], e);
+                            }
                         }
                         
                         if (currentPpid == null || currentPpid == 0) {
@@ -568,10 +594,8 @@ public class ProductEditServlet extends HttpServlet {
             }
 
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", true);
-                responseData.put("message", "Cập nhật sản phẩm thành công!");
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("message", "Cập nhật sản phẩm thành công!")));
                 return;
             }
 
@@ -579,12 +603,11 @@ public class ProductEditServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                java.util.Map<String, Object> responseData = new java.util.HashMap<>();
-                responseData.put("success", false);
-                responseData.put("errors", List.of("Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage()));
-                com.fruitmkt.util.JsonUtil.writeJson(resp, responseData);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage()));
                 return;
             }
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage());

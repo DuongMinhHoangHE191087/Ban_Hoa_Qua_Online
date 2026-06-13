@@ -5,10 +5,14 @@ import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.OrderService;
 import com.fruitmkt.service.SettlementService;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * ShopDashboardServlet — Controller cho chức năng: Dashboard tổng quan vận hành shop
@@ -28,6 +32,8 @@ import java.io.IOException;
  */
 @WebServlet("/shop/dashboard")
 public class ShopDashboardServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ShopDashboardServlet.class.getName());
 
     private final com.fruitmkt.service.OrderService orderService = new com.fruitmkt.service.OrderService();
     private final com.fruitmkt.service.ProductService productService = new com.fruitmkt.service.ProductService();
@@ -59,7 +65,7 @@ public class ShopDashboardServlet extends HttpServlet {
             req.setAttribute("lowStockVariants", lowStockVariants);
             req.setAttribute("recentOrders", recentOrders);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải dữ liệu dashboard shop", e);
             req.setAttribute("revenue", java.math.BigDecimal.ZERO);
             req.setAttribute("orderCount", 0);
             req.setAttribute("lowStock", 0);

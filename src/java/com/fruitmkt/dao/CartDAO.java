@@ -1,11 +1,20 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Cart;
 import com.fruitmkt.model.entity.CartItem;
+import com.fruitmkt.util.LoggerUtil;
 import java.math.BigDecimal;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * CartDAO — DAO cho entity Cart.
@@ -19,6 +28,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class CartDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(CartDAO.class.getName());
 
     /**
      * Tìm giỏ hàng theo ID khách hàng.
@@ -168,6 +179,28 @@ public class CartDAO extends BaseDAO {
         }
         touchCart(cartId);
         return findCartById(cartId);
+    }
+
+    public void deleteItemsByCustomer(Connection conn, int customerId, List<Integer> variantIds) throws SQLException {
+        if (variantIds == null || variantIds.isEmpty()) {
+            return;
+        }
+        StringBuilder sql = new StringBuilder(
+                "DELETE FROM cart_items WHERE cart_id = (SELECT cart_id FROM cart WHERE customer_id = ?) AND variant_id IN (");
+        for (int i = 0; i < variantIds.size(); i++) {
+            sql.append("?");
+            if (i < variantIds.size() - 1) {
+                sql.append(",");
+            }
+        }
+        sql.append(")");
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setInt(1, customerId);
+            for (int i = 0; i < variantIds.size(); i++) {
+                ps.setInt(i + 2, variantIds.get(i));
+            }
+            ps.executeUpdate();
+        }
     }
 
     /**

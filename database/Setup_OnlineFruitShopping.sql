@@ -100,6 +100,8 @@ BEGIN
         preferred_categories NVARCHAR(500) NULL,
         doc_paths NVARCHAR(MAX) NULL,
         business_email NVARCHAR(255) NULL,
+        logo_url NVARCHAR(500) NULL,
+        cover_url NVARCHAR(500) NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_shop_owner_profiles_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id)
@@ -116,6 +118,14 @@ BEGIN
     BEGIN
         ALTER TABLE dbo.shop_owner_profiles ADD business_email NVARCHAR(255) NULL;
         EXEC('SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON dbo.shop_owner_profiles(business_email) WHERE business_email IS NOT NULL;');
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'logo_url')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD logo_url NVARCHAR(500) NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'cover_url')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD cover_url NVARCHAR(500) NULL;
     END
 END
 GO
@@ -1570,17 +1580,24 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.cart_items OFF;
 
     SET IDENTITY_INSERT dbo.orders ON;
-    INSERT INTO dbo.orders (order_id, customer_id, owner_id, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at)
+    INSERT INTO dbo.orders (order_id, customer_id, owner_id, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at, parent_order_id, order_type)
     VALUES
-        (1, 5, 3, N'15 Pasteur, District 3, HCMC', N'08:00-12:00', N'Leave at reception', NULL, NULL, NULL, N'DELIVERED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-15T09:10:00', '2026-05-16T12:30:00'),
-        (2, 6, 4, N'90 Truong Chinh, Tan Binh, HCMC', N'14:00-18:00', N'Call on arrival', NULL, NULL, NULL, N'DELIVERED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'COD', N'NONE', '2026-05-15T10:20:00', '2026-05-16T13:10:00'),
-        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00'),
-        (10, 10, 3, N'12 Phố Cổ, Hà Nội', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-18T08:00:00', '2026-05-18T14:00:00'),
-        (11, 11, 3, N'85 Xuân Thủy, Cầu Giấy', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-19T09:00:00', '2026-05-19T15:00:00'),
-        (12, 12, 3, N'45 Chùa Bộc, Đống Đa', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'CK', N'NONE', '2026-05-20T10:00:00', '2026-05-20T16:00:00'),
-        (13, 13, 3, N'102 Nguyễn Trãi, Thanh Xuân', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-21T11:00:00', '2026-05-21T17:00:00'),
-        (14, 14, 3, N'56 Bạch Mai, Hai Bà Trưng', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'CK', N'NONE', '2026-05-22T13:00:00', '2026-05-22T19:00:00'),
-        (15, 15, 3, N'29 Lạc Long Quân, Tây Hồ', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'COD', N'NONE', '2026-05-23T08:00:00', '2026-05-23T12:00:00');
+        (1, 5, 3, N'15 Pasteur, District 3, HCMC', N'08:00-12:00', N'Leave at reception', NULL, NULL, NULL, N'DELIVERED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-15T09:10:00', '2026-05-16T12:30:00', NULL, 'CHILD'),
+        (2, 6, 4, N'90 Truong Chinh, Tan Binh, HCMC', N'14:00-18:00', N'Call on arrival', NULL, NULL, NULL, N'DELIVERED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'COD', N'NONE', '2026-05-15T10:20:00', '2026-05-16T13:10:00', NULL, 'CHILD'),
+        (3, 5, 3, N'15 Pasteur, District 3, HCMC', N'18:00-21:00', N'Ring the bell twice', NULL, NULL, NULL, N'DELIVERED', 142000.00, 12000.00, 14200.00, 14200.00, 0.00, 7100.00, 139800.00, N'CK', N'PENDING', '2026-05-16T08:00:00', '2026-05-16T18:00:00', NULL, 'CHILD'),
+        (10, 10, 3, N'12 Phố Cổ, Hà Nội', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-18T08:00:00', '2026-05-18T14:00:00', NULL, 'CHILD'),
+        (11, 11, 3, N'85 Xuân Thủy, Cầu Giấy', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-19T09:00:00', '2026-05-19T15:00:00', NULL, 'CHILD'),
+        (12, 12, 3, N'45 Chùa Bộc, Đống Đa', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'CK', N'NONE', '2026-05-20T10:00:00', '2026-05-20T16:00:00', NULL, 'CHILD'),
+        (13, 13, 3, N'102 Nguyễn Trãi, Thanh Xuân', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'COD', N'NONE', '2026-05-21T11:00:00', '2026-05-21T17:00:00', NULL, 'CHILD'),
+        (14, 14, 3, N'56 Bạch Mai, Hai Bà Trưng', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 35000.00, 15000.00, 0.00, 0.00, 0.00, 1750.00, 50000.00, N'CK', N'NONE', '2026-05-22T13:00:00', '2026-05-22T19:00:00', NULL, 'CHILD'),
+        (15, 15, 3, N'29 Lạc Long Quân, Tây Hồ', NULL, NULL, NULL, NULL, NULL, N'DELIVERED', 95000.00, 20000.00, 0.00, 0.00, 0.00, 4750.00, 115000.00, N'COD', N'NONE', '2026-05-23T08:00:00', '2026-05-23T12:00:00', NULL, 'CHILD'),
+        
+        -- Multi-shop parent order
+        (100, 5, NULL, N'15 Pasteur, Quận 3, TP. Hồ Chí Minh', NULL, N'Multi-shop test parent order', NULL, NULL, NULL, N'CONFIRMED', 344000.00, 35000.00, 28000.00, 10000.00, 18000.00, 17200.00, 351000.00, N'CK', N'NONE', '2026-05-24T09:00:00', '2026-05-24T09:10:00', NULL, 'PARENT'),
+        -- Child order 1 for Shop 3
+        (101, 5, 3, N'15 Pasteur, Quận 3, TP. Hồ Chí Minh', NULL, N'Child order part 1', NULL, NULL, NULL, N'CONFIRMED', 130000.00, 15000.00, 13000.00, 10000.00, 3000.00, 6500.00, 132000.00, N'CK', N'NONE', '2026-05-24T09:00:00', '2026-05-24T09:10:00', 100, 'CHILD'),
+        -- Child order 2 for Shop 4
+        (102, 5, 4, N'15 Pasteur, Quận 3, TP. Hồ Chí Minh', NULL, N'Child order part 2', NULL, NULL, NULL, N'CONFIRMED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'CK', N'NONE', '2026-05-24T09:00:00', '2026-05-24T09:10:00', 100, 'CHILD');
     SET IDENTITY_INSERT dbo.orders OFF;
 
     SET IDENTITY_INSERT dbo.order_items ON;
@@ -1597,7 +1614,14 @@ BEGIN TRY
         (12, 12, 2, N'Cam Sành Cao Phong Hòa Bình', N'Combo 3kg', 1, 95000.00, 95000.00),
         (13, 13, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
         (14, 14, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
-        (15, 15, 2, N'Cam Sành Cao Phong Hòa Bình', N'Combo 3kg', 1, 95000.00, 95000.00);
+        (15, 15, 2, N'Cam Sành Cao Phong Hòa Bình', N'Combo 3kg', 1, 95000.00, 95000.00),
+        
+        -- Items for multi-shop child order 1
+        (101, 101, 1, N'Cam Sành Cao Phong Hòa Bình', N'Hộp 1kg', 1, 35000.00, 35000.00),
+        (102, 101, 2, N'Cam Sành Cao Phong Hòa Bình', N'Combo 3kg', 1, 95000.00, 95000.00),
+        -- Items for multi-shop child order 2
+        (103, 102, 6, N'Xoài Cát Hòa Lộc Tiền Giang', N'Hộp 1kg', 1, 89000.00, 89000.00),
+        (104, 102, 8, N'Dâu Tây Đỏ Mỹ Nhập Khẩu Premium', N'Hộp 250g', 1, 125000.00, 125000.00);
     SET IDENTITY_INSERT dbo.order_items OFF;
 
     SET IDENTITY_INSERT dbo.order_promotions ON;
@@ -1644,12 +1668,21 @@ BEGIN TRY
         (2, N'SP20260516003', N'DH-0003', N'processed', '2026-05-16T08:04:00');
     SET IDENTITY_INSERT dbo.sepay_webhook_dedup OFF;
 
-    SET IDENTITY_INSERT dbo.deliveries ON;
-    INSERT INTO dbo.deliveries (delivery_id, order_id, staff_id, status, picked_up_at, delivered_at, failure_reason, created_at, updated_at)
+    SET IDENTITY_INSERT dbo.delivery_trips ON;
+    INSERT INTO dbo.delivery_trips (trip_id, parent_order_id, shipper_id, status, estimated_start_time, estimated_end_time, created_at, updated_at)
     VALUES
-        (1, 1, 2, N'DELIVERED', '2026-05-15T11:00:00', '2026-05-15T11:45:00', NULL, '2026-05-15T09:15:00', '2026-05-15T11:45:00'),
-        (2, 2, 2, N'DELIVERED', '2026-05-15T14:10:00', '2026-05-15T16:00:00', NULL, '2026-05-15T10:25:00', '2026-05-15T16:00:00'),
-        (3, 3, 2, N'DELIVERED', '2026-05-16T10:00:00', '2026-05-16T10:40:00', NULL, '2026-05-16T08:20:00', '2026-05-16T10:40:00');
+        (1, 100, 2, N'ASSIGNED', '2026-05-24T10:00:00', '2026-05-24T12:00:00', '2026-05-24T09:15:00', '2026-05-24T09:15:00');
+    SET IDENTITY_INSERT dbo.delivery_trips OFF;
+
+    SET IDENTITY_INSERT dbo.deliveries ON;
+    INSERT INTO dbo.deliveries (delivery_id, order_id, staff_id, status, picked_up_at, delivered_at, failure_reason, created_at, updated_at, delivery_trip_id, trip_stop_seq)
+    VALUES
+        (1, 1, 2, N'DELIVERED', '2026-05-15T11:00:00', '2026-05-15T11:45:00', NULL, '2026-05-15T09:15:00', '2026-05-15T11:45:00', NULL, NULL),
+        (2, 2, 2, N'DELIVERED', '2026-05-15T14:10:00', '2026-05-15T16:00:00', NULL, '2026-05-15T10:25:00', '2026-05-15T16:00:00', NULL, NULL),
+        (3, 3, 2, N'DELIVERED', '2026-05-16T10:00:00', '2026-05-16T10:40:00', NULL, '2026-05-16T08:20:00', '2026-05-16T10:40:00', NULL, NULL),
+        -- Deliveries linked to multi-shop delivery trip 1
+        (10, 101, 2, N'ASSIGNED', NULL, NULL, NULL, '2026-05-24T09:15:00', '2026-05-24T09:15:00', 1, 1),
+        (11, 102, 2, N'ASSIGNED', NULL, NULL, NULL, '2026-05-24T09:15:00', '2026-05-24T09:15:00', 1, 2);
     SET IDENTITY_INSERT dbo.deliveries OFF;
 
     SET IDENTITY_INSERT dbo.reviews ON;

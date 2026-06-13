@@ -6,12 +6,17 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.CategoryService;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * CategoryServlet — Controller xử lý luồng nghiệp vụ Quản lý Danh mục phía Admin.
@@ -24,6 +29,8 @@ import java.util.List;
  */
 @WebServlet("/admin/categories")
 public class CategoryServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(CategoryServlet.class.getName());
 
     private final CategoryService categoryService = new CategoryService();
 
@@ -45,7 +52,7 @@ public class CategoryServlet extends HttpServlet {
             // Forward tới view quản trị
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-categories.jsp").forward(req, resp);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi lấy danh sách danh mục", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy danh sách danh mục: " + e.getMessage());
         }
     }
@@ -86,7 +93,7 @@ public class CategoryServlet extends HttpServlet {
                     resp.sendRedirect(req.getContextPath() + "/admin/categories");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý danh mục action=" + action, e);
             SessionUtil.setFlashMessage(session, "Lỗi hệ thống: " + e.getMessage(), "danger");
             resp.sendRedirect(req.getContextPath() + "/admin/categories");
         }

@@ -1234,7 +1234,7 @@
                     <c:set var="fp" value="${productPromotions[0]}"/>
                     <div class="flash-sale-badge">
                         <i class="fa-solid fa-bolt"></i>
-                        Sale trực tiếp:
+                        Giảm giá sản phẩm:
                         <c:choose>
                             <c:when test="${fp.discountType == 'PERCENT'}">Giảm <c:out value="${fp.discountValue}"/>%</c:when>
                             <c:otherwise>Giảm <ft:currency value="${fp.discountValue}"/></c:otherwise>
@@ -1445,7 +1445,7 @@
                 <c:if test="${not empty productPromotions || not empty shopVouchers || not empty systemVouchers}">
                     <div class="shop-body-section">
                         <div class="shop-section-label">
-                        <i class="fa-solid fa-ticket"></i> Ưu đãi: sale trực tiếp, voucher shop, voucher sàn
+                        <i class="fa-solid fa-ticket"></i> Ưu đãi: giảm giá sản phẩm, voucher shop, voucher sàn
                         </div>
                         <div class="voucher-slider-wrapper">
                             <div class="voucher-slider-nav">
@@ -1460,7 +1460,7 @@
                             <div class="voucher-track-container">
                                 <div class="voucher-track" id="voucher-track">
 
-                                    <%-- Sale trực tiếp cho sản phẩm --%>
+                                    <%-- Giảm giá sản phẩm cho sản phẩm --%>
                                     <c:forEach var="pv" items="${productPromotions}">
                                         <div class="voucher-item type-product">
                                             <div class="voucher-ribbon">
@@ -2072,10 +2072,11 @@
             });
             const data = await resp.json();
             if (data.success) {
+                const msg = (data.data && data.data.message) || 'Yêu cầu nhập kho vụ mới đã được gửi tới chủ cửa hàng.';
                 Swal.fire({
                     icon: 'success',
                     title: 'Gửi yêu cầu thành công!',
-                    text: data.message || 'Yêu cầu nhập kho vụ mới đã được gửi tới chủ cửa hàng.',
+                    text: msg,
                     confirmButtonColor: 'var(--color-primary)'
                 });
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã Yêu Cầu Hôm Nay';
@@ -2084,16 +2085,17 @@
                 btn.style.cursor = 'not-allowed';
                 btn.onclick = null;
             } else {
+                const errMsg = data.error || 'Không thể gửi yêu cầu nhập kho.';
                 Swal.fire({
                     icon: 'error',
                     title: 'Lỗi',
-                    text: data.message || 'Không thể gửi yêu cầu nhập kho.',
+                    text: errMsg,
                     confirmButtonColor: '#ef4444'
                 });
-                if (data.message && data.message.includes("đăng nhập")) {
+                if (errMsg && errMsg.includes("đăng nhập")) {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Yêu Cầu Nhập Kho';
-                } else if (data.message && data.message.includes("đã gửi")) {
+                } else if (errMsg && errMsg.includes("đã gửi")) {
                     btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã Yêu Cầu Hôm Nay';
                     btn.style.background = '#cbd5e1'; // gray out
                     btn.style.color = '#64748b';

@@ -146,13 +146,21 @@
                     </li>
                     
                     <li class="navbar__user-profile">
-                        <div class="user-avatar" style="overflow: hidden;">
+                        <div class="user-avatar" style="overflow: hidden; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid rgba(77, 102, 28, 0.15);">
                             <c:choose>
                                 <c:when test="${not empty sessionScope.currentUser.avatarUrl}">
-                                    <img src="${fn:startsWith(sessionScope.currentUser.avatarUrl, 'http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <img src="${fn:startsWith(sessionScope.currentUser.avatarUrl, 'http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" 
+                                         alt="Avatar" 
+                                         style="width: 100%; height: 100%; object-fit: cover;"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="avatar-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; text-transform: uppercase; border-radius: 50%;">
+                                        <c:out value="${fn:substring(sessionScope.currentUser.fullName, 0, 1)}"/>
+                                    </div>
                                 </c:when>
                                 <c:otherwise>
-                                    <i class="fa-solid fa-user-circle"></i>
+                                    <div class="avatar-fallback" style="display: flex; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; text-transform: uppercase; border-radius: 50%;">
+                                        <c:out value="${fn:substring(sessionScope.currentUser.fullName, 0, 1)}"/>
+                                    </div>
                                 </c:otherwise>
                             </c:choose>
                         </div>

@@ -3,13 +3,20 @@ package com.fruitmkt.service;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.OrderDAO;
 import com.fruitmkt.dao.PaymentDAO;
+import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.PaymentTransaction;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.util.LoggerUtil;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * PaymentService — Business logic cho thanh toán.
@@ -24,6 +31,8 @@ import java.util.Map;
  */
 public class PaymentService {
 
+    private static final Logger log = LoggerUtil.getLogger(PaymentService.class);
+
     private final PaymentDAO paymentDAO = new PaymentDAO();
     private final OrderDAO   orderDAO   = new OrderDAO();
 
@@ -34,16 +43,20 @@ public class PaymentService {
      * Gọi ngay sau khi INSERT orders thành công.
      */
     public PaymentTransaction initPayment(int orderId, String method) throws SQLException {
+        return initPayment(orderId, method, null);
+    }
+
+    public PaymentTransaction initPayment(int orderId, String method, String ipAddress) throws SQLException {
         List<Order> orders = orderDAO.findById(orderId);
         if (orders.isEmpty()) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
         Order order = orders.get(0);
 
-        String reference = "MF" + orderId;
+        String reference = buildSepayReference(orderId);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
 
         int txId = paymentDAO.initTransaction(
             orderId, method, order.getFinalAmount(),
-            reference, null, expiresAt
+            reference, ipAddress, expiresAt
         );
 
         PaymentTransaction tx = new PaymentTransaction();
@@ -103,8 +116,7 @@ public class PaymentService {
         }
         paymentDAO.updateStatus(tx.getTransactionId(), "processing");
         // Thông báo admin (NotificationService sẽ được mở rộng sau)
-        System.out.println("[PaymentService] Customer #" + customerId
-            + " báo đã CK cho đơn #" + orderId + ". Cần admin xác nhận.");
+        LoggerUtil.info(log, "Customer #%d báo đã CK cho đơn #%d. Cần admin xác nhận.", customerId, orderId);
         return true;
     }
 
@@ -112,8 +124,8 @@ public class PaymentService {
      * Admin xác nhận đã nhận tiền — chuyển payment → completed, order → CONFIRMED.
      */
     public void adminApprovePayment(int orderId, int adminId) throws SQLException {
-        com.fruitmkt.dao.UserDAO userDAO = new com.fruitmkt.dao.UserDAO();
-        com.fruitmkt.model.entity.User adminUser = userDAO.findUserById(adminId);
+        UserDAO userDAO = new UserDAO();
+        User adminUser = userDAO.findUserById(adminId);
         if (adminUser == null || !AppConfig.ROLE_ADMIN.equals(adminUser.getRole())) {
             throw new SecurityException("Bạn không có quyền thực hiện phê duyệt thanh toán này.");
         }
@@ -134,8 +146,7 @@ public class PaymentService {
                                 "ADMIN_MANUAL_" + adminId, null);
         // Cập nhật order → CONFIRMED
         orderDAO.updateStatus(orderId, AppConfig.ORDER_CONFIRMED);
-        System.out.println("[PaymentService] Admin #" + adminId
-            + " xác nhận thanh toán đơn #" + orderId);
+        LoggerUtil.info(log, "Admin #%d xác nhận thanh toán đơn #%d.", adminId, orderId);
     }
 
     /**
@@ -157,9 +168,9 @@ public class PaymentService {
         LocalDateTime newExpiry = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
         String updateSql = "UPDATE payment_transactions SET expires_at = ?, status = 'pending' "
                          + "WHERE transaction_id = ?";
-        try (java.sql.Connection conn = paymentDAO.openConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(updateSql)) {
-            ps.setTimestamp(1, java.sql.Timestamp.valueOf(newExpiry));
+        try (Connection conn = paymentDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(newExpiry));
             ps.setInt(2, tx.getTransactionId());
             ps.executeUpdate();
         }
@@ -187,13 +198,13 @@ public class PaymentService {
         String amountStr    = extractJsonString(jsonPayload, "transferAmount");
 
         if (sepayTxId == null || code == null) {
-            System.err.println("[Webhook] Payload thiếu trường bắt buộc: " + jsonPayload);
+            LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: %s", jsonPayload);
             return;
         }
 
         // Dedup: nếu đã xử lý rồi thì bỏ qua
         if (paymentDAO.isDuplicate(sepayTxId)) {
-            System.out.println("[Webhook] Duplicate sepay_tx_id=" + sepayTxId + " — bỏ qua.");
+            LoggerUtil.info(log, "[Webhook] Duplicate sepay_tx_id=%s — bỏ qua.", sepayTxId);
             return;
         }
 
@@ -206,22 +217,31 @@ public class PaymentService {
         // Tìm payment_transaction theo reference
         PaymentTransaction tx = paymentDAO.findByReference(code);
         if (tx == null) {
-            System.err.println("[Webhook] Không tìm thấy payment_transaction với reference=" + code);
+            LoggerUtil.warn(log, "[Webhook] Không tìm thấy payment_transaction với reference=%s", code);
             paymentDAO.insertDedup(sepayTxId, code, "not_found");
             return;
         }
 
         // Validate số tiền
-        BigDecimal received = amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO;
-        if (received.compareTo(tx.getAmount()) < 0) {
+        BigDecimal received;
+        try {
+            received = amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO;
+        } catch (NumberFormatException nfe) {
+            LoggerUtil.warn(log, "[Webhook] Số tiền không hợp lệ: %s", amountStr);
+            paymentDAO.insertDedup(sepayTxId, code, "invalid_amount");
+            return;
+        }
+
+        BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
+        if (received.compareTo(expected) < 0) {
             paymentDAO.updateStatus(tx.getTransactionId(), "failed",
                                     sepayTxId, jsonPayload);
             paymentDAO.updateStatusFailed(tx.getTransactionId(),
                                           "AMOUNT_MISMATCH",
-                                          "Nhận " + received + " < yêu cầu " + tx.getAmount());
+                                          "Nhận " + received + " < yêu cầu " + expected);
             paymentDAO.insertDedup(sepayTxId, code, "amount_mismatch");
-            System.err.println("[Webhook] Số tiền không khớp: expected=" + tx.getAmount()
-                + " received=" + received + " orderId=" + tx.getOrderId());
+            LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
+                expected, received, tx.getOrderId());
             return;
         }
 
@@ -231,8 +251,7 @@ public class PaymentService {
         orderDAO.updateStatus(tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
         // Ghi dedup
         paymentDAO.insertDedup(sepayTxId, code, "processed");
-        System.out.println("[Webhook] Thanh toán thành công orderId=" + tx.getOrderId()
-            + " sepayTxId=" + sepayTxId);
+        LoggerUtil.info(log, "[Webhook] Thanh toán thành công orderId=%d sepayTxId=%s", tx.getOrderId(), sepayTxId);
     }
 
     // ─── Helper: parse giá trị từ JSON string đơn giản ─────────────────────
@@ -252,18 +271,27 @@ public class PaymentService {
         if (json.charAt(start) == '"') {
             // String value
             int end = json.indexOf('"', start + 1);
-            return end > start ? json.substring(start + 1, end) : null;
+            if (end > start) {
+                String val = json.substring(start + 1, end).trim();
+                return val.isEmpty() ? null : val;
+            }
+            return null;
         } else {
             // Number / boolean / null
             int end = start;
             while (end < json.length() && ",}]\n\r ".indexOf(json.charAt(end)) < 0) end++;
             String val = json.substring(start, end).trim();
-            return "null".equals(val) ? null : val;
+            return val.isEmpty() || "null".equalsIgnoreCase(val) ? null : val;
         }
     }
 
+    /** Tạo reference SePay theo format MF + mã đơn hàng, padded tối thiểu 3 chữ số. */
+    public static String buildSepayReference(int orderId) {
+        return String.format("%s%03d", AppConfig.PAYMENT_REF_PREFIX, orderId);
+    }
+
     /** Mở kết nối dùng cho renewQr (package-private để test). */
-    java.sql.Connection openConnection() throws SQLException {
+    Connection openConnection() throws SQLException {
         return orderDAO.openConnection();
     }
 }

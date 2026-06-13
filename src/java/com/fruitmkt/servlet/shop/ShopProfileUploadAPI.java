@@ -2,16 +2,21 @@ package com.fruitmkt.servlet.shop;
 
 import com.fruitmkt.model.entity.ShopProfile;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.service.ShopService;
 import com.fruitmkt.util.FileUploadUtil;
+import com.fruitmkt.util.JsonUtil;
 import com.fruitmkt.util.SessionUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.util.Map;
 
 /**
  * ShopProfileUploadAPI — API xử lý upload ảnh Logo và Ảnh bìa của Shop
@@ -31,13 +36,12 @@ public class ShopProfileUploadAPI extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         resp.setContentType("application/json;charset=UTF-8");
-        PrintWriter out = resp.getWriter();
 
         // 1. Kiểm tra quyền chủ shop
         User user = SessionUtil.getCurrentUser(req.getSession());
         if (user == null || !"SHOP_OWNER".equals(user.getRole())) {
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            out.write("{\"success\":false,\"message\":\"Chưa đăng nhập hoặc không có quyền!\"}");
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_UNAUTHORIZED, "Chưa đăng nhập hoặc không có quyền!"));
             return;
         }
 
@@ -45,7 +49,7 @@ public class ShopProfileUploadAPI extends HttpServlet {
             ShopProfile profile = shopService.getShopByUserId(user.getUserId());
             if (profile == null) {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                out.write("{\"success\":false,\"message\":\"Không tìm thấy hồ sơ gian hàng!\"}");
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy hồ sơ gian hàng!"));
                 return;
             }
 
@@ -53,14 +57,14 @@ public class ShopProfileUploadAPI extends HttpServlet {
             String type = req.getParameter("type");
             if (type == null || (!type.equals("logo") && !type.equals("cover"))) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                out.write("{\"success\":false,\"message\":\"Tham số 'type' không hợp lệ!\"}");
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số 'type' không hợp lệ!"));
                 return;
             }
 
             Part part = req.getPart("file");
             if (part == null || part.getSize() == 0) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                out.write("{\"success\":false,\"message\":\"Không có file được chọn!\"}");
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Không có file được chọn!"));
                 return;
             }
 
@@ -70,7 +74,7 @@ public class ShopProfileUploadAPI extends HttpServlet {
 
             if (relativePath == null) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.write("{\"success\":false,\"message\":\"Không thể lưu file!\"}");
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Không thể lưu file!"));
                 return;
             }
 
@@ -93,12 +97,13 @@ public class ShopProfileUploadAPI extends HttpServlet {
 
             // Trả về JSON thành công kèm URL để frontend cập nhật preview tức thì
             String fullUrl = contextPath + "/" + relativePath;
-            out.write("{\"success\":true,\"url\":\"" + fullUrl + "\",\"relativePath\":\"" + relativePath + "\"}");
+            resp.setStatus(HttpServletResponse.SC_OK);
+            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("url", fullUrl, "relativePath", relativePath)));
 
         } catch (Exception e) {
             getServletContext().log("Lỗi upload ảnh shop: " + e.getMessage(), e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.write("{\"success\":false,\"message\":\"Lỗi hệ thống: " + e.getMessage() + "\"}");
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage()));
         }
     }
 }

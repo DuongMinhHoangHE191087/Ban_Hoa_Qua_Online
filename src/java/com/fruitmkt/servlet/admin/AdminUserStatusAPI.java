@@ -1,7 +1,9 @@
 package com.fruitmkt.servlet.admin;
 
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.service.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fruitmkt.util.JsonUtil;
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -9,42 +11,37 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/users/status")
 public class AdminUserStatusAPI extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminUserStatusAPI.class.getName());
+
     private final UserService userService = new UserService();
-    private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-        PrintWriter out = response.getWriter();
-        Map<String, Object> result = new HashMap<>();
 
         try {
             int userId = Integer.parseInt(request.getParameter("userId"));
-            String status = request.getParameter("status"); // 'ACTIVE' or 'LOCKED' or 'INACTIVE'
-            
+            String status = request.getParameter("status");
+
             boolean updated = userService.updateUserStatus(userId, status);
-            
+
             if (updated) {
-                result.put("success", true);
-                result.put("message", "Cập nhật trạng thái thành công");
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok("Cập nhật trạng thái thành công"));
             } else {
-                result.put("success", false);
-                result.put("message", "Không tìm thấy user");
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy user"));
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            result.put("success", false);
-            result.put("message", "Lỗi server: " + e.getMessage());
+            LoggerUtil.error(log, "Lỗi khi cập nhật trạng thái người dùng userId=" + request.getParameter("userId"), e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
         }
-        
-        out.print(mapper.writeValueAsString(result));
-        out.flush();
     }
 }

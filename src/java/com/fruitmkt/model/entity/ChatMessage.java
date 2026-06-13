@@ -15,6 +15,10 @@ public class ChatMessage {
     private String mediaType;
     private boolean isRead;
     private java.time.LocalDateTime createdAt;
+    
+    // Transient fields (JOIN users table)
+    private String senderName;
+    private String senderRole;
 
     public ChatMessage() {}
 
@@ -41,5 +45,11 @@ public class ChatMessage {
 
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getSenderName() { return senderName; }
+    public void setSenderName(String senderName) { this.senderName = senderName; }
+
+    public String getSenderRole() { return senderRole; }
+    public void setSenderRole(String senderRole) { this.senderRole = senderRole; }
 
 }

@@ -64,8 +64,24 @@
         <aside class="w-full lg:w-64 shrink-0">
             <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm sticky top-24">
                 <div class="flex items-center gap-3 pb-5 mb-5 border-b border-gray-100">
-                    <img class="w-12 h-12 rounded-full object-cover border border-primary/20" 
-                         src="${not empty user.avatarUrl ? (fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" alt="Avatar">
+                    <div class="w-12 h-12 rounded-full overflow-hidden border border-primary/20 shrink-0 flex items-center justify-center">
+                        <c:choose>
+                            <c:when test="${not empty user.avatarUrl}">
+                                <img class="w-full h-full object-cover" 
+                                     src="${fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)}" 
+                                     alt="Avatar"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="avatar-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; text-transform: uppercase; border-radius: 50%;">
+                                    <c:out value="${fn:substring(user.fullName, 0, 1)}"/>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="avatar-fallback" style="display: flex; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; text-transform: uppercase; border-radius: 50%;">
+                                    <c:out value="${fn:substring(user.fullName, 0, 1)}"/>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
                     <div class="overflow-hidden">
                         <h3 class="text-sm font-bold text-txt truncate"><c:out value="${user.fullName}"/></h3>
                         <span class="text-[10px] text-txt-3"><c:out value="${user.email}"/></span>
@@ -117,7 +133,7 @@
                 
                 <form action="${pageContext.request.contextPath}/profile" method="post" enctype="multipart/form-data" class="space-y-6">
                     <input type="hidden" name="action" value="updateProfile">
-                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                    <input type="hidden" name="_csrf" value="${sessionScope['_csrfToken']}">
 
                     <!-- Avatar Upload -->
                     <div class="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-gray-100">
@@ -125,7 +141,9 @@
                              onclick="document.getElementById('avatarInput').click();" 
                              title="Click để đổi ảnh đại diện">
                             <img id="avatarPreview" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                                 src="${not empty user.avatarUrl ? (fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" alt="Avatar">
+                                 src="${not empty user.avatarUrl ? (fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)) : pageContext.request.contextPath.concat('/assets/images/default-avatar.svg')}" 
+                                 alt="Avatar"
+                                 onerror="this.onerror=null; this.src='${pageContext.request.contextPath}/assets/images/default-avatar.svg';">
                             <div class="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <i class="fa-solid fa-camera text-base"></i>
                             </div>
@@ -203,7 +221,7 @@
                                             <form action="${pageContext.request.contextPath}/profile" method="post" class="inline">
                                                 <input type="hidden" name="action" value="setDefaultAddress">
                                                 <input type="hidden" name="addressId" value="${addr.addressId}">
-                                                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                <input type="hidden" name="_csrf" value="${sessionScope['_csrfToken']}">
                                                 <button type="submit" class="px-2 py-1 text-[9px] border border-gray-200 text-txt-2 hover:border-primary hover:text-primary rounded transition-colors cursor-pointer bg-white">Đặt mặc định</button>
                                             </form>
                                         </c:if>
@@ -220,7 +238,7 @@
                                             <form action="${pageContext.request.contextPath}/profile" method="post" class="inline" onsubmit="return confirm('Bạn chắc chắn muốn xóa địa chỉ này?');">
                                                 <input type="hidden" name="action" value="deleteAddress">
                                                 <input type="hidden" name="addressId" value="${addr.addressId}">
-                                                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                <input type="hidden" name="_csrf" value="${sessionScope['_csrfToken']}">
                                                 <button type="submit" class="p-1.5 border border-gray-200 text-txt-2 hover:border-red-500 hover:text-red-500 rounded bg-white transition-colors cursor-pointer" title="Xóa">
                                                     <i class="fa-solid fa-trash text-xs"></i>
                                                 </button>
@@ -311,64 +329,71 @@
                                         </div>
                                     </div>
 
-                                    <!-- Content snippet -->
-                                    <div class="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div class="space-y-1.5 flex-1">
-                                            <div class="text-[10px] text-txt-3 flex items-center gap-1.5">
+                                        <!-- Content -->
+                                        <div class="p-4">
+                                            <!-- Shop name -->
+                                            <div class="text-[10px] text-txt-3 flex items-center gap-1.5 mb-3">
                                                 <i class="fa-solid fa-store"></i>
                                                 <span>Cửa hàng: <span class="font-semibold text-txt-2"><c:out value="${shopNamesMap[ord.orderId]}"/></span></span>
                                             </div>
-                                            <!-- Items list -->
-                                            <div class="space-y-1">
-                                                <c:forEach var="item" items="${orderItemsMap[ord.orderId]}" varStatus="st">
-                                                    <c:if test="${st.index < 2}">
-                                                        <p class="text-xs text-txt-2 flex justify-between">
-                                                            <span>• <c:out value="${item.productNameSnapshot}"/> (<c:out value="${item.variantLabelSnapshot}"/>) <span class="text-txt-3">x${item.quantity}</span></span>
-                                                            <span class="font-medium text-txt"><fmt:formatNumber value="${item.subtotal}" type="currency" currencySymbol="đ" maxFractionDigits="0"/></span>
-                                                        </p>
-                                                    </c:if>
+
+                                            <!-- All items -->
+                                            <div class="space-y-1.5 mb-4">
+                                                <c:forEach var="item" items="${orderItemsMap[ord.orderId]}">
+                                                    <div class="flex items-center justify-between text-xs text-txt-2">
+                                                        <span class="flex items-center gap-1.5">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0"></span>
+                                                            <c:out value="${item.productNameSnapshot}"/>
+                                                            <c:if test="${not empty item.variantLabelSnapshot}">
+                                                                <span class="text-txt-3">(${item.variantLabelSnapshot})</span>
+                                                            </c:if>
+                                                            <span class="text-txt-3">x${item.quantity}</span>
+                                                        </span>
+                                                        <span class="font-medium text-txt shrink-0 ml-4">
+                                                            <fmt:formatNumber value="${item.subtotal}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
+                                                        </span>
+                                                    </div>
                                                 </c:forEach>
-                                                <c:if test="${st.count > 2}">
-                                                    <p class="text-[10px] text-txt-3 italic pl-3">... và ${st.count - 2} sản phẩm khác</p>
-                                                </c:if>
+                                            </div>
+
+                                            <!-- Footer: total + actions -->
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-gray-100">
+                                                <div class="text-xs">
+                                                    <span class="text-txt-3">Tổng số tiền:</span>
+                                                    <span class="ml-1 font-bold text-primary text-sm">
+                                                        <fmt:formatNumber value="${ord.finalAmount}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
+                                                    </span>
+                                                </div>
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <!-- View detail page -->
+                                                    <a href="${pageContext.request.contextPath}/profile/order-detail?orderId=${ord.orderId}"
+                                                       class="px-3 py-1.5 bg-white border border-gray-200 text-txt-2 hover:border-primary hover:text-primary rounded-lg text-[9px] font-bold transition-all flex items-center gap-1">
+                                                        <i class="fa-solid fa-file-lines"></i> Chi tiết &amp; Vận đơn
+                                                    </a>
+                                                    <!-- Invoice PDF - DELIVERED only -->
+                                                    <c:if test="${ord.status == 'DELIVERED'}">
+                                                        <a href="${pageContext.request.contextPath}/orders?action=invoice&orderId=${ord.orderId}"
+                                                           target="_blank"
+                                                           class="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[9px] font-bold transition-all flex items-center gap-1">
+                                                            <i class="fa-solid fa-file-invoice"></i> Tải hoá đơn
+                                                        </a>
+                                                    </c:if>
+                                                    <!-- Cancel - PENDING_PAYMENT only -->
+                                                    <c:if test="${ord.status == 'PENDING_PAYMENT'}">
+                                                        <form action="${pageContext.request.contextPath}/profile" method="post" class="inline"
+                                                              onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng #${ord.orderId}?\nHành động này không thể hoàn tác!');">
+                                                            <input type="hidden" name="action" value="cancelOrder">
+                                                            <input type="hidden" name="orderId" value="${ord.orderId}">
+                                                            <input type="hidden" name="_csrf" value="${sessionScope['_csrfToken']}">
+                                                            <button type="submit" class="px-3 py-1.5 bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 rounded-lg text-[9px] font-bold transition-all cursor-pointer">
+                                                                <i class="fa-solid fa-ban mr-0.5"></i> Hủy đơn hàng
+                                                            </button>
+                                                        </form>
+                                                    </c:if>
+                                                </div>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Actions and Total -->
-                                        <div class="flex flex-col items-end gap-2 md:border-l md:border-gray-100 md:pl-4 shrink-0 min-w-[140px]">
-                                            <span class="text-[10px] text-txt-3">Tổng số tiền:</span>
-                                            <span class="text-xs font-bold text-primary"><fmt:formatNumber value="${ord.finalAmount}" type="currency" currencySymbol="đ" maxFractionDigits="0"/></span>
-                                            
-                                            <!-- Button detail trigger -->
-                                            <button data-order-id="${ord.orderId}"
-                                                    data-status="${ord.status}"
-                                                    data-payment-method="${ord.paymentMethod}"
-                                                    data-delivery-address="<c:out value='${ord.deliveryAddress}'/>"
-                                                    data-delivery-fee="${ord.deliveryFee}"
-                                                    data-discount-amount="${ord.discountAmount}"
-                                                    data-final-amount="${ord.finalAmount}"
-                                                    data-notes="<c:out value='${ord.notes}'/>"
-                                                    data-shop-name="<c:out value='${shopNamesMap[ord.orderId]}'/>"
-                                                    onclick="openOrderDetailModalFromBtn(this)"
-                                                    class="w-full px-2.5 py-1 bg-white border border-gray-200 text-txt-2 hover:border-primary hover:text-primary rounded text-[9px] font-bold transition-all cursor-pointer">
-                                                <i class="fa-solid fa-file-lines mr-0.5"></i> Chi tiết & Vận đơn
-                                            </button>
-
-                                            <!-- Cancel button: only for PENDING_PAYMENT -->
-                                            <c:if test="${ord.status == 'PENDING_PAYMENT'}">
-                                                <form action="${pageContext.request.contextPath}/profile" method="post" class="w-full"
-                                                      onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng #${ord.orderId}?\nHành động này không thể hoàn tác!');">
-                                                    <input type="hidden" name="action" value="cancelOrder">
-                                                    <input type="hidden" name="orderId" value="${ord.orderId}">
-                                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                                    <button type="submit" class="w-full px-2.5 py-1 bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 rounded text-[9px] font-bold transition-all cursor-pointer">
-                                                        <i class="fa-solid fa-ban mr-0.5"></i> Hủy đơn hàng
-                                                    </button>
-                                                </form>
-                                            </c:if>
-                                        </div>
                                     </div>
-                                </div>
                             </c:forEach>
                         </c:when>
                         <c:otherwise>
@@ -456,7 +481,7 @@
                     <c:otherwise>
                         <form action="${pageContext.request.contextPath}/profile" method="post" id="passwordForm" class="space-y-6">
                             <input type="hidden" name="action" value="changePassword">
-                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                            <input type="hidden" name="_csrf" value="${sessionScope['_csrfToken']}">
 
                             <div class="flex flex-col gap-1.5">
                                 <label class="text-xs font-bold text-txt-2" for="currentPassword">Mật khẩu hiện tại <span class="text-red-500">*</span></label>
@@ -526,7 +551,7 @@
 <div id="addressModal" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md border border-gray-100 shadow-xl transform scale-95 transition-transform duration-300">
         <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
-            <h3 id="modalTitle" class="text-sm font-bold text-txt">Thêm địa chỉ giao hàng mới</h3>
+            <h3 id="modalTitle" class="text-sm font-bold text-txt">Thêm địa chỉ nhận hàng mới</h3>
             <button onclick="closeAddressModal()" class="text-txt-3 hover:text-txt border-0 bg-transparent cursor-pointer"><i class="fa-solid fa-xmark text-base"></i></button>
         </div>
 
@@ -566,86 +591,17 @@
     </div>
 </div>
 
-<!-- ==================== ORDER DETAILS MODAL ==================== -->
 <div id="orderDetailModal" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-2xl border border-gray-100 shadow-xl transform scale-95 transition-transform duration-300 max-h-[85vh] overflow-y-auto">
-        <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-5">
-            <h3 class="text-sm font-bold text-txt">Chi tiết đơn hàng & Vận đơn</h3>
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg border border-gray-100 shadow-xl transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
+            <h3 class="text-sm font-bold text-txt">Chi tiết đơn hàng</h3>
             <button onclick="closeOrderDetailModal()" class="text-txt-3 hover:text-txt border-0 bg-transparent cursor-pointer"><i class="fa-solid fa-xmark text-base"></i></button>
         </div>
-
-        <div class="space-y-6">
-            
-            <!-- Delivery Stepper Tracking Indicator -->
-            <div>
-                <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3 mb-4">Trạng thái vận chuyển</h4>
-                <div class="flex items-center justify-between text-xs font-semibold relative px-6">
-                    <!-- Line connector -->
-                    <div class="absolute top-3.5 left-[15%] right-[15%] h-0.5 bg-gray-200 -z-10" id="stepperLine"></div>
-                    
-                    <!-- Steps -->
-                    <div class="flex flex-col items-center gap-1.5 step-node" id="step-PENDING_PAYMENT">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-1">
-                            <i class="fa-solid fa-wallet text-gray-300 text-xs"></i>
-                        </div>
-                        <span class="text-[9px] text-txt-3">Chờ T.Toán</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1.5 step-node" id="step-CONFIRMED">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-2">
-                            <i class="fa-solid fa-clipboard-check text-gray-300 text-xs"></i>
-                        </div>
-                        <span class="text-[9px] text-txt-3">Đã Nhận</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1.5 step-node" id="step-PREPARING">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-3">
-                            <i class="fa-solid fa-box-open text-gray-300 text-xs"></i>
-                        </div>
-                        <span class="text-[9px] text-txt-3">Chuẩn Bị</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1.5 step-node" id="step-DISPATCHED">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-4">
-                            <i class="fa-solid fa-truck-fast text-gray-300 text-xs"></i>
-                        </div>
-                        <span class="text-[9px] text-txt-3">Đang Giao</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1.5 step-node" id="step-DELIVERED">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors" id="step-icon-5">
-                            <i class="fa-solid fa-circle-check text-gray-300 text-xs"></i>
-                        </div>
-                        <span class="text-[9px] text-txt-3">Đã Giao</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Details grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-                <div class="space-y-3">
-                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3">Thông tin nhận hàng</h4>
-                    <div class="space-y-1.5 text-xs text-txt-2">
-                        <p>Cửa hàng: <strong class="text-txt" id="detailShopName">Cửa hàng A</strong></p>
-                        <p>Địa chỉ giao hàng: <span id="detailAddress">Số nhà x, đường y...</span></p>
-                        <p>Phương thức thanh toán: <strong id="detailPaymentMethod">Chuyển khoản</strong></p>
-                        <p>Ghi chú đơn hàng: <span id="detailNotes" class="italic text-txt-3">Không có ghi chú</span></p>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-txt-3">Hóa đơn thanh toán</h4>
-                    <div class="space-y-1.5 text-xs text-txt-2">
-                        <div class="flex justify-between">
-                            <span>Phí vận chuyển:</span>
-                            <span id="detailFee">0đ</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Giảm giá khuyến mãi:</span>
-                            <span id="detailDiscount">0đ</span>
-                        </div>
-                        <div class="flex justify-between border-t border-gray-100 pt-1.5 font-bold text-txt text-sm">
-                            <span>Tổng tiền thực nhận:</span>
-                            <span class="text-primary" id="detailFinalAmount">0đ</span>
-                        </div>
-                    </div>
-                </div>
+        <div id="orderDetailContent" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 text-xs">
+            <!-- Dynamic content loaded via JS -->
+            <div class="flex justify-between items-center pt-3 border-t border-gray-100">
+                <span class="text-txt-2">Tổng thanh toán:</span>
+                <span class="text-primary" id="detailFinalAmount">0đ</span>
             </div>
             
             <!-- Close action -->
@@ -682,6 +638,21 @@
             document.getElementById(target).classList.remove('hidden');
         });
     });
+
+    // Auto-select tab from URL query parameter
+    (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let tabParam = urlParams.get('tab');
+        if (tabParam) {
+            if (!tabParam.endsWith('-tab')) {
+                tabParam = tabParam + '-tab';
+            }
+            const targetBtn = document.querySelector(`#profile-tabs button[data-tab="${tabParam}"]`);
+            if (targetBtn) {
+                targetBtn.click();
+            }
+        }
+    })();
 
     // Order filter buttons — client-side filter for order cards
     const orderFilterBtns = document.querySelectorAll('.order-filter-btn');
@@ -889,7 +860,7 @@
             document.getElementById('modalTitle').textContent = 'Chỉnh sửa địa chỉ giao hàng';
             document.getElementById('modalAction').value = 'updateAddress';
         } else {
-            document.getElementById('modalTitle').textContent = 'Thêm địa chỉ giao hàng mới';
+            document.getElementById('modalTitle').textContent = 'Thêm địa chỉ nhận hàng mới';
             document.getElementById('modalAction').value = 'addAddress';
         }
 
@@ -905,77 +876,6 @@
         addressModal.querySelector('div').classList.add('scale-95');
         setTimeout(() => {
             addressModal.classList.add('hidden');
-        }, 300);
-    }
-
-    // Modal Order details & stepper tracking helpers
-    const orderDetailModal = document.getElementById('orderDetailModal');
-    function openOrderDetailModalFromBtn(btn) {
-        const orderId = btn.getAttribute('data-order-id') || '';
-        const status = btn.getAttribute('data-status') || '';
-        const paymentMethod = btn.getAttribute('data-payment-method') || '';
-        const deliveryAddress = btn.getAttribute('data-delivery-address') || '';
-        const deliveryFee = btn.getAttribute('data-delivery-fee') || '0';
-        const discountAmount = btn.getAttribute('data-discount-amount') || '0';
-        const finalAmount = btn.getAttribute('data-final-amount') || '0';
-        const notes = btn.getAttribute('data-notes') || '';
-        const shopName = btn.getAttribute('data-shop-name') || '';
-        openOrderDetailModal(orderId, status, paymentMethod, deliveryAddress, deliveryFee, discountAmount, finalAmount, notes, shopName);
-    }
-    function openOrderDetailModal(orderId, status, paymentMethod, deliveryAddress, deliveryFee, discountAmount, finalAmount, notes, shopName) {
-        document.getElementById('detailShopName').textContent = shopName;
-        document.getElementById('detailAddress').textContent = deliveryAddress;
-        document.getElementById('detailPaymentMethod').textContent = paymentMethod === 'COD' ? 'COD (Nhận hàng thanh toán)' : 'Chuyển khoản (CK)';
-        document.getElementById('detailNotes').textContent = notes ? notes : 'Không có ghi chú';
-        document.getElementById('detailFee').textContent = deliveryFee + 'đ';
-        document.getElementById('detailDiscount').textContent = discountAmount + 'đ';
-        document.getElementById('detailFinalAmount').textContent = finalAmount + 'đ';
-
-        // Clear stepper highlight
-        const statuses = ['PENDING_PAYMENT', 'CONFIRMED', 'PREPARING', 'DISPATCHED', 'DELIVERED'];
-        let activeIdx = statuses.indexOf(status);
-        if (status === 'APPROVED') {
-            activeIdx = 1; // Map APPROVED as CONFIRMED on stepper
-        }
-        if (status === 'CANCELLED' || status === 'PAYMENT_FAILED' || status === 'EXPIRED') {
-            activeIdx = -1; // No highlight
-        }
-
-        // Stepper coloring
-        statuses.forEach((st, idx) => {
-            const node = document.getElementById('step-' + st);
-            const iconBox = document.getElementById('step-icon-' + (idx + 1));
-            const icon = iconBox.querySelector('i');
-            
-            if (idx <= activeIdx) {
-                iconBox.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-primary bg-primary-lt text-primary transition-colors";
-                icon.className = icon.className.replace('text-gray-300', 'text-primary');
-            } else {
-                iconBox.className = "w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-colors";
-                icon.className = icon.className.replace('text-primary', 'text-gray-300');
-            }
-        });
-
-        // Set stepper connector line color
-        const line = document.getElementById('stepperLine');
-        if (activeIdx >= 4) {
-            line.className = "absolute top-3.5 left-[15%] right-[15%] h-0.5 bg-primary -z-10";
-        } else {
-            line.className = "absolute top-3.5 left-[15%] right-[15%] h-0.5 bg-gray-200 -z-10";
-        }
-
-        orderDetailModal.classList.remove('hidden');
-        setTimeout(() => {
-            orderDetailModal.classList.remove('opacity-0');
-            orderDetailModal.querySelector('div').classList.remove('scale-95');
-        }, 50);
-    }
-
-    function closeOrderDetailModal() {
-        orderDetailModal.classList.add('opacity-0');
-        orderDetailModal.querySelector('div').classList.add('scale-95');
-        setTimeout(() => {
-            orderDetailModal.classList.add('hidden');
         }, 300);
     }
 </script>

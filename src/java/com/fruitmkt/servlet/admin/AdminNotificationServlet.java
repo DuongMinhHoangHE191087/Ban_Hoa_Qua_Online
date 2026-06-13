@@ -3,13 +3,19 @@ package com.fruitmkt.servlet.admin;
 import com.fruitmkt.service.NotificationService;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/notifications")
 public class AdminNotificationServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminNotificationServlet.class.getName());
 
     private final NotificationService notificationService = new NotificationService();
 
@@ -20,7 +26,7 @@ public class AdminNotificationServlet extends HttpServlet {
             req.setAttribute("notificationList", notifications);
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-notifications.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải trang thông báo", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải trang thông báo");
         }
     }
@@ -39,7 +45,7 @@ public class AdminNotificationServlet extends HttpServlet {
                 SessionUtil.flashSuccess(req.getSession(), "Đã gửi thông báo thành công!");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi gửi thông báo", e);
             SessionUtil.flashError(req.getSession(), "Lỗi gửi thông báo: " + e.getMessage());
         }
         resp.sendRedirect(req.getContextPath() + "/admin/notifications");

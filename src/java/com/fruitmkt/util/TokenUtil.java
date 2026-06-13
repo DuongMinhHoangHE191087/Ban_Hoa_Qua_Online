@@ -1,5 +1,6 @@
 package com.fruitmkt.util;
 
+import com.fruitmkt.config.AppConfig;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -7,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.UUID;
+import java.util.logging.Logger;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -17,9 +19,10 @@ import javax.crypto.spec.SecretKeySpec;
  * @author fruitmkt-team
  */
 public final class TokenUtil {
-    private static final String SECRET_KEY = com.fruitmkt.config.AppConfig.SECRET_KEY;
-    private static final long ACCESS_TOKEN_EXPIRY_MS = com.fruitmkt.config.AppConfig.ACCESS_TOKEN_EXPIRY_MS;
-    public static final int REFRESH_TOKEN_EXPIRY_SECS = com.fruitmkt.config.AppConfig.REFRESH_TOKEN_EXPIRY_SECS;
+    private static final Logger log = Logger.getLogger(TokenUtil.class.getName());
+    private static final String SECRET_KEY = AppConfig.SECRET_KEY;
+    private static final long ACCESS_TOKEN_EXPIRY_MS = AppConfig.ACCESS_TOKEN_EXPIRY_MS;
+    public static final int REFRESH_TOKEN_EXPIRY_SECS = AppConfig.REFRESH_TOKEN_EXPIRY_SECS;
 
     /**
      * Tạo Access Token dạng: userId.expiresAt.signature
@@ -58,7 +61,7 @@ public final class TokenUtil {
                 return userId;
             }
         } catch (Exception e) {
-            // Lỗi parse
+            LoggerUtil.warn(log, "TokenUtil: lỗi parse access token", e);
         }
         return null;
     }

@@ -5,6 +5,7 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.SystemConfigService;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,9 +17,12 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/config")
 public class AdminConfigServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminConfigServlet.class.getName());
 
     private final SystemConfigService systemConfigService = new SystemConfigService();
 
@@ -35,7 +39,7 @@ public class AdminConfigServlet extends HttpServlet {
             request.setAttribute("configs", configs);
             request.getRequestDispatcher("/WEB-INF/jsp/admin/admin-config.jsp").forward(request, response);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải cấu hình hệ thống", e);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải cấu hình hệ thống.");
         }
     }
@@ -63,7 +67,7 @@ public class AdminConfigServlet extends HttpServlet {
                 systemConfigService.updateConfig(configKey, configValue, null, admin.getUserId(), reason);
                 SessionUtil.setFlashMessage(session, "Cập nhật cấu hình [" + configKey + "] thành công!", "success");
             } catch (SQLException e) {
-                e.printStackTrace();
+                LoggerUtil.error(log, "Lỗi khi cập nhật cấu hình: " + configKey, e);
                 SessionUtil.setFlashMessage(session, "Lỗi khi cập nhật cấu hình: " + e.getMessage(), "danger");
             } catch (IllegalArgumentException e) {
                 SessionUtil.setFlashMessage(session, e.getMessage(), "danger");
@@ -74,7 +78,7 @@ public class AdminConfigServlet extends HttpServlet {
                 udao.deleteAllSessions();
                 SessionUtil.flashSuccess(session, "Đã xóa toàn bộ phiên đăng nhập của người dùng. Họ sẽ phải đăng nhập lại khi phiên hiện tại hết hạn.");
             } catch (SQLException e) {
-                e.printStackTrace();
+                LoggerUtil.error(log, "Lỗi khi xóa phiên đăng nhập", e);
                 SessionUtil.flashError(session, "Lỗi khi xóa phiên đăng nhập: " + e.getMessage());
             }
         }

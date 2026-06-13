@@ -9,14 +9,20 @@ import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.AuthService;
 import com.fruitmkt.service.EmailService;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * RegisterServlet — Controller cho chức năng: Hiển thị form đăng ký
@@ -41,6 +47,8 @@ import java.util.List;
     fileSizeThreshold = 1_048_576   // 1MB: dưới ngưỡng này giữ trong RAM
 )
 public class RegisterServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(RegisterServlet.class.getName());
 
     private final AuthService authService = new AuthService();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -162,8 +170,8 @@ public class RegisterServlet extends HttpServlet {
                             int catId = Integer.parseInt(catIds[i]);
                             if (i > 0) sb.append(",");
                             sb.append(catId);
-                        } catch (NumberFormatException ignored) {
-                            // Bỏ qua giá trị không hợp lệ
+                        } catch (NumberFormatException e) {
+                            LoggerUtil.warn(log, "ID danh mục không hợp lệ: " + catIds[i], e);
                         }
                     }
                     sb.append("]");

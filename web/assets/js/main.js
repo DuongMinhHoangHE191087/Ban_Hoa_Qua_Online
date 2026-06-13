@@ -154,8 +154,9 @@ const CartSync = {
                 const contentType = summaryResp.headers.get("content-type");
                 if (summaryResp.ok && contentType && contentType.indexOf("application/json") !== -1) {
                     const summaryData = await summaryResp.json();
-                    if (summaryData.success && summaryData.cartSummary) {
-                        localStorage.setItem('userCart', JSON.stringify(summaryData.cartSummary.items || []));
+                    const payload = summaryData.success ? summaryData.data : null;
+                    if (payload && payload.cartSummary) {
+                        localStorage.setItem('userCart', JSON.stringify(payload.cartSummary.items || []));
                         GuestCart.updateBadge();
                     }
                 } else {
@@ -323,8 +324,9 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
         }
         
         // Sync with backend final structure (e.g. database-assigned cartItemId)
-        if (isLoggedIn && data.cartSummary && data.cartSummary.items) {
-            const mappedItems = data.cartSummary.items.map(item => ({
+        const payload = data.success ? data.data : null;
+        if (isLoggedIn && payload && payload.cartSummary && payload.cartSummary.items) {
+            const mappedItems = payload.cartSummary.items.map(item => ({
                 cartItemId: item.cartItemId,
                 variantId: item.variantId,
                 productName: item.productName,

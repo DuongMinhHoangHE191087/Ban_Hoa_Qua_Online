@@ -3,6 +3,7 @@ package com.fruitmkt.servlet.admin;
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.PaymentService;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -13,9 +14,12 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/payments")
 public class AdminPaymentServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminPaymentServlet.class.getName());
 
     private final PaymentService paymentService = new PaymentService();
 
@@ -37,7 +41,8 @@ public class AdminPaymentServlet extends HttpServlet {
             if (pageStr != null) {
                 page = Integer.parseInt(pageStr);
             }
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException e) {
+            LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
         }
 
         int pageSize = 20;

@@ -277,7 +277,7 @@
 
                                 <!-- 3. Collapsible Inline Form -->
                                 <div id="inlineAddressForm" class="hidden overflow-hidden transition-all duration-300 border-t border-emerald-100 pt-4 mt-4 space-y-4">
-                                    <div class="text-xs font-bold text-[#14532D]" id="inlineFormTitle">Thêm địa chỉ giao hàng mới</div>
+                                    <div class="text-xs font-bold text-[#14532D]" id="inlineFormTitle">Thêm địa chỉ nhận hàng mới</div>
                                     <input type="hidden" id="inlineAddressId" value="">
                                     <input type="hidden" id="inlineAction" value="add">
                                     
@@ -314,6 +314,15 @@
                             <input type="hidden" id="phone" name="phone">
                             <input type="hidden" id="deliveryAddress" name="deliveryAddress">
                             <input type="hidden" id="saveAddressToBook" name="saveAddressToBook" value="false">
+                            <div class="flex flex-col gap-2 md:col-span-2">
+                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="deliveryTimeSlot">Khung giờ nhận hàng *</label>
+                                <select class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full bg-white border border-[#bcfdc9] focus:outline-none focus:border-[#14532D]" id="deliveryTimeSlot" name="deliveryTimeSlot">
+                                    <option value="08:00-12:00">08:00 - 12:00 (Buổi sáng)</option>
+                                    <option value="12:00-16:00">12:00 - 16:00 (Buổi chiều)</option>
+                                    <option value="16:00-20:00">16:00 - 20:00 (Buổi tối)</option>
+                                    <option value="Giao hỏa tốc" selected>Giao hỏa tốc (Trong vòng 2 giờ)</option>
+                                </select>
+                            </div>
                             <div class="flex flex-col gap-2 md:col-span-2">
                                 <label class="font-label-md text-label-md text-[#14532D]" for="notes">Ghi chú (Tuỳ chọn)</label>
                                 <textarea class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="notes" name="notes" placeholder="Ghi chú thêm cho người giao hàng..." rows="3"></textarea>
@@ -456,11 +465,11 @@
                         <h2 class="font-headline-md text-headline-md text-primary mb-6 font-bold border-b border-[#b1f2be] pb-3">Tổng kết đơn hàng</h2>
                         <div class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-6">
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">Tạm tính sau sale trực tiếp (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
+                                <span class="text-on-surface-variant">Tạm tính sau giảm giá sản phẩm (<c:out value="${fn:length(cartSummary.items)}"/> sản phẩm)</span>
                                 <span class="font-bold text-inverse-surface" id="summary-subtotal"><ft:currency value="${cartSummary.subtotal}"/></span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant">Sale trực tiếp</span>
+                                <span class="text-on-surface-variant">Giảm giá sản phẩm</span>
                                 <span class="font-bold text-red-600" id="summary-direct-sale">- <ft:currency value="${directSaleAmount}"/></span>
                             </div>
                             <div class="flex justify-between items-center" id="shop-discount-row" style="display:none!important">
@@ -842,7 +851,7 @@ function showInlineAddressForm(mode, addressId = null) {
     actionInput.value = mode;
 
     if (mode === 'add') {
-        title.textContent = 'Thêm địa chỉ giao hàng mới';
+        title.textContent = 'Thêm địa chỉ nhận hàng mới';
         addressIdInput.value = '';
         nameInput.value = '';
         phoneInput.value = '';
@@ -928,11 +937,11 @@ function handleInlineAddressSubmit() {
 
         if (data.success) {
             const updatedAddr = {
-                addressId: data.address.addressId,
-                recipientName: data.address.recipientName,
-                recipientPhone: data.address.recipientPhone,
-                addressDetail: data.address.addressDetail,
-                isDefault: data.address.isDefault
+                addressId: data.data.address.addressId,
+                recipientName: data.data.address.recipientName,
+                recipientPhone: data.data.address.recipientPhone,
+                addressDetail: data.data.address.addressDetail,
+                isDefault: data.data.address.isDefault
             };
 
             if (updatedAddr.isDefault) {

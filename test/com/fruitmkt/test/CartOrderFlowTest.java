@@ -85,11 +85,12 @@ public class CartOrderFlowTest {
         reviewService = new ReviewService();
 
         // 1. Tạo shop owner test
+        String ownerPhone = "09" + String.format("%08d", Math.abs((System.nanoTime()) % 100000000L));
         testOwnerId = userDAO.saveNewCustomer(
             "Cart Test Owner",
             "cart_test_owner_" + System.currentTimeMillis() + "@test.com",
             "hashed_pwd",
-            "0961112222",
+            ownerPhone,
             "SHOP_OWNER",
             "ACTIVE",
             true
@@ -97,11 +98,12 @@ public class CartOrderFlowTest {
         assertTrue("testOwnerId phải > 0", testOwnerId > 0);
 
         // 2. Tạo customer test
+        String customerPhone = "09" + String.format("%08d", Math.abs((System.nanoTime() + 1) % 100000000L));
         testCustomerId = userDAO.saveNewCustomer(
             "Cart Test Customer",
             "cart_test_cust_" + System.currentTimeMillis() + "@test.com",
             "hashed_pwd",
-            "0962223333",
+            customerPhone,
             "CUSTOMER",
             "ACTIVE",
             true
@@ -310,7 +312,7 @@ public class CartOrderFlowTest {
         testOrderId = orderDAO.save(order);
 
         orderService.confirmOrder(testOrderId, testOwnerId);
-        assertEquals("Sau CONFIRMED", "CONFIRMED", getOrderStatus(testOrderId));
+        assertEquals("Sau APPROVED", "APPROVED", getOrderStatus(testOrderId));
 
         orderService.dispatchOrder(testOrderId, testOwnerId);
         assertEquals("Sau DISPATCHED", "DISPATCHED", getOrderStatus(testOrderId));
@@ -511,6 +513,12 @@ public class CartOrderFlowTest {
     /** Xóa cứng đơn hàng và order_items */
     private void hardDeleteOrder(int orderId) throws SQLException {
         try (Connection conn = orderDAO.openConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM deliveries WHERE order_id = ?")) {
+                ps.setInt(1, orderId); ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM delivery_trips WHERE parent_order_id = ?")) {
+                ps.setInt(1, orderId); ps.executeUpdate();
+            }
             try (PreparedStatement ps = conn.prepareStatement("DELETE FROM order_items WHERE order_id = ?")) {
                 ps.setInt(1, orderId); ps.executeUpdate();
             }

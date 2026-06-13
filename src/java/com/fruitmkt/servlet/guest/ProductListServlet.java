@@ -13,9 +13,12 @@ import com.fruitmkt.model.entity.ProductImage;
 import com.fruitmkt.model.entity.Promotion;
 import com.fruitmkt.service.ProductService;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -24,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * ProductListServlet — Danh sách sản phẩm với filter và phân trang.
@@ -35,6 +39,8 @@ import java.util.Map;
  */
 @WebServlet("/products")
 public class ProductListServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ProductListServlet.class.getName());
 
     private final ProductService productService = new ProductService();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -74,7 +80,9 @@ public class ProductListServlet extends HttpServlet {
                         if (p != null && "ACTIVE".equals(p.getStatus()) && "APPROVED".equals(p.getApprovalStatus())) {
                             productsList.add(p);
                         }
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException e) {
+                        LoggerUtil.warn(log, "ID sản phẩm không hợp lệ trong filter", e);
+                    }
                 }
                 pagedResult = new PagedResultDTO(productsList, 1, 1, productsList.size(), AppConfig.PAGE_SIZE_PRODUCTS);
             } else {
@@ -117,14 +125,20 @@ public class ProductListServlet extends HttpServlet {
                     BigDecimal basePrice = new BigDecimal("45000");
                     String unit = "kg";
                     int totalStock = 0;
+                    int defaultVariantId = 0;
+                    int cheapestStock = 0;
                     if (variants != null && !variants.isEmpty()) {
                         ProductVariant cheapestVariant = variants.get(0);
                         basePrice = cheapestVariant.getPrice();
                         unit = cheapestVariant.getVariantLabel();
+                        defaultVariantId = cheapestVariant.getVariantId();
+                        cheapestStock = cheapestVariant.getStockQuantity();
                         for (ProductVariant v : variants) {
                             totalStock += v.getStockQuantity();
                         }
                     }
+                    item.put("variantId", defaultVariantId);
+                    item.put("stockQuantity", cheapestStock);
                     item.put("unit", unit);
                     item.put("inStock", totalStock > 0);
 

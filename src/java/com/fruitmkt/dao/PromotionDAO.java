@@ -1,9 +1,18 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Promotion;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * PromotionDAO — DAO cho entity Promotion.
@@ -17,6 +26,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class PromotionDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(PromotionDAO.class.getName());
 
     /**
      * Tìm khuyến mãi theo ID.
@@ -212,6 +223,14 @@ public class PromotionDAO extends BaseDAO {
         String sql = "UPDATE promotions SET used_count = used_count + 1, updated_at = GETDATE() WHERE promo_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, promoId);
+            ps.executeUpdate();
+        }
+    }
+
+    public void incrementUsedCount(Connection conn, int promoId) throws SQLException {
+        String sql = "UPDATE promotions SET used_count = used_count + 1, updated_at = GETDATE() WHERE promo_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, promoId);
             ps.executeUpdate();
         }

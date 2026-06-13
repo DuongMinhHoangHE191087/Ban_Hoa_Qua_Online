@@ -9,12 +9,17 @@ import com.fruitmkt.service.OrderService;
 import com.fruitmkt.service.ReturnService;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ReturnRequestServlet — Quản lý yêu cầu Hủy/Đổi/Trả của khách hàng và Phán quyết của Admin.
@@ -23,6 +28,8 @@ import java.util.List;
  */
 @WebServlet("/returns")
 public class ReturnRequestServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ReturnRequestServlet.class.getName());
 
     private final ReturnService returnService = new ReturnService();
     private final OrderService orderService = new OrderService();
@@ -65,7 +72,7 @@ public class ReturnRequestServlet extends HttpServlet {
                     req.getRequestDispatcher("/WEB-INF/jsp/shop/return-requests.jsp").forward(req, resp);
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                LoggerUtil.error(log, "Lỗi truy vấn dữ liệu yêu cầu hoàn trả", e);
                 resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi truy vấn dữ liệu.");
             }
             return;
@@ -108,7 +115,7 @@ public class ReturnRequestServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/customer/return-request.jsp").forward(req, resp);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải trang yêu cầu hoàn trả", e);
             SessionUtil.flashError(session, "Lỗi: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + "/home");
         }
@@ -197,7 +204,7 @@ public class ReturnRequestServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, "Lỗi nghiệp vụ: " + e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý yêu cầu hoàn trả", e);
             SessionUtil.flashError(session, "Lỗi hệ thống: " + e.getMessage());
         }
         resp.sendRedirect(req.getContextPath() + "/returns?orderId=" + orderIdStr);

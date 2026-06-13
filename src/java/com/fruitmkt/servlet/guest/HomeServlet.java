@@ -14,11 +14,15 @@ import com.fruitmkt.util.SessionUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * HomeServlet — Controller cho chức năng: Trang chủ hiển thị danh mục, sản phẩm
@@ -61,6 +65,9 @@ public class HomeServlet extends HttpServlet {
 
         List<Category> categoriesList = new ArrayList<>();
         List<Map<String, Object>> flashSaleProducts = new ArrayList<>();
+        List<Map<String, Object>> seasonalProducts = new ArrayList<>();
+        List<Map<String, Object>> organicProducts = new ArrayList<>();
+        List<Map<String, Object>> importedProducts = new ArrayList<>();
         List<Map<String, Object>> normalProducts = new ArrayList<>();
         boolean isSearchOrFilterActive = (keyword != null && !keyword.trim().isEmpty()) || categoryId != null;
 
@@ -96,6 +103,18 @@ public class HomeServlet extends HttpServlet {
             List<Map<String, Object>> bestSellersProducts = productDAO.findBestSellersOptimized(10, req.getContextPath());
             req.setAttribute("bestSellersProducts", bestSellersProducts);
 
+            // 2c. Lấy 10 sản phẩm theo mùa (Seasonal Products) cho slider
+            seasonalProducts = productDAO.findSeasonalProductsOptimized(10, req.getContextPath());
+            req.setAttribute("seasonalProducts", seasonalProducts);
+
+            // 2d. Lấy 10 sản phẩm hữu cơ (Organic Products) cho slider
+            organicProducts = productDAO.findOrganicProductsOptimized(10, req.getContextPath());
+            req.setAttribute("organicProducts", organicProducts);
+
+            // 2e. Lấy 10 sản phẩm nhập khẩu (Imported Products) cho slider
+            importedProducts = productDAO.findImportedProductsOptimized(10, req.getContextPath());
+            req.setAttribute("importedProducts", importedProducts);
+
             // 4. Lấy sản phẩm từ Database thực tế theo trang hiện tại (lưới catalog chính) - Tối ưu tránh N+1
             normalProducts = productDAO.searchProductsOptimized(keyword, categoryId, page, pageSize, req.getContextPath());
 
@@ -106,6 +125,9 @@ public class HomeServlet extends HttpServlet {
         // 4. Gán dữ liệu vào Request scope
         req.setAttribute("categories", categoriesList);
         req.setAttribute("flashSaleProducts", flashSaleProducts);
+        req.setAttribute("seasonalProducts", seasonalProducts);
+        req.setAttribute("organicProducts", organicProducts);
+        req.setAttribute("importedProducts", importedProducts);
         req.setAttribute("normalProducts", normalProducts);
         req.setAttribute("keyword", keyword);
         req.setAttribute("selectedCategoryId", categoryId);

@@ -8,12 +8,17 @@ import com.fruitmkt.service.CategoryService;
 import com.fruitmkt.service.ProductService;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * AdminProductServlet — Servlet xử lý phê duyệt, từ chối và gỡ bỏ sản phẩm vi phạm của Admin.
@@ -26,6 +31,8 @@ import java.util.List;
  */
 @WebServlet(name = "AdminProductServlet", urlPatterns = {"/admin/products"})
 public class AdminProductServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminProductServlet.class.getName());
 
     private final ProductService productService = new ProductService();
     private final CategoryService categoryService = new CategoryService();
@@ -47,7 +54,9 @@ public class AdminProductServlet extends HttpServlet {
                 try {
                     page = Integer.parseInt(pageStr.trim());
                     if (page < 1) page = 1;
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException e) {
+                    LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
+                }
             }
 
             String approvalStatus = req.getParameter("approvalStatus");
@@ -68,7 +77,7 @@ public class AdminProductServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-products.jsp").forward(req, resp);
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi tải danh sách sản phẩm admin", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi cơ sở dữ liệu: " + e.getMessage());
         }
     }
@@ -107,7 +116,7 @@ public class AdminProductServlet extends HttpServlet {
                     resp.sendRedirect(req.getContextPath() + "/admin/products");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý hành động sản phẩm: " + action, e);
             SessionUtil.flashError(session, "Lỗi hệ thống: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + "/admin/products");
         }

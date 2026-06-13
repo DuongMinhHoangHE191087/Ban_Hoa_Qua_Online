@@ -1,6 +1,8 @@
 package com.fruitmkt.service;
 
+import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.SettlementDAO;
+import com.fruitmkt.dao.SystemConfigDAO;
 import com.fruitmkt.model.entity.ShopSettlement;
 
 import java.sql.SQLException;
@@ -8,11 +10,11 @@ import java.util.List;
 
 public class SettlementService {
     private final SettlementDAO settlementDAO = new SettlementDAO();
-    private final com.fruitmkt.dao.SystemConfigDAO configDAO = new com.fruitmkt.dao.SystemConfigDAO();
+    private final SystemConfigDAO configDAO = new SystemConfigDAO();
 
     public int runAutoSettlement() throws SQLException {
         synchronized (SettlementService.class) {
-            int freezeDays = configDAO.getInt(com.fruitmkt.config.AppConfig.CONFIG_FREEZE_DAYS, com.fruitmkt.config.AppConfig.FREEZE_DAYS_DEFAULT);
+            int freezeDays = configDAO.getInt(AppConfig.CONFIG_FREEZE_DAYS, AppConfig.FREEZE_DAYS_DEFAULT);
             return settlementDAO.runAutoSettlement(freezeDays);
         }
     }
@@ -31,5 +33,13 @@ public class SettlementService {
 
     public void markPaid(int settlementId) throws SQLException {
         settlementDAO.markPaid(settlementId);
+    }
+
+    public ShopSettlement getSettlementById(int settlementId) throws SQLException {
+        return settlementDAO.findById(settlementId);
+    }
+
+    public List<com.fruitmkt.model.entity.ShopSettlementOrder> getOrdersBySettlementId(int settlementId) throws SQLException {
+        return settlementDAO.findOrdersBySettlementId(settlementId);
     }
 }

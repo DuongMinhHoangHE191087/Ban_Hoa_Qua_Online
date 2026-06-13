@@ -72,10 +72,12 @@
         }
     };
 
-    function quickAddProduct(event, productId) {
+    function quickAddProduct(event, productId, variantId, name, price, imagePath, stockQuantity) {
         event.preventDefault();
         event.stopPropagation();
-        if (window.quickAddProductGlobal) {
+        if (variantId > 0 && typeof window.addCartItem === 'function') {
+            window.addCartItem(variantId, 1, name + " - Mặc định", price, imagePath, stockQuantity, productId);
+        } else if (window.quickAddProductGlobal) {
             window.quickAddProductGlobal(productId);
         } else {
             // Fallback: Redirect to detail page
@@ -318,7 +320,7 @@
                                             </span>
                                         </div>
 
-                                        <button type="button" onclick="quickAddProduct(event, '${p.productId}')"
+                                        <button type="button" onclick="quickAddProduct(event, '${p.productId}', '${not empty p.variantId ? p.variantId : 0}', '${fn:escapeXml(p.name)}', '${not empty p.price ? p.price : 0}', '${p.image}', '${not empty p.stockQuantity ? p.stockQuantity : 0}')"
                                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                                 title="Thêm vào giỏ hàng">
                                             <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>

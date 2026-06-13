@@ -7,12 +7,16 @@ import com.fruitmkt.model.entity.ChatSession;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ShopChatServlet — Trang quản lý tin nhắn của Shop Owner.
@@ -25,6 +29,8 @@ import java.util.List;
  */
 @WebServlet("/shop/chat")
 public class ShopChatServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ShopChatServlet.class.getName());
 
     private final ChatDAO chatDAO = new ChatDAO();
     private final UserDAO userDAO = new UserDAO();
@@ -81,7 +87,7 @@ public class ShopChatServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             resp.sendRedirect(req.getContextPath() + "/shop/chat");
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi lấy dữ liệu chat", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy dữ liệu chat");
         }
     }

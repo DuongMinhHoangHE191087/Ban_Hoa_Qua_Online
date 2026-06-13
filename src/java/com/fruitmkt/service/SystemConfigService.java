@@ -4,19 +4,23 @@ import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.SystemConfigDAO;
 import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.User;
-import java.sql.Connection;
-import java.sql.SQLException;
+import com.fruitmkt.util.LoggerUtil;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * SystemConfigService — Quản lý cấu hình hệ thống (Platform fee, freeze days, etc.)
  */
 public class SystemConfigService {
+
+    private static final Logger log = LoggerUtil.getLogger(SystemConfigService.class);
 
     private final SystemConfigDAO configDAO = new SystemConfigDAO();
     private final UserDAO userDAO = new UserDAO();
@@ -212,7 +216,9 @@ public class SystemConfigService {
                 try {
                     oldValStr = String.valueOf(new BigDecimal(oldValStr).multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString());
                     newValStr = String.valueOf(new BigDecimal(newValStr).multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString());
-                } catch (Exception ignored) {}
+                } catch (NumberFormatException e) {
+                    LoggerUtil.warn(log, "Could not format fee values for display: oldVal=%s newVal=%s", oldValStr, newValStr);
+                }
             }
 
             String dateStr = effectiveDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
@@ -223,12 +229,11 @@ public class SystemConfigService {
                 try {
                     emailService.sendHtml(shop.getEmail(), subject, emailBody);
                 } catch (Exception e) {
-                    // Log error and continue to other shops
-                    System.err.println("Failed to send fee change email to shop " + shop.getEmail() + ": " + e.getMessage());
+                    LoggerUtil.warn(log, "Failed to send fee change email to shop " + shop.getEmail(), e);
                 }
             }
         } catch (Exception e) {
-            System.err.println("Failed to notify shops of fee change: " + e.getMessage());
+            LoggerUtil.warn(log, "Failed to notify shops of fee change", e);
         }
     }
 

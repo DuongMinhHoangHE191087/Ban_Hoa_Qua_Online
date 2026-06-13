@@ -1,9 +1,16 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Category;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * CategoryDAO — DAO cho entity Category.
@@ -11,6 +18,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class CategoryDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(CategoryDAO.class.getName());
 
     /**
      * Tìm danh mục theo ID.

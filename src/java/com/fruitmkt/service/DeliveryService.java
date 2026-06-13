@@ -9,6 +9,7 @@ import com.fruitmkt.model.entity.Order;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -127,13 +128,13 @@ public class DeliveryService {
         List<Delivery> assigned = deliveryDAO.findByStaffId(staffId);
         List<Delivery> unassigned = deliveryDAO.findUnassigned();
         
-        List<Delivery> merged = new java.util.ArrayList<>(unassigned);
+        List<Delivery> merged = new ArrayList<>(unassigned);
         merged.addAll(assigned);
         
         // Sắp xếp theo created_at giảm dần (tin mới nhất lên đầu)
         merged.sort((d1, d2) -> {
-            java.time.LocalDateTime t1 = d1.getCreatedAt();
-            java.time.LocalDateTime t2 = d2.getCreatedAt();
+            LocalDateTime t1 = d1.getCreatedAt();
+            LocalDateTime t2 = d2.getCreatedAt();
             if (t1 == null && t2 == null) return 0;
             if (t1 == null) return 1;
             if (t2 == null) return -1;

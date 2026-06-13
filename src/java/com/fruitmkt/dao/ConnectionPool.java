@@ -1,11 +1,15 @@
-package com.fruitmkt.dao.base;
+package com.fruitmkt.dao;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.util.LoggerUtil;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 public class ConnectionPool {
+
+    private static final Logger log = Logger.getLogger(ConnectionPool.class.getName());
     private static DataSource dataSource;
 
     static {
@@ -28,9 +32,9 @@ public class ConnectionPool {
             dsClass.getMethod("setTestOnBorrow", boolean.class).invoke(ds, true);
             
             dataSource = (DataSource) ds;
-            System.out.println("[ConnectionPool] Initialized Tomcat JDBC Connection Pool successfully.");
+            LoggerUtil.info(log, "[ConnectionPool] Initialized Tomcat JDBC Connection Pool successfully.");
         } catch (Throwable e) {
-            System.err.println("[ConnectionPool] Could not load Tomcat JDBC Connection Pool: " + e.getMessage() + ". Trying fallback...");
+            LoggerUtil.warn(log, "[ConnectionPool] Could not load Tomcat JDBC Connection Pool, trying fallback: " + e.getMessage());
             
             // 2. Try org.apache.tomcat.dbcp.dbcp2.BasicDataSource (Tomcat DBCP)
             try {
@@ -49,9 +53,9 @@ public class ConnectionPool {
                 dsClass.getMethod("setMaxWaitMillis", long.class).invoke(ds, 10000L);
                 
                 dataSource = (DataSource) ds;
-                System.out.println("[ConnectionPool] Initialized Tomcat DBCP BasicDataSource successfully.");
+                LoggerUtil.info(log, "[ConnectionPool] Initialized Tomcat DBCP BasicDataSource successfully.");
             } catch (Throwable ex) {
-                System.err.println("[ConnectionPool] Could not load Tomcat DBCP: " + ex.getMessage() + ". Connection pooling disabled.");
+                LoggerUtil.warn(log, "[ConnectionPool] Could not load Tomcat DBCP, connection pooling disabled: " + ex.getMessage());
                 dataSource = null;
             }
         }

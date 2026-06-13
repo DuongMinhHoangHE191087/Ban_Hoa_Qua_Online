@@ -8,12 +8,16 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.PaymentService;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * AdminOrderServlet — Controller cho Admin quản lý và xác nhận đơn hàng.
@@ -26,6 +30,8 @@ import java.util.List;
  */
 @WebServlet("/admin/orders")
 public class AdminOrderServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminOrderServlet.class.getName());
 
     private final OrderDAO       orderDAO       = new OrderDAO();
     private final com.fruitmkt.service.OrderService orderService = new com.fruitmkt.service.OrderService();
@@ -46,7 +52,9 @@ public class AdminOrderServlet extends HttpServlet {
         String pageStr      = req.getParameter("page");
         int page = 1;
         try { if (pageStr != null) page = Integer.parseInt(pageStr); }
-        catch (NumberFormatException ignored) {}
+        catch (NumberFormatException e) {
+            LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
+        }
 
         try {
             int pageSize = AppConfig.PAGE_SIZE_ORDERS;
@@ -132,7 +140,7 @@ public class AdminOrderServlet extends HttpServlet {
         } catch (IllegalStateException | IllegalArgumentException e) {
             SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý đơn hàng #" + req.getParameter("orderId"), e);
             SessionUtil.setFlashMessage(req.getSession(), "Lỗi hệ thống: " + e.getMessage(), "error");
         }
 

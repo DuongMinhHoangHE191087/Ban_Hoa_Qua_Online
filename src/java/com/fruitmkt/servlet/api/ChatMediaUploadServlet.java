@@ -2,6 +2,8 @@ package com.fruitmkt.servlet.api;
 
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
+import com.fruitmkt.util.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -39,26 +41,23 @@ public class ChatMediaUploadServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("application/json;charset=UTF-8");
 
-        // 1. Xác thực đăng nhập
         User user = (User) req.getSession().getAttribute(AppConfig.SESSION_USER);
         if (user == null) {
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            resp.getWriter().write("{\"success\":false,\"message\":\"Chưa đăng nhập.\"}");
+            JsonUtil.writeJson(resp, ApiResponse.error("Chưa đăng nhập."));
             return;
         }
 
         try {
-            // 2. Lấy Part file
             Part filePart = req.getPart("file");
             if (filePart == null || filePart.getSize() == 0) {
-                resp.getWriter().write("{\"success\":false,\"message\":\"Không tìm thấy tệp tin tải lên.\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Không tìm thấy tệp tin tải lên."));
                 return;
             }
 
-            // 3. Kiểm tra loại tệp tin (chỉ cho phép ảnh và video)
             String contentType = filePart.getContentType();
             if (contentType == null) {
-                resp.getWriter().write("{\"success\":false,\"message\":\"Không xác định được loại tệp tin.\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Không xác định được loại tệp tin."));
                 return;
             }
 
@@ -68,11 +67,10 @@ public class ChatMediaUploadServlet extends HttpServlet {
             } else if (contentType.startsWith("video/")) {
                 mediaType = "VIDEO";
             } else {
-                resp.getWriter().write("{\"success\":false,\"message\":\"Định dạng không được hỗ trợ. Chỉ cho phép tải lên hình ảnh và video.\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Định dạng không được hỗ trợ. Chỉ cho phép tải lên hình ảnh và video."));
                 return;
             }
 
-            // 4. Tạo thư mục lưu trữ nếu chưa có
             String appPath = req.getServletContext().getRealPath("");
             String savePath = appPath + File.separator + UPLOAD_DIR;
             File fileSaveDir = new File(savePath);
@@ -80,41 +78,38 @@ public class ChatMediaUploadServlet extends HttpServlet {
                 fileSaveDir.mkdirs();
             }
 
-            // 5. Sinh tên file ngẫu nhiên để tránh trùng lặp
             String originalFileName = getFileName(filePart);
             String extension = "";
             int dotIdx = originalFileName.lastIndexOf('.');
             if (dotIdx > 0) {
                 extension = originalFileName.substring(dotIdx);
             }
-            
-            // Bảo mật: chỉ chấp nhận các đuôi file ảnh/video phổ biến
+
             String extLower = extension.toLowerCase();
             if (mediaType.equals("IMAGE") && !extLower.matches("\\.(jpg|jpeg|png|gif|webp)")) {
-                resp.getWriter().write("{\"success\":false,\"message\":\"Định dạng ảnh không hợp lệ (chỉ cho phép JPG, PNG, GIF, WEBP).\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Định dạng ảnh không hợp lệ (chỉ cho phép JPG, PNG, GIF, WEBP)."));
                 return;
             }
             if (mediaType.equals("VIDEO") && !extLower.matches("\\.(mp4|webm|ogg)")) {
-                resp.getWriter().write("{\"success\":false,\"message\":\"Định dạng video không hợp lệ (chỉ cho phép MP4, WEBM, OGG).\"}");
+                JsonUtil.writeJson(resp, ApiResponse.error("Định dạng video không hợp lệ (chỉ cho phép MP4, WEBM, OGG)."));
                 return;
             }
 
             String newFileName = UUID.randomUUID().toString() + extension;
             String filePhysicalPath = savePath + File.separator + newFileName;
 
-            // 6. Lưu file vật lý
             filePart.write(filePhysicalPath);
 
-            // 7. Trả về đường dẫn ảo cho client
             String relativeUrl = req.getContextPath() + "/" + UPLOAD_DIR.replace(File.separator, "/") + "/" + newFileName;
-            
+
             LOG.info("ChatMediaUploadServlet: User #" + user.getUserId() + " uploaded " + mediaType + " successfully: " + relativeUrl);
-            
-            resp.getWriter().write("{\"success\":true,\"url\":\"" + relativeUrl + "\",\"type\":\"" + mediaType + "\"}");
+
+            java.util.Map<String, Object> data = java.util.Map.of("url", relativeUrl, "type", mediaType);
+            JsonUtil.writeJson(resp, ApiResponse.ok(data));
 
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "ChatMediaUploadServlet: Lỗi xử lý tải lên media", e);
-            resp.getWriter().write("{\"success\":false,\"message\":\"Lỗi hệ thống khi tải tệp lên.\"}");
+            JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống khi tải tệp lên."));
         }
     }
 

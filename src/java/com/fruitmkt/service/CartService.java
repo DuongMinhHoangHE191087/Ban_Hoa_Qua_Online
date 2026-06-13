@@ -7,12 +7,17 @@ import com.fruitmkt.model.entity.Cart;
 import com.fruitmkt.model.entity.CartItem;
 import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.util.JsonUtil;
+import com.fruitmkt.util.LoggerUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * CartService — Tầng business logic cho nghiệp vụ tương ứng.
@@ -26,6 +31,8 @@ import java.util.Map;
  * @author fruitmkt-team
  */
 public class CartService {
+
+    private static final Logger log = LoggerUtil.getLogger(CartService.class);
 
     private final CartDAO cartDAO = new CartDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
@@ -53,19 +60,19 @@ public class CartService {
             BigDecimal weight = item.getWeightKg() != null ? item.getWeightKg() : new BigDecimal("1.000");
             
             // 1. Tính toán tiền tệ trên số nguyên Long (VND không lẻ thập phân)
-            long unitPrice = totalItemUnitPrice.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            long unitPrice = totalItemUnitPrice.setScale(0, RoundingMode.HALF_UP).longValue();
             long itemSubtotal = unitPrice * item.getQuantity();
             accumulativeSubtotal += itemSubtotal;
 
             // 2. Tính toán trọng lượng quy đổi ra Grams (Kg * 1000) để triệt tiêu hoàn toàn sai số dấu phẩy động ở CPU
-            long weightGrams = weight.multiply(new BigDecimal("1000")).setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+            long weightGrams = weight.multiply(new BigDecimal("1000")).setScale(0, RoundingMode.HALF_UP).longValue();
             long itemTotalGrams = weightGrams * item.getQuantity();
             accumulativeGrams += itemTotalGrams;
         }
 
         // 3. Dịch ngược lại sang BigDecimal để lưu trữ hiển thị
-        BigDecimal subtotal = new BigDecimal(accumulativeSubtotal).setScale(0, java.math.RoundingMode.HALF_UP);
-        BigDecimal totalWeight = new BigDecimal(accumulativeGrams).divide(new BigDecimal("1000"), 3, java.math.RoundingMode.HALF_UP);
+        BigDecimal subtotal = new BigDecimal(accumulativeSubtotal).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal totalWeight = new BigDecimal(accumulativeGrams).divide(new BigDecimal("1000"), 3, RoundingMode.HALF_UP);
 
         BigDecimal discountAmount = BigDecimal.ZERO; // Sẽ xử lý sau nếu có voucher
         BigDecimal deliveryFee = BigDecimal.ZERO;    // Tương tự phí ship
@@ -247,11 +254,11 @@ public class CartService {
                 try {
                     addToCart(customerId, variantId, qty);
                 } catch (IllegalArgumentException e) {
-                    System.err.println("[CartSync Warning] Không thể gộp variantId " + variantId + ": " + e.getMessage());
+                    LoggerUtil.warn(log, "[CartSync] Không thể gộp variantId %d: %s", variantId, e.getMessage());
                 }
             }
         } catch (Exception e) {
-            System.err.println("[CartSync Error] Lỗi giải mã dữ liệu giỏ hàng khách: " + e.getMessage());
+            LoggerUtil.warn(log, "[CartSync] Lỗi giải mã dữ liệu giỏ hàng khách", e);
         }
     }
 
@@ -294,7 +301,7 @@ public class CartService {
             
             cartDAO.replaceCartItems(cartId, itemsToReplace);
         } catch (Exception e) {
-            System.err.println("[UnloadSync Error] Lỗi ghi đè giỏ hàng: " + e.getMessage());
+            LoggerUtil.warn(log, "[UnloadSync] Lỗi ghi đè giỏ hàng", e);
         }
     }
 
@@ -303,6 +310,14 @@ public class CartService {
      * Trả về danh sách các thông báo lỗi nếu có sản phẩm hết hàng hoặc không đủ tồn kho.
      */
     public List<String> checkCartStockBeforeCheckout(int customerId) throws SQLException {
+        return checkCartStockBeforeCheckout(customerId, null);
+    }
+
+    /**
+     * Kiểm tra tồn kho trước khi Checkout (Thanh toán) cho danh sách variant được chọn.
+     * Trả về danh sách các thông báo lỗi nếu có sản phẩm hết hàng hoặc không đủ tồn kho.
+     */
+    public List<String> checkCartStockBeforeCheckout(int customerId, List<Integer> variantIds) throws SQLException {
         List<String> errors = new ArrayList<>();
         List<Cart> carts = cartDAO.findByCustomer(customerId);
         if (carts.isEmpty()) {
@@ -311,8 +326,30 @@ public class CartService {
 
         int cartId = carts.get(0).getCartId();
         List<CartItem> items = cartDAO.findItems(cartId);
+        if (items.isEmpty()) {
+            return errors;
+        }
 
+        Set<Integer> selectedIds = null;
+        if (variantIds != null) {
+            selectedIds = new HashSet<>();
+            for (Integer variantId : variantIds) {
+                if (variantId != null && variantId > 0) {
+                    selectedIds.add(variantId);
+                }
+            }
+            if (selectedIds.isEmpty()) {
+                errors.add("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+                return errors;
+            }
+        }
+
+        boolean matchedAnySelectedItem = selectedIds == null;
         for (CartItem item : items) {
+            if (selectedIds != null && !selectedIds.contains(item.getVariantId())) {
+                continue;
+            }
+            matchedAnySelectedItem = true;
             // Lấy trực tiếp stock từ DB để có giá trị mới nhất
             ProductVariant variant = productVariantDAO.findById(item.getVariantId());
             if (variant == null || !variant.getIsActive()) {
@@ -324,6 +361,9 @@ public class CartService {
                     errors.add("Sản phẩm '" + item.getProductName() + "' (" + item.getVariantLabel() + ") trong kho chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
                 }
             }
+        }
+        if (!matchedAnySelectedItem) {
+            errors.add("Không tìm thấy sản phẩm nào đã chọn trong giỏ hàng.");
         }
         return errors;
     }
@@ -341,7 +381,7 @@ public class CartService {
     /**
      * TODO: Triển khai áp dụng voucher (nếu cần)
      */
-    public java.math.BigDecimal applyVoucher(int cartId, String code) throws SQLException {
+    public BigDecimal applyVoucher(int cartId, String code) throws SQLException {
         throw new UnsupportedOperationException("Not implemented: applyVoucher(int cartId, String code)");
     }
 }

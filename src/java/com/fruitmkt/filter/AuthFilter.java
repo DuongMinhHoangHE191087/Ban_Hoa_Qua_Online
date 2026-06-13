@@ -4,9 +4,17 @@ import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.TokenUtil;
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
+import com.fruitmkt.util.LoggerUtil;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.logging.Logger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -22,6 +30,7 @@ import java.sql.SQLException;
  */
 public class AuthFilter implements Filter {
 
+    private static final Logger log = Logger.getLogger(AuthFilter.class.getName());
     private final UserDAO userDAO = new UserDAO();
 
     @Override
@@ -51,7 +60,7 @@ public class AuthFilter implements Filter {
                         return;
                     }
                 } catch (SQLException e) {
-                    req.getServletContext().log("Lỗi cơ sở dữ liệu khi khôi phục session qua Access Token: " + e.getMessage(), e);
+                    LoggerUtil.warn(log, "Lỗi cơ sở dữ liệu khi khôi phục session qua Access Token", e);
                 }
             }
         }
@@ -78,7 +87,7 @@ public class AuthFilter implements Filter {
                     TokenUtil.clearTokens(req, resp);
                 }
             } catch (SQLException e) {
-                req.getServletContext().log("Lỗi cơ sở dữ liệu khi khôi phục session qua Refresh Token: " + e.getMessage(), e);
+                LoggerUtil.warn(log, "Lỗi cơ sở dữ liệu khi khôi phục session qua Refresh Token", e);
             }
         }
 

@@ -6,16 +6,22 @@ import com.fruitmkt.dao.ProductImageDAO;
 import com.fruitmkt.model.entity.Product;
 import com.fruitmkt.model.entity.ProductImage;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.FileUploadUtil;
+import com.fruitmkt.util.JsonUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ProductStatusServlet — API Servlet phục vụ AJAX Toggle, Soft Delete, và Xóa ảnh nhanh
@@ -23,6 +29,8 @@ import java.util.List;
  */
 @WebServlet("/shop/product-status")
 public class ProductStatusServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ProductStatusServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
@@ -34,19 +42,19 @@ public class ProductStatusServlet extends HttpServlet {
         resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
 
-        PrintWriter out = resp.getWriter();
-
         // 1. Kiểm tra đăng nhập
         HttpSession session = req.getSession();
         User currentUser = SessionUtil.getCurrentUser(session);
         if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
-            out.print("{\"success\":false,\"message\":\"Unauthorized\"}");
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"));
             return;
         }
 
         String action = req.getParameter("action");
         if (action == null || action.trim().isEmpty()) {
-            out.print("{\"success\":false,\"message\":\"Hành động không hợp lệ\"}");
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
             return;
         }
 
@@ -56,101 +64,106 @@ public class ProductStatusServlet extends HttpServlet {
                 String status = req.getParameter("status");
 
                 if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
-                    out.print("{\"success\":false,\"message\":\"Trạng thái không hợp lệ\"}");
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Trạng thái không hợp lệ"));
                     return;
                 }
 
-                // Kiểm tra quyền sở hữu sản phẩm
                 List<Product> products = productDAO.findById(productId);
                 if (products == null || products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
-                    out.print("{\"success\":false,\"message\":\"Không có quyền chỉnh sửa sản phẩm này\"}");
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền chỉnh sửa sản phẩm này"));
                     return;
                 }
 
                 productDAO.updateStatus(productId, status);
-                out.print("{\"success\":true}");
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
 
             } else if ("delete".equals(action)) {
                 int productId = Integer.parseInt(req.getParameter("productId"));
 
-                // Kiểm tra quyền sở hữu sản phẩm
                 List<Product> products = productDAO.findById(productId);
                 if (products == null || products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
-                    out.print("{\"success\":false,\"message\":\"Không có quyền chỉnh sửa sản phẩm này\"}");
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền chỉnh sửa sản phẩm này"));
                     return;
                 }
 
                 productDAO.deleteProduct(productId);
-                out.print("{\"success\":true}");
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
 
             } else if ("delete-image".equals(action)) {
                 int imageId = Integer.parseInt(req.getParameter("imageId"));
 
                 ProductImage img = productImageDAO.findById(imageId);
                 if (img == null) {
-                    out.print("{\"success\":false,\"message\":\"Không tìm thấy ảnh\"}");
+                    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy ảnh"));
                     return;
                 }
 
-                // Kiểm tra quyền sở hữu sản phẩm của ảnh
                 List<Product> products = productDAO.findById(img.getProductId());
                 if (products == null || products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
-                    out.print("{\"success\":false,\"message\":\"Không có quyền xóa ảnh của sản phẩm này\"}");
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền xóa ảnh của sản phẩm này"));
                     return;
                 }
 
-                // Xóa vật lý tệp ảnh trên đĩa cứng — join an toàn bằng java.io.File
                 java.io.File imgFile = new java.io.File(getServletContext().getRealPath(""), img.getFilePath());
                 FileUploadUtil.delete(imgFile.getAbsolutePath());
 
-                // Xóa bản ghi trong DB
                 productImageDAO.delete(imageId);
-                out.print("{\"success\":true}");
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
 
             } else if ("set-primary".equals(action)) {
-                // Đặt ảnh được chỉ định làm ảnh chính, bỏ chọn các ảnh khác
                 int imageId = Integer.parseInt(req.getParameter("imageId"));
                 int productId = Integer.parseInt(req.getParameter("productId"));
 
                 List<Product> products = productDAO.findById(productId);
                 if (products == null || products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
-                    out.print("{\"success\":false,\"message\":\"Không có quyền chỉnh sửa ảnh này\"}");
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền chỉnh sửa ảnh này"));
                     return;
                 }
 
                 productImageDAO.setPrimary(imageId, productId);
-                out.print("{\"success\":true}");
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
 
             } else if ("reorder-images".equals(action)) {
-                // Cập nhật thứ tự hiển thị (drag-drop). Params: imageIds=id1,id2,id3,...
                 String imageIdsStr = req.getParameter("imageIds");
                 if (imageIdsStr == null || imageIdsStr.trim().isEmpty()) {
-                    out.print("{\"success\":false,\"message\":\"Thiếu danh sách imageIds\"}");
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Thiếu danh sách imageIds"));
                     return;
                 }
                 String[] idParts = imageIdsStr.split(",");
                 for (int i = 0; i < idParts.length; i++) {
                     try {
                         int imgId = Integer.parseInt(idParts[i].trim());
-                        // Verify ownership via product lookup would be expensive in loop;
-                        // trust that only valid ids reach here (UI controls access)
                         productImageDAO.updateDisplayOrder(imgId, i);
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException e) {
+                        LoggerUtil.warn(log, "ID ảnh không hợp lệ khi sắp xếp: " + idParts[i], e);
+                    }
                 }
-                out.print("{\"success\":true}");
+                resp.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
 
             } else {
-                out.print("{\"success\":false,\"message\":\"Hành động không xác định\"}");
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không xác định"));
             }
         } catch (NumberFormatException e) {
-            out.print("{\"success\":false,\"message\":\"ID sai định dạng số\"}");
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "ID sai định dạng số"));
         } catch (SQLException e) {
-            e.printStackTrace();
-            // Escape message to avoid JSON injection
-            String safeMsg = e.getMessage() == null ? "Lỗi cơ sở dữ liệu" : e.getMessage().replace("\\", "\\\\").replace("\"", "\\\"");
-            out.print("{\"success\":false,\"message\":\"Lỗi cơ sở dữ liệu: " + safeMsg + "\"}");
-        } finally {
-            out.close();
+            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi cập nhật trạng thái sản phẩm", e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                "Lỗi cơ sở dữ liệu: " + (e.getMessage() == null ? "Lỗi cơ sở dữ liệu" : e.getMessage())));
         }
     }
 }

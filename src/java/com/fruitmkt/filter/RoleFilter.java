@@ -1,11 +1,24 @@
 package com.fruitmkt.filter;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.dao.ShopProfileDAO;
+import com.fruitmkt.dao.UserDAO;
+import com.fruitmkt.model.entity.ShopProfile;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+import java.util.logging.Logger;
 
 /**
  * RoleFilter — Kiểm tra role sau khi AuthFilter xác nhận đã login.
@@ -21,6 +34,8 @@ import java.io.IOException;
  */
 public class RoleFilter implements Filter {
 
+    private static final Logger log = Logger.getLogger(RoleFilter.class.getName());
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -33,19 +48,19 @@ public class RoleFilter implements Filter {
         // Đồng bộ hóa trạng thái/vai trò của người dùng từ Database để tránh lệch session khi Admin duyệt shop
         if (user != null) {
             try {
-                User dbUser = new com.fruitmkt.dao.UserDAO().findUserById(user.getUserId());
+                User dbUser = new UserDAO().findUserById(user.getUserId());
                 if (dbUser != null) {
                     if (!"ACTIVE".equals(dbUser.getStatus())) {
                         session.invalidate();
                         user = null;
-                    } else if (!dbUser.getRole().equals(user.getRole()) 
-                            || !java.util.Objects.equals(dbUser.getPhone(), user.getPhone())) {
+                    } else if (!dbUser.getRole().equals(user.getRole())
+                            || !Objects.equals(dbUser.getPhone(), user.getPhone())) {
                         SessionUtil.setCurrentUser(session, dbUser);
                         user = dbUser;
                     }
                 }
             } catch (Exception e) {
-                req.getServletContext().log("Lỗi đồng bộ session trong RoleFilter: " + e.getMessage(), e);
+                LoggerUtil.warn(log, "Lỗi đồng bộ session trong RoleFilter", e);
             }
         }
 
@@ -68,8 +83,8 @@ public class RoleFilter implements Filter {
                     allowed = true;
                 } else {
                     try {
-                        com.fruitmkt.dao.ShopProfileDAO shopProfileDAO = new com.fruitmkt.dao.ShopProfileDAO();
-                        java.util.List<com.fruitmkt.model.entity.ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
+                        ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+                        List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
                         if (!profiles.isEmpty() && "APPROVED".equals(profiles.get(0).getApprovalStatus())) {
                             allowed = true;
                         } else {

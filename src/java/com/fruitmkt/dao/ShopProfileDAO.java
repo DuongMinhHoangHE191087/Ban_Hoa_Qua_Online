@@ -1,9 +1,17 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ShopProfile;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ShopProfileDAO — DAO cho entity ShopProfile.
@@ -18,6 +26,7 @@ import java.util.*;
  */
 public class ShopProfileDAO extends BaseDAO {
 
+    private static final Logger log = Logger.getLogger(ShopProfileDAO.class.getName());
     private static boolean schemaChecked = false;
 
     public ShopProfileDAO() {
@@ -32,17 +41,19 @@ public class ShopProfileDAO extends BaseDAO {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT TOP 0 business_email FROM shop_owner_profiles")) {
                 emailColExists = true;
-            } catch (SQLException e) {}
+            } catch (SQLException e) {
+                LoggerUtil.warn(log, "business_email column not yet present, will attempt to add", e);
+            }
             if (!emailColExists) {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL");
-                    System.out.println("[DB Migrator] Success: Added business_email column.");
+                    LoggerUtil.info(log, "[DB Migrator] Success: Added business_email column.");
                 }
                 try (Statement stmt = conn.createStatement()) {
                     stmt.executeUpdate("SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON shop_owner_profiles(business_email) WHERE business_email IS NOT NULL");
-                    System.out.println("[DB Migrator] Success: Created filtered unique index on business_email.");
+                    LoggerUtil.info(log, "[DB Migrator] Success: Created filtered unique index on business_email.");
                 } catch (SQLException ex) {
-                    System.err.println("[DB Migrator] Warning creating index: " + ex.getMessage());
+                    LoggerUtil.warn(log, "[DB Migrator] Warning creating index on business_email", ex);
                 }
             }
 
@@ -51,11 +62,13 @@ public class ShopProfileDAO extends BaseDAO {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT TOP 0 logo_url FROM shop_owner_profiles")) {
                 logoColExists = true;
-            } catch (SQLException e) {}
+            } catch (SQLException e) {
+                LoggerUtil.warn(log, "logo_url column not yet present, will attempt to add", e);
+            }
             if (!logoColExists) {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD logo_url NVARCHAR(500) NULL");
-                    System.out.println("[DB Migrator] Success: Added logo_url column.");
+                    LoggerUtil.info(log, "[DB Migrator] Success: Added logo_url column.");
                 }
             }
 
@@ -64,17 +77,19 @@ public class ShopProfileDAO extends BaseDAO {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT TOP 0 cover_url FROM shop_owner_profiles")) {
                 coverColExists = true;
-            } catch (SQLException e) {}
+            } catch (SQLException e) {
+                LoggerUtil.warn(log, "cover_url column not yet present, will attempt to add", e);
+            }
             if (!coverColExists) {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD cover_url NVARCHAR(500) NULL");
-                    System.out.println("[DB Migrator] Success: Added cover_url column.");
+                    LoggerUtil.info(log, "[DB Migrator] Success: Added cover_url column.");
                 }
             }
 
             schemaChecked = true;
         } catch (SQLException e) {
-            System.err.println("[DB Migrator] Error checking/adding shop_owner_profiles columns: " + e.getMessage());
+            LoggerUtil.error(log, "[DB Migrator] Error checking/adding shop_owner_profiles columns", e);
             schemaChecked = true;
         }
     }
