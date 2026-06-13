@@ -95,6 +95,10 @@ public class EmailService {
      * Gửi email HTML thuần — low-level, dùng khi cần tùy biến hoàn toàn.
      */
     public boolean sendHtml(String toEmail, String subject, String htmlBody) throws SQLException {
+        if (toEmail == null || toEmail.trim().isEmpty()) {
+            System.err.println("[EmailService] WARN: Skipping email sending because recipient email address is null or empty.");
+            return false;
+        }
         try {
             Session session = buildSession();
             MimeMessage message = buildMessage(session, toEmail, subject, htmlBody);

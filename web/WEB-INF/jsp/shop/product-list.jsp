@@ -1153,14 +1153,14 @@
         if (discountEnd && discountEnd.length > 16) discountEnd = discountEnd.substring(0, 16);
 
         row.innerHTML = `
-            <input type="hidden" name="variantId" value="${variantId}">
+            <input type="hidden" name="variantId" value="\${variantId}">
             
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end w-full">
                 <!-- Variant Name/Label -->
                 <div class="col-span-1 md:col-span-3">
                     <label class="block text-[10px] font-bold text-txt-2 mb-1">Tên phân loại / Đơn vị <span class="text-red-500">*</span></label>
                     <input type="text" name="variantLabel" required placeholder="Ví dụ: kg, Hộp 500g, Thùng 5kg" 
-                           value="${variantLabel}"
+                           value="\${variantLabel}"
                            class="form-control-custom py-1.5 text-xs">
                 </div>
                 
@@ -1169,7 +1169,7 @@
                     <label class="block text-[10px] font-bold text-txt-2 mb-1">Giá bán lẻ (VND) <span class="text-red-500">*</span></label>
                     <div class="relative rounded-xl">
                         <input type="number" name="variantPrice" required min="1000" step="1000" placeholder="50000" 
-                               value="${price}"
+                               value="\${price}"
                                class="form-control-custom py-1.5 text-xs pr-10">
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">VND</span>
                     </div>
@@ -1180,7 +1180,7 @@
                     <label class="block text-[10px] font-bold text-txt-2 mb-1">Cân nặng (Kg) <span class="text-red-500">*</span></label>
                     <div class="relative rounded-xl">
                         <input type="number" name="variantWeight" required min="0.001" step="0.001" placeholder="1.0" 
-                               value="${weightKg}"
+                               value="\${weightKg}"
                                class="form-control-custom py-1.5 text-xs pr-8">
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">Kg</span>
                     </div>
@@ -1189,9 +1189,9 @@
                 <!-- Stock Quantity -->
                 <div class="col-span-1 md:col-span-3">
                     <label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Tồn kho</label>
-                    <input type="hidden" name="variantStock" value="${stock}">
+                    <input type="hidden" name="variantStock" value="\${stock}">
                     <div class="form-control-custom py-1.5 text-xs bg-slate-100 text-txt-2 cursor-not-allowed">
-                        ${stock != '' ? stock : '0 (Cập nhật khi nhập hàng)'}
+                        \${stock !== '' ? stock : '0 (Cập nhật khi nhập hàng)'}
                     </div>
                 </div>
 
@@ -1213,19 +1213,19 @@
                     <div>
                         <label class="block text-[9px] font-bold text-txt-2 mb-1">Giá khuyến mãi (VND)</label>
                         <input type="number" name="variantDiscountPrice" min="0" step="1000" placeholder="Giá sau giảm" 
-                               value="${discountPrice}"
+                               value="\${discountPrice}"
                                class="form-control-custom py-1 text-xs">
                     </div>
                     <div>
                         <label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian bắt đầu</label>
                         <input type="datetime-local" name="variantDiscountStart" 
-                               value="${discountStart}"
+                               value="\${discountStart}"
                                class="form-control-custom py-1 text-xs">
                     </div>
                     <div>
                         <label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian kết thúc</label>
                         <input type="datetime-local" name="variantDiscountEnd" 
-                               value="${discountEnd}"
+                               value="\${discountEnd}"
                                class="form-control-custom py-1 text-xs">
                     </div>
                 </div>
@@ -1263,13 +1263,13 @@
         const priceAdd = data.priceAdd !== undefined ? data.priceAdd : '';
 
         row.innerHTML = `
-            <input type="hidden" name="packagingId" value="${packagingId}">
+            <input type="hidden" name="packagingId" value="\${packagingId}">
             
             <!-- Packaging Label -->
             <div class="flex-grow w-full">
                 <label class="block text-[10px] font-bold text-txt-2 mb-1">Tên loại đóng gói <span class="text-red-500">*</span></label>
                 <input type="text" name="packagingLabel" required placeholder="Ví dụ: Hộp gỗ cao cấp, Khay xốp bảo vệ" 
-                       value="${label}"
+                       value="\${label}"
                        class="form-control-custom py-1.5 text-xs">
             </div>
             
@@ -1278,7 +1278,7 @@
                 <label class="block text-[10px] font-bold text-txt-2 mb-1">Phụ phí cộng thêm (VND) <span class="text-red-500">*</span></label>
                 <div class="relative rounded-xl">
                     <input type="number" name="packagingPriceAdd" required min="0" step="1000" placeholder="10000" 
-                           value="${priceAdd}"
+                           value="\${priceAdd}"
                            class="form-control-custom py-1.5 text-xs pr-10">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">VND</span>
                 </div>

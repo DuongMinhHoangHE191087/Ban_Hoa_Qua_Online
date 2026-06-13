@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.logging.Logger;
+import com.fruitmkt.service.EmailService;
 
 /**
  * OrderService - Tang business logic cho nghiep vu don hang.
@@ -139,6 +140,21 @@ public class OrderService {
         }
         orderDAO.updateStatus(orderId, AppConfig.ORDER_DISPATCHED);
         deliveryService.assignShipper(orderId, 0, estimatedTime);
+
+        try {
+            UserDAO userDAO = new UserDAO();
+            User customer = userDAO.findUserById(order.getCustomerId());
+            if (customer != null) {
+                String customerMsg = "Đơn hàng #" + orderId + " của bạn đang được giao.";
+                notificationService.send(customer.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đơn hàng đang giao", customerMsg, "/orders/detail?orderId=" + orderId);
+                
+                EmailService emailService = new EmailService();
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Đơn hàng đang giao (DISPATCHED)", orderDetailUrl);
+            }
+        } catch (Exception ex) {
+            System.err.println("[OrderService] WARN: Không gửi được thông báo dispatch cho orderId=" + orderId + ": " + ex.getMessage());
+        }
     }
 
     public void customerConfirmDelivery(int orderId, int customerId) throws SQLException {
@@ -152,6 +168,21 @@ public class OrderService {
         }
         orderDAO.updateStatus(orderId, AppConfig.ORDER_DELIVERED);
         orderDAO.updateReceivedStatus(orderId, "RECEIVED");
+
+        try {
+            UserDAO userDAO = new UserDAO();
+            User customer = userDAO.findUserById(customerId);
+            if (customer != null) {
+                String customerMsg = "Đơn hàng #" + orderId + " đã giao thành công và được bạn xác nhận.";
+                notificationService.send(customerId, AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+                
+                EmailService emailService = new EmailService();
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Giao hàng thành công (DELIVERED)", orderDetailUrl);
+            }
+        } catch (Exception ex) {
+            System.err.println("[OrderService] WARN: Không gửi được thông báo delivery confirm cho orderId=" + orderId + ": " + ex.getMessage());
+        }
     }
 
     public void reportNotReceived(int orderId, int customerId) throws SQLException {
