@@ -70,7 +70,7 @@
 <div class="max-w-4xl mx-auto px-4 print:px-0">
     <!-- Nút hành động (ẩn khi in) -->
     <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 print-hidden">
-        <a href="${pageContext.request.contextPath}/orders?action=detail&orderId=${order.orderId}" 
+        <a href="${pageContext.request.contextPath}/profile/order-detail?orderId=${order.orderId}" 
            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-primary transition-all">
             <span class="material-symbols-outlined text-lg">arrow_back</span>
             Quay lại chi tiết đơn hàng

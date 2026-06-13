@@ -261,33 +261,100 @@
         <div class="lg:col-span-8 flex flex-col gap-6">
             <!-- Items Card -->
             <div class="premium-glass-card rounded-[1.5rem] overflow-hidden">
-                <div class="px-6 py-4 border-b border-outline-variant/30">
+                <div class="px-6 py-4 border-b border-outline-variant/30 flex items-center justify-between">
                     <h3 class="font-headline-md text-lg text-inverse-surface font-bold">Danh sách sản phẩm đã mua</h3>
+                    <c:if test="${order.orderType != 'PARENT'}">
+                        <span class="text-xs font-bold text-primary bg-primary-container px-3 py-1 rounded-full flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">store</span>
+                            ${shopName}
+                        </span>
+                    </c:if>
                 </div>
-                <div class="divide-y divide-outline-variant/20">
-                    <c:forEach var="item" items="${orderItems}">
-                        <div class="p-6 flex items-center justify-between gap-4">
-                            <div>
-                                <h4 class="font-semibold text-inverse-surface text-base mb-1">${item.productNameSnapshot}</h4>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <span class="text-on-surface-variant text-xs font-medium bg-surface-container-high px-2.5 py-1 rounded-md">Phân loại: ${item.variantLabelSnapshot}</span>
-                                    <c:if test="${not empty item.packagingLabelSnapshot}">
-                                        <span class="text-primary text-xs font-medium bg-secondary-container px-2.5 py-1 rounded-md">Đóng gói: ${item.packagingLabelSnapshot} (+<ft:currency value="${item.packagingPriceSnapshot}"/>)</span>
-                                    </c:if>
+                
+                <c:choose>
+                    <c:when test="${order.orderType == 'PARENT'}">
+                        <!-- Hiển thị phân chia theo Shop (Sub-orders) -->
+                        <div class="divide-y divide-outline-variant/20">
+                            <c:forEach var="child" items="${childOrders}">
+                                <div class="p-6">
+                                    <!-- Shop sub-order header -->
+                                    <div class="flex items-center justify-between gap-4 cursor-pointer select-none pb-2" data-order-id="${child.orderId}" onclick="toggleSubOrder(this.dataset.orderId)">
+                                        <div class="flex items-center gap-3">
+                                            <span class="material-symbols-outlined text-txt-2 transform transition-transform duration-300" id="arrow-${child.orderId}">expand_more</span>
+                                            <div>
+                                                <h4 class="font-bold text-inverse-surface text-base flex items-center gap-2">
+                                                    <span>${shopNamesMap[child.orderId]}</span>
+                                                    <span class="text-xs font-normal text-on-surface-variant">(Đơn con #${child.orderId})</span>
+                                                </h4>
+                                                <div class="text-xs text-on-surface-variant mt-0.5">
+                                                    Tổng tiền: <span class="font-bold text-[#ba1a1a]"><ft:currency value="${child.finalAmount}"/></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#bcfdc9] text-on-secondary-container">
+                                                ${child.status}
+                                            </span>
+                                            <a href="${pageContext.request.contextPath}/orders?action=detail&orderId=${child.orderId}" class="text-xs font-bold text-primary hover:underline flex items-center gap-0.5 ml-2" onclick="event.stopPropagation();">
+                                                Chi tiết <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Collapsible items list -->
+                                    <div id="suborder-items-${child.orderId}" class="mt-4 pl-8 border-l-2 border-primary/20 space-y-4 overflow-hidden transition-all duration-300">
+                                        <c:forEach var="item" items="${childOrderItemsMap[child.orderId]}">
+                                            <div class="flex items-center justify-between gap-4 py-2 border-b border-dashed border-outline-variant/20 last:border-b-0">
+                                                <div>
+                                                    <h5 class="font-semibold text-inverse-surface text-sm mb-1">${item.productNameSnapshot}</h5>
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <span class="text-on-surface-variant text-[10px] bg-surface-container-high px-2 py-0.5 rounded">Phân loại: ${item.variantLabelSnapshot}</span>
+                                                        <c:if test="${not empty item.packagingLabelSnapshot}">
+                                                            <span class="text-primary text-[10px] bg-secondary-container px-2 py-0.5 rounded">Đóng gói: ${item.packagingLabelSnapshot} (+<ft:currency value="${item.packagingPriceSnapshot}"/>)</span>
+                                                        </c:if>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="text-on-surface-variant text-[11px] block">
+                                                        Đơn giá: <ft:currency value="${item.unitPrice}"/>
+                                                    </span>
+                                                    <span class="text-inverse-surface font-bold text-sm"><ft:currency value="${item.subtotal}"/> <span class="text-on-surface-variant text-xs font-normal">x ${item.quantity}</span></span>
+                                                </div>
+                                            </div>
+                                        </c:forEach>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="text-end">
-                                <span class="text-on-surface-variant text-xs block mb-1">
-                                    Đơn giá: <ft:currency value="${item.unitPrice}"/>
-                                    <c:if test="${item.packagingPriceSnapshot > 0}">
-                                        + <ft:currency value="${item.packagingPriceSnapshot}"/> (Bao bì)
-                                    </c:if>
-                                </span>
-                                <span class="text-inverse-surface font-bold"><ft:currency value="${item.subtotal}"/> <span class="text-on-surface-variant text-xs font-normal">x ${item.quantity}</span></span>
-                            </div>
+                            </c:forEach>
                         </div>
-                    </c:forEach>
-                </div>
+                    </c:when>
+                    <c:otherwise>
+                        <!-- Hiển thị đơn lẻ như cũ -->
+                        <div class="divide-y divide-outline-variant/20">
+                            <c:forEach var="item" items="${orderItems}">
+                                <div class="p-6 flex items-center justify-between gap-4">
+                                    <div>
+                                        <h4 class="font-semibold text-inverse-surface text-base mb-1">${item.productNameSnapshot}</h4>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="text-on-surface-variant text-xs font-medium bg-surface-container-high px-2.5 py-1 rounded-md">Phân loại: ${item.variantLabelSnapshot}</span>
+                                            <c:if test="${not empty item.packagingLabelSnapshot}">
+                                                <span class="text-primary text-xs font-medium bg-secondary-container px-2.5 py-1 rounded-md">Đóng gói: ${item.packagingLabelSnapshot} (+<ft:currency value="${item.packagingPriceSnapshot}"/>)</span>
+                                            </c:if>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="text-on-surface-variant text-xs block mb-1">
+                                            Đơn giá: <ft:currency value="${item.unitPrice}"/>
+                                            <c:if test="${item.packagingPriceSnapshot > 0}">
+                                                + <ft:currency value="${item.packagingPriceSnapshot}"/> (Bao bì)
+                                            </c:if>
+                                        </span>
+                                        <span class="text-inverse-surface font-bold"><ft:currency value="${item.subtotal}"/> <span class="text-on-surface-variant text-xs font-normal">x ${item.quantity}</span></span>
+                                    </div>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
             </div>
 
             <!-- Pricing summary card -->
@@ -573,5 +640,22 @@
 
     </div>
 </main>
+
+<script>
+    function toggleSubOrder(childId) {
+        const list = document.getElementById('suborder-items-' + childId);
+        const arrow = document.getElementById('arrow-' + childId);
+        if (!list) return;
+        const isHidden = list.style.display === 'none' || list.style.display === '';
+        list.style.display = isHidden ? 'block' : 'none';
+        arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+    }
+    // Initialise all sub-order panels collapsed
+    document.querySelectorAll('[data-order-id]').forEach(function(el) {
+        const id = el.dataset.orderId;
+        const list = document.getElementById('suborder-items-' + id);
+        if (list) list.style.display = 'none';
+    });
+</script>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />

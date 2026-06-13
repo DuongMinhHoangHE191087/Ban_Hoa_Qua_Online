@@ -193,7 +193,7 @@
     <div id="ai-chat-bubble" onclick="toggleAiChat()" 
          class="fixed bottom-6 right-6 z-[999] w-14 h-14 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-full flex items-center justify-center cursor-pointer shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group"
          title="Hỏi Trợ lý AI Tìm sản phẩm">
-        <span class="material-symbols-outlined text-[28px] animate-pulse">psychology</span>
+        <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit Logo" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/25 animate-pulse">
         <span class="absolute -top-1 -right-1 flex h-4 w-4">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[9px] font-extrabold text-white items-center justify-center">AI</span>
@@ -206,8 +206,8 @@
         <%-- Header --%>
         <div class="bg-gradient-to-r from-[#14532D] to-[#0f3d24] text-white p-4 flex items-center justify-between shadow-md">
             <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shadow-inner">
-                    <span class="material-symbols-outlined text-[22px] text-emerald-300">psychology</span>
+                <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shadow-inner overflow-hidden">
+                    <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit Logo" class="w-6 h-6 rounded-md object-cover">
                 </div>
                 <div>
                     <h4 class="font-bold text-sm leading-tight">Trợ lý AI MetaFruit 🌿</h4>
@@ -324,10 +324,12 @@
         function renderWelcomeMessage() {
             const log = document.getElementById('ai-message-log');
             if (log.querySelector('[data-welcome]')) return;
+            const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+            const logoUrl = contextPath + '/assets/images/logo_light.png';
             log.insertAdjacentHTML('afterbegin', `
                 <div class="flex items-start gap-2 max-w-[85%]" data-welcome="1">
-                    <div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-primary shrink-0 shadow-sm">
-                        <span class="material-symbols-outlined text-[16px]">robot_2</span>
+                    <div class="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-emerald-100/30">
+                        <img src="${logoUrl}" alt="MetaFruit Logo" class="w-full h-full object-cover">
                     </div>
                     <div class="bg-white border border-emerald-100/50 rounded-2xl rounded-tl-none p-3 text-xs text-on-surface shadow-sm leading-relaxed">
                         Xin chào! Tôi là Trợ lý AI của <strong>MetaFruit</strong>. 🍊<br><br>
@@ -375,6 +377,13 @@
                 .replace(/\n/g, "<br>");
         }
 
+        function unwrapApiEnvelope(data) {
+            if (data && typeof data === 'object' && data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+                return data.data;
+            }
+            return data && typeof data === 'object' ? data : {};
+        }
+
         function escapeHtml(text) {
             return String(text || '')
                 .replace(/&/g, '&amp;')
@@ -395,9 +404,11 @@
             // Append loading indicator
             const log = document.getElementById('ai-message-log');
             const loadingId = 'ai-loading-' + Date.now();
+            const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+            const logoUrl = contextPath + '/assets/images/logo_light.png';
             const loadingHtml = '<div class="flex items-start gap-2 max-w-[85%] animate-pulse" id="' + loadingId + '">' +
-                '<div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-primary shrink-0 shadow-sm">' +
-                    '<span class="material-symbols-outlined text-[16px]">robot_2</span>' +
+                '<div class="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-emerald-100/30">' +
+                    '<img src="' + logoUrl + '" alt="MetaFruit Logo" class="w-full h-full object-cover">' +
                 '</div>' +
                 '<div class="bg-white border border-emerald-100/50 rounded-2xl rounded-tl-none p-3 text-xs text-on-surface-variant shadow-sm italic flex items-center gap-1.5">' +
                     '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> AI đang phân tích kho hàng...' +
@@ -407,8 +418,9 @@
             log.scrollTop = log.scrollHeight;
 
             try {
-                const contextPath = window.contextPath || '${pageContext.request.contextPath}';
-                const response = await fetch(`${contextPath}/api/ai/search`, {
+                const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                const apiUrl = contextPath + '/api/ai/search';
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -434,9 +446,15 @@
                 if (loadingEl) loadingEl.remove();
 
                 if (response.ok && data.success) {
-                    appendMessage('ai', data.reply, data.products, data.suggestedProductIds);
+                    const payload = unwrapApiEnvelope(data);
+                    const reply = payload.reply || data.reply || payload.message || data.message || 'Mình chưa nhận được câu trả lời hợp lệ từ AI. Vui lòng thử lại.';
+                    const products = Array.isArray(payload.products) ? payload.products : (Array.isArray(data.products) ? data.products : []);
+                    const suggestedProductIds = Array.isArray(payload.suggestedProductIds)
+                        ? payload.suggestedProductIds
+                        : (Array.isArray(data.suggestedProductIds) ? data.suggestedProductIds : []);
+                    appendMessage('ai', reply, products, suggestedProductIds);
                 } else {
-                    appendMessage('ai', data.message || ('Lỗi khi kết nối với dịch vụ AI: HTTP ' + response.status));
+                    appendMessage('ai', data.error || data.message || ('Lỗi khi kết nối với dịch vụ AI: HTTP ' + response.status));
                 }
             } catch (error) {
                 console.error('Lỗi khi gọi AI:', error);
@@ -470,10 +488,11 @@
                         let imgUrl = p.image || 'assets/img/placeholder.png';
                         if (imgUrl && !imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
                             if (!imgUrl.startsWith('/')) imgUrl = '/' + imgUrl;
-                            imgUrl = '${pageContext.request.contextPath}' + imgUrl;
+                            const ctx = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                            imgUrl = ctx + imgUrl;
                         }
 
-                        const contextPath = window.contextPath || '${pageContext.request.contextPath}';
+                        const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
                         const detailUrl = contextPath + '/products/detail?id=' + encodeURIComponent(p.productId);
                         const priceFormatted = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price);
                         const safeName = escapeHtml(p.name);
@@ -513,9 +532,9 @@
                         if (typeof applyClientFilters === 'function') {
                             applyClientFilters();
                         } else {
-                            const contextPath = window.contextPath || '${pageContext.request.contextPath}';
+                            const ctxPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
                             productsHtml += '<div class="mt-3 text-center">' +
-                                '<a href="' + contextPath + '/products?fromAi=true&suggestedIds=' + encodeURIComponent(suggestedIds.join(',')) + '" class="inline-flex items-center gap-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-[10px] px-3.5 py-2 rounded-full transition-all shadow-sm">' +
+                                '<a href="' + ctxPath + '/products?fromAi=true&suggestedIds=' + encodeURIComponent(suggestedIds.join(',')) + '" class="inline-flex items-center gap-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-[10px] px-3.5 py-2 rounded-full transition-all shadow-sm">' +
                                     '<span class="material-symbols-outlined text-[14px]">open_in_new</span> Xem danh sách trên trang Sản phẩm' +
                                 '</a>' +
                             '</div>';
@@ -523,9 +542,11 @@
                     }
                 }
 
+                const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                const logoUrl = contextPath + '/assets/images/logo_light.png';
                 contentHtml = '<div class="flex items-start gap-2 max-w-[90%]">' +
-                    '<div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-primary shrink-0 shadow-sm">' +
-                        '<span class="material-symbols-outlined text-[16px]">robot_2</span>' +
+                    '<div class="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-emerald-100/30">' +
+                        '<img src="' + logoUrl + '" alt="MetaFruit Logo" class="w-full h-full object-cover">' +
                     '</div>' +
                     '<div class="bg-white border border-emerald-100/50 rounded-2xl rounded-tl-none p-3 text-xs text-on-surface shadow-sm leading-relaxed w-full">' +
                         '<div>' + formatMarkdown(text) + '</div>' +
@@ -555,7 +576,8 @@
                 } else if (typeof quickAddProduct === 'function') {
                     quickAddProduct(null, productId);
                 } else {
-                    window.location.href = '${pageContext.request.contextPath}/products/detail?id=' + productId;
+                    const ctx = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                    window.location.href = ctx + '/products/detail?id=' + productId;
                 }
             }
         }
