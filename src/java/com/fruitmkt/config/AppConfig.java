@@ -122,6 +122,7 @@ public final class AppConfig {
         // Order Status — khớp CHECK constraint trong bảng orders
         // ------------------------------------------------------------------
         public static final String ORDER_PENDING_PAYMENT = "PENDING_PAYMENT";
+        public static final String ORDER_APPROVED = "APPROVED";
         public static final String ORDER_CONFIRMED = "CONFIRMED";
         public static final String ORDER_PREPARING = "PREPARING";
         public static final String ORDER_DISPATCHED = "DISPATCHED";
@@ -216,9 +217,9 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         // SePay / VietQR (thêm domain deploy ở đây khi lên production)
         // ------------------------------------------------------------------
-        public static final String SEPAY_BANK_ID       = System.getenv("SEPAY_BANK_ID") != null ? System.getenv("SEPAY_BANK_ID") : "MB";
-        public static final String SEPAY_ACCOUNT_NO    = System.getenv("SEPAY_ACCOUNT_NO") != null ? System.getenv("SEPAY_ACCOUNT_NO") : "0394497949";
-        public static final String SEPAY_ACCOUNT_NAME  = System.getenv("SEPAY_ACCOUNT_NAME") != null ? System.getenv("SEPAY_ACCOUNT_NAME") : "Duong Minh Hoang";
+        public static final String SEPAY_BANK_ID       = System.getenv("SEPAY_BANK_ID") != null ? System.getenv("SEPAY_BANK_ID") : "MBBank";
+        public static final String SEPAY_ACCOUNT_NO    = System.getenv("SEPAY_ACCOUNT_NO") != null ? System.getenv("SEPAY_ACCOUNT_NO") : "SBSEPAY3NHWA061W5V2";
+        public static final String SEPAY_ACCOUNT_NAME  = System.getenv("SEPAY_ACCOUNT_NAME") != null ? System.getenv("SEPAY_ACCOUNT_NAME") : "CONG TY TNHH METAFRUIT";
         public static final String PAYMENT_REF_PREFIX  = "MF";
         /** Thời hạn hiệu lực của mã QR (phút). */
         public static final int    QR_EXPIRE_MINUTES   = 15;

@@ -51,7 +51,7 @@ public class PaymentService {
         if (orders.isEmpty()) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
         Order order = orders.get(0);
 
-        String reference = "MF" + orderId;
+        String reference = buildSepayReference(orderId);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
 
         int txId = paymentDAO.initTransaction(
@@ -223,16 +223,25 @@ public class PaymentService {
         }
 
         // Validate số tiền
-        BigDecimal received = amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO;
-        if (received.compareTo(tx.getAmount()) < 0) {
+        BigDecimal received;
+        try {
+            received = amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO;
+        } catch (NumberFormatException nfe) {
+            LoggerUtil.warn(log, "[Webhook] Số tiền không hợp lệ: %s", amountStr);
+            paymentDAO.insertDedup(sepayTxId, code, "invalid_amount");
+            return;
+        }
+
+        BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
+        if (received.compareTo(expected) < 0) {
             paymentDAO.updateStatus(tx.getTransactionId(), "failed",
                                     sepayTxId, jsonPayload);
             paymentDAO.updateStatusFailed(tx.getTransactionId(),
                                           "AMOUNT_MISMATCH",
-                                          "Nhận " + received + " < yêu cầu " + tx.getAmount());
+                                          "Nhận " + received + " < yêu cầu " + expected);
             paymentDAO.insertDedup(sepayTxId, code, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
-                tx.getAmount(), received, tx.getOrderId());
+                expected, received, tx.getOrderId());
             return;
         }
 
@@ -262,14 +271,23 @@ public class PaymentService {
         if (json.charAt(start) == '"') {
             // String value
             int end = json.indexOf('"', start + 1);
-            return end > start ? json.substring(start + 1, end) : null;
+            if (end > start) {
+                String val = json.substring(start + 1, end).trim();
+                return val.isEmpty() ? null : val;
+            }
+            return null;
         } else {
             // Number / boolean / null
             int end = start;
             while (end < json.length() && ",}]\n\r ".indexOf(json.charAt(end)) < 0) end++;
             String val = json.substring(start, end).trim();
-            return "null".equals(val) ? null : val;
+            return val.isEmpty() || "null".equalsIgnoreCase(val) ? null : val;
         }
+    }
+
+    /** Tạo reference SePay theo format MF + mã đơn hàng, padded tối thiểu 3 chữ số. */
+    public static String buildSepayReference(int orderId) {
+        return String.format("%s%03d", AppConfig.PAYMENT_REF_PREFIX, orderId);
     }
 
     /** Mở kết nối dùng cho renewQr (package-private để test). */

@@ -6,17 +6,22 @@ import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.SystemConfigDAO;
 import com.fruitmkt.model.entity.Category;
 import com.fruitmkt.model.entity.Product;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.*;
-
+import com.fruitmkt.model.response.ApiResponse;
+import com.fruitmkt.util.JsonUtil;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
- * AiSearchTest — Bộ kiểm thử JUnit 4 cho chức năng AI Search & Gợi ý sản phẩm.
+ * AiSearchTest - JUnit coverage for AI search data and response contracts.
  */
 public class AiSearchTest {
 
@@ -36,20 +41,18 @@ public class AiSearchTest {
         String dbKey = systemConfigDAO.getValue(AppConfig.CONFIG_GEMINI_API_KEY);
         String envKey = System.getenv("GEMINI_API_KEY");
         System.out.println("=== DIAGNOSING GEMINI API KEY ===");
-        System.out
-                .println(
-                        "Key from Database (system_config): ["
-                                + (dbKey == null ? "NULL"
-                                        : (dbKey.isEmpty() ? "EMPTY"
-                                                : (dbKey.length() > 4 ? dbKey.substring(0, 4) + "..." : "SHORT")))
-                                + "]");
-        System.out
-                .println(
-                        "Key from Environment Variable: ["
-                                + (envKey == null ? "NULL"
-                                        : (envKey.isEmpty() ? "EMPTY"
-                                                : (envKey.length() > 4 ? envKey.substring(0, 4) + "..." : "SHORT")))
-                                + "]");
+        System.out.println(
+                "Key from Database (system_config): ["
+                        + (dbKey == null ? "NULL"
+                        : (dbKey.isEmpty() ? "EMPTY"
+                        : (dbKey.length() > 4 ? dbKey.substring(0, 4) + "..." : "SHORT")))
+                        + "]");
+        System.out.println(
+                "Key from Environment Variable: ["
+                        + (envKey == null ? "NULL"
+                        : (envKey.isEmpty() ? "EMPTY"
+                        : (envKey.length() > 4 ? envKey.substring(0, 4) + "..." : "SHORT")))
+                        + "]");
         System.out.println("=================================");
 
         String apiKey = dbKey;
@@ -57,58 +60,74 @@ public class AiSearchTest {
             apiKey = envKey;
         }
 
-        // Test không lỗi crash khi đọc key
+        // The getter path should not crash even when the key is missing.
         assertNotNull(
-                "Hệ thống phải có cơ chế lấy API Key (có thể null/trống nếu chưa cấu hình nhưng hàm đọc không được lỗi)",
+                "He thong phai co co che lay API Key (co the null/trong neu chua cau hinh nhung ham doc khong duoc loi)",
                 systemConfigDAO);
     }
 
     @Test
     public void testProductContextRetrieval() throws SQLException {
-        // Kiểm tra xem DAO có thể truy xuất danh sách sản phẩm làm context cho AI không
+        // Verify the DAO can load active products for AI context.
         List<Product> aiProducts = productDAO.findAllActiveForAI();
-        assertNotNull("Danh sách sản phẩm làm Context cho AI không được null", aiProducts);
+        assertNotNull("Danh sach san pham lam Context cho AI khong duoc null", aiProducts);
 
-        // Nếu có sản phẩm trong DB, kiểm tra xem các thông tin cơ bản có được nạp đầy
-        // đủ không
         if (!aiProducts.isEmpty()) {
             Product p = aiProducts.get(0);
-            assertTrue("ID sản phẩm phải lớn hơn 0", p.getProductId() > 0);
-            assertNotNull("Tên sản phẩm không được null", p.getName());
-            assertNotNull("Mô tả sản phẩm không được null", p.getDescription());
+            assertTrue("ID san pham phai lon hon 0", p.getProductId() > 0);
+            assertNotNull("Ten san pham khong duoc null", p.getName());
+            assertNotNull("Mo ta san pham khong duoc null", p.getDescription());
         }
     }
 
     @Test
     public void testBriefProductsByIds() throws SQLException {
-        // Lấy danh sách sản phẩm active
         List<Product> aiProducts = productDAO.findAllActiveForAI();
         if (!aiProducts.isEmpty()) {
             List<Integer> ids = new ArrayList<>();
-            // Lấy tối đa 2 ID để test
             ids.add(aiProducts.get(0).getProductId());
             if (aiProducts.size() > 1) {
                 ids.add(aiProducts.get(1).getProductId());
             }
 
-            // Gọi DAO lấy thông tin ngắn gọn
             List<Map<String, Object>> briefProducts = productDAO.findBriefProductsByIds(ids);
-            assertNotNull("Danh sách chi tiết gợi ý không được null", briefProducts);
-            assertFalse("Danh sách chi tiết gợi ý không được rỗng khi truyền ID hợp lệ", briefProducts.isEmpty());
+            assertNotNull("Danh sach chi tiet goi y khong duoc null", briefProducts);
+            assertFalse("Danh sach chi tiet goi y khong duoc rong khi truyen ID hop le", briefProducts.isEmpty());
 
             Map<String, Object> map = briefProducts.get(0);
-            assertTrue("Phải chứa productId", map.containsKey("productId"));
-            assertTrue("Phải chứa name", map.containsKey("name"));
-            assertTrue("Phải chứa price", map.containsKey("price"));
-            assertTrue("Phải chứa unit", map.containsKey("unit"));
-            assertTrue("Phải chứa image", map.containsKey("image"));
+            assertTrue("Phai chua productId", map.containsKey("productId"));
+            assertTrue("Phai chua name", map.containsKey("name"));
+            assertTrue("Phai chua price", map.containsKey("price"));
+            assertTrue("Phai chua unit", map.containsKey("unit"));
+            assertTrue("Phai chua image", map.containsKey("image"));
         }
     }
 
     @Test
+    public void testApiResponseFailUsesErrorField() throws Exception {
+        String json = JsonUtil.toJson(ApiResponse.fail(400, "Nội dung tìm kiếm không hợp lệ."));
+        assertTrue("ApiResponse that bai phai co success=false", json.contains("\"success\":false"));
+        assertTrue("ApiResponse that bai phai dung field error", json.contains("\"error\":\"Nội dung tìm kiếm không hợp lệ.\""));
+        assertFalse("ApiResponse that bai khong duoc dung field message", json.contains("\"message\""));
+    }
+
+    @Test
+    public void testApiResponseOkWrapsAiPayloadInDataEnvelope() throws Exception {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("reply", "Cam sành ngọt thanh");
+        payload.put("suggestedProductIds", List.of(1, 2));
+        payload.put("products", List.of(Map.of("productId", 1)));
+
+        String json = JsonUtil.toJson(ApiResponse.ok(payload));
+        assertTrue("ApiResponse thanh cong phai co success=true", json.contains("\"success\":true"));
+        assertTrue("ApiResponse thanh cong phai boc payload trong data", json.contains("\"data\":"));
+        assertTrue("Payload reply phai con nguyen trong data", json.contains("\"reply\":\"Cam sành ngọt thanh\""));
+        assertTrue("Payload suggestedProductIds phai con nguyen trong data", json.contains("\"suggestedProductIds\":[1,2]"));
+    }
+
+    @Test
     public void testCategoryRetrieval() throws SQLException {
-        // Kiểm tra xem danh mục hoạt động có được tải thành công
         List<Category> activeCategories = categoryDAO.findAllActive();
-        assertNotNull("Danh sách danh mục không được null", activeCategories);
+        assertNotNull("Danh sach danh muc khong duoc null", activeCategories);
     }
 }

@@ -68,9 +68,10 @@ const CartPage = {
                 // Xóa giỏ hàng guest vì đã gộp thành công
                 GuestCart.clear();
                 // Lưu giỏ hàng user đã gộp vào Local Storage
-                if (data.cartSummary && data.cartSummary.items) {
-                    this.saveUserCartToLocal(data.cartSummary.items);
-                    this.renderCart(data.cartSummary);
+                const payload = data.data;
+                if (payload && payload.cartSummary && payload.cartSummary.items) {
+                    this.saveUserCartToLocal(payload.cartSummary.items);
+                    this.renderCart(payload.cartSummary);
                 }
             }
         } catch (err) {
@@ -235,11 +236,12 @@ const CartPage = {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
             const data = await this.safeParseJSON(response);
-            if (data.success && data.cartSummary) {
+            const payload = data.success ? data.data : null;
+            if (payload && payload.cartSummary) {
                 // Lưu bản chuẩn vào Local Storage
-                this.saveUserCartToLocal(data.cartSummary.items);
+                this.saveUserCartToLocal(payload.cartSummary.items);
                 // Render lại UI với dữ liệu chuẩn xác nhất từ DB (nếu có biến động giá/tồn kho)
-                this.renderCart(data.cartSummary);
+                this.renderCart(payload.cartSummary);
             }
         } catch (err) {
             console.warn('[CartPage] Không thể kết nối server để đồng bộ giỏ hàng:', err);
@@ -617,8 +619,11 @@ const CartPage = {
             try {
                 const response = await fetch(`${this.contextPath}/products/detail?id=${productId}&format=json`);
                 const data = await this.safeParseJSON(response);
-                if (data.success && data.variants) {
-                    this.productVariantsCache[productId] = data.variants;
+                if (data.success) {
+                    const payload = data.data;
+                    if (payload && payload.variants) {
+                        this.productVariantsCache[productId] = payload.variants;
+                    }
                 }
             } catch (err) {
                 console.warn(`[CartPage] Không thể lấy biến thể cho sản phẩm ${productId}:`, err);

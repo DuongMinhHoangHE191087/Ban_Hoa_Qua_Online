@@ -4,17 +4,17 @@ import com.fruitmkt.websocket.ChatEndpoint;
 import org.junit.Test;
 
 import jakarta.websocket.Session;
-import jakarta.websocket.RemoteEndpoint;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 /**
  * ChatEndpointSessionLeakTest — verifies that @OnError removes the failed session
@@ -45,10 +45,9 @@ public class ChatEndpointSessionLeakTest {
                 (Map<Integer, Set<Session>>) roomMapField.get(null);
 
         // Seed the map with a mock session in room #42
-        Session mockSession = mock(Session.class);
         Map<String, Object> userProps = new java.util.HashMap<>();
         userProps.put(SESSION_ID_KEY, ROOM_ID);
-        when(mockSession.getUserProperties()).thenReturn(userProps);
+        Session mockSession = createSessionMock(userProps);
 
         Set<Session> room = new CopyOnWriteArraySet<>();
         room.add(mockSession);
@@ -82,10 +81,9 @@ public class ChatEndpointSessionLeakTest {
         Map<Integer, Set<Session>> roomMap =
                 (Map<Integer, Set<Session>>) roomMapField.get(null);
 
-        Session mockSession = mock(Session.class);
         Map<String, Object> userProps = new java.util.HashMap<>();
         userProps.put(SESSION_ID_KEY, ROOM_ID);
-        when(mockSession.getUserProperties()).thenReturn(userProps);
+        Session mockSession = createSessionMock(userProps);
 
         Set<Session> room = new CopyOnWriteArraySet<>();
         room.add(mockSession);
@@ -111,15 +109,46 @@ public class ChatEndpointSessionLeakTest {
     public void onError_sessionNotInMap_doesNotThrow() throws Exception {
         ChatEndpoint endpoint = new ChatEndpoint();
 
-        Session mockSession = mock(Session.class);
         Map<String, Object> userProps = new java.util.HashMap<>();
         userProps.put(SESSION_ID_KEY, 999);
-        when(mockSession.getUserProperties()).thenReturn(userProps);
+        Session mockSession = createSessionMock(userProps);
 
         Method onError = ChatEndpoint.class.getDeclaredMethod("onError", Session.class, Throwable.class);
         onError.setAccessible(true);
 
         // Must not throw any exception
         onError.invoke(endpoint, mockSession, new RuntimeException("error on unknown session"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Session createSessionMock(Map<String, Object> userProps) {
+        InvocationHandler handler = (proxy, method, args) -> {
+            if ("getUserProperties".equals(method.getName())) {
+                return userProps;
+            }
+            if ("isOpen".equals(method.getName())) {
+                return true;
+            }
+            if ("toString".equals(method.getName())) {
+                return "MockSession";
+            }
+            Class<?> returnType = method.getReturnType();
+            if (!returnType.isPrimitive()) {
+                return null;
+            }
+            if (returnType == boolean.class) return false;
+            if (returnType == byte.class) return (byte) 0;
+            if (returnType == short.class) return (short) 0;
+            if (returnType == int.class) return 0;
+            if (returnType == long.class) return 0L;
+            if (returnType == float.class) return 0f;
+            if (returnType == double.class) return 0d;
+            if (returnType == char.class) return '\0';
+            return null;
+        };
+        return (Session) Proxy.newProxyInstance(
+                Session.class.getClassLoader(),
+                new Class<?>[]{Session.class},
+                handler);
     }
 }

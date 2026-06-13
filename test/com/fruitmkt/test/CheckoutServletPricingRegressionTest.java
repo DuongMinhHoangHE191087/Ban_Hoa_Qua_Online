@@ -30,6 +30,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
@@ -400,6 +402,96 @@ public class CheckoutServletPricingRegressionTest {
     }
 
     @Test
+    public void sepayWebhookConfirmsOrderWithGeneratedReferenceAndPaymentViewMatchesQr() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "12:00-16:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_CK);
+        env.putParam("variantIds", variantAId + "," + variantBId);
+
+        servlet.doPostPublic(env.request, env.response);
+        assertNotNull(env.redirectLocation);
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        PaymentTransaction paymentTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        assertNotNull(paymentTransaction);
+        assertNotNull(paymentTransaction.getSepayReference());
+        assertTrue(paymentTransaction.getSepayReference().matches("MF\\d{3,10}"));
+
+        env.clearRequestState();
+        env.putParam("action", "payment");
+        env.putParam("orderId", String.valueOf(createdOrderId));
+        servlet.doGetPublic(env.request, env.response);
+
+        assertNull(env.redirectLocation);
+        assertEquals("/WEB-INF/jsp/customer/order-payment.jsp", env.forwardedPath);
+        assertEquals(paymentTransaction.getSepayReference(), env.requestAttributes.get("reference"));
+        String qrUrl = (String) env.requestAttributes.get("qrUrl");
+        assertNotNull(qrUrl);
+        assertTrue(qrUrl.contains("qr.sepay.vn/img"));
+        assertTrue(qrUrl.contains("des="));
+
+        String webhookPayload = "{"
+                + "\"id\":\"sepay-" + System.currentTimeMillis() + "\","
+                + "\"code\":\"" + paymentTransaction.getSepayReference() + "\","
+                + "\"transferType\":\"in\","
+                + "\"transferAmount\":\"" + paymentTransaction.getAmount().setScale(0, java.math.RoundingMode.HALF_UP).toPlainString() + "\""
+                + "}";
+        paymentService.processWebhook(webhookPayload);
+
+        Order confirmedOrder = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_CONFIRMED, confirmedOrder.getStatus());
+        PaymentTransaction updatedTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        assertNotNull(updatedTransaction);
+        assertEquals("completed", updatedTransaction.getStatus());
+    }
+
+    @Test
+    public void checkoutStatusEndpointReturnsApiEnvelopeAndUnknownFallback() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        env.clearRequestState();
+        env.putParam("action", "status");
+        env.putParam("orderId", String.valueOf(createdOrderId));
+        servlet.doGetPublic(env.request, env.response);
+
+        String existingBody = env.getResponseBody();
+        assertNull(env.redirectLocation);
+        assertNull(env.forwardedPath);
+        assertNull(env.errorStatus);
+        assertTrue(existingBody.contains("\"success\":true"));
+        assertTrue(existingBody.contains("\"data\":"));
+        assertTrue(existingBody.contains("\"status\":\"" + AppConfig.ORDER_CONFIRMED + "\""));
+
+        env.clearRequestState();
+        env.putParam("action", "status");
+        env.putParam("orderId", String.valueOf(createdOrderId + 999999));
+        servlet.doGetPublic(env.request, env.response);
+
+        String missingBody = env.getResponseBody();
+        assertNull(env.redirectLocation);
+        assertNull(env.forwardedPath);
+        assertNull(env.errorStatus);
+        assertTrue(missingBody.contains("\"success\":true"));
+        assertTrue(missingBody.contains("\"status\":\"UNKNOWN\""));
+    }
+
+    @Test
     public void stockCheckUsesOnlySelectedVariants() throws Exception {
         ProductVariant inactiveVariant = variantDAO.findById(variantBId);
         assertNotNull(inactiveVariant);
@@ -599,6 +691,8 @@ public class CheckoutServletPricingRegressionTest {
         private String errorMessage;
         private String forwardedPath;
         private String servletPath = "/checkout";
+        private final StringWriter responseBody = new StringWriter();
+        private final PrintWriter responseWriter = new PrintWriter(responseBody, true);
 
         private final HttpSession session;
         private final HttpServletRequest request;
@@ -625,6 +719,13 @@ public class CheckoutServletPricingRegressionTest {
             errorStatus = null;
             errorMessage = null;
             forwardedPath = null;
+            responseBody.getBuffer().setLength(0);
+            responseWriter.flush();
+        }
+
+        private String getResponseBody() {
+            responseWriter.flush();
+            return responseBody.toString();
         }
 
         private HttpSession createSessionProxy() {
@@ -707,6 +808,8 @@ public class CheckoutServletPricingRegressionTest {
         private HttpServletResponse createResponseProxy() {
             InvocationHandler handler = (proxy, method, args) -> {
                 switch (method.getName()) {
+                    case "getWriter":
+                        return responseWriter;
                     case "sendRedirect":
                         redirectLocation = (String) args[0];
                         return null;

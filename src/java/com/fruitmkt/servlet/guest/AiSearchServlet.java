@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -70,8 +71,18 @@ public class AiSearchServlet extends HttpServlet {
             }
 
             // 2. Đọc câu hỏi/yêu cầu tìm kiếm của người dùng
-            Map<String, String> requestData = mapper.readValue(req.getInputStream(), Map.class);
-            String userMessage = requestData.get("message");
+            byte[] bodyBytes = req.getInputStream().readAllBytes();
+            String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
+            Map<String, Object> requestData;
+            try {
+                requestData = mapper.readValue(jsonInput, Map.class);
+            } catch (Exception parseError) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "Nội dung tìm kiếm không hợp lệ."));
+                return;
+            }
+            String userMessage = normalizeText(requestData.get("message"));
 
             if (userMessage == null || userMessage.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -189,6 +200,13 @@ public class AiSearchServlet extends HttpServlet {
 
             Map<String, Object> candidate = candidates.get(0);
             Map<String, Object> contentMap = (Map<String, Object>) candidate.get("content");
+            if (contentMap == null) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Phản hồi AI không đúng định dạng."));
+                return;
+            }
+
             List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
             if (partsList == null || partsList.isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -197,13 +215,23 @@ public class AiSearchServlet extends HttpServlet {
                 return;
             }
 
-            String jsonText = (String) partsList.get(0).get("text");
+            String jsonText = normalizeText(partsList.get(0).get("text"));
+            if (jsonText == null) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Phản hồi AI không có nội dung."));
+                return;
+            }
             Map<String, Object> aiResult = mapper.readValue(jsonText, Map.class);
 
-            List<Integer> suggestedIds = (List<Integer>) aiResult.get("suggestedProductIds");
+            String reply = normalizeReply(aiResult.get("reply"));
+            List<Integer> suggestedIds = extractSuggestedProductIds(aiResult.get("suggestedProductIds"));
             List<Map<String, Object>> productsDetails = new ArrayList<>();
             if (suggestedIds != null && !suggestedIds.isEmpty()) {
-                productsDetails = productDAO.findBriefProductsByIds(suggestedIds);
+                List<Map<String, Object>> briefProducts = productDAO.findBriefProductsByIds(suggestedIds);
+                if (briefProducts != null) {
+                    productsDetails = new ArrayList<>(briefProducts);
+                }
             }
 
             // Fix: chỉ giữ lại ID của những sản phẩm thực sự ACTIVE+APPROVED
@@ -211,21 +239,23 @@ public class AiSearchServlet extends HttpServlet {
             List<Integer> validIds = new ArrayList<>();
             for (Map<String, Object> pd : productsDetails) {
                 Object pid = pd.get("productId");
-                if (pid instanceof Integer) validIds.add((Integer) pid);
+                if (pid instanceof Number number) {
+                    validIds.add(number.intValue());
+                }
             }
             // Giới hạn tối đa 6 gợi ý hiển thị trong widget
             if (validIds.size() > 6) {
-                validIds = validIds.subList(0, 6);
-                productsDetails = productsDetails.subList(0, 6);
+                validIds = new ArrayList<>(validIds.subList(0, 6));
+                productsDetails = new ArrayList<>(productsDetails.subList(0, 6));
             }
 
             // Gửi kết quả về cho frontend (đảm bảo cấu trúc reply + suggestedProductIds + products không đổi)
+            Map<String, Object> responseData = new LinkedHashMap<>();
+            responseData.put("reply", reply);
+            responseData.put("suggestedProductIds", validIds);
+            responseData.put("products", productsDetails);
             resp.setStatus(HttpServletResponse.SC_OK);
-            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of(
-                "reply", aiResult.get("reply"),
-                "suggestedProductIds", validIds,
-                "products", productsDetails
-            )));
+            JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
 
         } catch (SQLException e) {
             LoggerUtil.error(log, "Lỗi kết nối cơ sở dữ liệu khi xử lý AI search", e);
@@ -307,5 +337,42 @@ public class AiSearchServlet extends HttpServlet {
             // Bỏ qua nếu có lỗi ServletContext
         }
         return null;
+    }
+
+    private String normalizeText(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private String normalizeReply(Object value) {
+        String reply = normalizeText(value);
+        if (reply != null) {
+            return reply;
+        }
+        return "Mình chưa nhận được câu trả lời hợp lệ từ AI. Vui lòng thử lại.";
+    }
+
+    private List<Integer> extractSuggestedProductIds(Object rawIds) {
+        List<Integer> ids = new ArrayList<>();
+        if (!(rawIds instanceof List<?> rawList)) {
+            return ids;
+        }
+        for (Object rawId : rawList) {
+            if (rawId instanceof Number number) {
+                ids.add(number.intValue());
+                continue;
+            }
+            if (rawId instanceof String text) {
+                try {
+                    ids.add(Integer.parseInt(text.trim()));
+                } catch (NumberFormatException ignored) {
+                    // Bỏ qua giá trị không hợp lệ.
+                }
+            }
+        }
+        return ids;
     }
 }

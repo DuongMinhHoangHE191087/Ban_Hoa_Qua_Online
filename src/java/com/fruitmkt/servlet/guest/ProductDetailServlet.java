@@ -133,6 +133,19 @@ public class ProductDetailServlet extends HttpServlet {
             String format = req.getParameter("format");
             boolean isJson = "json".equals(format) || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
             if (isJson) {
+                // ── Kiểm tra điều kiện tồn tại trước khi trả JSON ──
+                // Sản phẩm hết mùa — khách không thể mua
+                if (isExpiredProduct) {
+                    Map<String, Object> errData = new java.util.HashMap<>();
+                    errData.put("success", false);
+                    errData.put("reason", "OUT_OF_SEASON");
+                    errData.put("message", "Sản phẩm này đã hết mùa. Bạn có thể yêu cầu nhập kho vụ mới.");
+                    com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.ok(errData));
+                    return;
+                }
+                // Sản phẩm đang ngoài mùa vụ — hiển thị cảnh báo nhưng vẫn cho mua
+                boolean isOutOfSeasonJson = Boolean.TRUE.equals(req.getAttribute("isOutOfSeason"));
+
                 // Tự động map các trường sang HashMap để tránh NullPointerException của Map.of khi có giá trị null
                 ProductImage pi = productImageDAO.findPrimary(product.getProductId());
                 String primaryImage = null;
@@ -145,8 +158,10 @@ public class ProductDetailServlet extends HttpServlet {
                 productMap.put("name", product.getName());
                 productMap.put("description", product.getDescription() != null ? product.getDescription() : "");
                 productMap.put("imagePath", primaryImage != null ? primaryImage : "");
+                productMap.put("isOutOfSeason", isOutOfSeasonJson);
 
                 List<Map<String, Object>> variantsMapList = new java.util.ArrayList<>();
+                List<Map<String, Object>> inStockVariants = new java.util.ArrayList<>();
                 for (ProductVariant v : variants) {
                     Map<String, Object> vMap = new java.util.HashMap<>();
                     vMap.put("variantId", v.getVariantId());
@@ -157,7 +172,20 @@ public class ProductDetailServlet extends HttpServlet {
                     vMap.put("discountPrice", v.getDiscountPrice());
                     vMap.put("weightKg", v.getWeightKg());
                     vMap.put("stockQuantity", v.getStockQuantity());
+                    boolean soldOut = v.getStockQuantity() <= 0;
+                    vMap.put("soldOut", soldOut);
                     variantsMapList.add(vMap);
+                    if (!soldOut) inStockVariants.add(vMap);
+                }
+
+                // Nếu không có variant nào còn hàng → báo lỗi rõ ràng
+                if (inStockVariants.isEmpty()) {
+                    Map<String, Object> errData = new java.util.HashMap<>();
+                    errData.put("success", false);
+                    errData.put("reason", "OUT_OF_STOCK");
+                    errData.put("message", "Sản phẩm tạm hết hàng. Vui lòng quay lại sau.");
+                    com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.ok(errData));
+                    return;
                 }
 
                 List<Map<String, Object>> packagingsMapList = new java.util.ArrayList<>();
@@ -171,7 +199,8 @@ public class ProductDetailServlet extends HttpServlet {
 
                 Map<String, Object> data = new java.util.HashMap<>();
                 data.put("product", productMap);
-                data.put("variants", variantsMapList);
+                data.put("variants", inStockVariants);  // Chỉ trả variants còn hàng
+                data.put("allVariants", variantsMapList); // Trả tất cả (kể cả hết hàng) để UI disable
                 data.put("packagingOptions", packagingsMapList);
 
                 com.fruitmkt.util.JsonUtil.writeJson(resp, ApiResponse.ok(data));

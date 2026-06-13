@@ -10,8 +10,6 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import static org.junit.Assert.*;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -44,7 +42,6 @@ public class UserAuthFlowTest {
 
     // Email tĩnh cho test trùng lặp
     private String uniqueEmail1;
-    private String uniqueEmail2;
 
     // Mật khẩu gốc và hash để test
     private static final String RAW_PASSWORD = "SecurePass@2026";
@@ -54,7 +51,6 @@ public class UserAuthFlowTest {
         userDAO = new UserDAO();
         long ts = System.currentTimeMillis();
         uniqueEmail1 = "junit_auth1_" + ts + "@test.com";
-        uniqueEmail2 = "junit_auth2_" + ts + "@test.com";
     }
 
     @After
@@ -308,11 +304,6 @@ public class UserAuthFlowTest {
 
     /** Khóa tài khoản người dùng (simulate admin lock) */
     private void lockUserAccount(int userId) throws SQLException {
-        String sql = "UPDATE users SET status = 'LOCKED', updated_at = GETDATE() WHERE user_id = ?";
-        try (Connection conn = userDAO.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            ps.executeUpdate();
-        }
+        userDAO.updateUserStatus(userId, "LOCKED");
     }
 }

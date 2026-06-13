@@ -143,16 +143,6 @@ public class ProductCreateServlet extends HttpServlet {
                 } catch (Exception e) {
                     errors.add("Giá bán phân loại '" + (label != null ? label : "") + "' không đúng định dạng số.");
                 }
-                
-                String sStr = (variantStocks != null && variantStocks.length > i) ? variantStocks[i] : null;
-                try {
-                    int stock = Integer.parseInt(sStr);
-                    if (stock < 0) {
-                        errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' không được âm.");
-                    }
-                } catch (NumberFormatException e) {
-                    errors.add("Số lượng tồn kho phân loại '" + (label != null ? label : "") + "' phải là số nguyên.");
-                }
             }
         }
 
@@ -288,16 +278,7 @@ public class ProductCreateServlet extends HttpServlet {
                         }
                     }
                     variant.setPrice(vPrice);
-
-                    int vStock = 0;
-                    if (variantStocks != null && variantStocks.length > i && variantStocks[i] != null) {
-                        try {
-                            vStock = Integer.parseInt(variantStocks[i].trim());
-                        } catch (NumberFormatException e) {
-                            LoggerUtil.warn(log, "Số lượng tồn kho biến thể không hợp lệ: " + variantStocks[i], e);
-                        }
-                    }
-                    variant.setStockQuantity(vStock);
+                    variant.setStockQuantity(0);
 
                     BigDecimal vWeight = new BigDecimal("1.000");
                     if (variantWeights != null && variantWeights.length > i && variantWeights[i] != null && !variantWeights[i].trim().isEmpty()) {

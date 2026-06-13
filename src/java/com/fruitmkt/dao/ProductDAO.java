@@ -202,6 +202,7 @@ public class ProductDAO extends BaseDAO {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");//khang
         }
         sql.append("WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' ");
+        sql.append("AND EXISTS (SELECT 1 FROM product_variants pv_stock WHERE pv_stock.product_id = p.product_id AND pv_stock.is_active = 1 AND pv_stock.stock_quantity > 0) ");
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -1024,12 +1025,13 @@ public class ProductDAO extends BaseDAO {
                    + "    SELECT product_id, price, variant_label, stock_quantity, "
                    + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
                    + "    FROM product_variants "
-                   + "    WHERE is_active = 1 "
+                   + "    WHERE is_active = 1 AND stock_quantity > 0 "
                    + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
                    + "JOIN promotions pr ON pr.product_id = p.product_id "
                    + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
                    + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' "
+                   + "  AND pv.product_id IS NOT NULL "
                    + "ORDER BY p.product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -1053,12 +1055,112 @@ public class ProductDAO extends BaseDAO {
                    + "    SELECT product_id, price, variant_label, stock_quantity, "
                    + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
                    + "    FROM product_variants "
-                   + "    WHERE is_active = 1 "
+                   + "    WHERE is_active = 1 AND stock_quantity > 0 "
                    + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
                    + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
                    + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND pv.product_id IS NOT NULL "
+                   + "ORDER BY p.sold_quantity DESC, p.product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowToProductMap(rs, contextPath));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> findSeasonalProductsOptimized(int limit, String contextPath) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+        String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
+                   + "       pi.file_path AS primary_image_path, "
+                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "FROM products p "
+                   + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
+                   + "LEFT JOIN ( "
+                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
+                   + "    FROM product_variants "
+                   + "    WHERE is_active = 1 AND stock_quantity > 0 "
+                   + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
+                   + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
+                   + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND pv.product_id IS NOT NULL "
+                   + "  AND (p.season_start_month IS NULL OR p.season_end_month IS NULL OR "
+                   + "       (p.season_start_month <= p.season_end_month AND ? BETWEEN p.season_start_month AND p.season_end_month) OR "
+                   + "       (p.season_start_month > p.season_end_month AND (? >= p.season_start_month OR ? <= p.season_end_month))) "
+                   + "ORDER BY p.rating DESC, p.product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            ps.setInt(2, currentMonth);
+            ps.setInt(3, currentMonth);
+            ps.setInt(4, currentMonth);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowToProductMap(rs, contextPath));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> findOrganicProductsOptimized(int limit, String contextPath) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
+                   + "       pi.file_path AS primary_image_path, "
+                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "FROM products p "
+                   + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
+                   + "LEFT JOIN ( "
+                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
+                   + "    FROM product_variants "
+                   + "    WHERE is_active = 1 AND stock_quantity > 0 "
+                   + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
+                   + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
+                   + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND p.is_organic = 1 AND pv.product_id IS NOT NULL "
+                   + "ORDER BY p.sold_quantity DESC, p.product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowToProductMap(rs, contextPath));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> findImportedProductsOptimized(int limit, String contextPath) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
+                   + "       pi.file_path AS primary_image_path, "
+                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "FROM products p "
+                   + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
+                   + "LEFT JOIN ( "
+                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
+                   + "    FROM product_variants "
+                   + "    WHERE is_active = 1 AND stock_quantity > 0 "
+                   + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
+                   + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
+                   + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
+                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND p.is_imported = 1 AND pv.product_id IS NOT NULL "
                    + "ORDER BY p.sold_quantity DESC, p.product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1086,6 +1188,7 @@ public class ProductDAO extends BaseDAO {
         sql.append("    SELECT product_id ");
         sql.append("    FROM products ");
         sql.append("    WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' ");
+        sql.append("      AND EXISTS (SELECT 1 FROM product_variants pv_stock WHERE pv_stock.product_id = products.product_id AND pv_stock.is_active = 1 AND pv_stock.stock_quantity > 0) ");
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -1107,7 +1210,7 @@ public class ProductDAO extends BaseDAO {
         sql.append("    SELECT product_id, price, variant_label, stock_quantity, ");
         sql.append("           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn ");
         sql.append("    FROM product_variants ");
-        sql.append("    WHERE is_active = 1 ");
+        sql.append("    WHERE is_active = 1 AND stock_quantity > 0 ");
         sql.append(") pv ON pv.product_id = p.product_id AND pv.rn = 1 ");
         sql.append("LEFT JOIN promotions pr ON pr.product_id = p.product_id ");
         sql.append("    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 ");
