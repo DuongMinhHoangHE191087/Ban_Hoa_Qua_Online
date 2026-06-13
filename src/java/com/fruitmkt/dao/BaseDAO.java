@@ -1,4 +1,4 @@
-package com.fruitmkt.dao.base;
+package com.fruitmkt.dao;
 
 import com.fruitmkt.config.AppConfig;
 import java.sql.Connection;

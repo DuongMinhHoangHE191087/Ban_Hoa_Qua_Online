@@ -341,7 +341,7 @@
 
     // Real-time Polling every 3 seconds to check order payment status
     const pollingUrl = '${pageContext.request.contextPath}/checkout?action=status&orderId=${order.orderId}';
-    const successUrl = '${pageContext.request.contextPath}/checkout?action=success&orderId=${order.orderId}';
+    const successUrl = '${pageContext.request.contextPath}/profile?tab=orders';
 
     const pollingInterval = setInterval(() => {
         fetch(pollingUrl, {
@@ -364,7 +364,32 @@
 
     // Simulating developer payment success trigger
     function simulateSuccessRedirect() {
-        window.location.href = successUrl;
+        const payload = {
+            id: "SIM_TX_" + Date.now(),
+            code: "${reference}",
+            transferType: "in",
+            transferAmount: "${amountFormatted}"
+        };
+
+        fetch('${pageContext.request.contextPath}/api/payment/webhook', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => {
+            if (res.ok) {
+                console.log('[Dev Sim] Webhook sent successfully');
+                window.location.href = successUrl;
+            } else {
+                alert('Gửi webhook mô phỏng thất bại.');
+            }
+        })
+        .catch(err => {
+            console.error('Lỗi webhook:', err);
+            alert('Lỗi kết nối khi mô phỏng thanh toán.');
+        });
     }
 
     // Xử lý nút "Tôi đã thanh toán" — vô hiệu hóa sau khi bấm để tránh double-submit

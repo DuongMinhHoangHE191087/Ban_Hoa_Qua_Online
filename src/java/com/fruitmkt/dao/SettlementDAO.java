@@ -1,29 +1,42 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ShopSettlement;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 public class SettlementDAO extends BaseDAO {
 
+    private static final Logger log = Logger.getLogger(SettlementDAO.class.getName());
+
     public List<ShopSettlement> findAll(String status, int page, int pageSize) throws SQLException {
         List<ShopSettlement> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
         StringBuilder sql = new StringBuilder("SELECT * FROM shop_settlements ");
         List<Object> params = new ArrayList<>();
         if (status != null && !status.trim().isEmpty()) {
             sql.append("WHERE status = ? ");
             params.add(status);
         }
-        sql.append("ORDER BY settlement_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(offset);
-        params.add(pageSize);
+        sql.append("ORDER BY settlement_id DESC ").append(PaginationHelper.OFFSET_FETCH_SQL);
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -230,7 +243,7 @@ public class SettlementDAO extends BaseDAO {
                                 String.format("Hệ thống đã tự động chốt kỳ đối soát mới #%d với doanh thu gộp: %,.0f đ, thực nhận: %,.0f đ. Vui lòng kiểm tra chi tiết.", 
                                 settlementId, gross.doubleValue(), net.doubleValue()), "/shop/settlement");
                         } catch (Exception e) {
-                            System.err.println("Failed to send auto-settlement notification to shop owner " + ownerId + ": " + e.getMessage());
+                            LoggerUtil.warn(log, "Failed to send auto-settlement notification to shop owner " + ownerId, e);
                         }
                     }
                 }

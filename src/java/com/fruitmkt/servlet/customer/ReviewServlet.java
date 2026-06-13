@@ -17,12 +17,14 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ReviewServlet - Controller cho chức năng đánh giá sản phẩm.
@@ -40,6 +42,8 @@ import java.util.List;
     maxRequestSize = 1024 * 1024 * 50
 )
 public class ReviewServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ReviewServlet.class.getName());
 
     private final ReviewService reviewService = new ReviewService();
     private final OrderService orderService = new OrderService();
@@ -181,7 +185,7 @@ public class ReviewServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi lưu đánh giá", e);
             SessionUtil.flashError(session, "Lỗi lưu đánh giá: " + e.getMessage());
         }
 
@@ -228,7 +232,7 @@ public class ReviewServlet extends HttpServlet {
             req.setAttribute("reviewedItems", reviewedItems);
             req.getRequestDispatcher("/WEB-INF/jsp/customer/review.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi hiển thị form tạo đánh giá", e);
             SessionUtil.flashError(session, "Đã xảy ra lỗi: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + "/orders");
         }
@@ -281,7 +285,7 @@ public class ReviewServlet extends HttpServlet {
             req.setAttribute("action", "edit");
             req.getRequestDispatcher("/WEB-INF/jsp/customer/review-submit.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi hiển thị form sửa đánh giá", e);
             SessionUtil.flashError(session, "Đã xảy ra lỗi: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + "/customer/orders");
         }

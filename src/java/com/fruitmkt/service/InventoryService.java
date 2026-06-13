@@ -7,6 +7,8 @@ import com.fruitmkt.model.entity.InventoryLog;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -57,7 +59,7 @@ public class InventoryService {
                 log.setQuantityAfter(stockAfter);
                 
                 log.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Nhập kho");
-                log.setChangedAt(changedAt.atTime(java.time.LocalTime.now()));
+                log.setChangedAt(changedAt.atTime(LocalTime.now()));
 
                 inventoryDAO.save(conn, log);
 
@@ -100,7 +102,7 @@ public class InventoryService {
         log.setQuantityDelta(-qty);
         log.setQuantityAfter(stockAfter);
         log.setNote("Giữ hàng cho đơn hàng #" + orderId);
-        log.setChangedAt(java.time.LocalDateTime.now());
+        log.setChangedAt(LocalDateTime.now());
         
         inventoryDAO.save(conn, log);
         productVariantDAO.updateStock(conn, variantId, -qty);
@@ -133,7 +135,7 @@ public class InventoryService {
         log.setQuantityDelta(qty);
         log.setQuantityAfter(stockAfter);
         log.setNote("Hoàn kho từ đơn hàng #" + orderId);
-        log.setChangedAt(java.time.LocalDateTime.now());
+        log.setChangedAt(LocalDateTime.now());
 
         inventoryDAO.save(conn, log);
         productVariantDAO.updateStock(conn, variantId, qty);
@@ -163,7 +165,7 @@ public class InventoryService {
         log.setQuantityDelta(0);
         log.setQuantityAfter(currentStock);
         log.setNote("Xác nhận bán hàng cho đơn hàng #" + orderId);
-        log.setChangedAt(java.time.LocalDateTime.now());
+        log.setChangedAt(LocalDateTime.now());
         inventoryDAO.save(conn, log);
     }
 
@@ -191,7 +193,7 @@ public class InventoryService {
                 log.setQuantityDelta(delta);
                 log.setQuantityAfter(stockAfter);
                 log.setNote(note != null ? note : "Điều chỉnh kho thủ công");
-                log.setChangedAt(java.time.LocalDateTime.now());
+                log.setChangedAt(LocalDateTime.now());
 
                 inventoryDAO.save(conn, log);
                 productVariantDAO.updateStock(conn, variantId, delta);
@@ -205,7 +207,7 @@ public class InventoryService {
         }
     }
 
-    public java.util.List<InventoryLog> getLogs(int variantId) throws SQLException {
+    public List<InventoryLog> getLogs(int variantId) throws SQLException {
         return inventoryDAO.findByVariant(variantId);
     }
 

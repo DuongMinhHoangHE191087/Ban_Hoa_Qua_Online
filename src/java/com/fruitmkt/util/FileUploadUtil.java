@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 /**
  * FileUploadUtil — Xử lý upload file ảnh sản phẩm lên server filesystem.
@@ -15,6 +16,8 @@ import java.util.UUID;
  * @author fruitmkt-team
  */
 public final class FileUploadUtil {
+
+    private static final Logger log = Logger.getLogger(FileUploadUtil.class.getName());
 
     /**
      * Lưu Part từ multipart request, trả về đường dẫn tương đối.
@@ -62,7 +65,7 @@ public final class FileUploadUtil {
         try {
             Files.deleteIfExists(Paths.get(realPath));
         } catch (IOException e) {
-            System.err.println("Không thể xóa file: " + realPath);
+            LoggerUtil.warn(log, "Không thể xóa file: " + realPath, e);
         }
     }
 

@@ -9,16 +9,22 @@ import com.fruitmkt.model.entity.Review;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/customer/order-reviews")
 public class OrderReviewListServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(OrderReviewListServlet.class.getName());
 
     private final OrderDAO orderDAO = new OrderDAO();
     private final OrderItemDAO orderItemDAO = new OrderItemDAO();
@@ -68,7 +74,7 @@ public class OrderReviewListServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/customer/order-reviews.jsp").forward(req, resp);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi tải danh sách đánh giá đơn hàng", e);
             resp.sendError(500, "Lỗi hệ thống");
         }
     }

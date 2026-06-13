@@ -1,4 +1,4 @@
-package com.fruitmkt.servlet.common;
+package com.fruitmkt.servlet.base;
 
 import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.model.entity.User;
@@ -17,16 +17,22 @@ import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.FileUploadUtil;
 import com.fruitmkt.util.ValidationUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/profile")
 @MultipartConfig(
@@ -35,6 +41,9 @@ import java.util.Map;
     fileSizeThreshold = 1048576  // 1MB
 )
 public class UserProfileServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(UserProfileServlet.class.getName());
+
     private final UserService userService = new UserService();
     private final AuthService authService = new AuthService();
     private final UserAddressDAO addressDAO = new UserAddressDAO();
@@ -76,7 +85,9 @@ public class UserProfileServlet extends HttpServlet {
                         User owner = userService.findById(o.getOwnerId());
                         shopNamesMap.put(o.getOrderId(), owner != null ? owner.getFullName() : "Cửa hàng");
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    LoggerUtil.warn(log, "Không thể tải chi tiết sản phẩm cho đơn hàng", e);
+                }
             }
             req.setAttribute("orderItemsMap", orderItemsMap);
             req.setAttribute("shopNamesMap", shopNamesMap);
@@ -87,7 +98,7 @@ public class UserProfileServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/common/profile.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải thông tin cá nhân", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải thông tin cá nhân");
         }
     }

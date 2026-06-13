@@ -7,6 +7,8 @@ import com.fruitmkt.dao.ProductDAO;
 import com.fruitmkt.dao.SystemConfigDAO;
 import com.fruitmkt.model.entity.Category;
 import com.fruitmkt.model.entity.Product;
+import com.fruitmkt.model.response.ApiResponse;
+import com.fruitmkt.util.JsonUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -14,6 +16,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import com.fruitmkt.util.LoggerUtil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -22,10 +25,19 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 @WebServlet("/api/ai/search")
 public class AiSearchServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AiSearchServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -38,10 +50,8 @@ public class AiSearchServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding("UTF-8");
-        resp.setContentType("application/json");
+        resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
-
-        Map<String, Object> responseJson = new HashMap<>();
 
         try {
             // 1. Lấy API Key từ DB, biến môi trường, hoặc file .env trực tiếp
@@ -55,21 +65,28 @@ public class AiSearchServlet extends HttpServlet {
 
             if (apiKey == null || apiKey.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                responseJson.put("success", false);
-                responseJson.put("message", "API Key chưa được cấu hình. Vui lòng liên hệ Admin thiết lập gemini_api_key trong Cấu hình Hệ thống hoặc đặt biến môi trường GEMINI_API_KEY.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "API Key chưa được cấu hình. Vui lòng liên hệ Admin thiết lập gemini_api_key trong Cấu hình Hệ thống hoặc đặt biến môi trường GEMINI_API_KEY."));
                 return;
             }
 
             // 2. Đọc câu hỏi/yêu cầu tìm kiếm của người dùng
-            Map<String, String> requestData = mapper.readValue(req.getInputStream(), Map.class);
-            String userMessage = requestData.get("message");
+            byte[] bodyBytes = req.getInputStream().readAllBytes();
+            String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
+            Map<String, Object> requestData;
+            try {
+                requestData = mapper.readValue(jsonInput, Map.class);
+            } catch (Exception parseError) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "Nội dung tìm kiếm không hợp lệ."));
+                return;
+            }
+            String userMessage = normalizeText(requestData.get("message"));
 
             if (userMessage == null || userMessage.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                responseJson.put("success", false);
-                responseJson.put("message", "Nội dung tìm kiếm không được để trống.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Nội dung tìm kiếm không được để trống."));
                 return;
             }
 
@@ -166,9 +183,8 @@ public class AiSearchServlet extends HttpServlet {
 
             if (httpResponse.statusCode() != 200) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                responseJson.put("success", false);
-                responseJson.put("message", "Lỗi khi kết nối với dịch vụ AI: HTTP " + httpResponse.statusCode());
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Lỗi khi kết nối với dịch vụ AI: HTTP " + httpResponse.statusCode()));
                 return;
             }
 
@@ -177,30 +193,45 @@ public class AiSearchServlet extends HttpServlet {
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) geminiResponse.get("candidates");
             if (candidates == null || candidates.isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                responseJson.put("success", false);
-                responseJson.put("message", "Không nhận được phản hồi hợp lệ từ AI.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Không nhận được phản hồi hợp lệ từ AI."));
                 return;
             }
 
             Map<String, Object> candidate = candidates.get(0);
             Map<String, Object> contentMap = (Map<String, Object>) candidate.get("content");
-            List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
-            if (partsList == null || partsList.isEmpty()) {
+            if (contentMap == null) {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                responseJson.put("success", false);
-                responseJson.put("message", "Phản hồi AI trống.");
-                mapper.writeValue(resp.getWriter(), responseJson);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Phản hồi AI không đúng định dạng."));
                 return;
             }
 
-            String jsonText = (String) partsList.get(0).get("text");
+            List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
+            if (partsList == null || partsList.isEmpty()) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Phản hồi AI trống."));
+                return;
+            }
+
+            String jsonText = normalizeText(partsList.get(0).get("text"));
+            if (jsonText == null) {
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Phản hồi AI không có nội dung."));
+                return;
+            }
             Map<String, Object> aiResult = mapper.readValue(jsonText, Map.class);
 
-            List<Integer> suggestedIds = (List<Integer>) aiResult.get("suggestedProductIds");
+            String reply = normalizeReply(aiResult.get("reply"));
+            List<Integer> suggestedIds = extractSuggestedProductIds(aiResult.get("suggestedProductIds"));
             List<Map<String, Object>> productsDetails = new ArrayList<>();
             if (suggestedIds != null && !suggestedIds.isEmpty()) {
-                productsDetails = productDAO.findBriefProductsByIds(suggestedIds);
+                List<Map<String, Object>> briefProducts = productDAO.findBriefProductsByIds(suggestedIds);
+                if (briefProducts != null) {
+                    productsDetails = new ArrayList<>(briefProducts);
+                }
             }
 
             // Fix: chỉ giữ lại ID của những sản phẩm thực sự ACTIVE+APPROVED
@@ -208,33 +239,34 @@ public class AiSearchServlet extends HttpServlet {
             List<Integer> validIds = new ArrayList<>();
             for (Map<String, Object> pd : productsDetails) {
                 Object pid = pd.get("productId");
-                if (pid instanceof Integer) validIds.add((Integer) pid);
+                if (pid instanceof Number number) {
+                    validIds.add(number.intValue());
+                }
             }
             // Giới hạn tối đa 6 gợi ý hiển thị trong widget
             if (validIds.size() > 6) {
-                validIds = validIds.subList(0, 6);
-                productsDetails = productsDetails.subList(0, 6);
+                validIds = new ArrayList<>(validIds.subList(0, 6));
+                productsDetails = new ArrayList<>(productsDetails.subList(0, 6));
             }
 
             // Gửi kết quả về cho frontend (đảm bảo cấu trúc reply + suggestedProductIds + products không đổi)
-            responseJson.put("success", true);
-            responseJson.put("reply", aiResult.get("reply"));
-            responseJson.put("suggestedProductIds", validIds);  // chỉ IDs hợp lệ
-            responseJson.put("products", productsDetails);
-            mapper.writeValue(resp.getWriter(), responseJson);
+            Map<String, Object> responseData = new LinkedHashMap<>();
+            responseData.put("reply", reply);
+            responseData.put("suggestedProductIds", validIds);
+            responseData.put("products", productsDetails);
+            resp.setStatus(HttpServletResponse.SC_OK);
+            JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi kết nối cơ sở dữ liệu khi xử lý AI search", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            responseJson.put("success", false);
-            responseJson.put("message", "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage());
-            mapper.writeValue(resp.getWriter(), responseJson);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage()));
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý AI search", e);
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            responseJson.put("success", false);
-            responseJson.put("message", "Lỗi hệ thống khi xử lý AI: " + e.getMessage());
-            mapper.writeValue(resp.getWriter(), responseJson);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                "Lỗi hệ thống khi xử lý AI: " + e.getMessage()));
         }
     }
 
@@ -305,5 +337,42 @@ public class AiSearchServlet extends HttpServlet {
             // Bỏ qua nếu có lỗi ServletContext
         }
         return null;
+    }
+
+    private String normalizeText(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private String normalizeReply(Object value) {
+        String reply = normalizeText(value);
+        if (reply != null) {
+            return reply;
+        }
+        return "Mình chưa nhận được câu trả lời hợp lệ từ AI. Vui lòng thử lại.";
+    }
+
+    private List<Integer> extractSuggestedProductIds(Object rawIds) {
+        List<Integer> ids = new ArrayList<>();
+        if (!(rawIds instanceof List<?> rawList)) {
+            return ids;
+        }
+        for (Object rawId : rawList) {
+            if (rawId instanceof Number number) {
+                ids.add(number.intValue());
+                continue;
+            }
+            if (rawId instanceof String text) {
+                try {
+                    ids.add(Integer.parseInt(text.trim()));
+                } catch (NumberFormatException ignored) {
+                    // Bỏ qua giá trị không hợp lệ.
+                }
+            }
+        }
+        return ids;
     }
 }

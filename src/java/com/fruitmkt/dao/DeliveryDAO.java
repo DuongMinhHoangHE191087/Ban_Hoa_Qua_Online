@@ -1,9 +1,17 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Delivery;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * DeliveryDAO — DAO cho entity Delivery.
@@ -17,6 +25,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class DeliveryDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(DeliveryDAO.class.getName());
 
     public Delivery findById(int deliveryId) throws SQLException {
         String sql = "SELECT * FROM deliveries WHERE delivery_id = ?";

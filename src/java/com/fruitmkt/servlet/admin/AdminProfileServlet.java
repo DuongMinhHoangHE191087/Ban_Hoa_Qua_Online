@@ -5,13 +5,19 @@ import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.HashUtil;
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/profile")
 public class AdminProfileServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminProfileServlet.class.getName());
 
     private final UserDAO userDAO = new UserDAO();
 
@@ -29,7 +35,7 @@ public class AdminProfileServlet extends HttpServlet {
             User freshAdmin = userDAO.findUserById(admin.getUserId());
             req.setAttribute("adminUser", freshAdmin);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải thông tin admin profile", e);
         }
 
         req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-profile.jsp").forward(req, resp);
@@ -83,7 +89,7 @@ public class AdminProfileServlet extends HttpServlet {
                 throw new Exception("Hành động không hợp lệ: " + action);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi cập nhật admin profile, action=" + action, e);
             SessionUtil.flashError(req.getSession(), "Lỗi: " + e.getMessage());
         }
 

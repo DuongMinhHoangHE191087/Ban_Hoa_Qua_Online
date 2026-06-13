@@ -1,12 +1,21 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.UserAddress;
-import java.sql.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class UserAddressDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(UserAddressDAO.class.getName());
 
     public List<UserAddress> findByUser(int userId) throws SQLException {
         List<UserAddress> list = new ArrayList<>();

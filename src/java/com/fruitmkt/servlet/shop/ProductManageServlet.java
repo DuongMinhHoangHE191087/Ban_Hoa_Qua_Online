@@ -12,13 +12,21 @@ import com.fruitmkt.model.entity.ProductVariant;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * ProductManageServlet — Controller hiển thị danh sách sản phẩm của shop
@@ -30,6 +38,8 @@ import java.util.*;
  */
 @WebServlet("/shop/products")
 public class ProductManageServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ProductManageServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
@@ -135,7 +145,7 @@ public class ProductManageServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/shop/product-list.jsp").forward(req, resp);
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải danh sách sản phẩm", e);
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Có lỗi xảy ra khi tải danh sách sản phẩm.");
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "error");
             resp.sendRedirect(req.getContextPath() + "/shop/dashboard");

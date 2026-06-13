@@ -195,15 +195,20 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4 w-full justify-center border-t border-emerald-100/50 pt-6 mt-4">
+                <div class="flex flex-col sm:flex-row gap-4 w-full justify-center border-t border-emerald-100/50 pt-6 mt-4 flex-wrap">
                     <a href="${pageContext.request.contextPath}/home" class="bg-white text-[#14532D] border border-[#14532D] font-bold py-3.5 px-6 rounded-lg hover:bg-emerald-50 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer">
                         <span class="material-symbols-outlined text-lg">arrow_back</span>
                         <span>Tiếp tục mua sắm</span>
                     </a>
+
+                    <a href="${pageContext.request.contextPath}/profile/order-detail?orderId=${order.orderId}" class="bg-white text-[#14532D] border border-[#14532D] font-bold py-3.5 px-6 rounded-lg hover:bg-emerald-50 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer">
+                        <span class="material-symbols-outlined text-lg">visibility</span>
+                        <span>Xem chi tiết đơn hàng</span>
+                    </a>
                     
-                    <a href="${pageContext.request.contextPath}/orders" class="bg-[#14532D] text-white font-bold py-3.5 px-6 rounded-lg hover:bg-opacity-90 transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
+                    <a href="${pageContext.request.contextPath}/profile?tab=orders" class="bg-[#14532D] text-white font-bold py-3.5 px-6 rounded-lg hover:bg-opacity-90 transition-all shadow-md active:scale-95 text-sm flex items-center justify-center gap-2 cursor-pointer">
                         <span class="material-symbols-outlined text-lg">receipt_long</span>
-                        <span>Xem lịch sử đơn hàng</span>
+                        <span>Lịch sử đơn hàng</span>
                     </a>
                 </div>
             </div>

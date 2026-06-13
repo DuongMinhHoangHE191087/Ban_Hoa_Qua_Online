@@ -1,9 +1,17 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ProductVariant;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ProductVariantDAO — DAO cho entity ProductVariant.
@@ -17,6 +25,8 @@ import java.util.*;
  * @author fruitmkt-team
  */
 public class ProductVariantDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(ProductVariantDAO.class.getName());
 
     /**
      * Tìm biến thể sản phẩm theo ID.

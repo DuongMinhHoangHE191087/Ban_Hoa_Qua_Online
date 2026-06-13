@@ -5,13 +5,19 @@ import com.fruitmkt.service.OrderService;
 import com.fruitmkt.service.ReturnRequestService;
 import com.fruitmkt.service.SettlementService;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/dashboard")
 public class AdminDashboardServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminDashboardServlet.class.getName());
 
     private final UserService userService = new UserService();
     private final OrderService orderService = new OrderService();
@@ -34,7 +40,7 @@ public class AdminDashboardServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/dashboard.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải dashboard", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải dashboard");
         }
     }

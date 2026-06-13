@@ -3,9 +3,12 @@ package com.fruitmkt.service;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.security.SecureRandom;
+import java.util.UUID;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.dao.CartDAO;
 import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.EmailService;
@@ -93,7 +96,7 @@ public class AuthService {
 
                 // Tự động khởi tạo giỏ hàng hoặc profile cửa hàng dựa trên vai trò
                 if ("CUSTOMER".equals(user.getRole())) {
-                    com.fruitmkt.dao.CartDAO cartDAO = new com.fruitmkt.dao.CartDAO();
+                    CartDAO cartDAO = new CartDAO();
                     cartDAO.createForCustomer(insertedId);
                 }
 
@@ -130,7 +133,7 @@ public class AuthService {
 
         // 1. Kiểm tra tài khoản có bị khóa hay không
         if (user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil())) {
-            java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
             throw new Exception("Tài khoản đang bị khóa tạm thời do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau: " 
                 + user.getLockedUntil().format(dtf));
         }
@@ -317,7 +320,11 @@ public class AuthService {
             // Sync/update Google avatar if current avatar is null, default or if Google avatar was updated
             if (pictureUrl != null && !pictureUrl.trim().isEmpty()) {
                 String currentAvatar = existingUser.getAvatarUrl();
-                if (currentAvatar == null || currentAvatar.equals("assets/images/default-avatar.svg") || currentAvatar.startsWith("https://lh3.googleusercontent.com")) {
+                if (currentAvatar == null || currentAvatar.trim().isEmpty()
+                        || currentAvatar.equals("assets/images/default-avatar.svg")
+                        || currentAvatar.startsWith("https://lh3.googleusercontent.com")
+                        || currentAvatar.startsWith("https://openidconnect.googleapis.com")
+                        || currentAvatar.startsWith("https://www.googleapis.com")) {
                     userDAO.updateAvatar(existingUser.getUserId(), pictureUrl);
                     existingUser.setAvatarUrl(pictureUrl);
                 }
@@ -325,14 +332,14 @@ public class AuthService {
             return existingUser; 
         } else {
             // Sinh mật khẩu random an toàn vì Oauth không cung cấp pass
-            String randomPass = java.util.UUID.randomUUID().toString();
+            String randomPass = UUID.randomUUID().toString();
             String hashedPass = HashUtil.hashPassword(randomPass);
 
             // Insert role mặc định CUSTOMER qua DAO
             int newId = userDAO.saveNewCustomer(fullName, email, hashedPass, null, "CUSTOMER", AppConfig.ACCOUNT_STATUS_ACTIVE, true, pictureUrl);
             
             // Tự động khởi tạo giỏ hàng cho tài khoản Google mới
-            com.fruitmkt.dao.CartDAO cartDAO = new com.fruitmkt.dao.CartDAO();
+            CartDAO cartDAO = new CartDAO();
             cartDAO.createForCustomer(newId);
 
             return userDAO.findByEmail(email);
@@ -408,7 +415,7 @@ public class AuthService {
         return String.format("%0" + AppConfig.EMAIL_VERIFICATION_CODE_LENGTH + "d", code);
     }
 
-    public void saveUserSession(int userId, String token, java.sql.Timestamp expiresAt) throws SQLException {
+    public void saveUserSession(int userId, String token, Timestamp expiresAt) throws SQLException {
         userDAO.saveUserSession(userId, token, expiresAt);
     }
 

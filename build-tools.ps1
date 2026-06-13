@@ -336,6 +336,8 @@ $env:JAVA_HOME = $JAVA_HOME
 $env:JRE_HOME = $JRE_HOME
 if ($CATALINA_HOME) { $env:CATALINA_HOME = $CATALINA_HOME }
 if ($CATALINA_BASE) { $env:CATALINA_BASE = $CATALINA_BASE }
+$env:JAVA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
+$env:CATALINA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
 $env:PATH = "$JAVA_HOME\bin;" + $env:PATH
 
 
@@ -361,6 +363,7 @@ Cac tuy chon:
   deploy         - Chay toan bo quy trinh (Clean, Build, Deploy, Run & Watch)
   reload         - Recompile nhanh va Hot-Reload Tomcat (giu nguyen Session)
   test           - Chay kiem thu unit tests JUnit cho he thong
+  setup-db       - Khoi tao lai database tu .env va Setup_OnlineFruitShopping.sql
 
 
 Docker options:
@@ -591,6 +594,8 @@ function Install-Config {
     $env:JRE_HOME = $global:JRE_HOME
     $env:CATALINA_HOME = $global:CATALINA_HOME
     $env:CATALINA_BASE = $global:CATALINA_BASE
+    $env:JAVA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
+    $env:CATALINA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
     
     Log-Message "Install-config executed, updated configuration saved."
 }
@@ -619,7 +624,7 @@ function Compile-Java-Atomic {
         [string]$webBuildDir,
         [string]$tomcatHome,
         [string]$classpath,
-        [string]$compileLogFile
+        [string]$compileLogFile  # kept for call-site compat; no longer used (output captured in-memory)
     )
     
     $classesDir = "$webBuildDir/WEB-INF/classes"
@@ -637,10 +642,13 @@ function Compile-Java-Atomic {
     }
     [System.IO.File]::WriteAllLines("sources.txt", $javaFiles)
     
-    $javacCmd = "javac -encoding UTF-8 -g:none -nowarn -target 17 -source 17 -cp `"$classpath`" -d `"$classesTempDir`" @sources.txt > `"$compileLogFile`" 2>&1"
-    cmd.exe /c $javacCmd
+    # Capture javac output in-memory — no temp file, no file-lock risk
+    $javacArgs = "-encoding UTF-8 -g:none -nowarn -target 17 -source 17 -cp `"$classpath`" -d `"$classesTempDir`" @sources.txt"
+    $compileOutput = cmd.exe /c "javac $javacArgs 2>&1"
+    $javacExit = $LASTEXITCODE
+    if (Test-Path "sources.txt") { Remove-Item "sources.txt" -Force -ErrorAction SilentlyContinue }
     
-    if ($LASTEXITCODE -eq 0) {
+    if ($javacExit -eq 0) {
         if (-not (Test-Path $classesDir)) {
             New-Item -ItemType Directory -Path $classesDir -Force | Out-Null
         }
@@ -653,6 +661,13 @@ function Compile-Java-Atomic {
         Remove-Item $classesTempDir -Recurse -Force -ErrorAction SilentlyContinue
         return $true
     } else {
+        # Print compiler errors — output was already captured in-memory, nothing to unlock
+        if ($compileOutput) {
+            Write-Host "=================== COMPILATION ERRORS ===================" -ForegroundColor Red
+            Write-Host ($compileOutput -join "`n") -ForegroundColor Red
+            Write-Host "=========================================================" -ForegroundColor Red
+        }
+        Remove-Item $classesTempDir -Recurse -Force -ErrorAction SilentlyContinue
         return $false
     }
 }
@@ -704,15 +719,11 @@ function Deploy-App {
     $compileLogFile = "compile_output.log"
     if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
 
-    $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
+    $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath
     if (-not $compiled) {
-        $compileErrors = Get-Content $compileLogFile -Raw -ErrorAction SilentlyContinue
-        Write-Host "=================== COMPILATION ERRORS ===================" -ForegroundColor Red
-        Write-Host $compileErrors -ForegroundColor Red
-        Write-Host "=========================================================" -ForegroundColor Red
+        Write-Host "[ERROR] Compilation failed. See errors above." -ForegroundColor Red
         return
     }
-    if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
     Write-Host "Compilation completed successfully!" -ForegroundColor Green
 
     Write-Host "`n===== [4/6] CREATING TOMCAT CONTEXT XML =====" -ForegroundColor Green
@@ -762,41 +773,48 @@ function Deploy-App {
     $isBuildInProgress = $false
     
     while ($true) {
-        Start-Sleep -Seconds 2
-        if ($isBuildInProgress) { continue }
-        
-        # Simple watcher: calculate combined last write times
-        $files = Get-ChildItem -Path "src/java", "web" -Recurse -File -ErrorAction SilentlyContinue
-        $currentChecksum = ($files | ForEach-Object { $_.LastWriteTime.Ticks }) -join ","
-        
-        if ($lastChecksum -eq "") {
-            $lastChecksum = $currentChecksum
-            continue
-        }
-        
-        if ($currentChecksum -ne $lastChecksum) {
-            $isBuildInProgress = $true
-            Write-Host "`n[WATCH] Change detected. Recompiling & Syncing..." -ForegroundColor Yellow
-            $lastChecksum = $currentChecksum
+        try {
+            Start-Sleep -Seconds 2
+            if ($isBuildInProgress) { continue }
             
-            try {
-                # Sync web
-                if (Test-Path $webSrcDir) {
-                    Start-Process -FilePath "robocopy" `
-                        -ArgumentList "`"$webSrcDir`"", "`"$webBuildDir`"", "/s", "/e", "/xd", "WEB-INF\classes", "/w:1", "/r:1", "/ndl", "/nfl" `
-                        -Wait -NoNewWindow
-                }
-                $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
-                if ($compiled) {
-                    Write-Host "[WATCH] Recompile and atomic sync completed successfully!" -ForegroundColor Green
-                } else {
-                    Write-Host "[WATCH] Recompile failed!" -ForegroundColor Red
-                }
-            } catch {
-                Write-Host "[WATCH] Error during sync: $_" -ForegroundColor Red
-            } finally {
-                $isBuildInProgress = $false
+            # Simple watcher: calculate combined last write times
+            $files = Get-ChildItem -Path "src/java", "web" -Recurse -File -ErrorAction SilentlyContinue
+            if (-not $files) { continue }
+            
+            $currentChecksum = ($files | ForEach-Object { $_.LastWriteTime.Ticks }) -join ","
+            
+            if ($lastChecksum -eq "") {
+                $lastChecksum = $currentChecksum
+                continue
             }
+            
+            if ($currentChecksum -ne $lastChecksum) {
+                $isBuildInProgress = $true
+                Write-Host "`n[WATCH] Change detected. Recompiling & Syncing..." -ForegroundColor Yellow
+                $lastChecksum = $currentChecksum
+                
+                try {
+                    # Sync web files first
+                    if (Test-Path $webSrcDir) {
+                        Start-Process -FilePath "robocopy" `
+                            -ArgumentList "`"$webSrcDir`"", "`"$webBuildDir`"", "/s", "/e", "/xd", "WEB-INF\classes", "/w:1", "/r:1", "/ndl", "/nfl" `
+                            -Wait -NoNewWindow
+                    }
+                    # Errors are printed inside Compile-Java-Atomic — no log file involved
+                    $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath
+                    if ($compiled) {
+                        Write-Host "[WATCH] Recompile and atomic sync completed successfully!" -ForegroundColor Green
+                    } else {
+                        Write-Host "[WATCH] Recompile failed! See errors above." -ForegroundColor Red
+                    }
+                } catch {
+                    Write-Host "[WATCH] Build error: $_" -ForegroundColor Red
+                } finally {
+                    $isBuildInProgress = $false
+                }
+            }
+        } catch {
+            Write-Host "[WATCH] Warning: Exception occurred in file watch loop: $_" -ForegroundColor Yellow
         }
     }
 }
@@ -817,20 +835,14 @@ function Deploy-Reload {
     if ($env:CATALINA_HOME) { $tomcatHome = $env:CATALINA_HOME }
     
     $classpath = "web/WEB-INF/lib/*;$tomcatHome/lib/*"
-    $compileLogFile = "compile_output.log"
-    if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
     
-    $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
+    $compiled = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath
     if ($compiled) {
         Write-Host "[OK] Hot-reload compilation and atomic sync completed successfully!" -ForegroundColor Green
         Write-Host "Tomcat will reload the context in ~1-2 seconds. Active sessions preserved." -ForegroundColor Cyan
     } else {
-        $compileErrors = Get-Content $compileLogFile -Raw -ErrorAction SilentlyContinue
-        Write-Host "=================== COMPILATION ERRORS ===================" -ForegroundColor Red
-        Write-Host $compileErrors -ForegroundColor Red
-        Write-Host "=========================================================" -ForegroundColor Red
+        Write-Host "[ERROR] Hot-reload compilation failed. See errors above." -ForegroundColor Red
     }
-    if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
 }
 
 # Docker management functions
@@ -894,18 +906,14 @@ function Run-Tests {
     $tomcatHome = $env:CATALINA_HOME
     
     $classpath = "web/WEB-INF/lib/*;$tomcatHome/lib/*"
-    $compileLogFile = "compile_output.log"
     
     Write-Host "Compiling main Java classes..." -ForegroundColor Yellow
-    $compiledMain = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath -compileLogFile $compileLogFile
+    $compiledMain = Compile-Java-Atomic -webBuildDir $webBuildDir -tomcatHome $tomcatHome -classpath $classpath
     if (-not $compiledMain) {
-        $compileErrors = Get-Content $compileLogFile -Raw -ErrorAction SilentlyContinue
-        Write-Host "Main Java compilation failed!" -ForegroundColor Red
-        Write-Host $compileErrors -ForegroundColor Red
-        if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
+        Write-Host "[ERROR] Main Java compilation failed. See errors above." -ForegroundColor Red
         return
     }
-    if (Test-Path $compileLogFile) { Remove-Item $compileLogFile -Force }
+    Write-Host "Main Java compilation OK." -ForegroundColor Green
     
     # Compile tests
     $testBuildDir = "build/test/classes"
@@ -924,19 +932,17 @@ function Run-Tests {
     $testClasspath = "build/web/WEB-INF/classes;web/WEB-INF/lib/*;lib/test/*;$tomcatHome/lib/*"
     
     Write-Host "Compiling test Java classes..." -ForegroundColor Yellow
-    $javacCmd = "javac -encoding UTF-8 -cp `"$testClasspath`" -d `"$testBuildDir`" @test_sources.txt > test_compile_output.log 2>&1"
-    cmd.exe /c $javacCmd
+    $testJavacArgs = "-encoding UTF-8 -cp `"$testClasspath`" -d `"$testBuildDir`" @test_sources.txt"
+    $testOutput = cmd.exe /c "javac $testJavacArgs 2>&1"
+    $testExit = $LASTEXITCODE
     
-    if (Test-Path "test_sources.txt") { Remove-Item "test_sources.txt" -Force }
+    if (Test-Path "test_sources.txt") { Remove-Item "test_sources.txt" -Force -ErrorAction SilentlyContinue }
     
-    if ($LASTEXITCODE -ne 0) {
-        $compileErrors = Get-Content test_compile_output.log -Raw -ErrorAction SilentlyContinue
-        Write-Host "Test compilation failed!" -ForegroundColor Red
-        Write-Host $compileErrors -ForegroundColor Red
-        if (Test-Path "test_compile_output.log") { Remove-Item "test_compile_output.log" -Force }
+    if ($testExit -ne 0) {
+        Write-Host "[ERROR] Test compilation failed!" -ForegroundColor Red
+        if ($testOutput) { Write-Host ($testOutput -join "`n") -ForegroundColor Red }
         return
     }
-    if (Test-Path "test_compile_output.log") { Remove-Item "test_compile_output.log" -Force }
     Write-Host "Test compilation completed successfully!" -ForegroundColor Green
     
     # Run tests using JUnit Core
@@ -962,6 +968,96 @@ function Run-Tests {
     cmd.exe /c $cmdRun
 }
 
+function Find-SqlCmd {
+    $sqlcmd = Get-Command sqlcmd -ErrorAction SilentlyContinue
+    if ($sqlcmd) { return $sqlcmd.Source }
+    
+    $commonPaths = @(
+        "C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE",
+        "C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn\SQLCMD.EXE",
+        "C:\Program Files\Microsoft SQL Server\110\Tools\Binn\SQLCMD.EXE",
+        "C:\Program Files\Microsoft SQL Server\120\Tools\Binn\SQLCMD.EXE",
+        "C:\Program Files\Microsoft SQL Server\130\Tools\Binn\SQLCMD.EXE",
+        "C:\Program Files\Microsoft SQL Server\140\Tools\Binn\SQLCMD.EXE",
+        "C:\Program Files\Microsoft SQL Server\150\Tools\Binn\SQLCMD.EXE",
+        "C:\Program Files\Microsoft SQL Server\160\Tools\Binn\SQLCMD.EXE"
+    )
+    foreach ($path in $commonPaths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+    return $null
+}
+
+function Setup-Database {
+    Write-Host "`n===== SETTING UP DATABASE =====" -ForegroundColor Green
+    
+    if (-not (Test-Path ".env")) {
+        Write-Host "[ERROR] Khong tim thay file .env de lay cau hinh database!" -ForegroundColor Red
+        return
+    }
+
+    # Retrieve database properties from env variables
+    $dbHost = [System.Environment]::GetEnvironmentVariable("DB_HOST", "Process")
+    $dbPort = [System.Environment]::GetEnvironmentVariable("DB_PORT", "Process")
+    $dbName = [System.Environment]::GetEnvironmentVariable("DB_NAME", "Process")
+    $dbUser = [System.Environment]::GetEnvironmentVariable("DB_USER", "Process")
+    $dbPassword = [System.Environment]::GetEnvironmentVariable("DB_PASSWORD", "Process")
+
+    if (-not $dbHost) { $dbHost = "localhost" }
+    if (-not $dbPort) { $dbPort = "1433" }
+    if (-not $dbName) { $dbName = "OnlineFruitShopping" }
+    
+    Write-Host "Database Host: $dbHost" -ForegroundColor Cyan
+    Write-Host "Database Port: $dbPort" -ForegroundColor Cyan
+    Write-Host "Database Name: $dbName" -ForegroundColor Cyan
+    Write-Host "Database User: $dbUser" -ForegroundColor Cyan
+
+    $sqlcmdPath = Find-SqlCmd
+    if (-not $sqlcmdPath) {
+        Write-Host "[ERROR] Khong tim thay cong cu sqlcmd.exe tren he thong!" -ForegroundColor Red
+        Write-Host "Vui long cai dat Microsoft Command Line Utilities for SQL Server." -ForegroundColor Yellow
+        return
+    }
+    
+    Write-Host "Su dung sqlcmd tai: $sqlcmdPath" -ForegroundColor Gray
+    
+    $setupFile = "database/Setup_OnlineFruitShopping.sql"
+    if (-not (Test-Path $setupFile)) {
+        Write-Host "[ERROR] Khong tim thay file setup SQL tai: $setupFile" -ForegroundColor Red
+        return
+    }
+
+    Write-Host "Dang chay file setup database..." -ForegroundColor Yellow
+
+    $serverArg = "$dbHost,$dbPort"
+    $argsList = @("-S", $serverArg)
+    if ($dbUser -and $dbPassword) {
+        $argsList += @("-U", $dbUser, "-P", $dbPassword)
+    } else {
+        $argsList += @("-E")
+    }
+    $argsList += @("-f", "65001", "-i", $setupFile)
+
+    Log-Message "Running database setup command: $sqlcmdPath $($argsList -join ' ')" "INFO"
+    
+    try {
+        & $sqlcmdPath @argsList
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] Khoi tao va seed database thanh cong!" -ForegroundColor Green
+            Log-Message "Database setup completed successfully." "INFO"
+        } else {
+            Write-Host "[ERROR] Loi khi chay sqlcmd! Exit Code: $LASTEXITCODE" -ForegroundColor Red
+            Log-Message "Database setup failed with exit code $LASTEXITCODE." "ERROR"
+        }
+    } catch {
+        Write-Host "[ERROR] Loi khi thuc thi sqlcmd: $_" -ForegroundColor Red
+        Log-Message "Error running sqlcmd: $_" "ERROR"
+    }
+}
+
 # Main execution
 switch ($Action.ToLower()) {
     "help" { Show-Help }
@@ -976,6 +1072,7 @@ switch ($Action.ToLower()) {
     "deploy" { Deploy-App }
     "reload" { Deploy-Reload }
     "test" { Run-Tests }
+    "setup-db" { Setup-Database }
     "docker-build" { Docker-Build }
     "docker-up" { Docker-Up }
     "docker-down" { Docker-Down }

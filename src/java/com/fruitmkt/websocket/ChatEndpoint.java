@@ -8,7 +8,13 @@ import com.fruitmkt.model.entity.ChatSession;
 import com.fruitmkt.model.entity.Notification;
 import com.fruitmkt.model.entity.User;
 import jakarta.servlet.http.HttpSession;
-import jakarta.websocket.*;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnMessage;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 
@@ -99,6 +105,8 @@ public class ChatEndpoint {
 
         // Lưu userId vào WS session userProperties để dùng ở @OnMessage
         wsSession.getUserProperties().put("userId", currentUser.getUserId());
+        wsSession.getUserProperties().put("userRole", currentUser.getRole());
+        wsSession.getUserProperties().put("fullName", currentUser.getFullName());
         wsSession.getUserProperties().put("sessionId", sessionId);
 
         // Thêm WS session vào room
@@ -111,6 +119,9 @@ public class ChatEndpoint {
     public void onMessage(Session wsSession, String rawMessage) {
         Integer sessionId = (Integer) wsSession.getUserProperties().get("sessionId");
         Integer senderId  = (Integer) wsSession.getUserProperties().get("userId");
+        String senderRole = (String) wsSession.getUserProperties().get("userRole");
+        String senderName = (String) wsSession.getUserProperties().get("fullName");
+        
         if (sessionId == null || senderId == null) return;
 
         // Parse JSON đơn giản: {"content":"...", "mediaUrl":"...", "mediaType":"..."}
@@ -145,9 +156,8 @@ public class ChatEndpoint {
             return;
         }
 
-        // Build JSON response
+        // Build JSON response per peer to support name masking
         String createdAtStr = LocalDateTime.now().toString();
-        String responseJson = buildMessageJson(messageId, senderId, content, mediaUrl, mediaType, createdAtStr);
 
         // Broadcast tới tất cả WS sessions trong room
         Set<Session> room = ROOM_MAP.get(sessionId);
@@ -155,6 +165,13 @@ public class ChatEndpoint {
             for (Session peer : room) {
                 if (peer.isOpen()) {
                     try {
+                        String peerRole = (String) peer.getUserProperties().get("userRole");
+                        boolean peerIsAdmin = AppConfig.ROLE_ADMIN.equals(peerRole);
+                        String displayName = senderName;
+                        if (!peerIsAdmin && "ADMIN".equals(senderRole)) {
+                            displayName = "Hỗ trợ Admin";
+                        }
+                        String responseJson = buildMessageJson(messageId, senderId, displayName, senderRole, content, mediaUrl, mediaType, createdAtStr);
                         peer.getBasicRemote().sendText(responseJson);
                     } catch (IOException e) {
                         LOG.log(Level.WARNING, "ChatEndpoint: không gửi được tới peer", e);
@@ -169,21 +186,13 @@ public class ChatEndpoint {
 
     @OnClose
     public void onClose(Session wsSession, CloseReason reason) {
-        Integer sessionId = (Integer) wsSession.getUserProperties().get("sessionId");
-        if (sessionId != null) {
-            Set<Session> room = ROOM_MAP.get(sessionId);
-            if (room != null) {
-                room.remove(wsSession);
-                if (room.isEmpty()) {
-                    ROOM_MAP.remove(sessionId);
-                }
-            }
-        }
+        removeFromRoom(wsSession);
     }
 
     @OnError
     public void onError(Session wsSession, Throwable throwable) {
         LOG.log(Level.WARNING, "ChatEndpoint.onError: " + throwable.getMessage(), throwable);
+        removeFromRoom(wsSession);
     }
 
     // ----------------------------------------------------------------
@@ -273,6 +282,23 @@ public class ChatEndpoint {
         }
     }
 
+    /**
+     * Xóa wsSession khỏi ROOM_MAP và dọn room rỗng.
+     * Được gọi từ cả @OnClose lẫn @OnError để đảm bảo mọi con đường thoát
+     * đều giải phóng session — tránh rò rỉ bộ nhớ.
+     *
+     * Thread-safe: ConcurrentHashMap.computeIfPresent + CopyOnWriteArraySet.remove
+     * đảm bảo an toàn khi nhiều thread gọi đồng thời.
+     */
+    private void removeFromRoom(Session wsSession) {
+        Integer sessionId = (Integer) wsSession.getUserProperties().get("sessionId");
+        if (sessionId == null) return;
+        ROOM_MAP.computeIfPresent(sessionId, (id, room) -> {
+            room.remove(wsSession);
+            return room.isEmpty() ? null : room;  // trả về null → ConcurrentHashMap tự xóa entry
+        });
+    }
+
     /** Đóng WS session với mã 1008 (Policy Violation) khi không có quyền */
     private void closeUnauthorized(Session wsSession, String reason) {
         try {
@@ -323,14 +349,16 @@ public class ChatEndpoint {
                    .replace("\\\"", "\"")
                    .replace("\\n", "\n")
                    .replace("\\\\", "\\");
-    }
+     }
 
     /** Build JSON message response */
-    private String buildMessageJson(int messageId, int senderId, String content, String mediaUrl, String mediaType, String createdAt) {
+    private String buildMessageJson(int messageId, int senderId, String senderName, String senderRole, String content, String mediaUrl, String mediaType, String createdAt) {
         StringBuilder sb = new StringBuilder();
         sb.append("{");
         sb.append("\"messageId\":").append(messageId);
         sb.append(",\"senderId\":").append(senderId);
+        sb.append(",\"senderName\":").append(senderName != null ? "\"" + escapeJson(senderName) + "\"" : "null");
+        sb.append(",\"senderRole\":").append(senderRole != null ? "\"" + escapeJson(senderRole) + "\"" : "null");
         sb.append(",\"content\":").append(content != null ? "\"" + escapeJson(content) + "\"" : "null");
         sb.append(",\"mediaUrl\":").append(mediaUrl != null ? "\"" + escapeJson(mediaUrl) + "\"" : "null");
         sb.append(",\"mediaType\":").append(mediaType != null ? "\"" + escapeJson(mediaType) + "\"" : "null");

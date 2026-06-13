@@ -4,13 +4,19 @@ import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.ReturnRequestService;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @WebServlet("/admin/refunds")
 public class AdminRefundServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(AdminRefundServlet.class.getName());
 
     private final ReturnRequestService returnRequestService = new ReturnRequestService();
 
@@ -21,7 +27,9 @@ public class AdminRefundServlet extends HttpServlet {
             int page = 1;
             String pageStr = req.getParameter("page");
             if (pageStr != null && !pageStr.trim().isEmpty()) {
-                try { page = Integer.parseInt(pageStr); } catch (Exception e) {}
+                try { page = Integer.parseInt(pageStr); } catch (NumberFormatException e) {
+                    LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
+                }
             }
             int pageSize = 20;
 
@@ -36,7 +44,7 @@ public class AdminRefundServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-refunds.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi khi tải danh sách yêu cầu hoàn trả", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách yêu cầu hoàn trả");
         }
     }
@@ -63,7 +71,7 @@ public class AdminRefundServlet extends HttpServlet {
                 SessionUtil.flashSuccess(req.getSession(), "Đã từ chối yêu cầu hoàn tiền #" + requestId);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi xử lý hoàn tiền requestId=" + req.getParameter("requestId"), e);
             SessionUtil.flashError(req.getSession(), "Lỗi xử lý hoàn tiền: " + e.getMessage());
         }
         resp.sendRedirect(req.getContextPath() + "/admin/refunds");

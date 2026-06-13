@@ -1,10 +1,16 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ProductPackagingOption;
-import java.sql.*;
+import com.fruitmkt.util.LoggerUtil;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ProductPackagingOptionDAO — DAO xử lý thông tin bảng product_packaging_options.
@@ -12,6 +18,8 @@ import java.util.List;
  * @author fruitmkt-team
  */
 public class ProductPackagingOptionDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(ProductPackagingOptionDAO.class.getName());
 
     public List<ProductPackagingOption> findByProduct(int productId) throws SQLException {
         List<ProductPackagingOption> list = new ArrayList<>();

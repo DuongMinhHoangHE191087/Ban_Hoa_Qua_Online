@@ -1,10 +1,23 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.Order;
 import com.fruitmkt.model.entity.OrderItem;
-import java.sql.*;
-import java.util.*;
+import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * OrderDAO — DAO cho entity Order.
@@ -19,6 +32,7 @@ import java.util.*;
  */
 public class OrderDAO extends BaseDAO {
 
+    private static final Logger log = Logger.getLogger(OrderDAO.class.getName());
     private static boolean schemaChecked = false;
 
     public OrderDAO() {
@@ -32,16 +46,18 @@ public class OrderDAO extends BaseDAO {
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT TOP 0 received_status FROM orders")) {
                 colExists = true;
-            } catch (SQLException e) {}
+            } catch (SQLException e) {
+                LoggerUtil.warn(log, "received_status column not yet present, will attempt to add", e);
+            }
             if (!colExists) {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.executeUpdate("ALTER TABLE orders ADD received_status NVARCHAR(30) NULL");
-                    System.out.println("[DB Migrator] Success: Added received_status column to orders.");
+                    LoggerUtil.info(log, "[DB Migrator] Success: Added received_status column to orders.");
                 }
             }
             schemaChecked = true;
         } catch (SQLException e) {
-            System.err.println("[DB Migrator] Error checking/adding orders columns: " + e.getMessage());
+            LoggerUtil.error(log, "[DB Migrator] Error checking/adding orders columns", e);
             schemaChecked = true;
         }
     }
@@ -76,27 +92,25 @@ public class OrderDAO extends BaseDAO {
      */
     public List<Order> findByCustomer(int customerId, String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
-        if (offset < 0) offset = 0;
-        
+
         StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE customer_id = ? AND parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         params.add(customerId);
-        
+
         if (status != null && !status.trim().isEmpty()) {
             sql.append("AND status = ? ");
             params.add(status);
         }
-        
-        sql.append("ORDER BY order_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(offset);
-        params.add(pageSize);
-        
+
+        sql.append("ORDER BY order_id DESC").append(PaginationHelper.OFFSET_FETCH_SQL);
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -112,7 +126,6 @@ public class OrderDAO extends BaseDAO {
      */
     public List<Order> findByOwner(int ownerId, String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
         StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE owner_id = ? ");
         List<Object> params = new ArrayList<>();
         params.add(ownerId);
@@ -120,14 +133,14 @@ public class OrderDAO extends BaseDAO {
             sql.append("AND status = ? ");
             params.add(status);
         }
-        sql.append("ORDER BY order_id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(offset);
-        params.add(pageSize);
+        sql.append("ORDER BY order_id DESC").append(PaginationHelper.OFFSET_FETCH_SQL);
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -323,6 +336,68 @@ public class OrderDAO extends BaseDAO {
     /**
      * Cập nhật trạng thái đơn hàng.
      */
+    public int save(Connection conn, Order order) throws SQLException {
+        String sql = "INSERT INTO orders (customer_id, owner_id, parent_order_id, order_type, delivery_address, "
+                + "recipient_name, recipient_phone, delivery_time_slot, notes, cancelled_at, cancelled_by, "
+                + "cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, "
+                + "shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, "
+                + "shop_acceptance_deadline, created_at, updated_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, order.getCustomerId());
+            if (order.getOwnerIdObject() != null && order.getOwnerIdObject() > 0) {
+                ps.setInt(2, order.getOwnerIdObject());
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
+            if (order.getParentOrderId() != null && order.getParentOrderId() > 0) {
+                ps.setInt(3, order.getParentOrderId());
+            } else {
+                ps.setNull(3, Types.INTEGER);
+            }
+            ps.setString(4, order.getOrderType() != null ? order.getOrderType() : "CHILD");
+            ps.setString(5, order.getDeliveryAddress());
+            ps.setString(6, order.getRecipientName());
+            ps.setString(7, order.getRecipientPhone());
+            ps.setString(8, order.getDeliveryTimeSlot());
+            ps.setString(9, order.getNotes());
+            if (order.getCancelledAt() != null) {
+                ps.setTimestamp(10, Timestamp.valueOf(order.getCancelledAt()));
+            } else {
+                ps.setNull(10, Types.TIMESTAMP);
+            }
+            if (order.getCancelledBy() != null) {
+                ps.setInt(11, order.getCancelledBy());
+            } else {
+                ps.setNull(11, Types.INTEGER);
+            }
+            ps.setString(12, order.getCancellationReason());
+            String status = order.getStatus() != null ? order.getStatus() : "PENDING_PAYMENT";
+            ps.setString(13, status);
+            ps.setBigDecimal(14, order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(15, order.getDeliveryFee() != null ? order.getDeliveryFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(16, order.getDiscountAmount() != null ? order.getDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(17, order.getSystemDiscountAmount() != null ? order.getSystemDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(18, order.getShopDiscountAmount() != null ? order.getShopDiscountAmount() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(19, order.getPlatformFee() != null ? order.getPlatformFee() : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(20, order.getFinalAmount() != null ? order.getFinalAmount() : java.math.BigDecimal.ZERO);
+            ps.setString(21, order.getPaymentMethod() != null ? order.getPaymentMethod() : "COD");
+            ps.setString(22, order.getRefundStatus() != null ? order.getRefundStatus() : "NONE");
+            if ("CONFIRMED".equals(status)) {
+                ps.setTimestamp(23, Timestamp.valueOf(java.time.LocalDateTime.now().plusMinutes(30)));
+            } else {
+                ps.setNull(23, Types.TIMESTAMP);
+            }
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        throw new SQLException("Luu don hang that bai, khong lay duoc ma khoa tu tang.");
+    }
+
     public void updateStatus(int orderId, String status) throws SQLException {
         String sql;
         if ("CONFIRMED".equals(status)) {
@@ -426,6 +501,15 @@ public class OrderDAO extends BaseDAO {
      */
     public Connection openConnection() throws SQLException {
         return getConnection();
+    }
+
+    public void updatePlatformFee(Connection conn, int orderId, java.math.BigDecimal platformFee) throws SQLException {
+        String sql = "UPDATE orders SET platform_fee = ?, updated_at = GETDATE() WHERE order_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, platformFee != null ? platformFee : java.math.BigDecimal.ZERO);
+            ps.setInt(2, orderId);
+            ps.executeUpdate();
+        }
     }
 
 

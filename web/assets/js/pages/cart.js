@@ -7,6 +7,7 @@ const CartPage = {
     isLoggedIn: false,
     contextPath: '',
     userCartKey: 'userCart', // Key lưu giỏ hàng của user đã đăng nhập ở Local Storage
+    selectedVariantKey: 'cartSelectedVariantIds',
     productVariantsCache: {},
 
     async safeParseJSON(response) {
@@ -67,9 +68,10 @@ const CartPage = {
                 // Xóa giỏ hàng guest vì đã gộp thành công
                 GuestCart.clear();
                 // Lưu giỏ hàng user đã gộp vào Local Storage
-                if (data.cartSummary && data.cartSummary.items) {
-                    this.saveUserCartToLocal(data.cartSummary.items);
-                    this.renderCart(data.cartSummary);
+                const payload = data.data;
+                if (payload && payload.cartSummary && payload.cartSummary.items) {
+                    this.saveUserCartToLocal(payload.cartSummary.items);
+                    this.renderCart(payload.cartSummary);
                 }
             }
         } catch (err) {
@@ -101,6 +103,73 @@ const CartPage = {
         const totalQty = mappedItems.reduce((sum, i) => sum + i.quantity, 0);
         const badge = document.getElementById('cart-badge');
         if (badge) badge.textContent = totalQty;
+    },
+
+    /**
+     * Lưu danh sách variant đang được chọn để giữ state qua các lần re-render.
+     */
+    saveSelectedVariantIds(variantIds) {
+        try {
+            const uniqueIds = Array.from(new Set((variantIds || [])
+                .map(id => parseInt(id, 10))
+                .filter(id => Number.isInteger(id) && id > 0)));
+            localStorage.setItem(this.selectedVariantKey, JSON.stringify(uniqueIds));
+        } catch {
+            // Không chặn luồng checkout nếu localStorage không ghi được.
+        }
+    },
+
+    /**
+     * Đọc danh sách variant đang được chọn từ localStorage.
+     */
+    getPersistedSelectedVariantIds() {
+        try {
+            const raw = localStorage.getItem(this.selectedVariantKey);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            return parsed
+                .map(id => parseInt(id, 10))
+                .filter(id => Number.isInteger(id) && id > 0);
+        } catch {
+            return [];
+        }
+    },
+
+    /**
+     * Lấy danh sách variant đang được tick trên DOM hiện tại.
+     */
+    getCheckedVariantIdsFromDom() {
+        return Array.from(document.querySelectorAll('.chk-item:checked'))
+            .map(chk => parseInt(chk.getAttribute('data-variant-id'), 10))
+            .filter(id => Number.isInteger(id) && id > 0);
+    },
+
+    /**
+     * Khôi phục checkbox theo state đã lưu trước đó.
+     * Nếu chưa có state nào, mặc định chọn toàn bộ như hành vi cũ.
+     */
+    restoreSelectedVariantState(items) {
+        const persistedIds = this.getPersistedSelectedVariantIds();
+        const hasPersistedState = persistedIds.length > 0;
+        const selectedSet = hasPersistedState ? new Set(persistedIds) : null;
+        const availableIds = new Set((items || [])
+            .map(item => parseInt(item.variantId, 10))
+            .filter(id => Number.isInteger(id) && id > 0));
+
+        document.querySelectorAll('.chk-item').forEach(chk => {
+            const variantId = parseInt(chk.getAttribute('data-variant-id'), 10);
+            if (!Number.isInteger(variantId) || variantId <= 0) {
+                chk.checked = false;
+                return;
+            }
+            chk.checked = selectedSet ? selectedSet.has(variantId) : true;
+        });
+
+        const effectiveSelection = hasPersistedState
+            ? persistedIds.filter(id => availableIds.has(id))
+            : Array.from(availableIds);
+        this.saveSelectedVariantIds(effectiveSelection);
     },
 
     /**
@@ -167,11 +236,12 @@ const CartPage = {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
             const data = await this.safeParseJSON(response);
-            if (data.success && data.cartSummary) {
+            const payload = data.success ? data.data : null;
+            if (payload && payload.cartSummary) {
                 // Lưu bản chuẩn vào Local Storage
-                this.saveUserCartToLocal(data.cartSummary.items);
+                this.saveUserCartToLocal(payload.cartSummary.items);
                 // Render lại UI với dữ liệu chuẩn xác nhất từ DB (nếu có biến động giá/tồn kho)
-                this.renderCart(data.cartSummary);
+                this.renderCart(payload.cartSummary);
             }
         } catch (err) {
             console.warn('[CartPage] Không thể kết nối server để đồng bộ giỏ hàng:', err);
@@ -259,6 +329,7 @@ const CartPage = {
                 checkboxes.forEach(chk => {
                     chk.checked = chkSelectAll.checked;
                 });
+                this.saveSelectedVariantIds(this.getCheckedVariantIdsFromDom());
                 this.recalculateClientSummary(this.getCurrentLocalItems());
             });
         }
@@ -270,6 +341,7 @@ const CartPage = {
                 const checkboxes = Array.from(document.querySelectorAll('.chk-item'));
                 const allChecked = checkboxes.every(chk => chk.checked);
                 if (chkSelectAll) chkSelectAll.checked = allChecked;
+                this.saveSelectedVariantIds(this.getCheckedVariantIdsFromDom());
                 this.recalculateClientSummary(this.getCurrentLocalItems());
             }
         });
@@ -302,6 +374,8 @@ const CartPage = {
 
                 let localItems = this.getCurrentLocalItems();
                 const row = target.closest('.cart-item-row');
+                const rowCheckbox = row ? row.querySelector('.chk-item') : null;
+                const wasChecked = rowCheckbox ? rowCheckbox.checked : false;
                 const quantityInput = row.querySelector('.input-qty');
                 let qty = parseInt(quantityInput.value) || 1;
 
@@ -318,6 +392,11 @@ const CartPage = {
                         });
                         const data = await this.safeParseJSON(response);
                         if (data.success) {
+                            const selectedVariantIds = this.getPersistedSelectedVariantIds().filter(id => id !== oldVariantId);
+                            if (wasChecked) {
+                                selectedVariantIds.push(newVariantId);
+                            }
+                            this.saveSelectedVariantIds(selectedVariantIds);
                             this.showToast('Đã đổi biến thể thành công!', 'success');
                             this.loadAndSyncFromServer();
                         } else {
@@ -348,6 +427,11 @@ const CartPage = {
                             stockQuantity: newVariant.stockQuantity
                         };
                     }
+                    const selectedVariantIds = this.getPersistedSelectedVariantIds().filter(id => id !== oldVariantId);
+                    if (wasChecked) {
+                        selectedVariantIds.push(newVariantId);
+                    }
+                    this.saveSelectedVariantIds(selectedVariantIds);
                     GuestCart.save(localItems);
                     this.showToast('Đã đổi biến thể thành công!', 'success');
                     this.renderCart({ items: localItems });
@@ -465,7 +549,8 @@ const CartPage = {
         let totalGrams = 0;
         let checkedCount = 0;
 
-        const checkedVariantIds = Array.from(document.querySelectorAll('.chk-item:checked')).map(chk => parseInt(chk.getAttribute('data-variant-id')));
+        const checkedVariantIds = this.getCheckedVariantIdsFromDom();
+        this.saveSelectedVariantIds(checkedVariantIds);
         
         items.forEach(item => {
             const isChecked = checkedVariantIds.includes(item.variantId);
@@ -534,8 +619,11 @@ const CartPage = {
             try {
                 const response = await fetch(`${this.contextPath}/products/detail?id=${productId}&format=json`);
                 const data = await this.safeParseJSON(response);
-                if (data.success && data.variants) {
-                    this.productVariantsCache[productId] = data.variants;
+                if (data.success) {
+                    const payload = data.data;
+                    if (payload && payload.variants) {
+                        this.productVariantsCache[productId] = payload.variants;
+                    }
                 }
             } catch (err) {
                 console.warn(`[CartPage] Không thể lấy biến thể cho sản phẩm ${productId}:`, err);
@@ -648,6 +736,7 @@ const CartPage = {
         });
 
         container.innerHTML = html;
+        this.restoreSelectedVariantState(summary.items);
         this.recalculateClientSummary(summary.items);
         this.populateCartVariantDropdowns();
         
@@ -677,6 +766,7 @@ const CartPage = {
         if (checkoutCard) checkoutCard.classList.add('hidden');
         const headerActions = document.getElementById('cart-header-actions');
         if (headerActions) headerActions.classList.add('hidden');
+        this.saveSelectedVariantIds([]);
     },
 
     /**
@@ -691,13 +781,13 @@ const CartPage = {
             return;
         }
 
-        const checkedItems = Array.from(document.querySelectorAll('.chk-item:checked'));
-        if (checkedItems.length === 0) {
+        const checkedVariantIds = this.getCheckedVariantIdsFromDom();
+        if (checkedVariantIds.length === 0) {
             this.showToast('Vui lòng chọn ít nhất một sản phẩm để thanh toán!', 'warning');
             return;
         }
 
-        const variantIds = checkedItems.map(chk => chk.getAttribute('data-variant-id')).join(',');
+        const variantIds = checkedVariantIds.join(',');
         const btnCheckout = document.getElementById('btn-cart-checkout');
         const spinner = btnCheckout.querySelector('.checkout-spinner');
         
@@ -709,18 +799,21 @@ const CartPage = {
             const response = await fetch(`${this.contextPath}/cart?action=checkStock`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-Token': window.csrfToken || ''
-                }
+                },
+                body: new URLSearchParams({ variantIds }).toString()
             });
             const data = await this.safeParseJSON(response);
             
             if (data.success) {
                 console.log('[CartPage] Stock double-check success. Proceeding to checkout.');
-                window.location.href = `${this.contextPath}/checkout?variantIds=${variantIds}`;
+                window.location.href = `${this.contextPath}/checkout?variantIds=${encodeURIComponent(variantIds)}`;
             } else {
                 let errorHtml = '<ul class="mb-0 text-start text-danger">';
-                data.errors.forEach(err => {
+                const errors = Array.isArray(data.errors) ? data.errors : [data.error || 'Không thể kiểm tra tồn kho lúc này.'];
+                errors.forEach(err => {
                     errorHtml += `<li>${err}</li>`;
                 });
                 errorHtml += '</ul>';

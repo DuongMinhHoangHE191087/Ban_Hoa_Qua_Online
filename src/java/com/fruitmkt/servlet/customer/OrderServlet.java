@@ -1,41 +1,52 @@
 package com.fruitmkt.servlet.customer;
 
 import com.fruitmkt.config.AppConfig;
-import com.fruitmkt.util.SessionUtil;
+import com.fruitmkt.dao.OrderDAO;
+import com.fruitmkt.dao.ShopProfileDAO;
+import com.fruitmkt.model.dto.OrderDetailViewDTO;
+import com.fruitmkt.model.dto.OrderListViewDTO;
+import com.fruitmkt.model.dto.ReorderResultDTO;
+import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.model.entity.OrderItem;
+import com.fruitmkt.model.entity.ShopProfile;
+import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.OrderService;
-
+import com.fruitmkt.service.OrderViewService;
+import com.fruitmkt.service.UserService;
+import com.fruitmkt.util.SessionUtil;
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
- * OrderServlet — Controller cho chức năng: Lịch sử đơn hàng và chi tiết tracking
- *
- * URL: /orders
- * GET : Lịch sử đơn hàng và chi tiết tracking
- * POST: Hủy đơn hàng
- *
- * QUY TẮC SERVLET:
- *   1. Không viết SQL ở đây — gọi Service
- *   2. Sau POST thành công dùng PRG pattern (sendRedirect)
- *   3. Lưu flash message vào session trước redirect
- *   4. Forward đến /WEB-INF/jsp/customer/... (không để truy cập trực tiếp)
- *   5. Kiểm tra quyền bằng SessionUtil trước khi xử lý
- *
- * @author fruitmkt-team
+ * Controller cho lich su don hang, chi tiet va invoice.
  */
 @WebServlet("/orders")
 public class OrderServlet extends HttpServlet {
 
+    private static final Logger log = Logger.getLogger(OrderServlet.class.getName());
+
     private final OrderService orderService = new OrderService();
-    private final com.fruitmkt.dao.OrderDAO orderDAO = new com.fruitmkt.dao.OrderDAO();
+    private final OrderViewService orderViewService = new OrderViewService();
+    private final OrderDAO orderDAO = new OrderDAO();
+    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+    private final UserService userService = new UserService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
-        if (user == null || (!"CUSTOMER".equals(user.getRole()) && !"SHOP_OWNER".equals(user.getRole()))) {
+        User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())
+                && !AppConfig.ROLE_SHOP_OWNER.equals(user.getRole()))) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -45,203 +56,205 @@ public class OrderServlet extends HttpServlet {
 
         String action = req.getParameter("action");
         if ("detail".equals(action)) {
-            String orderIdStr = req.getParameter("orderId");
-            if (orderIdStr != null) {
-                try {
-                    int orderId = Integer.parseInt(orderIdStr);
-                    com.fruitmkt.model.entity.Order order = orderDAO.findByIdForCustomer(orderId, user.getUserId());
-                    if (order == null && "SHOP_OWNER".equals(user.getRole())) {
-                        order = orderDAO.findByIdForOwner(orderId, user.getUserId());
-                    }
-                    if (order != null) {
-                        req.setAttribute("order", order);
-                        req.setAttribute("orderItems", orderService.getOrderItems(orderId));
-                        // Fetch payment transaction for detail view
-                        try {
-                            com.fruitmkt.service.PaymentService paymentService = new com.fruitmkt.service.PaymentService();
-                            req.setAttribute("paymentTx", paymentService.getPaymentByOrder(orderId));
-                        } catch (Exception ignored) {}
-                        // Get delivery tracking info if any
-                        try {
-                            com.fruitmkt.dao.DeliveryDAO deliveryDAO = new com.fruitmkt.dao.DeliveryDAO();
-                            req.setAttribute("delivery", deliveryDAO.findByOrderId(orderId));
-                        } catch (Exception ignored) {}
-                        
-                        req.getRequestDispatcher("/WEB-INF/jsp/customer/order-detail.jsp").forward(req, resp);
-                        return;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            resp.sendRedirect(req.getContextPath() + "/orders");
+            handleDetailView(req, resp, user);
             return;
         }
-
         if ("invoice".equals(action)) {
-            String orderIdStr = req.getParameter("orderId");
-            if (orderIdStr != null) {
-                try {
-                    int orderId = Integer.parseInt(orderIdStr);
-                    com.fruitmkt.model.entity.Order order = orderDAO.findByIdForCustomer(orderId, user.getUserId());
-                    if (order == null && "SHOP_OWNER".equals(user.getRole())) {
-                        order = orderDAO.findByIdForOwner(orderId, user.getUserId());
-                    }
-                    if (order != null) {
-                        // Enforce DELIVERED (Completed) status check for invoice
-                        if ("DELIVERED".equals(order.getStatus())) {
-                            req.setAttribute("order", order);
-                            req.setAttribute("orderItems", orderService.getOrderItems(orderId));
-                            req.getRequestDispatcher("/WEB-INF/jsp/customer/invoice.jsp").forward(req, resp);
-                            return;
-                        } else {
-                            SessionUtil.setFlashMessage(req.getSession(), "Hóa đơn điện tử chỉ khả dụng khi đơn hàng đã giao thành công.", "warning");
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            resp.sendRedirect(req.getContextPath() + "/orders");
+            handleInvoiceView(req, resp, user);
             return;
         }
 
-        // Default list view with status filter
-        String status = req.getParameter("status");
-        String pageStr = req.getParameter("page");
-        int page = 1;
-        if (pageStr != null && !pageStr.trim().isEmpty()) {
-            try {
-                page = Integer.parseInt(pageStr);
-            } catch (NumberFormatException ignored) {}
+        if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/profile?tab=orders");
+            return;
         }
 
+        String status = req.getParameter("status");
+        int page = parsePage(req.getParameter("page"));
         try {
-            int pageSize = 10;
-            java.util.List<com.fruitmkt.model.entity.Order> list = orderDAO.findByCustomer(user.getUserId(), status, page, pageSize);
-            int totalCount = orderDAO.countByCustomer(user.getUserId(), status);
-            
-            
-            // Lấy delivery info và payment info cho mỗi đơn hàng
-            com.fruitmkt.service.DeliveryService deliveryService = new com.fruitmkt.service.DeliveryService();
-            com.fruitmkt.service.PaymentService paymentService = new com.fruitmkt.service.PaymentService();
-            java.util.Map<Integer, com.fruitmkt.model.entity.Delivery> deliveryMap = new java.util.HashMap<>();
-            java.util.Map<Integer, com.fruitmkt.model.entity.PaymentTransaction> paymentTxMap = new java.util.HashMap<>();
-            for (com.fruitmkt.model.entity.Order order : list) {
-                com.fruitmkt.model.entity.Delivery delivery = deliveryService.getDeliveryByOrderId(order.getOrderId());
-                if (delivery != null) {
-                    deliveryMap.put(order.getOrderId(), delivery);
-                }
-                if ("CK".equals(order.getPaymentMethod())) {
-                    com.fruitmkt.model.entity.PaymentTransaction tx = paymentService.getPaymentByOrder(order.getOrderId());
-                    if (tx != null) {
-                        paymentTxMap.put(order.getOrderId(), tx);
-                    }
-                }
-            }
-            
-            req.setAttribute("orders", list);
-            req.setAttribute("deliveryMap", deliveryMap);
-            req.setAttribute("paymentTxMap", paymentTxMap);
-            req.setAttribute("currentPage", page);
-            req.setAttribute("totalPages", (int) Math.ceil((double) totalCount / pageSize));
-            req.setAttribute("selectedStatus", status);
+            OrderListViewDTO view = orderViewService.getOrderListView(user, status, page);
+            req.setAttribute("orders", view.getOrders());
+            req.setAttribute("deliveryMap", view.getDeliveryMap());
+            req.setAttribute("paymentTxMap", view.getPaymentTransactionMap());
+            req.setAttribute("currentPage", view.getCurrentPage());
+            req.setAttribute("totalPages", view.getTotalPages());
+            req.setAttribute("selectedStatus", view.getSelectedStatus());
             req.getRequestDispatcher("/WEB-INF/jsp/customer/orders.jsp").forward(req, resp);
         } catch (Exception e) {
             throw new ServletException(e);
         }
     }
 
-
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        com.fruitmkt.model.entity.User user = SessionUtil.getCurrentUser(req.getSession());
-        if (user == null || (!"CUSTOMER".equals(user.getRole()) && !"SHOP_OWNER".equals(user.getRole()))) {
+        User user = SessionUtil.getCurrentUser(req.getSession());
+        if (user == null || (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())
+                && !AppConfig.ROLE_SHOP_OWNER.equals(user.getRole()))) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
-        String action = req.getParameter("action");
-        String orderIdStr = req.getParameter("orderId");
         int orderId;
         try {
-            orderId = Integer.parseInt(orderIdStr);
+            orderId = Integer.parseInt(req.getParameter("orderId"));
         } catch (Exception e) {
             resp.sendRedirect(req.getContextPath() + "/orders");
             return;
         }
 
+        String action = req.getParameter("action");
         try {
             if ("confirmDelivery".equals(action)) {
-                // [FIX B6] RBAC: chỉ chủ đơn mới được confirm
-                com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
-                if (ord == null) {
-                    resp.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động này.");
-                    return;
-                }
                 orderService.customerConfirmDelivery(orderId, user.getUserId());
-                SessionUtil.setFlashMessage(req.getSession(), "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
+                SessionUtil.setFlashMessage(req.getSession(),
+                        "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
             } else if ("reportNotReceived".equals(action)) {
-                // RBAC: chỉ chủ đơn mới được báo cáo
-                com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
-                if (ord == null) {
-                    resp.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động này.");
-                    return;
-                }
-                orderDAO.updateReceivedStatus(orderId, "NOT_RECEIVED");
-                SessionUtil.setFlashMessage(req.getSession(), "Bạn đã báo cáo chưa nhận được hàng. Ban quản trị sẽ tiến hành xác minh đơn hàng.", "warning");
+                orderService.reportNotReceived(orderId, user.getUserId());
+                SessionUtil.setFlashMessage(req.getSession(),
+                        "Bạn đã báo cáo chưa nhận được hàng. Ban quản trị sẽ tiến hành xác minh đơn hàng.",
+                        "warning");
             } else if ("cancel".equals(action)) {
-                // [FIX B6] RBAC: chỉ chủ đơn mới được hủy
-                com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
-                if (ord == null) {
-                    resp.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền hủy đơn hàng này.");
-                    return;
-                }
-                String reason = req.getParameter("reason");
-                orderService.cancelOrder(orderId, user.getUserId(), reason);
+                orderService.cancelOrder(orderId, user.getUserId(), req.getParameter("reason"));
                 SessionUtil.setFlashMessage(req.getSession(), "Bạn đã hủy đơn hàng thành công!", "success");
             } else if ("reorder".equals(action)) {
-                // Reorder: thêm lại items của đơn hàng cũ vào giỏ hiện tại
-                com.fruitmkt.model.entity.Order ord = orderDAO.findByIdForCustomer(orderId, user.getUserId());
-                if (ord == null) {
-                    resp.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động này.");
-                    return;
-                }
-                java.util.List<com.fruitmkt.model.entity.OrderItem> items = orderService.getOrderItems(orderId);
-                // Lấy hoặc tạo giỏ hàng hiện tại
-                com.fruitmkt.dao.CartDAO cartDAO = new com.fruitmkt.dao.CartDAO();
-                java.util.List<com.fruitmkt.model.entity.Cart> carts = cartDAO.findByCustomer(user.getUserId());
-                int cartId;
-                if (carts.isEmpty()) {
-                    cartId = cartDAO.createForCustomer(user.getUserId());
+                ReorderResultDTO result = orderService.reorder(orderId, user.getUserId());
+                if (result.getSkippedCount() > 0) {
+                    SessionUtil.setFlashMessage(req.getSession(),
+                            "Đã thêm " + result.getAddedCount() + " sản phẩm vào giỏ hàng. "
+                                    + result.getSkippedCount() + " sản phẩm không còn khả dụng đã bị bỏ qua.",
+                            "warning");
                 } else {
-                    cartId = carts.get(0).getCartId();
-                }
-                int addedCount = 0;
-                int skippedCount = 0;
-                for (com.fruitmkt.model.entity.OrderItem item : items) {
-                    if (item.getVariantId() == null) { skippedCount++; continue; }
-                    try {
-                        cartDAO.addItem(cartId, item.getVariantId(), item.getQuantity());
-                        addedCount++;
-                    } catch (Exception ex) {
-                        skippedCount++;
-                    }
-                }
-                if (skippedCount > 0) {
-                    SessionUtil.setFlashMessage(req.getSession(), "Đã thêm " + addedCount + " sản phẩm vào giỏ hàng. " + skippedCount + " sản phẩm không còn khả dụng đã bị bỏ qua.", "warning");
-                } else {
-                    SessionUtil.setFlashMessage(req.getSession(), "Đã thêm " + addedCount + " sản phẩm vào giỏ hàng thành công!", "success");
+                    SessionUtil.setFlashMessage(req.getSession(),
+                            "Đã thêm " + result.getAddedCount() + " sản phẩm vào giỏ hàng thành công!",
+                            "success");
                 }
                 resp.sendRedirect(req.getContextPath() + "/cart");
                 return;
             }
+        } catch (SecurityException e) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+            return;
         } catch (Exception e) {
             SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
         }
-        
+
+        if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/profile/order-detail?orderId=" + orderId);
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/orders");
+        }
+    }
+
+    private void handleDetailView(HttpServletRequest req, HttpServletResponse resp, User user)
+            throws IOException, ServletException {
+        Integer orderId = parseOrderId(req.getParameter("orderId"));
+        if (orderId == null) {
+            resp.sendRedirect(req.getContextPath() + "/orders");
+            return;
+        }
+        try {
+            OrderDetailViewDTO view = orderViewService.getOrderDetailView(user, orderId);
+            if (view != null && view.getOrder() != null) {
+                Order order = view.getOrder();
+                req.setAttribute("order", order);
+                req.setAttribute("orderItems", view.getOrderItems());
+                req.setAttribute("paymentTx", view.getPaymentTransaction());
+                req.setAttribute("delivery", view.getDelivery());
+
+                // If this is a PARENT order, load children
+                if ("PARENT".equals(order.getOrderType())) {
+                    List<Order> childOrders = orderDAO.findChildrenByParentId(orderId);
+                    req.setAttribute("childOrders", childOrders);
+
+                    Map<Integer, List<OrderItem>> childOrderItemsMap = new HashMap<>();
+                    Map<Integer, String> shopNamesMap = new HashMap<>();
+                    for (Order child : childOrders) {
+                        childOrderItemsMap.put(child.getOrderId(), orderDAO.findItemsByOrderId(child.getOrderId()));
+                        try {
+                            List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(child.getOwnerId());
+                            if (!shopProfiles.isEmpty() && shopProfiles.get(0).getShopName() != null) {
+                                shopNamesMap.put(child.getOrderId(), shopProfiles.get(0).getShopName());
+                            } else {
+                                User owner = userService.findById(child.getOwnerId());
+                                shopNamesMap.put(child.getOrderId(), owner != null ? owner.getFullName() : "Cửa hàng");
+                            }
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Không thể tải tên shop cho đơn con #" + child.getOrderId(), e);
+                        }
+                    }
+                    req.setAttribute("childOrderItemsMap", childOrderItemsMap);
+                    req.setAttribute("shopNamesMap", shopNamesMap);
+                } else {
+                    // For single shop order, load its shop name
+                    String shopName = "Cửa hàng";
+                    if (order.getOwnerIdObject() != null) {
+                        try {
+                            List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(order.getOwnerId());
+                            if (!shopProfiles.isEmpty() && shopProfiles.get(0).getShopName() != null) {
+                                shopName = shopProfiles.get(0).getShopName();
+                            } else {
+                                User owner = userService.findById(order.getOwnerId());
+                                if (owner != null) shopName = owner.getFullName();
+                            }
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Không thể tải tên shop cho đơn #" + orderId, e);
+                        }
+                    }
+                    req.setAttribute("shopName", shopName);
+                }
+
+                req.getRequestDispatcher("/WEB-INF/jsp/customer/order-detail.jsp").forward(req, resp);
+                return;
+            }
+        } catch (Exception e) {
+            LoggerUtil.error(log, "Lỗi khi tải chi tiết đơn hàng", e);
+        }
         resp.sendRedirect(req.getContextPath() + "/orders");
     }
 
+    private void handleInvoiceView(HttpServletRequest req, HttpServletResponse resp, User user)
+            throws IOException, ServletException {
+        Integer orderId = parseOrderId(req.getParameter("orderId"));
+        if (orderId == null) {
+            resp.sendRedirect(req.getContextPath() + "/orders");
+            return;
+        }
+        try {
+            OrderDetailViewDTO view = orderViewService.getInvoiceView(user, orderId);
+            if (view != null && view.getOrder() != null) {
+                req.setAttribute("order", view.getOrder());
+                req.setAttribute("orderItems", view.getOrderItems());
+                req.getRequestDispatcher("/WEB-INF/jsp/customer/invoice.jsp").forward(req, resp);
+                return;
+            }
+            SessionUtil.setFlashMessage(req.getSession(),
+                    "Hoa don dien tu chi kha dung khi don hang da giao thanh cong.", "warning");
+        } catch (Exception e) {
+            LoggerUtil.error(log, "Lỗi khi tải hóa đơn đơn hàng", e);
+        }
+        resp.sendRedirect(req.getContextPath() + "/orders");
+    }
+
+    private int parsePage(String pageStr) {
+        if (pageStr == null || pageStr.trim().isEmpty()) {
+            return 1;
+        }
+        try {
+            return Integer.parseInt(pageStr);
+        } catch (NumberFormatException e) {
+            return 1;
+        }
+    }
+
+    private Integer parseOrderId(String orderIdStr) {
+        if (orderIdStr == null || orderIdStr.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(orderIdStr);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 }

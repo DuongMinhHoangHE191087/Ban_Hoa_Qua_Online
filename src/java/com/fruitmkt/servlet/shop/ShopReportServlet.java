@@ -6,12 +6,17 @@ import com.fruitmkt.service.ReportService;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.JsonUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * ShopReportServlet — Controller hiển thị báo cáo thống kê dành cho Shop Owner.
@@ -23,6 +28,8 @@ import java.util.Map;
  */
 @WebServlet("/shop/reports")
 public class ShopReportServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ShopReportServlet.class.getName());
 
     private final ReportService reportService = new ReportService();
 
@@ -62,7 +69,7 @@ public class ShopReportServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/shop/report.jsp").forward(req, resp);
         } catch (Exception e) {
-            e.printStackTrace();
+            LoggerUtil.error(log, "Lỗi tải báo cáo cửa hàng", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải báo cáo cửa hàng: " + e.getMessage());
         }
     }

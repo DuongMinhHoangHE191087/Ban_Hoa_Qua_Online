@@ -70,6 +70,8 @@ CREATE TABLE shop_owner_profiles (
     preferred_categories NVARCHAR(500) NULL,
     doc_paths NVARCHAR(MAX) NULL,
     business_email NVARCHAR(255) NULL,
+    logo_url NVARCHAR(500) NULL,
+    cover_url NVARCHAR(500) NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
@@ -471,13 +473,39 @@ CREATE TABLE system_config (
 
 -- (replenishment_logs đã được khai báo ở mục 9b phía trên — bỏ block trùng lập này)
 
-CREATE INDEX IX_orders_acceptance_auto_cancel
-ON orders (status, shop_acceptance_deadline)
-WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL;
-
+CREATE INDEX IX_orders_acceptance_auto_cancel ON orders (status, shop_acceptance_deadline) WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL;
 CREATE INDEX IX_return_requests_status ON return_requests(status, created_at);
-
 CREATE INDEX IX_products_status_approval_product_id ON products(status, approval_status, product_id DESC);
+CREATE INDEX IX_cart_items_cart_id_added_at ON cart_items (cart_id, added_at DESC);
+CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_id ON cart_items (cart_id, variant_id);
+CREATE INDEX IX_orders_customer_id_order_id_desc ON orders (customer_id, order_id DESC);
+CREATE INDEX IX_orders_parent_order_id ON orders (parent_order_id, order_id);
+CREATE INDEX IX_orders_owner_id_status_order_id_desc ON orders (owner_id, status, order_id DESC);
+CREATE INDEX IX_orders_owner_id_order_id_desc ON orders (owner_id, order_id DESC);
+CREATE INDEX IX_orders_status_order_id_desc ON orders (status, order_id DESC);
+CREATE INDEX IX_order_items_order_id ON order_items (order_id, order_item_id);
+CREATE INDEX IX_order_items_variant_id ON order_items (variant_id, order_item_id);
+CREATE INDEX IX_promotions_created_by_is_deleted_promo_id_desc ON promotions (created_by, is_deleted, promo_id DESC);
+CREATE INDEX IX_promotions_product_scope_active_validity ON promotions (product_id, scope, is_active, is_deleted, valid_from, valid_until);
+CREATE INDEX IX_inventory_logs_variant_id_changed_at_desc ON inventory_logs (variant_id, changed_at DESC);
+CREATE INDEX IX_return_requests_order_id_created_at_desc ON return_requests (order_id, created_at DESC);
+CREATE INDEX IX_return_requests_customer_id_created_at_desc ON return_requests (customer_id, created_at DESC);
+CREATE INDEX IX_return_requests_status_created_at_desc ON return_requests (status, created_at DESC);
+CREATE INDEX IX_shop_settlements_owner_id_settlement_id_desc ON shop_settlements (owner_id, settlement_id DESC);
+CREATE INDEX IX_shop_settlements_status_settlement_id_desc ON shop_settlements (status, settlement_id DESC);
+CREATE INDEX IX_shop_settlement_orders_settlement_id_order_id ON shop_settlement_orders (settlement_id, order_id);
+CREATE INDEX IX_deliveries_staff_id_status_delivery_id_desc ON deliveries (staff_id, status, delivery_id DESC);
+CREATE INDEX IX_deliveries_delivery_trip_id ON deliveries (delivery_trip_id, trip_stop_seq);
+CREATE INDEX IX_deliveries_staff_id_delivery_id_desc ON deliveries (staff_id, delivery_id DESC);
+CREATE INDEX IX_reviews_order_item_id ON reviews (order_item_id);
+CREATE INDEX IX_chat_sessions_customer_owner ON chat_sessions (customer_id, owner_id);
+CREATE INDEX IX_chat_sessions_customer_id_updated_at_desc ON chat_sessions (customer_id, updated_at DESC);
+CREATE INDEX IX_chat_sessions_owner_id_updated_at_desc ON chat_sessions (owner_id, updated_at DESC);
+CREATE INDEX IX_chat_messages_session_id_is_read_created_at_desc ON chat_messages (session_id, is_read, created_at DESC);
+CREATE INDEX IX_chat_messages_session_id_created_at_desc ON chat_messages (session_id, created_at DESC);
+CREATE INDEX IX_notifications_user_id_is_read_created_at_desc ON notifications (user_id, is_read, created_at DESC);
+CREATE INDEX IX_notifications_user_id_created_at_desc ON notifications (user_id, created_at DESC);
+CREATE INDEX IX_payment_transactions_sepay_transaction_id ON payment_transactions (sepay_transaction_id);
 
 
 -- Optional: Create Full-Text Search configuration [cite: 19]

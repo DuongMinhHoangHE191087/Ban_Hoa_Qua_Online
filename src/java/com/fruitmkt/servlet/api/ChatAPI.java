@@ -5,7 +5,9 @@ import com.fruitmkt.dao.ChatDAO;
 import com.fruitmkt.model.entity.ChatMessage;
 import com.fruitmkt.model.entity.ChatSession;
 import com.fruitmkt.model.entity.User;
+import com.fruitmkt.model.response.ApiResponse;
 import com.fruitmkt.util.JsonUtil;
+import com.fruitmkt.util.LoggerUtil;
 import com.fruitmkt.util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -13,13 +15,12 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * ChatAPI - REST endpoints hỗ trợ HTTP fallback và các thao tác chat.
@@ -27,22 +28,21 @@ import java.util.Map;
 @WebServlet("/api/chat")
 public class ChatAPI extends HttpServlet {
 
+    private static final Logger log = Logger.getLogger(ChatAPI.class.getName());
+
     private final ChatDAO chatDAO = new ChatDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-        PrintWriter out = response.getWriter();
-        Map<String, Object> result = new HashMap<>();
 
         try {
             User currentUser = SessionUtil.getCurrentUser(request.getSession());
             if (currentUser == null) {
-                result.put("success", false);
-                result.put("message", "Vui lòng đăng nhập");
-                out.print(JsonUtil.toJson(result));
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
                 return;
             }
 
@@ -52,9 +52,8 @@ public class ChatAPI extends HttpServlet {
 
                 ChatSession session = chatDAO.findSessionById(sessionId);
                 if (session == null) {
-                    result.put("success", false);
-                    result.put("message", "Session không tồn tại");
-                    out.print(JsonUtil.toJson(result));
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Session không tồn tại"));
                     return;
                 }
 
@@ -62,56 +61,53 @@ public class ChatAPI extends HttpServlet {
                 boolean isAdmin = AppConfig.ROLE_ADMIN.equals(currentUser.getRole());
                 boolean isParticipant = session.getCustomerId() == uid || session.getOwnerId() == uid;
                 if (!isParticipant && !isAdmin) {
-                    result.put("success", false);
-                    result.put("message", "Không có quyền truy cập");
-                    out.print(JsonUtil.toJson(result));
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền truy cập"));
                     return;
                 }
 
                 chatDAO.markRead(sessionId, currentUser.getUserId());
                 List<ChatMessage> messages = chatDAO.findMessages(sessionId);
-                result.put("success", true);
-                result.put("messages", messages);
-                result.put("currentUserId", currentUser.getUserId());
-            } else {
-                result.put("success", false);
-                result.put("message", "Hành động không hợp lệ");
-            }
 
-            out.print(JsonUtil.toJson(result));
+                // Che giấu tên thật của Admin đối với Customer và Shop Owner
+                if (!isAdmin) {
+                    for (ChatMessage msg : messages) {
+                        if ("ADMIN".equals(msg.getSenderRole())) {
+                            msg.setSenderName("Hỗ trợ Admin");
+                        }
+                    }
+                }
+
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(Map.of(
+                    "messages", messages,
+                    "currentUserId", currentUser.getUserId()
+                )));
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
+            }
         } catch (NumberFormatException e) {
-            result.put("success", false);
-            result.put("message", "Tham số không hợp lệ");
-            try {
-                out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
         } catch (Exception e) {
-            e.printStackTrace();
-            result.clear();
-            result.put("success", false);
-            result.put("message", "Lỗi server: " + e.getMessage());
-            try {
-                out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
-        } finally {
-            out.flush();
+            LoggerUtil.error(log, "Lỗi server khi xử lý GET chat", e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
-        PrintWriter out = response.getWriter();
-        Map<String, Object> result = new HashMap<>();
 
         try {
             User currentUser = SessionUtil.getCurrentUser(request.getSession());
             if (currentUser == null) {
-                result.put("success", false);
-                result.put("message", "Vui lòng đăng nhập");
-                out.print(JsonUtil.toJson(result));
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_UNAUTHORIZED, "Vui lòng đăng nhập"));
                 return;
             }
 
@@ -122,9 +118,8 @@ public class ChatAPI extends HttpServlet {
 
                 ChatSession session = chatDAO.findSessionById(sessionId);
                 if (session == null) {
-                    result.put("success", false);
-                    result.put("message", "Session không tồn tại");
-                    out.print(JsonUtil.toJson(result));
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Session không tồn tại"));
                     return;
                 }
 
@@ -132,30 +127,33 @@ public class ChatAPI extends HttpServlet {
                 boolean isAdmin = AppConfig.ROLE_ADMIN.equals(currentUser.getRole());
                 boolean isParticipant = session.getCustomerId() == uid || session.getOwnerId() == uid;
                 if (!isParticipant && !isAdmin) {
-                    result.put("success", false);
-                    result.put("message", "Không có quyền gửi vào session này");
-                    out.print(JsonUtil.toJson(result));
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền gửi vào session này"));
                     return;
                 }
 
-                if (content == null || content.trim().isEmpty()) {
-                    result.put("success", false);
-                    result.put("message", "Nội dung tin nhắn không được rỗng");
+                String mediaUrl = request.getParameter("mediaUrl");
+                String mediaType = request.getParameter("mediaType");
+
+                if ((content == null || content.trim().isEmpty()) && (mediaUrl == null || mediaUrl.trim().isEmpty())) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Nội dung tin nhắn hoặc tệp đính kèm không được rỗng"));
                 } else {
                     ChatMessage msg = new ChatMessage();
                     msg.setSessionId(sessionId);
                     msg.setSenderId(currentUser.getUserId());
-                    msg.setContent(content.trim());
+                    msg.setContent(content != null ? content.trim() : null);
+                    msg.setMediaUrl(mediaUrl != null ? mediaUrl.trim() : null);
+                    msg.setMediaType(mediaType != null ? mediaType.trim() : null);
                     msg.setIsRead(false);
                     chatDAO.saveMessage(msg);
-                    result.put("success", true);
-                    result.put("message", "Đã gửi tin nhắn");
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    JsonUtil.writeJson(response, ApiResponse.ok(Map.of("message", "Đã gửi tin nhắn")));
                 }
             } else if ("createAdminSession".equals(action)) {
-                if (!AppConfig.ROLE_CUSTOMER.equals(currentUser.getRole())) {
-                    result.put("success", false);
-                    result.put("message", "Chỉ khách hàng mới có thể tạo session với Admin");
-                    out.print(JsonUtil.toJson(result));
+                if (AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Admin không thể tạo phiên hỗ trợ với chính mình"));
                     return;
                 }
 
@@ -188,9 +186,8 @@ public class ChatAPI extends HttpServlet {
                 }
 
                 if (adminId <= 0) {
-                    result.put("success", false);
-                    result.put("message", "Không tìm thấy tài khoản Admin hỗ trợ");
-                    out.print(JsonUtil.toJson(result));
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy tài khoản Admin hỗ trợ"));
                     return;
                 }
 
@@ -201,30 +198,19 @@ public class ChatAPI extends HttpServlet {
                 } else {
                     sessionId = chatDAO.createSession(currentUser.getUserId(), adminId, "ADMIN");
                 }
-                result.put("success", true);
-                result.put("sessionId", sessionId);
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(Map.of("sessionId", sessionId)));
             } else {
-                result.put("success", false);
-                result.put("message", "Hành động không hợp lệ");
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
             }
-
-            out.print(JsonUtil.toJson(result));
         } catch (NumberFormatException e) {
-            result.put("success", false);
-            result.put("message", "Tham số không hợp lệ");
-            try {
-                out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
         } catch (Exception e) {
-            e.printStackTrace();
-            result.clear();
-            result.put("success", false);
-            result.put("message", "Lỗi server: " + e.getMessage());
-            try {
-                out.print(JsonUtil.toJson(result));
-            } catch (Exception ignored) {}
-        } finally {
-            out.flush();
+            LoggerUtil.error(log, "Lỗi server khi xử lý POST chat", e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
         }
     }
 }

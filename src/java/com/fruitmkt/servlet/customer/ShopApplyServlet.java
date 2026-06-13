@@ -10,14 +10,19 @@ import com.fruitmkt.util.FileUploadUtil;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.service.EmailService;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ShopApplyServlet — Cho phép CUSTOMER đã đăng nhập nộp đơn đăng ký mở shop.
@@ -41,6 +46,8 @@ import java.util.List;
     fileSizeThreshold = 1_048_576   // 1MB buffer
 )
 public class ShopApplyServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ShopApplyServlet.class.getName());
 
     private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -216,7 +223,9 @@ public class ShopApplyServlet extends HttpServlet {
                 if (!first) sb.append(",");
                 sb.append(catId);
                 first = false;
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException e) {
+                LoggerUtil.warn(log, "ID danh mục không hợp lệ: " + id, e);
+            }
         }
         sb.append("]");
         return sb.toString();

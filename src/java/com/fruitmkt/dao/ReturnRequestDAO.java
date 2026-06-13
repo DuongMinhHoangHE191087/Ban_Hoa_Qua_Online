@@ -1,15 +1,26 @@
 package com.fruitmkt.dao;
 
-import com.fruitmkt.dao.base.BaseDAO;
+import com.fruitmkt.dao.BaseDAO;
 import com.fruitmkt.model.entity.ReturnRequest;
-import java.sql.*;
+import com.fruitmkt.util.LoggerUtil;
+import com.fruitmkt.util.PaginationHelper;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ReturnRequestDAO — DAO cho entity ReturnRequest.
  */
 public class ReturnRequestDAO extends BaseDAO {
+
+    private static final Logger log = Logger.getLogger(ReturnRequestDAO.class.getName());
 
     public ReturnRequest findById(int id) throws SQLException {
         String sql = "SELECT r.*, oi.product_name_snapshot, oi.variant_label_snapshot "
@@ -100,9 +111,7 @@ public class ReturnRequestDAO extends BaseDAO {
 
     public List<ReturnRequest> findAll(String status, int page, int pageSize) throws SQLException {
         List<ReturnRequest> list = new ArrayList<>();
-        int offset = (page - 1) * pageSize;
-        if (offset < 0) offset = 0;
-        
+
         StringBuilder sql = new StringBuilder("SELECT r.*, oi.product_name_snapshot, oi.variant_label_snapshot ")
                 .append("FROM return_requests r ")
                 .append("LEFT JOIN order_items oi ON r.order_item_id = oi.order_item_id ");
@@ -111,15 +120,15 @@ public class ReturnRequestDAO extends BaseDAO {
             sql.append("WHERE r.status = ? ");
             params.add(status);
         }
-        sql.append("ORDER BY r.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-        params.add(offset);
-        params.add(pageSize);
-        
+        sql.append("ORDER BY r.created_at DESC ").append(PaginationHelper.OFFSET_FETCH_SQL);
+
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                ps.setObject(i + 1, params.get(i));
+            int paramIndex = 1;
+            for (Object param : params) {
+                ps.setObject(paramIndex++, param);
             }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -266,7 +275,9 @@ public class ReturnRequestDAO extends BaseDAO {
         try {
             req.setProductName(rs.getString("product_name_snapshot"));
             req.setVariantLabel(rs.getString("variant_label_snapshot"));
-        } catch (SQLException ignored) {}
+        } catch (SQLException e) {
+            LoggerUtil.warn(log, "product_name_snapshot/variant_label_snapshot not present in this query, skipping", e);
+        }
 
         return req;
     }

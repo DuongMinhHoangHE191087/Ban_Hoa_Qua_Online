@@ -1,12 +1,17 @@
 package com.fruitmkt.service;
 
-import com.fruitmkt.dao.ReturnRequestDAO;
-import com.fruitmkt.dao.OrderDAO;
+import com.fruitmkt.config.AppConfig;
 import com.fruitmkt.dao.DeliveryDAO;
+import com.fruitmkt.dao.OrderDAO;
+import com.fruitmkt.dao.ReturnRequestDAO;
 import com.fruitmkt.dao.SystemConfigDAO;
-import com.fruitmkt.model.entity.ReturnRequest;
-import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.dao.UserDAO;
 import com.fruitmkt.model.entity.Delivery;
+import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.model.entity.OrderItem;
+import com.fruitmkt.model.entity.ReturnRequest;
+import com.fruitmkt.model.entity.User;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -50,9 +55,9 @@ public class ReturnService {
         if (req.getOrderItemId() == null) {
             throw new IllegalArgumentException("Vui lòng chọn sản phẩm cần đổi trả.");
         }
-        com.fruitmkt.model.entity.OrderItem targetItem = null;
-        List<com.fruitmkt.model.entity.OrderItem> orderItems = orderDAO.findItemsByOrderId(req.getOrderId());
-        for (com.fruitmkt.model.entity.OrderItem oi : orderItems) {
+        OrderItem targetItem = null;
+        List<OrderItem> orderItems = orderDAO.findItemsByOrderId(req.getOrderId());
+        for (OrderItem oi : orderItems) {
             if (oi.getOrderItemId() == req.getOrderItemId()) {
                 targetItem = oi;
                 break;
@@ -91,10 +96,10 @@ public class ReturnService {
         // 6. Tính số tiền hoàn thực tế cho sản phẩm này
         if ("RETURN".equalsIgnoreCase(req.getRequestType())) {
             req.setResolutionType("REFUND");
-            java.math.BigDecimal itemRefund = targetItem.getUnitPrice().multiply(new java.math.BigDecimal(req.getRequestedQuantity()));
+            BigDecimal itemRefund = targetItem.getUnitPrice().multiply(new BigDecimal(req.getRequestedQuantity()));
             req.setRefundAmount(itemRefund.min(order.getFinalAmount())); // Capped by order final amount
         } else {
-            req.setRefundAmount(java.math.BigDecimal.ZERO);
+            req.setRefundAmount(BigDecimal.ZERO);
         }
 
         req.setStatus("REQUESTED");
@@ -131,9 +136,9 @@ public class ReturnService {
      * Xử lý duyệt hoặc từ chối yêu cầu đổi trả.
      */
     public void decide(int requestId, String status, String reason, int decidedBy) throws SQLException {
-        com.fruitmkt.dao.UserDAO userDAO = new com.fruitmkt.dao.UserDAO();
-        com.fruitmkt.model.entity.User adminUser = userDAO.findUserById(decidedBy);
-        if (adminUser == null || !com.fruitmkt.config.AppConfig.ROLE_ADMIN.equals(adminUser.getRole())) {
+        UserDAO userDAO = new UserDAO();
+        User adminUser = userDAO.findUserById(decidedBy);
+        if (adminUser == null || !AppConfig.ROLE_ADMIN.equals(adminUser.getRole())) {
             throw new SecurityException("Chỉ Admin mới có quyền phê duyệt yêu cầu đổi trả.");
         }
 

@@ -8,6 +8,7 @@ import com.fruitmkt.dao.CategoryDAO;
 import com.fruitmkt.model.entity.Category;
 import com.fruitmkt.util.SessionUtil;
 
+import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * ShopStatusServlet — Hiển thị trạng thái duyệt của shop đối tác, và cho phép nộp lại nếu bị từ chối.
@@ -34,6 +36,8 @@ import java.util.List;
     fileSizeThreshold = 1_048_576   // 1MB buffer
 )
 public class ShopStatusServlet extends HttpServlet {
+
+    private static final Logger log = Logger.getLogger(ShopStatusServlet.class.getName());
 
     private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
@@ -151,7 +155,9 @@ public class ShopStatusServlet extends HttpServlet {
                         int catId = Integer.parseInt(catIds[i]);
                         if (i > 0) sb.append(",");
                         sb.append(catId);
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException e) {
+                        LoggerUtil.warn(log, "ID danh mục không hợp lệ: " + catIds[i], e);
+                    }
                 }
                 sb.append("]");
                 preferredCategoriesJson = sb.toString();
@@ -225,7 +231,9 @@ public class ShopStatusServlet extends HttpServlet {
                 List<ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
                 req.setAttribute("profile", profiles.isEmpty() ? null : profiles.get(0));
                 req.setAttribute("categories", categoryDAO.findAllActive());
-            } catch (SQLException ignored) {}
+            } catch (SQLException ex) {
+                LoggerUtil.warn(log, "Không thể tải lại thông tin shop khi xử lý lỗi", ex);
+            }
             req.getRequestDispatcher("/WEB-INF/jsp/shop/status.jsp").forward(req, resp);
         }
     }

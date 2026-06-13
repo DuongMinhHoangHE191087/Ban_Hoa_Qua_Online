@@ -1,49 +1,54 @@
 package com.fruitmkt.service;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.dao.CartDAO;
+import com.fruitmkt.dao.OrderDAO;
+import com.fruitmkt.dao.PaymentDAO;
+import com.fruitmkt.dao.SystemConfigDAO;
+import com.fruitmkt.dao.UserDAO;
+import com.fruitmkt.model.dto.CheckoutDTO;
+import com.fruitmkt.model.dto.PagedResultDTO;
+import com.fruitmkt.model.dto.ReorderResultDTO;
+import com.fruitmkt.model.entity.Cart;
+import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.model.entity.OrderItem;
+import com.fruitmkt.model.entity.User;
+import com.fruitmkt.util.LoggerUtil;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
- * OrderService — Tầng business logic cho nghiệp vụ tương ứng.
- *
- * QUY TẮC:
- *   - Chỉ gọi DAO, không viết SQL ở đây
-package com.fruitmkt.service;
-
-import java.sql.SQLException;
-
-/**
- * OrderService — Tầng business logic cho nghiệp vụ tương ứng.
- *
- * QUY TẮC:
- *   - Chỉ gọi DAO, không viết SQL ở đây
- *   - Chứa tất cả validation và business rule
- *   - Ném RuntimeException hoặc custom exception cho Servlet xử lý
- *   - Không tương tác trực tiếp với HttpRequest/Response
- *
- * @author fruitmkt-team
+ * OrderService - Tang business logic cho nghiep vu don hang.
  */
 public class OrderService {
 
-    private final com.fruitmkt.dao.OrderDAO orderDAO = new com.fruitmkt.dao.OrderDAO();
-    private final com.fruitmkt.dao.SystemConfigDAO configDAO = new com.fruitmkt.dao.SystemConfigDAO();
-    private final com.fruitmkt.dao.PaymentDAO paymentDAO = new com.fruitmkt.dao.PaymentDAO();
-    private final com.fruitmkt.service.NotificationService notificationService = new com.fruitmkt.service.NotificationService();
-    private final com.fruitmkt.service.InventoryService inventoryService = new com.fruitmkt.service.InventoryService();
+    private static final Logger log = LoggerUtil.getLogger(OrderService.class);
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public com.fruitmkt.model.entity.Order placeOrder(int customerId, com.fruitmkt.model.dto.CheckoutDTO dto) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
-        throw new UnsupportedOperationException("Not implemented: placeOrder(int customerId, com.fruitmkt.model.dto.CheckoutDTO dto)");
+    private final OrderDAO orderDAO = new OrderDAO();
+    private final SystemConfigDAO configDAO = new SystemConfigDAO();
+    private final PaymentDAO paymentDAO = new PaymentDAO();
+    private final NotificationService notificationService = new NotificationService();
+    private final InventoryService inventoryService = new InventoryService();
+    private final DeliveryService deliveryService = new DeliveryService();
+    private final CartDAO cartDAO = new CartDAO();
+    private final UserDAO userDAO = new UserDAO();
+
+    public Order placeOrder(int customerId, CheckoutDTO dto) throws SQLException {
+        throw new UnsupportedOperationException("Not implemented: placeOrder(int customerId, CheckoutDTO dto)");
     }
 
-    public java.util.List<com.fruitmkt.model.entity.Order> getAllOrders(String status, int page, int pageSize) throws SQLException {
+    public List<Order> getAllOrders(String status, int page, int pageSize) throws SQLException {
         return orderDAO.findAll(status, page, pageSize);
     }
 
-    public java.util.List<com.fruitmkt.model.entity.Order> getAllOrders(String status, String paymentMethod, String paymentStatus, int page, int pageSize) throws SQLException {
+    public List<Order> getAllOrders(String status, String paymentMethod, String paymentStatus, int page, int pageSize)
+            throws SQLException {
         return orderDAO.findAll(status, paymentMethod, paymentStatus, page, pageSize);
     }
 
@@ -55,189 +60,204 @@ public class OrderService {
         return orderDAO.countAll(status, paymentMethod, paymentStatus);
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public com.fruitmkt.model.entity.Order getOrderDetail(int orderId) throws SQLException {
-        java.util.List<com.fruitmkt.model.entity.Order> list = orderDAO.findById(orderId);
-        if (list.isEmpty()) return null;
-        return list.get(0);
+    public Order getOrderDetail(int orderId) throws SQLException {
+        List<Order> list = orderDAO.findById(orderId);
+        return list.isEmpty() ? null : list.get(0);
     }
 
-    /**
-     * TODO: Implement — xem SRS / use case tương ứng
-     */
-    public com.fruitmkt.model.dto.PagedResultDTO getOrderHistory(int customerId, int page) throws SQLException {
-        // TODO: Validate input → gọi DAO → business rule → return result
+    public PagedResultDTO getOrderHistory(int customerId, int page) throws SQLException {
         throw new UnsupportedOperationException("Not implemented: getOrderHistory(int customerId, int page)");
     }
 
-    /**
-     * Cập nhật đơn hàng sang CONFIRMED sau khi shop owner duyệt.
-     */
     public void confirmOrder(int orderId, int ownerId) throws SQLException {
-        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
+        Order order = getOrderDetail(orderId);
         if (order == null || order.getOwnerId() != ownerId) {
             throw new RuntimeException("Đơn hàng không hợp lệ hoặc bạn không có quyền duyệt!");
         }
-        if (!"PENDING_PAYMENT".equals(order.getStatus()) && !"CONFIRMED".equals(order.getStatus())) {
-            throw new RuntimeException("Chỉ có thể duyệt đơn hàng ở trạng thái PENDING hoặc CONFIRMED");
+        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
+                && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể duyệt đơn hàng ở trạng thái PENDING_PAYMENT hoặc CONFIRMED.");
         }
-        orderDAO.updateStatus(orderId, "CONFIRMED");
+        orderDAO.updateStatus(orderId, AppConfig.ORDER_APPROVED);
     }
 
-    /**
-     * Hủy đơn hàng và hoàn trả tồn kho.
-     */
     public void cancelOrder(int orderId, int cancelledBy, String reason) throws SQLException {
-        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
+        Order order = getOrderDetail(orderId);
         if (order == null) {
             throw new RuntimeException("Đơn hàng không tồn tại!");
         }
-        if ("DELIVERED".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
+        if (AppConfig.ORDER_DELIVERED.equals(order.getStatus()) || AppConfig.ORDER_CANCELLED.equals(order.getStatus())) {
             throw new RuntimeException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm!");
         }
 
-        // Kiểm tra quyền hủy đơn hàng (Privilege Escalation Prevention)
-        com.fruitmkt.dao.UserDAO userDAO = new com.fruitmkt.dao.UserDAO();
-        com.fruitmkt.model.entity.User user = userDAO.findUserById(cancelledBy);
+        User user = userDAO.findUserById(cancelledBy);
         if (user != null) {
-            if (com.fruitmkt.config.AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+            if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
                 if (order.getCustomerId() != cancelledBy) {
                     throw new RuntimeException("Bạn không có quyền hủy đơn hàng này!");
                 }
-                if (!"PENDING_PAYMENT".equals(order.getStatus()) && !"CONFIRMED".equals(order.getStatus())) {
+                if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
+                        && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
                     throw new RuntimeException("Cửa hàng đã duyệt hoặc đang giao đơn, không thể tự ý hủy!");
                 }
-            } else if (com.fruitmkt.config.AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
-                if (order.getOwnerId() != cancelledBy) {
-                    throw new RuntimeException("Đơn hàng này không thuộc cửa hàng của bạn!");
-                }
+            } else if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole()) && order.getOwnerId() != cancelledBy) {
+                throw new RuntimeException("Đơn hàng này không thuộc cửa hàng của bạn!");
             }
         }
-        
-        // Cập nhật DB trạng thái CANCELLED
+
         orderDAO.cancel(orderId, cancelledBy, reason);
-        // Hoàn trả tồn kho thông qua InventoryService để ghi nhận nhật ký tồn kho
-        java.util.List<com.fruitmkt.model.entity.OrderItem> items = orderDAO.findItemsByOrderId(orderId);
-        for (com.fruitmkt.model.entity.OrderItem item : items) {
+        List<OrderItem> items = orderDAO.findItemsByOrderId(orderId);
+        for (OrderItem item : items) {
             if (item.getVariantId() != null) {
                 inventoryService.release(item.getVariantId(), item.getQuantity(), orderId);
             }
         }
     }
 
-    /**
-     * Lấy danh sách đơn hàng cho Shop
-     */
-    public com.fruitmkt.model.dto.PagedResultDTO shopOrders(int ownerId, String status, int page) throws SQLException {
+    public PagedResultDTO shopOrders(int ownerId, String status, int page) throws SQLException {
         int pageSize = 10;
-        java.util.List<com.fruitmkt.model.entity.Order> list = orderDAO.findByOwner(ownerId, status, page, pageSize);
-        // Chưa đếm tổng số trang, tạm trả về list
-        com.fruitmkt.model.dto.PagedResultDTO dto = new com.fruitmkt.model.dto.PagedResultDTO();
+        List<Order> list = orderDAO.findByOwner(ownerId, status, page, pageSize);
+        PagedResultDTO dto = new PagedResultDTO();
         dto.setItems(list);
         dto.setCurrentPage(page);
         return dto;
     }
 
-    /**
-     * Chuyển trạng thái sang DISPATCHED và có thể gọi DeliveryService để tạo bản ghi phân công.
-     */
     public void dispatchOrder(int orderId, int ownerId) throws SQLException {
-        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
+        dispatchOrder(orderId, ownerId, null);
+    }
+
+    public void dispatchOrder(int orderId, int ownerId, LocalDateTime estimatedTime) throws SQLException {
+        Order order = getOrderDetail(orderId);
         if (order == null || order.getOwnerId() != ownerId) {
             throw new RuntimeException("Đơn hàng không hợp lệ!");
         }
-        if (!"CONFIRMED".equals(order.getStatus()) && !"PREPARING".equals(order.getStatus())) {
+        if (!AppConfig.ORDER_APPROVED.equals(order.getStatus())
+                && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())
+                && !"PREPARING".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
         }
-        orderDAO.updateStatus(orderId, "DISPATCHED");
+        orderDAO.updateStatus(orderId, AppConfig.ORDER_DISPATCHED);
+        deliveryService.assignShipper(orderId, 0, estimatedTime);
     }
 
-    /**
-     * Khách hàng xác nhận đã nhận hàng
-     */
     public void customerConfirmDelivery(int orderId, int customerId) throws SQLException {
-        com.fruitmkt.model.entity.Order order = getOrderDetail(orderId);
-        if (order == null || order.getCustomerId() != customerId) {
+        Order order = orderDAO.findByIdForCustomer(orderId, customerId);
+        if (order == null) {
             throw new RuntimeException("Đơn hàng không hợp lệ!");
         }
-        if (!"DISPATCHED".equals(order.getStatus()) && !"DELIVERED".equals(order.getStatus())) {
-            throw new RuntimeException("Chỉ có thể xác nhận nhận hàng đối với đơn đang giao (DISPATCHED) hoặc đã giao (DELIVERED)!");
+        if (!AppConfig.ORDER_DISPATCHED.equals(order.getStatus())
+                && !AppConfig.ORDER_DELIVERED.equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể xác nhận nhận hàng đối với đơn đang giao hoặc đã giao!");
         }
-        orderDAO.updateStatus(orderId, "DELIVERED");
+        orderDAO.updateStatus(orderId, AppConfig.ORDER_DELIVERED);
         orderDAO.updateReceivedStatus(orderId, "RECEIVED");
     }
 
-    /**
-     * Tự động hủy các đơn hàng quá 30 phút mà cửa hàng không nhận (chấp nhận giao).
-     * Hoàn tiền cho khách nếu là đơn CK.
-     */
+    public void reportNotReceived(int orderId, int customerId) throws SQLException {
+        Order order = orderDAO.findByIdForCustomer(orderId, customerId);
+        if (order == null) {
+            throw new SecurityException("Bạn không có quyền thực hiện hành động này.");
+        }
+        if (!AppConfig.ORDER_DISPATCHED.equals(order.getStatus())
+                && !AppConfig.ORDER_DELIVERED.equals(order.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể báo chưa nhận hàng với đơn đang giao hoặc đã giao.");
+        }
+        orderDAO.updateReceivedStatus(orderId, "NOT_RECEIVED");
+    }
+
+    public ReorderResultDTO reorder(int orderId, int customerId) throws SQLException {
+        Order order = orderDAO.findByIdForCustomer(orderId, customerId);
+        if (order == null) {
+            throw new SecurityException("Bạn không có quyền thực hiện hành động này.");
+        }
+
+        List<OrderItem> items = orderDAO.findItemsByOrderId(orderId);
+        List<Cart> carts = cartDAO.findByCustomer(customerId);
+        int cartId = carts.isEmpty() ? cartDAO.createForCustomer(customerId) : carts.get(0).getCartId();
+
+        int addedCount = 0;
+        int skippedCount = 0;
+        for (OrderItem item : items) {
+            if (item.getVariantId() == null) {
+                skippedCount++;
+                continue;
+            }
+            try {
+                cartDAO.addItem(cartId, item.getVariantId(), item.getQuantity());
+                addedCount++;
+            } catch (Exception ex) {
+                skippedCount++;
+            }
+        }
+
+        ReorderResultDTO result = new ReorderResultDTO();
+        result.setAddedCount(addedCount);
+        result.setSkippedCount(skippedCount);
+        return result;
+    }
+
     public void autoCancelUnacceptedOrders() throws SQLException {
         String sql = "SELECT * FROM orders WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL AND shop_acceptance_deadline < GETDATE()";
-        try (java.sql.Connection conn = orderDAO.openConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-            try (java.sql.ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     int orderId = rs.getInt("order_id");
                     int customerId = rs.getInt("customer_id");
                     int ownerId = rs.getInt("owner_id");
                     String paymentMethod = rs.getString("payment_method");
-                    
-                    // 1. Hủy đơn hàng và hoàn trả tồn kho
+
                     cancelOrder(orderId, 1, "Quá 30 phút cửa hàng không nhận đơn. Hệ thống tự động hủy.");
-                    
-                    // 2. Nếu là đơn CK, hoàn tiền tự động (giả lập)
-                    if ("CK".equals(paymentMethod)) {
+
+                    if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
                         orderDAO.updateRefundStatus(orderId, "REFUNDED");
-                        // Cập nhật trạng thái payment transaction tương ứng
                         var txList = paymentDAO.findByOrder(orderId);
                         if (!txList.isEmpty()) {
-                            paymentDAO.updateStatus(txList.get(0).getTransactionId(), "refunded", "SYSTEM_TIMEOUT_REFUND", "Cửa hàng không nhận đơn");
+                            paymentDAO.updateStatus(txList.get(0).getTransactionId(),
+                                    "refunded", "SYSTEM_TIMEOUT_REFUND", "Cửa hàng không nhận đơn");
                         }
                     }
-                    
-                    // 3. Gửi thông báo cho khách hàng
+
                     try {
-                        notificationService.send(customerId, "ORDER_UPDATE", "Đơn hàng tự động hủy", 
-                            "Rất tiếc, cửa hàng đã không nhận chuẩn bị đơn hàng #" + orderId + " của bạn trong vòng 30 phút. " +
-                            ("CK".equals(paymentMethod) ? "Tiền đã được hoàn trả tự động vào tài khoản của bạn. " : "") +
-                            "Vui lòng đặt lại đơn hàng khác.", "/customer/orders");
+                        notificationService.send(customerId, "ORDER_UPDATE", "Đơn hàng tự động hủy",
+                                "Rất tiếc, cửa hàng đã không nhận chuẩn bị đơn hàng #" + orderId + " của bạn trong vòng 30 phút. "
+                                        + (AppConfig.PAYMENT_CK.equals(paymentMethod)
+                                        ? "Tiền đã được hoàn trả tự động vào tài khoản của bạn. " : "")
+                                        + "Vui lòng đặt lại đơn hàng khác.",
+                                "/customer/orders");
                     } catch (Exception e) {
-                        System.err.println("Failed to notify customer of auto cancellation: " + e.getMessage());
+                        LoggerUtil.warn(log, "Failed to notify customer of auto cancellation for orderId=" + orderId, e);
                     }
-                    
-                    // 4. Gửi thông báo cho chủ shop
+
                     try {
-                        notificationService.send(ownerId, "ORDER_UPDATE", "Hủy đơn hàng do quá hạn nhận", 
-                            "Đơn hàng #" + orderId + " đã bị hệ thống tự động hủy và hoàn tiền vì bạn không bấm nhận đơn trong vòng 30 phút.", "/shop/orders");
+                        notificationService.send(ownerId, "ORDER_UPDATE", "Hủy đơn hàng do quá hạn nhận",
+                                "Đơn hàng #" + orderId + " đã bị hệ thống tự động hủy và hoàn tiền vì bạn không bấm nhận đơn trong vòng 30 phút.",
+                                "/shop/orders");
                     } catch (Exception e) {
-                        System.err.println("Failed to notify shop owner of auto cancellation: " + e.getMessage());
+                        LoggerUtil.warn(log, "Failed to notify shop owner of auto cancellation for orderId=" + orderId, e);
                     }
                 }
             }
         }
     }
 
-    /**
-     * Tự động xác nhận hoàn thành đơn hàng đã giao (DELIVERED) sau freeze_days ngày nếu khách không khiếu nại.
-     */
     public void autoConfirmDeliveredOrders() throws SQLException {
         int freezeDays = configDAO.getInt(AppConfig.CONFIG_FREEZE_DAYS, AppConfig.FREEZE_DAYS_DEFAULT);
         String sql = "SELECT o.order_id, o.owner_id, o.final_amount FROM orders o "
-                   + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
-                   + "WHERE o.status = 'DELIVERED' "
-                   + "AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
-                   + "AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
-        try (java.sql.Connection conn = orderDAO.openConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
+                + "WHERE o.status = 'DELIVERED' "
+                + "AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
+                + "AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, -freezeDays);
-            try (java.sql.ResultSet rs = ps.executeQuery()) {
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     int orderId = rs.getInt("order_id");
-                    System.out.println("[OrderService] Auto-confirming settlement eligibility for order #" + orderId + " after " + freezeDays + " freeze days.");
+                    LoggerUtil.info(log, "Auto-confirming settlement eligibility for order #%d after %d freeze days.", orderId, freezeDays);
                     String updateSql = "UPDATE orders SET updated_at = GETDATE() WHERE order_id = ?";
-                    try (java.sql.PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
+                    try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
                         psUpdate.setInt(1, orderId);
                         psUpdate.executeUpdate();
                     }
@@ -246,7 +266,7 @@ public class OrderService {
         }
     }
 
-    public java.math.BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
+    public BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
         return orderDAO.getRevenueByOwner(ownerId);
     }
 
@@ -254,12 +274,11 @@ public class OrderService {
         return orderDAO.countByOwner(ownerId, null);
     }
 
-    public java.util.List<com.fruitmkt.model.entity.Order> getRecentOrdersByOwner(int ownerId, int limit) throws SQLException {
+    public List<Order> getRecentOrdersByOwner(int ownerId, int limit) throws SQLException {
         return orderDAO.findByOwner(ownerId, null, 1, limit);
     }
 
-    public java.util.List<com.fruitmkt.model.entity.OrderItem> getOrderItems(int orderId) throws SQLException {
+    public List<OrderItem> getOrderItems(int orderId) throws SQLException {
         return orderDAO.findItemsByOrderId(orderId);
     }
 }
-
