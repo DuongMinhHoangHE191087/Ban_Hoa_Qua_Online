@@ -40,7 +40,6 @@ public class CheckoutServlet extends HttpServlet {
     private static final String BANK_ID = AppConfig.SEPAY_BANK_ID;
     private static final String ACCOUNT_NO = AppConfig.SEPAY_ACCOUNT_NO;
     private static final String ACCOUNT_NAME = AppConfig.SEPAY_ACCOUNT_NAME;
-    private static final String REF_PREFIX = AppConfig.PAYMENT_REF_PREFIX;
     private static final int QR_EXPIRE_MIN = AppConfig.QR_EXPIRE_MINUTES;
 
     private final CheckoutService checkoutService = new CheckoutService();
@@ -90,7 +89,7 @@ public class CheckoutServlet extends HttpServlet {
             }
             req.getRequestDispatcher("/WEB-INF/jsp/customer/checkout.jsp").forward(req, resp);
         } catch (Exception e) {
-            SessionUtil.flashError(session, "Loi khi tai trang thanh toan: " + e.getMessage() + ". Vui long thu lai.");
+            SessionUtil.flashError(session, "Lỗi khi tải trang thanh toán: " + e.getMessage() + ". Vui lòng thử lại.");
             resp.sendRedirect(req.getContextPath() + "/cart");
         }
     }
@@ -111,7 +110,7 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
         if (!isValidCsrf(session, req.getParameter("_csrf"))) {
-            SessionUtil.flashError(session, "Yeu cau khong hop le (CSRF). Vui long thu lai.");
+            SessionUtil.flashError(session, "Yêu cầu không hợp lệ (CSRF). Vui lòng thử lại.");
             resp.sendRedirect(req.getContextPath() + "/cart");
             return;
         }
@@ -136,19 +135,14 @@ public class CheckoutServlet extends HttpServlet {
         } catch (SecurityException e) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
         } catch (Exception e) {
-            SessionUtil.flashError(session, "Da xay ra loi trong qua trinh dat hang: " + e.getMessage());
+            SessionUtil.flashError(session, "Đã xảy ra lỗi trong quá trình đặt hàng: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + buildCheckoutRedirect(checkoutRequest.getVariantIds()));
         }
     }
 
     private void handleSuccessView(HttpServletRequest req, HttpServletResponse resp, User user)
             throws IOException, ServletException {
-        req.setAttribute("isSuccess", true);
-        Order order = findCustomerOrder(req.getParameter("orderId"), user.getUserId());
-        if (order != null) {
-            req.setAttribute("order", order);
-        }
-        req.getRequestDispatcher("/WEB-INF/jsp/customer/order-success.jsp").forward(req, resp);
+        resp.sendRedirect(req.getContextPath() + "/profile?tab=orders");
     }
 
     private void handlePaymentView(HttpServletRequest req, HttpServletResponse resp, User user)
@@ -159,8 +153,16 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        String reference = REF_PREFIX + order.getOrderId();
         String amountFormatted = order.getFinalAmount().setScale(0, RoundingMode.HALF_UP).toString();
+        PaymentTransaction paymentTx = null;
+        try {
+            paymentTx = paymentService.getPaymentByOrder(order.getOrderId());
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
+        }
+        String reference = paymentTx != null && paymentTx.getSepayReference() != null
+                ? paymentTx.getSepayReference()
+                : PaymentService.buildSepayReference(order.getOrderId());
         req.setAttribute("order", order);
         req.setAttribute("qrUrl", buildQrUrl(reference, amountFormatted));
         req.setAttribute("bankId", BANK_ID);
@@ -169,13 +171,8 @@ public class CheckoutServlet extends HttpServlet {
         req.setAttribute("reference", reference);
         req.setAttribute("amountFormatted", amountFormatted);
         req.setAttribute("qrExpireMin", QR_EXPIRE_MIN);
-        try {
-            PaymentTransaction paymentTx = paymentService.getPaymentByOrder(order.getOrderId());
-            if (paymentTx != null) {
-                req.setAttribute("paymentTx", paymentTx);
-            }
-        } catch (Exception e) {
-            LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
+        if (paymentTx != null) {
+            req.setAttribute("paymentTx", paymentTx);
         }
         req.getRequestDispatcher("/WEB-INF/jsp/customer/order-payment.jsp").forward(req, resp);
     }
@@ -184,11 +181,9 @@ public class CheckoutServlet extends HttpServlet {
         resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
         Order order = findCustomerOrder(req.getParameter("orderId"), user.getUserId());
-        if (order != null) {
-            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("status", order.getStatus())));
-            return;
-        }
-        JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("status", "UNKNOWN")));
+        Map<String, Object> responseData = new java.util.LinkedHashMap<>();
+        responseData.put("status", order != null && order.getStatus() != null ? order.getStatus() : "UNKNOWN");
+        JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
     }
 
     private void handleConfirmPayment(HttpServletRequest req, HttpServletResponse resp, HttpSession session, User user)
@@ -198,15 +193,15 @@ public class CheckoutServlet extends HttpServlet {
             boolean ok = paymentService.confirmManualPayment(Integer.parseInt(orderId), user.getUserId());
             if (ok) {
                 SessionUtil.flashSuccess(session,
-                        "Chung toi da nhan thong bao thanh toan. Admin se xac minh va duyet trong 1-24 gio lam viec.");
+                        "Chúng tôi đã nhận thông báo thanh toán. Admin sẽ xác minh và duyệt trong 1-24 giờ làm việc.");
             } else {
-                SessionUtil.flashError(session, "Ma QR da het han. Vui long lam moi ma QR va thanh toan lai.");
+                SessionUtil.flashError(session, "Mã QR đã hết hạn. Vui lòng làm mới mã QR và thanh toán lại.");
             }
         } catch (SecurityException e) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         } catch (Exception e) {
-            SessionUtil.flashError(session, "Loi: " + e.getMessage());
+            SessionUtil.flashError(session, "Lỗi: " + e.getMessage());
         }
         resp.sendRedirect(req.getContextPath() + "/checkout?action=payment&orderId=" + orderId);
     }
@@ -280,9 +275,10 @@ public class CheckoutServlet extends HttpServlet {
     }
 
     private String buildQrUrl(String reference, String amount) throws java.io.UnsupportedEncodingException {
-        return "https://img.vietqr.io/image/" + BANK_ID + "-" + ACCOUNT_NO + "-compact2.png"
-                + "?amount=" + amount
-                + "&addInfo=" + java.net.URLEncoder.encode(reference, "UTF-8")
-                + "&accountName=" + java.net.URLEncoder.encode(ACCOUNT_NAME, "UTF-8");
+        return "https://qr.sepay.vn/img?bank=" + java.net.URLEncoder.encode(BANK_ID, "UTF-8")
+                + "&acc=" + java.net.URLEncoder.encode(ACCOUNT_NO, "UTF-8")
+                + "&amount=" + java.net.URLEncoder.encode(amount, "UTF-8")
+                + "&des=" + java.net.URLEncoder.encode(reference, "UTF-8")
+                + "&template=compact";
     }
 }

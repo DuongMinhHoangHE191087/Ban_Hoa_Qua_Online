@@ -1,12 +1,18 @@
 package com.fruitmkt.servlet.customer;
 
 import com.fruitmkt.config.AppConfig;
+import com.fruitmkt.dao.OrderDAO;
+import com.fruitmkt.dao.ShopProfileDAO;
 import com.fruitmkt.model.dto.OrderDetailViewDTO;
 import com.fruitmkt.model.dto.OrderListViewDTO;
 import com.fruitmkt.model.dto.ReorderResultDTO;
+import com.fruitmkt.model.entity.Order;
+import com.fruitmkt.model.entity.OrderItem;
+import com.fruitmkt.model.entity.ShopProfile;
 import com.fruitmkt.model.entity.User;
 import com.fruitmkt.service.OrderService;
 import com.fruitmkt.service.OrderViewService;
+import com.fruitmkt.service.UserService;
 import com.fruitmkt.util.SessionUtil;
 import com.fruitmkt.util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -15,6 +21,10 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -27,6 +37,9 @@ public class OrderServlet extends HttpServlet {
 
     private final OrderService orderService = new OrderService();
     private final OrderViewService orderViewService = new OrderViewService();
+    private final OrderDAO orderDAO = new OrderDAO();
+    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+    private final UserService userService = new UserService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -48,6 +61,11 @@ public class OrderServlet extends HttpServlet {
         }
         if ("invoice".equals(action)) {
             handleInvoiceView(req, resp, user);
+            return;
+        }
+
+        if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/profile?tab=orders");
             return;
         }
 
@@ -90,25 +108,25 @@ public class OrderServlet extends HttpServlet {
             if ("confirmDelivery".equals(action)) {
                 orderService.customerConfirmDelivery(orderId, user.getUserId());
                 SessionUtil.setFlashMessage(req.getSession(),
-                        "Cam on ban da xac nhan nhan hang thanh cong!", "success");
+                        "Cảm ơn bạn đã xác nhận nhận hàng thành công!", "success");
             } else if ("reportNotReceived".equals(action)) {
                 orderService.reportNotReceived(orderId, user.getUserId());
                 SessionUtil.setFlashMessage(req.getSession(),
-                        "Ban da bao cao chua nhan duoc hang. Ban quan tri se tien hanh xac minh don hang.",
+                        "Bạn đã báo cáo chưa nhận được hàng. Ban quản trị sẽ tiến hành xác minh đơn hàng.",
                         "warning");
             } else if ("cancel".equals(action)) {
                 orderService.cancelOrder(orderId, user.getUserId(), req.getParameter("reason"));
-                SessionUtil.setFlashMessage(req.getSession(), "Ban da huy don hang thanh cong!", "success");
+                SessionUtil.setFlashMessage(req.getSession(), "Bạn đã hủy đơn hàng thành công!", "success");
             } else if ("reorder".equals(action)) {
                 ReorderResultDTO result = orderService.reorder(orderId, user.getUserId());
                 if (result.getSkippedCount() > 0) {
                     SessionUtil.setFlashMessage(req.getSession(),
-                            "Da them " + result.getAddedCount() + " san pham vao gio hang. "
-                                    + result.getSkippedCount() + " san pham khong con kha dung da bi bo qua.",
+                            "Đã thêm " + result.getAddedCount() + " sản phẩm vào giỏ hàng. "
+                                    + result.getSkippedCount() + " sản phẩm không còn khả dụng đã bị bỏ qua.",
                             "warning");
                 } else {
                     SessionUtil.setFlashMessage(req.getSession(),
-                            "Da them " + result.getAddedCount() + " san pham vao gio hang thanh cong!",
+                            "Đã thêm " + result.getAddedCount() + " sản phẩm vào giỏ hàng thành công!",
                             "success");
                 }
                 resp.sendRedirect(req.getContextPath() + "/cart");
@@ -118,10 +136,14 @@ public class OrderServlet extends HttpServlet {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
             return;
         } catch (Exception e) {
-            SessionUtil.setFlashMessage(req.getSession(), "Loi: " + e.getMessage(), "error");
+            SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
         }
 
-        resp.sendRedirect(req.getContextPath() + "/orders");
+        if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/profile/order-detail?orderId=" + orderId);
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/orders");
+        }
     }
 
     private void handleDetailView(HttpServletRequest req, HttpServletResponse resp, User user)
@@ -134,10 +156,54 @@ public class OrderServlet extends HttpServlet {
         try {
             OrderDetailViewDTO view = orderViewService.getOrderDetailView(user, orderId);
             if (view != null && view.getOrder() != null) {
-                req.setAttribute("order", view.getOrder());
+                Order order = view.getOrder();
+                req.setAttribute("order", order);
                 req.setAttribute("orderItems", view.getOrderItems());
                 req.setAttribute("paymentTx", view.getPaymentTransaction());
                 req.setAttribute("delivery", view.getDelivery());
+
+                // If this is a PARENT order, load children
+                if ("PARENT".equals(order.getOrderType())) {
+                    List<Order> childOrders = orderDAO.findChildrenByParentId(orderId);
+                    req.setAttribute("childOrders", childOrders);
+
+                    Map<Integer, List<OrderItem>> childOrderItemsMap = new HashMap<>();
+                    Map<Integer, String> shopNamesMap = new HashMap<>();
+                    for (Order child : childOrders) {
+                        childOrderItemsMap.put(child.getOrderId(), orderDAO.findItemsByOrderId(child.getOrderId()));
+                        try {
+                            List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(child.getOwnerId());
+                            if (!shopProfiles.isEmpty() && shopProfiles.get(0).getShopName() != null) {
+                                shopNamesMap.put(child.getOrderId(), shopProfiles.get(0).getShopName());
+                            } else {
+                                User owner = userService.findById(child.getOwnerId());
+                                shopNamesMap.put(child.getOrderId(), owner != null ? owner.getFullName() : "Cửa hàng");
+                            }
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Không thể tải tên shop cho đơn con #" + child.getOrderId(), e);
+                        }
+                    }
+                    req.setAttribute("childOrderItemsMap", childOrderItemsMap);
+                    req.setAttribute("shopNamesMap", shopNamesMap);
+                } else {
+                    // For single shop order, load its shop name
+                    String shopName = "Cửa hàng";
+                    if (order.getOwnerIdObject() != null) {
+                        try {
+                            List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(order.getOwnerId());
+                            if (!shopProfiles.isEmpty() && shopProfiles.get(0).getShopName() != null) {
+                                shopName = shopProfiles.get(0).getShopName();
+                            } else {
+                                User owner = userService.findById(order.getOwnerId());
+                                if (owner != null) shopName = owner.getFullName();
+                            }
+                        } catch (Exception e) {
+                            LoggerUtil.warn(log, "Không thể tải tên shop cho đơn #" + orderId, e);
+                        }
+                    }
+                    req.setAttribute("shopName", shopName);
+                }
+
                 req.getRequestDispatcher("/WEB-INF/jsp/customer/order-detail.jsp").forward(req, resp);
                 return;
             }

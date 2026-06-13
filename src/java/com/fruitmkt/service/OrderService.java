@@ -72,36 +72,36 @@ public class OrderService {
     public void confirmOrder(int orderId, int ownerId) throws SQLException {
         Order order = getOrderDetail(orderId);
         if (order == null || order.getOwnerId() != ownerId) {
-            throw new RuntimeException("Don hang khong hop le hoac ban khong co quyen duyet!");
+            throw new RuntimeException("Đơn hàng không hợp lệ hoặc bạn không có quyền duyệt!");
         }
         if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
                 && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
-            throw new RuntimeException("Chi co the duyet don hang o trang thai PENDING_PAYMENT hoac CONFIRMED.");
+            throw new RuntimeException("Chỉ có thể duyệt đơn hàng ở trạng thái PENDING_PAYMENT hoặc CONFIRMED.");
         }
-        orderDAO.updateStatus(orderId, AppConfig.ORDER_CONFIRMED);
+        orderDAO.updateStatus(orderId, AppConfig.ORDER_APPROVED);
     }
 
     public void cancelOrder(int orderId, int cancelledBy, String reason) throws SQLException {
         Order order = getOrderDetail(orderId);
         if (order == null) {
-            throw new RuntimeException("Don hang khong ton tai!");
+            throw new RuntimeException("Đơn hàng không tồn tại!");
         }
         if (AppConfig.ORDER_DELIVERED.equals(order.getStatus()) || AppConfig.ORDER_CANCELLED.equals(order.getStatus())) {
-            throw new RuntimeException("Don hang da giao hoac da huy, khong the huy them!");
+            throw new RuntimeException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm!");
         }
 
         User user = userDAO.findUserById(cancelledBy);
         if (user != null) {
             if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
                 if (order.getCustomerId() != cancelledBy) {
-                    throw new RuntimeException("Ban khong co quyen huy don hang nay!");
+                    throw new RuntimeException("Bạn không có quyền hủy đơn hàng này!");
                 }
                 if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
                         && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
-                    throw new RuntimeException("Cua hang da duyet hoac dang giao don, khong the tu y huy!");
+                    throw new RuntimeException("Cửa hàng đã duyệt hoặc đang giao đơn, không thể tự ý hủy!");
                 }
             } else if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole()) && order.getOwnerId() != cancelledBy) {
-                throw new RuntimeException("Don hang nay khong thuoc cua hang cua ban!");
+                throw new RuntimeException("Đơn hàng này không thuộc cửa hàng của bạn!");
             }
         }
 
@@ -130,10 +130,12 @@ public class OrderService {
     public void dispatchOrder(int orderId, int ownerId, LocalDateTime estimatedTime) throws SQLException {
         Order order = getOrderDetail(orderId);
         if (order == null || order.getOwnerId() != ownerId) {
-            throw new RuntimeException("Don hang khong hop le!");
+            throw new RuntimeException("Đơn hàng không hợp lệ!");
         }
-        if (!AppConfig.ORDER_CONFIRMED.equals(order.getStatus()) && !"PREPARING".equals(order.getStatus())) {
-            throw new RuntimeException("Chi co the giao don dang duoc chuan bi hoac da duyet!");
+        if (!AppConfig.ORDER_APPROVED.equals(order.getStatus())
+                && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())
+                && !"PREPARING".equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
         }
         orderDAO.updateStatus(orderId, AppConfig.ORDER_DISPATCHED);
         deliveryService.assignShipper(orderId, 0, estimatedTime);
@@ -142,11 +144,11 @@ public class OrderService {
     public void customerConfirmDelivery(int orderId, int customerId) throws SQLException {
         Order order = orderDAO.findByIdForCustomer(orderId, customerId);
         if (order == null) {
-            throw new RuntimeException("Don hang khong hop le!");
+            throw new RuntimeException("Đơn hàng không hợp lệ!");
         }
         if (!AppConfig.ORDER_DISPATCHED.equals(order.getStatus())
                 && !AppConfig.ORDER_DELIVERED.equals(order.getStatus())) {
-            throw new RuntimeException("Chi co the xac nhan nhan hang doi voi don dang giao hoac da giao!");
+            throw new RuntimeException("Chỉ có thể xác nhận nhận hàng đối với đơn đang giao hoặc đã giao!");
         }
         orderDAO.updateStatus(orderId, AppConfig.ORDER_DELIVERED);
         orderDAO.updateReceivedStatus(orderId, "RECEIVED");
@@ -155,11 +157,11 @@ public class OrderService {
     public void reportNotReceived(int orderId, int customerId) throws SQLException {
         Order order = orderDAO.findByIdForCustomer(orderId, customerId);
         if (order == null) {
-            throw new SecurityException("Ban khong co quyen thuc hien hanh dong nay.");
+            throw new SecurityException("Bạn không có quyền thực hiện hành động này.");
         }
         if (!AppConfig.ORDER_DISPATCHED.equals(order.getStatus())
                 && !AppConfig.ORDER_DELIVERED.equals(order.getStatus())) {
-            throw new IllegalStateException("Chi co the bao chua nhan hang voi don dang giao hoac da giao.");
+            throw new IllegalStateException("Chỉ có thể báo chưa nhận hàng với đơn đang giao hoặc đã giao.");
         }
         orderDAO.updateReceivedStatus(orderId, "NOT_RECEIVED");
     }
@@ -167,7 +169,7 @@ public class OrderService {
     public ReorderResultDTO reorder(int orderId, int customerId) throws SQLException {
         Order order = orderDAO.findByIdForCustomer(orderId, customerId);
         if (order == null) {
-            throw new SecurityException("Ban khong co quyen thuc hien hanh dong nay.");
+            throw new SecurityException("Bạn không có quyền thực hiện hành động này.");
         }
 
         List<OrderItem> items = orderDAO.findItemsByOrderId(orderId);
@@ -206,14 +208,14 @@ public class OrderService {
                     int ownerId = rs.getInt("owner_id");
                     String paymentMethod = rs.getString("payment_method");
 
-                    cancelOrder(orderId, 1, "Qua 30 phut cua hang khong nhan don. He thong tu dong huy.");
+                    cancelOrder(orderId, 1, "Quá 30 phút cửa hàng không nhận đơn. Hệ thống tự động hủy.");
 
                     if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
                         orderDAO.updateRefundStatus(orderId, "REFUNDED");
                         var txList = paymentDAO.findByOrder(orderId);
                         if (!txList.isEmpty()) {
                             paymentDAO.updateStatus(txList.get(0).getTransactionId(),
-                                    "refunded", "SYSTEM_TIMEOUT_REFUND", "Cua hang khong nhan don");
+                                    "refunded", "SYSTEM_TIMEOUT_REFUND", "Cửa hàng không nhận đơn");
                         }
                     }
 

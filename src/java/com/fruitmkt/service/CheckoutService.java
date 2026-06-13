@@ -136,7 +136,7 @@ public class CheckoutService {
                                                    String remoteAddress) throws SQLException {
         int ownerId = resolveSingleShopOwnerId(checkoutItems, variantMap);
         if (user.getUserId() == ownerId) {
-            throw new IllegalArgumentException("Ban khong the mua hang tu cua hang cua chinh minh.");
+            throw new IllegalArgumentException("Bạn không thể mua hàng từ cửa hàng của chính mình.");
         }
 
         Promotion shopPromo = null;
@@ -150,13 +150,13 @@ public class CheckoutService {
         if (isNotBlank(request.getShopCouponCode())) {
             shopPromo = promotionService.validateShopCoupon(request.getShopCouponCode(), ownerId, subtotal);
             if (shopPromo == null) {
-                throw new IllegalArgumentException("Ma giam gia cua cua hang khong hop le, da het han, hoac chua dat gia tri don toi thieu.");
+                throw new IllegalArgumentException("Mã giảm giá của cửa hàng không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
             }
         }
         if (isNotBlank(request.getSystemCouponCode())) {
             systemPromo = promotionService.validateSystemCoupon(request.getSystemCouponCode(), subtotal);
             if (systemPromo == null) {
-                throw new IllegalArgumentException("Ma giam gia cua san khong hop le, da het han, hoac chua dat gia tri don toi thieu.");
+                throw new IllegalArgumentException("Mã giảm giá của sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
             }
         }
         if (shopPromo != null || systemPromo != null) {
@@ -202,7 +202,7 @@ public class CheckoutService {
         CheckoutResultDTO result = new CheckoutResultDTO();
         result.setOrderId(orderId);
         result.setPaymentRequired(AppConfig.PAYMENT_CK.equals(request.getPaymentMethod()));
-        result.setSuccessMessage("Dat hang thanh cong! Cam on ban da mua hang.");
+        result.setSuccessMessage("Đặt hàng thành công! Cảm ơn bạn đã mua hàng.");
         return result;
     }
 
@@ -215,7 +215,7 @@ public class CheckoutService {
                                                   String remoteAddress) throws SQLException {
         for (Integer ownerId : itemsByOwner.keySet()) {
             if (ownerId != null && ownerId == user.getUserId()) {
-                throw new IllegalArgumentException("Ban khong the mua hang tu cua hang cua chinh minh.");
+                throw new IllegalArgumentException("Bạn không thể mua hàng từ cửa hàng của chính mình.");
             }
         }
 
@@ -242,7 +242,7 @@ public class CheckoutService {
                 }
             }
             if (shopPromo == null) {
-                throw new IllegalArgumentException("Ma voucher shop khong hop le cho cac shop trong gio hang.");
+                throw new IllegalArgumentException("Mã voucher shop không hợp lệ cho các shop trong giỏ hàng.");
             }
             BigDecimal shopDiscount = promotionService.calculateDiscount(shopPromo, subtotalByOwner.get(shopPromoOwnerId));
             shopDiscountByOwner.put(shopPromoOwnerId, shopDiscount);
@@ -254,7 +254,7 @@ public class CheckoutService {
         if (isNotBlank(request.getSystemCouponCode())) {
             systemPromo = promotionService.validateSystemCoupon(request.getSystemCouponCode(), afterShopTotal);
             if (systemPromo == null) {
-                throw new IllegalArgumentException("Ma voucher san khong hop le, da het han, hoac chua dat gia tri don toi thieu.");
+                throw new IllegalArgumentException("Mã voucher sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
             }
             BigDecimal systemDiscount = promotionService.calculateDiscount(systemPromo, afterShopTotal);
             Map<Integer, BigDecimal> allocationBase = new LinkedHashMap<>();
@@ -330,42 +330,42 @@ public class CheckoutService {
         CheckoutResultDTO result = new CheckoutResultDTO();
         result.setOrderId(parentOrderId);
         result.setPaymentRequired(AppConfig.PAYMENT_CK.equals(request.getPaymentMethod()));
-        result.setSuccessMessage("Dat hang thanh cong! Don hang da duoc tach theo tung shop.");
+        result.setSuccessMessage("Đặt hàng thành công! Đơn hàng đã được tách theo từng shop.");
         return result;
     }
 
     private void validateRequest(User user, CheckoutRequestDTO request) {
         if (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
-            throw new SecurityException("Ban khong co quyen thuc hien thanh toan.");
+            throw new SecurityException("Bạn không có quyền thực hiện thanh toán.");
         }
         if (request.getFullName() == null || request.getFullName().trim().length() < 3) {
-            throw new IllegalArgumentException("Ho va ten nguoi nhan phai tu 3 ky tu tro len.");
+            throw new IllegalArgumentException("Họ và tên người nhận phải từ 3 ký tự trở lên.");
         }
         if (request.getPhone() == null || !request.getPhone().trim().matches(PHONE_REGEX)) {
-            throw new IllegalArgumentException("So dien thoai khong hop le (phai la so dien thoai Viet Nam gom 10 chu so).");
+            throw new IllegalArgumentException("Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam gồm 10 chữ số).");
         }
         if (request.getDeliveryAddress() == null || request.getDeliveryAddress().trim().length() < 5) {
-            throw new IllegalArgumentException("Dia chi giao hang chi tiet phai tu 5 ky tu tro len.");
+            throw new IllegalArgumentException("Địa chỉ giao hàng chi tiết phải từ 5 ký tự trở lên.");
         }
         if (request.getDeliveryTimeSlot() == null || request.getDeliveryTimeSlot().trim().isEmpty()) {
-            throw new IllegalArgumentException("Vui long chon khung gio giao hang.");
+            throw new IllegalArgumentException("Vui lòng chọn khung giờ giao hàng.");
         }
         if (request.getVariantIds() == null || request.getVariantIds().isEmpty()) {
-            throw new IllegalArgumentException("Vui long chon it nhat mot san pham de thanh toan.");
+            throw new IllegalArgumentException("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
         }
         if (!AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())
                 && !AppConfig.PAYMENT_CK.equals(request.getPaymentMethod())) {
-            throw new IllegalArgumentException("Phuong thuc thanh toan khong hop le.");
+            throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
         }
     }
 
     private List<CartItem> filterCheckoutItems(List<CartItem> items, List<Integer> variantIds, boolean failWhenEmpty) {
         if (items == null || items.isEmpty()) {
-            throw new IllegalStateException("Gio hang trong hoac don hang dang duoc xu ly.");
+            throw new IllegalStateException("Giỏ hàng trống hoặc đơn hàng đang được xử lý.");
         }
         if (variantIds == null || variantIds.isEmpty()) {
             if (failWhenEmpty) {
-                throw new IllegalArgumentException("Vui long chon it nhat mot san pham de thanh toan.");
+                throw new IllegalArgumentException("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
             }
             return null;
         }
@@ -378,7 +378,7 @@ public class CheckoutService {
             }
         }
         if (checkoutItems.isEmpty()) {
-            throw new IllegalArgumentException("Khong tim thay san pham nao de thanh toan.");
+            throw new IllegalArgumentException("Không tìm thấy sản phẩm nào để thanh toán.");
         }
         return checkoutItems;
     }
@@ -510,16 +510,16 @@ public class CheckoutService {
                 }
             }
             if (productId <= 0) {
-                throw new IllegalStateException("Khong the xac dinh shop cua san pham trong gio hang.");
+                throw new IllegalStateException("Không thể xác định shop của sản phẩm trong giỏ hàng.");
             }
             int itemOwnerId = orderDAO.getOwnerIdByProductId(productId);
             if (itemOwnerId <= 0) {
-                throw new IllegalStateException("Khong tim thay owner_id cho product_id=" + productId);
+                throw new IllegalStateException("Không tìm thấy owner_id cho product_id=" + productId);
             }
             if (resolvedOwnerId == null) {
                 resolvedOwnerId = itemOwnerId;
             } else if (resolvedOwnerId.intValue() != itemOwnerId) {
-                throw new IllegalArgumentException("Gio hang chi ho tro thanh toan cho mot shop moi lan.");
+                throw new IllegalArgumentException("Giỏ hàng chỉ hỗ trợ thanh toán cho một shop mỗi lần.");
             }
         }
         return resolvedOwnerId != null ? resolvedOwnerId : -1;
@@ -537,11 +537,11 @@ public class CheckoutService {
                 }
             }
             if (productId <= 0) {
-                throw new IllegalStateException("Khong the xac dinh shop cua san pham trong gio hang.");
+                throw new IllegalStateException("Không thể xác định shop của sản phẩm trong giỏ hàng.");
             }
             int ownerId = orderDAO.getOwnerIdByProductId(productId);
             if (ownerId <= 0) {
-                throw new IllegalStateException("Khong tim thay owner_id cho product_id=" + productId);
+                throw new IllegalStateException("Không tìm thấy owner_id cho product_id=" + ownerId);
             }
             grouped.computeIfAbsent(ownerId, ignored -> new ArrayList<>()).add(item);
         }
