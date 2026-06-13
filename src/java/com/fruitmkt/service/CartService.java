@@ -248,8 +248,14 @@ public class CartService {
             }
 
             for (Map<String, Object> gItem : guestItems) {
+                if (gItem.get("variantId") == null || gItem.get("quantity") == null) {
+                    continue;
+                }
                 int variantId = ((Number) gItem.get("variantId")).intValue();
                 int qty = ((Number) gItem.get("quantity")).intValue();
+                if (qty <= 0) {
+                    continue;
+                }
 
                 try {
                     addToCart(customerId, variantId, qty);
@@ -285,8 +291,14 @@ public class CartService {
                 int limit = Math.min(parsedItems.size(), 100);
                 for (int i = 0; i < limit; i++) {
                     Map<String, Object> pItem = parsedItems.get(i);
+                    if (pItem.get("variantId") == null || pItem.get("quantity") == null) {
+                        continue;
+                    }
                     int variantId = ((Number) pItem.get("variantId")).intValue();
                     int qty = ((Number) pItem.get("quantity")).intValue();
+                    if (qty <= 0) {
+                        continue;
+                    }
                     
                     // Validate stock nhanh
                     int stock = productVariantDAO.getStockQuantity(variantId);
