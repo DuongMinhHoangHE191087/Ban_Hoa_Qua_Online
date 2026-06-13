@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  *
  * @author fruitmkt-team
  */
-@WebServlet("/admin/products")
+@WebServlet(name = "AdminProductServlet", urlPatterns = {"/admin/products"})
 public class AdminProductServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(AdminProductServlet.class.getName());

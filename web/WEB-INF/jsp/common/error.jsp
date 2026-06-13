@@ -1,3 +1,4 @@
+
 <%-- error.jsp — Trang lỗi chung (403, 404, 500).
      Nhận thông tin từ Servlet container qua request attributes.
 --%>

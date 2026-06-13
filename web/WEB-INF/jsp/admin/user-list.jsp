@@ -182,11 +182,11 @@
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex items-center justify-center gap-2">
-                                                <a href="${pageContext.request.contextPath}/admin/users/edit?id=${u.userId}" 
-                                                   class="bg-white hover:bg-slate-50 border border-slate-200 text-txt-2 hover:text-primary font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
-                                                    <i class="fa-solid fa-pen mr-0.5"></i> Sửa
+
+                                                <a href="${pageContext.request.contextPath}/admin/users/view?id=${u.userId}" 
+                                                   class="bg-white hover:bg-slate-50 border border-slate-200 text-txt-2 hover:text-blue-600 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
+                                                    <i class="fa-solid fa-eye mr-0.5"></i> Xem
                                                 </a>
-                                                
                                                 <c:choose>
                                                     <c:when test="${u.role ne 'ADMIN'}">
                                                         <button class="toggle-status-btn bg-white border border-slate-200 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${u.status == 'ACTIVE' ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}"

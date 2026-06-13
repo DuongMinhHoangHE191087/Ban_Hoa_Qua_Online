@@ -1,9 +1,9 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%-- SweetAlert2: offline local asset --%>
 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 <script>
-    /* Global native-alert override — SweetAlert2 premium */
+    /* Global native-alert override → SweetAlert2 premium */
     window.alert = function(msg) {
         Swal.fire({ icon:'info', title:'Thông báo', text:msg,
             confirmButtonText:'Đồng ý', confirmButtonColor:'#4D661C',
@@ -211,8 +211,8 @@
                     <span>Voucher sàn</span>
                 </a>
             </li>
-
         </ul>
+
         <div class="sb-section-label">Tài chính</div>
         <ul class="sb-nav-list">
             <li class="sb-nav-item">
@@ -230,7 +230,7 @@
                 </a>
             </li>
             <li class="sb-nav-item">
-                <a href="${pageContext.request.contextPath}/admin/returns"
+                <a href="${pageContext.request.contextPath}/admin/refunds"
                    class="sb-nav-link ${param.activeMenu == 'returns' ? 'active' : ''}">
                     <span class="sb-icon"><i class="fa-solid fa-rotate-left"></i></span>
                     <span>Yêu cầu Đổi trả</span>

@@ -26,7 +26,7 @@ import java.util.List;
  * - /shop/promotions  -> shop-owned promotions (discount_scope = SHOP)
  * - /admin/promotions -> global promotions (discount_scope = ALL)
  */
-@WebServlet({"/shop/promotions", "/admin/promotions"})
+@WebServlet(name = "PromotionServlet", urlPatterns = {"/shop/promotions", "/admin/promotions"})
 public class PromotionServlet extends HttpServlet {
 
     private static final DateTimeFormatter INPUT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");

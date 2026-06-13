@@ -1,3 +1,4 @@
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%-- alert.jsp — Hiển thị flash message từ session (PRG pattern).
      Include trong header.jsp để tự động hiển thị mọi trang.
      Tự động xóa flash sau khi render.
