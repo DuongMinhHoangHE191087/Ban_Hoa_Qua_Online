@@ -1,7 +1,6 @@
 package service.catalog;
+
 import dao.catalog.InventoryDAO;
-
-
 import dao.catalog.ProductVariantDAO;
 import dao.catalog.ProductDAO;
 import model.entity.catalog.InventoryLog;
@@ -11,18 +10,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-
 import java.util.logging.Logger;
 import util.LoggerUtil;
 
 /**
  * InventoryService — Tầng business logic cho nghiệp vụ tương ứng.
- *
- * QUY TẮC:
- *   - Chỉ gọi DAO, không viết SQL ở đây
- *   - Chứa tất cả validation và business rule
- *   - Ném RuntimeException hoặc custom exception cho Servlet xử lý
- *   - Không tương tác trực tiếp với HttpRequest/Response
  *
  * @author fruitmkt-team
  */
@@ -36,9 +28,15 @@ public class InventoryService {
 
     /**
      * Thực hiện nghiệp vụ nhập kho (Restock) cho một biến thể sản phẩm.
-     * Quản lý giao dịch để đảm bảo ghi log và cập nhật số lượng tồn kho đồng thời.
      */
     public void restock(int variantId, int quantity, String note, LocalDate changedAt, int userId) throws SQLException {
+        restockWithExpiry(variantId, quantity, note, changedAt, null, userId);
+    }
+
+    /**
+     * Nhập kho kèm theo ngày hết hạn (Expires At) tùy chọn.
+     */
+    public void restockWithExpiry(int variantId, int quantity, String note, LocalDate changedAt, LocalDate expiresAt, int userId) throws SQLException {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Số lượng nhập kho phải lớn hơn 0.");
         }
@@ -48,6 +46,9 @@ public class InventoryService {
         if (changedAt.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Ngày nhập kho không thể là ngày trong tương lai.");
         }
+        if (expiresAt != null && expiresAt.isBefore(changedAt)) {
+            throw new IllegalArgumentException("Ngày hết hạn không thể trước ngày nhập kho.");
+        }
 
         try (Connection conn = inventoryDAO.openConnection()) {
             conn.setAutoCommit(false);
@@ -56,18 +57,19 @@ public class InventoryService {
                 int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
                 int stockAfter = currentStock + quantity;
 
-                // 2. Ghi nhận lịch sử thay đổi tồn kho
-                InventoryLog log = new InventoryLog();
-                log.setVariantId(variantId);
-                log.setChangedBy(userId);
-                log.setChangeType("MANUAL_ADJUST");
-                log.setQuantityDelta(quantity);
-                log.setQuantityAfter(stockAfter);
-                
-                log.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Nhập kho");
-                log.setChangedAt(changedAt.atTime(LocalTime.now()));
+                // 2. Ghi nhận lịch sử thay đổi tồn kho kèm hạn dùng
+                InventoryLog logEntry = new InventoryLog();
+                logEntry.setVariantId(variantId);
+                logEntry.setChangedBy(userId);
+                logEntry.setChangeType("MANUAL_ADJUST");
+                logEntry.setQuantityDelta(quantity);
+                logEntry.setQuantityAfter(stockAfter);
+                logEntry.setExpiresAt(expiresAt);
+                logEntry.setExpired(false);
+                logEntry.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Nhập kho");
+                logEntry.setChangedAt(changedAt.atTime(LocalTime.now()));
 
-                inventoryDAO.save(conn, log);
+                inventoryDAO.save(conn, logEntry);
 
                 // 3. Cập nhật tồn kho thực tế
                 productVariantDAO.updateStock(conn, variantId, quantity);
@@ -104,16 +106,16 @@ public class InventoryService {
         }
         int stockAfter = currentStock - qty;
 
-        InventoryLog log = new InventoryLog();
-        log.setVariantId(variantId);
-        log.setChangedBy(userId);
-        log.setChangeType("ORDER_RESERVE");
-        log.setQuantityDelta(-qty);
-        log.setQuantityAfter(stockAfter);
-        log.setNote("Giữ hàng cho đơn hàng #" + orderId);
-        log.setChangedAt(LocalDateTime.now());
+        InventoryLog logEntry = new InventoryLog();
+        logEntry.setVariantId(variantId);
+        logEntry.setChangedBy(userId);
+        logEntry.setChangeType("ORDER_RESERVE");
+        logEntry.setQuantityDelta(-qty);
+        logEntry.setQuantityAfter(stockAfter);
+        logEntry.setNote("Giữ hàng cho đơn hàng #" + orderId);
+        logEntry.setChangedAt(LocalDateTime.now());
         
-        inventoryDAO.save(conn, log);
+        inventoryDAO.save(conn, logEntry);
         productVariantDAO.updateStock(conn, variantId, -qty);
         checkAndSendLowStockAlert(conn, variantId, stockAfter);
     }
@@ -138,16 +140,16 @@ public class InventoryService {
         int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
         int stockAfter = currentStock + qty;
 
-        InventoryLog log = new InventoryLog();
-        log.setVariantId(variantId);
-        log.setChangedBy(userId);
-        log.setChangeType("ORDER_RELEASE");
-        log.setQuantityDelta(qty);
-        log.setQuantityAfter(stockAfter);
-        log.setNote("Hoàn kho từ đơn hàng #" + orderId);
-        log.setChangedAt(LocalDateTime.now());
+        InventoryLog logEntry = new InventoryLog();
+        logEntry.setVariantId(variantId);
+        logEntry.setChangedBy(userId);
+        logEntry.setChangeType("ORDER_RELEASE");
+        logEntry.setQuantityDelta(qty);
+        logEntry.setQuantityAfter(stockAfter);
+        logEntry.setNote("Hoàn kho từ đơn hàng #" + orderId);
+        logEntry.setChangedAt(LocalDateTime.now());
 
-        inventoryDAO.save(conn, log);
+        inventoryDAO.save(conn, logEntry);
         productVariantDAO.updateStock(conn, variantId, qty);
     }
 
@@ -168,15 +170,15 @@ public class InventoryService {
 
     public void confirm(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
-        InventoryLog log = new InventoryLog();
-        log.setVariantId(variantId);
-        log.setChangedBy(userId);
-        log.setChangeType("ORDER_CONFIRM");
-        log.setQuantityDelta(0);
-        log.setQuantityAfter(currentStock);
-        log.setNote("Xác nhận bán hàng cho đơn hàng #" + orderId);
-        log.setChangedAt(LocalDateTime.now());
-        inventoryDAO.save(conn, log);
+        InventoryLog logEntry = new InventoryLog();
+        logEntry.setVariantId(variantId);
+        logEntry.setChangedBy(userId);
+        logEntry.setChangeType("ORDER_CONFIRM");
+        logEntry.setQuantityDelta(0);  // Kho đã bị trừ từ bước ORDER_RESERVE, đây chỉ đánh dấu audit
+        logEntry.setQuantityAfter(currentStock);
+        logEntry.setNote("Giao hàng thành công - Đã bán " + qty + " sản phẩm từ đơn hàng #" + orderId);
+        logEntry.setChangedAt(LocalDateTime.now());
+        inventoryDAO.save(conn, logEntry);
     }
 
     public void confirm(int variantId, int qty, int orderId) throws SQLException {
@@ -196,16 +198,16 @@ public class InventoryService {
                     throw new IllegalArgumentException("Số lượng tồn kho sau điều chỉnh không được âm.");
                 }
 
-                InventoryLog log = new InventoryLog();
-                log.setVariantId(variantId);
-                log.setChangedBy(userId);
-                log.setChangeType("MANUAL_ADJUST");
-                log.setQuantityDelta(delta);
-                log.setQuantityAfter(stockAfter);
-                log.setNote(note != null ? note : "Điều chỉnh kho thủ công");
-                log.setChangedAt(LocalDateTime.now());
+                InventoryLog logEntry = new InventoryLog();
+                logEntry.setVariantId(variantId);
+                logEntry.setChangedBy(userId);
+                logEntry.setChangeType("MANUAL_ADJUST");
+                logEntry.setQuantityDelta(delta);
+                logEntry.setQuantityAfter(stockAfter);
+                logEntry.setNote(note != null ? note : "Điều chỉnh kho thủ công");
+                logEntry.setChangedAt(LocalDateTime.now());
 
-                inventoryDAO.save(conn, log);
+                inventoryDAO.save(conn, logEntry);
                 productVariantDAO.updateStock(conn, variantId, delta);
                 checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
@@ -236,11 +238,148 @@ public class InventoryService {
         }
     }
 
+    /**
+     * Nghiệp vụ hao hụt tồn kho do sản phẩm hết hạn (EXPIRED).
+     * Sẽ giảm tồn kho và ghi log loại EXPIRED.
+     */
+    public void adjustStockForExpiry(int variantId, int qty, String note, int userId) throws SQLException {
+        if (qty <= 0) {
+            throw new IllegalArgumentException("Số lượng hao hụt do hết hạn phải lớn hơn 0.");
+        }
+        try (Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+                int stockAfter = currentStock - qty;
+                if (stockAfter < 0) {
+                    throw new IllegalArgumentException("Số lượng hao hụt vượt quá số lượng tồn kho hiện tại.");
+                }
+
+                InventoryLog logEntry = new InventoryLog();
+                logEntry.setVariantId(variantId);
+                logEntry.setChangedBy(userId);
+                logEntry.setChangeType(config.AppConfig.INVENTORY_CHANGE_EXPIRED);
+                logEntry.setQuantityDelta(-qty);
+                logEntry.setQuantityAfter(stockAfter);
+                logEntry.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Hao hụt do hết hạn");
+                logEntry.setChangedAt(LocalDateTime.now());
+
+                inventoryDAO.save(conn, logEntry);
+                productVariantDAO.updateStock(conn, variantId, -qty);
+                checkAndSendLowStockAlert(conn, variantId, stockAfter);
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    /**
+     * Nghiệp vụ hao hụt tồn kho do sản phẩm thối/hỏng (SPOILED).
+     * Sẽ giảm tồn kho và ghi log loại SPOILED.
+     */
+    public void adjustStockForSpoilage(int variantId, int qty, String note, int userId) throws SQLException {
+        if (qty <= 0) {
+            throw new IllegalArgumentException("Số lượng hao hụt do thối hỏng phải lớn hơn 0.");
+        }
+        try (Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+                int stockAfter = currentStock - qty;
+                if (stockAfter < 0) {
+                    throw new IllegalArgumentException("Số lượng hao hụt vượt quá số lượng tồn kho hiện tại.");
+                }
+
+                InventoryLog logEntry = new InventoryLog();
+                logEntry.setVariantId(variantId);
+                logEntry.setChangedBy(userId);
+                logEntry.setChangeType(config.AppConfig.INVENTORY_CHANGE_SPOILED);
+                logEntry.setQuantityDelta(-qty);
+                logEntry.setQuantityAfter(stockAfter);
+                logEntry.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Hao hụt do thối hỏng");
+                logEntry.setChangedAt(LocalDateTime.now());
+
+                inventoryDAO.save(conn, logEntry);
+                productVariantDAO.updateStock(conn, variantId, -qty);
+                checkAndSendLowStockAlert(conn, variantId, stockAfter);
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    /**
+     * Tự động quét các lô hàng nhập kho đã hết hạn và tiến hành trừ kho,
+     * sau đó lưu lịch sử biến động là EXPIRED.
+     */
+    public int processExpiredBatches() throws SQLException {
+        int processedCount = 0;
+        try (Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                List<InventoryLog> expiredLogs = inventoryDAO.findExpiredLogs(conn);
+                for (InventoryLog logEntry : expiredLogs) {
+                    int variantId = logEntry.getVariantId();
+                    int batchQty = logEntry.getQuantityDelta(); // Số lượng nhập ban đầu
+
+                    // Lấy số lượng tồn kho hiện tại
+                    int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+                    if (currentStock <= 0) {
+                        // Kho đã bằng 0, chỉ đánh dấu là đã xử lý
+                        inventoryDAO.markLogExpired(conn, logEntry.getLogId());
+                        processedCount++;
+                        continue;
+                    }
+
+                    // Số lượng trừ đi không vượt quá tồn kho thực tế
+                    int deductQty = Math.min(currentStock, batchQty);
+                    int stockAfter = currentStock - deductQty;
+
+                    // Ghi log biến động kho
+                    InventoryLog expiryEntry = new InventoryLog();
+                    expiryEntry.setVariantId(variantId);
+                    expiryEntry.setChangedBy(logEntry.getChangedBy());
+                    expiryEntry.setChangeType(config.AppConfig.INVENTORY_CHANGE_EXPIRED);
+                    expiryEntry.setQuantityDelta(-deductQty);
+                    expiryEntry.setQuantityAfter(stockAfter);
+                    expiryEntry.setNote("Tự động trừ kho: Lô nhập #" + logEntry.getLogId() + " hết hạn ngày " + logEntry.getExpiresAt());
+                    expiryEntry.setChangedAt(LocalDateTime.now());
+
+                    inventoryDAO.save(conn, expiryEntry);
+
+                    // Cập nhật số lượng tồn kho của variant
+                    productVariantDAO.updateStock(conn, variantId, -deductQty);
+
+                    // Đánh dấu log nhập kho đã xử lý hết hạn
+                    inventoryDAO.markLogExpired(conn, logEntry.getLogId());
+                    processedCount++;
+
+                    // Gửi cảnh báo nếu tồn kho xuống thấp
+                    checkAndSendLowStockAlert(conn, variantId, stockAfter);
+                }
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+        return processedCount;
+    }
+
     public List<InventoryLog> getLogs(int variantId) throws SQLException {
         if (variantId <= 0) {
             throw new IllegalArgumentException("Variant ID không hợp lệ.");
         }
         return inventoryDAO.findByVariant(variantId);
     }
-
 }

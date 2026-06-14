@@ -21,7 +21,6 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -110,12 +109,15 @@ public class InventoryServlet extends HttpServlet {
         String variantIdStr = req.getParameter("variantId");
         String quantityStr = req.getParameter("quantity");
         String note = req.getParameter("note");
-        String changedAtStr = req.getParameter("changedAt");
+        String actionType = req.getParameter("actionType");
+        String expiresAtStr = req.getParameter("expiresAt");
+        if (actionType == null || actionType.trim().isEmpty()) {
+            actionType = "RESTOCK";
+        }
 
         // 2. Validation
         if (variantIdStr == null || variantIdStr.trim().isEmpty() ||
-                quantityStr == null || quantityStr.trim().isEmpty() ||
-                changedAtStr == null || changedAtStr.trim().isEmpty()) {
+                quantityStr == null || quantityStr.trim().isEmpty()) {
             SessionUtil.flashError(session, "Vui lòng nhập đầy đủ các trường bắt buộc.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
@@ -123,33 +125,36 @@ public class InventoryServlet extends HttpServlet {
 
         int variantId;
         int quantity;
-        LocalDate changedAt;
+        // changedAt luôn lấy ngày hôm nay
+        LocalDate changedAt = LocalDate.now();
+        LocalDate expiresAt = null;
 
-        try {
-            variantId = Integer.parseInt(variantIdStr);
-            quantity = Integer.parseInt(quantityStr);
-        } catch (NumberFormatException e) {
-            SessionUtil.flashError(session, "Mã sản phẩm hoặc số lượng nhập kho không hợp lệ.");
-            resp.sendRedirect(req.getContextPath() + "/shop/inventory");
-            return;
+        if (expiresAtStr != null && !expiresAtStr.trim().isEmpty()) {
+            try {
+                expiresAt = LocalDate.parse(expiresAtStr.trim());
+                if (!"REDUCE".equals(actionType) && expiresAt.isBefore(LocalDate.now())) {
+                    SessionUtil.flashError(session, "Ngày hết hạn không được là ngày trong quá khứ.");
+                    resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+                    return;
+                }
+            } catch (java.time.format.DateTimeParseException e) {
+                SessionUtil.flashError(session, "Ngày hết hạn không đúng định dạng yyyy-MM-dd.");
+                resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+                return;
+            }
         }
 
         try {
-            changedAt = LocalDate.parse(changedAtStr);
-        } catch (DateTimeParseException e) {
-            SessionUtil.flashError(session, "Định dạng ngày nhập kho không hợp lệ.");
+            variantId = Integer.parseInt(variantIdStr);
+            quantity  = Integer.parseInt(quantityStr);
+        } catch (NumberFormatException e) {
+            SessionUtil.flashError(session, "Mã sản phẩm hoặc số lượng không hợp lệ.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
         }
 
         if (quantity <= 0) {
-            SessionUtil.flashError(session, "Số lượng nhập kho phải lớn hơn 0.");
-            resp.sendRedirect(req.getContextPath() + "/shop/inventory");
-            return;
-        }
-
-        if (changedAt.isAfter(LocalDate.now())) {
-            SessionUtil.flashError(session, "Ngày nhập kho không được lớn hơn ngày hiện tại.");
+            SessionUtil.flashError(session, "Số lượng phải lớn hơn 0.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
         }
@@ -166,22 +171,32 @@ public class InventoryServlet extends HttpServlet {
 
             List<Product> products = productDAO.findById(pv.getProductId());
             if (products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
-                SessionUtil.flashError(session, "Bạn không có quyền nhập kho cho sản phẩm này.");
+                SessionUtil.flashError(session, "Bạn không có quyền thay đổi kho cho sản phẩm này.");
                 resp.sendRedirect(req.getContextPath() + "/shop/inventory");
                 return;
             }
 
             // 4. Call Service to execute transaction
-            inventoryService.restock(variantId, quantity, note, changedAt, currentUser.getUserId());
-            SessionUtil.flashSuccess(session, "Nhập kho sản phẩm thành công!");
+            if ("REDUCE".equals(actionType)) {
+                if (note == null || note.trim().isEmpty()) {
+                    SessionUtil.flashError(session, "Vui lòng nhập lý do giảm kho vào ghi chú.");
+                    resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+                    return;
+                }
+                inventoryService.manualAdjust(variantId, -quantity, note, currentUser.getUserId());
+                SessionUtil.flashSuccess(session, "Cập nhật giảm tồn kho thành công!");
+            } else {
+                inventoryService.restockWithExpiry(variantId, quantity, note, changedAt, expiresAt, currentUser.getUserId());
+                SessionUtil.flashSuccess(session, "Nhập kho sản phẩm thành công!");
+            }
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi nhập kho", e);
+            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi điều chỉnh kho", e);
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, e.getMessage());
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi không xác định khi nhập kho", e);
+            LoggerUtil.error(log, "Lỗi không xác định khi điều chỉnh kho", e);
             SessionUtil.flashError(session, "Đã xảy ra lỗi không xác định.");
         }
 

@@ -169,6 +169,18 @@ public class OrderService {
         orderDAO.updateStatus(orderId, AppConfig.ORDER_DELIVERED);
         orderDAO.updateReceivedStatus(orderId, "RECEIVED");
 
+        // Ghi log inventory: "Giao hàng thành công" cho từng sản phẩm trong đơn
+        try {
+            List<OrderItem> items = orderDAO.findItemsByOrderId(orderId);
+            for (OrderItem item : items) {
+                if (item.getVariantId() != null) {
+                    inventoryService.confirm(item.getVariantId(), item.getQuantity(), orderId);
+                }
+            }
+        } catch (Exception ex) {
+            LoggerUtil.warn(log, "Không thể ghi log inventory confirm cho orderId=" + orderId, ex);
+        }
+
         try {
             User customer = userDAO.findUserById(customerId);
             if (customer != null) {

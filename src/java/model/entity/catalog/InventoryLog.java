@@ -15,6 +15,8 @@ public class InventoryLog {
     private int quantityAfter;
     private String note;
     private java.time.LocalDateTime changedAt;
+    private java.time.LocalDate expiresAt;
+    private boolean expired;
 
     // Helper fields for UI display
     private String productName;
@@ -22,6 +24,12 @@ public class InventoryLog {
     private String changedByName;
 
     public InventoryLog() {}
+
+    public java.time.LocalDate getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(java.time.LocalDate expiresAt) { this.expiresAt = expiresAt; }
+
+    public boolean isExpired() { return expired; }
+    public void setExpired(boolean expired) { this.expired = expired; }
 
     public int getLogId() { return logId; }
     public void setLogId(int logId) { this.logId = logId; }

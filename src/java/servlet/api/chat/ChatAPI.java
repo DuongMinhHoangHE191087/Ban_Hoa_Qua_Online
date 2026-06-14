@@ -111,6 +111,21 @@ public class ChatAPI extends HttpServlet {
                 return;
             }
 
+            // CSRF validation
+            String sessionToken = (String) request.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
+            String requestToken = request.getParameter("_csrf");
+            if (requestToken == null || requestToken.trim().isEmpty()) {
+                requestToken = request.getHeader("X-CSRF-Token");
+            }
+            if (requestToken == null || requestToken.trim().isEmpty()) {
+                requestToken = request.getHeader("X-XSRF-TOKEN");
+            }
+            if (sessionToken == null || !sessionToken.equals(requestToken)) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ"));
+                return;
+            }
+
             String action = request.getParameter("action");
             if ("sendMessage".equals(action)) {
                 int sessionId = Integer.parseInt(request.getParameter("sessionId"));

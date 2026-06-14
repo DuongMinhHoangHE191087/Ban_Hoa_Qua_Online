@@ -48,6 +48,21 @@ public class ChatMediaUploadServlet extends HttpServlet {
             return;
         }
 
+        // CSRF validation
+        String sessionToken = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
+        String requestToken = req.getParameter("_csrf");
+        if (requestToken == null || requestToken.trim().isEmpty()) {
+            requestToken = req.getHeader("X-CSRF-Token");
+        }
+        if (requestToken == null || requestToken.trim().isEmpty()) {
+            requestToken = req.getHeader("X-XSRF-TOKEN");
+        }
+        if (sessionToken == null || !sessionToken.equals(requestToken)) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            JsonUtil.writeJson(resp, ApiResponse.error("CSRF token không hợp lệ."));
+            return;
+        }
+
         try {
             Part filePart = req.getPart("file");
             if (filePart == null || filePart.getSize() == 0) {
