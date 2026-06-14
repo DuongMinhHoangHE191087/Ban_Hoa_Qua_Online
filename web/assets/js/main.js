@@ -10,7 +10,7 @@
  * Khi login → gọi CartSync.syncToServer() để đồng bộ lên DB.
  *
  * === WEBSOCKET CHAT ===
- * Xem js/components/chat.js (TODO)
+ * Runtime chat hiện nằm trong các JSP chat page với endpoint /ws/chat/{sessionId}.
  */
 
 // ── 1. Init ──────────────────────────────────────────────────────────────────
@@ -210,9 +210,7 @@ const CurrencyFmt = {
 };
 
 // ── 7. TODO: WebSocket Chat ───────────────────────────────────────────────────
-// Xem js/components/chat.js
-// Endpoint: ws://host/ctx/chat-ws?sessionId=xxx
-// Tạo ChatWebSocketServlet.java trong package servlet.api
+// Runtime chat được gắn trực tiếp trong các JSP chat page và dùng /ws/chat/{sessionId}.
 
 
 // ── 8. Unified AJAX Add-to-Cart Helper (Global) ──────────────────────────────

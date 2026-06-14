@@ -346,17 +346,6 @@
                 mediaType: pendingMediaType
             };
             ws.send(JSON.stringify(payload));
-            
-            const tempMsg = {
-                content: content,
-                mediaUrl: pendingMediaUrl,
-                mediaType: pendingMediaType,
-                createdAt: new Date().toISOString(),
-                senderId: currentAdminId,
-                messageId: null
-            };
-            chatBox.appendChild(renderMessage(tempMsg, true));
-            chatBox.scrollTop = chatBox.scrollHeight;
         } else {
             const fd = new URLSearchParams({
                 action: 'sendMessage',

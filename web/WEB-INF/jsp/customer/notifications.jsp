@@ -60,12 +60,12 @@
                         <!-- Notification Content -->
                         <div class="flex-1 min-w-0">
                             <div class="flex justify-between items-baseline mb-1">
-                                <h3 class="text-sm font-semibold text-slate-800 truncate">${notif.title}</h3>
+                                <h3 class="text-sm font-semibold text-slate-800 truncate"><c:out value="${notif.title}"/></h3>
                                 <span class="text-[10px] text-slate-400">
                                     <fmt:formatDate value="${notif.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
                                 </span>
                             </div>
-                            <p class="text-sm text-slate-600 mb-2 leading-relaxed">${notif.message}</p>
+                            <p class="text-sm text-slate-600 mb-2 leading-relaxed"><c:out value="${notif.message}"/></p>
                             
                             <div class="flex gap-2">
                                 <!-- Nút hành động đi tới URL -->

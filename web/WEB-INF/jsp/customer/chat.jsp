@@ -363,18 +363,6 @@
                 mediaType: pendingMediaType
             };
             ws.send(JSON.stringify(payload));
-            
-            // Optimistic UI render
-            const tempMsg = {
-                content: content,
-                mediaUrl: pendingMediaUrl,
-                mediaType: pendingMediaType,
-                createdAt: new Date().toISOString(),
-                senderId: currentUserId,
-                messageId: null
-            };
-            chatBox.appendChild(renderMessage(tempMsg, true));
-            chatBox.scrollTop = chatBox.scrollHeight;
         } else {
             // Fallback HTTP POST
             const fd = new URLSearchParams({

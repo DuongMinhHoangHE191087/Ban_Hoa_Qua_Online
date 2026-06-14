@@ -63,6 +63,21 @@ public class NotificationDAO extends BaseDAO {
         return 0;
     }
 
+    public boolean hasUnreadChatNotification(int userId, int sessionId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0 AND action_url LIKE ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, "%sessionId=" + sessionId + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
     public void markRead(int notifId) throws SQLException {
         String sql = "UPDATE notifications SET is_read = 1 WHERE notification_id = ?";
         try (Connection conn = getConnection();
