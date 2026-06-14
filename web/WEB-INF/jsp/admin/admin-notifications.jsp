@@ -162,9 +162,9 @@
                                                 <td class="px-6 py-4 text-xs text-txt-2 whitespace-nowrap">
                                                     <fmt:formatDate value="${n.createdAtAsDate}" pattern="dd/MM/yyyy HH:mm"/>
                                                 </td>
-                                                <td class="px-6 py-4 font-semibold text-txt">${n.title}</td>
-                                                <td class="px-6 py-4 text-txt-2 text-xs max-w-[250px] truncate" title="${n.message}">
-                                                    ${n.message}
+                                                <td class="px-6 py-4 font-semibold text-txt"><c:out value="${n.title}"/></td>
+                                                <td class="px-6 py-4 text-txt-2 text-xs max-w-[250px] truncate" title="<c:out value='${n.message}'/>">
+                                                    <c:out value="${n.message}"/>
                                                 </td>
                                                 <td class="px-6 py-4 text-xs font-mono text-txt-2 bg-[#f8fafc]/40">User #${n.userId}</td>
                                             </tr>
