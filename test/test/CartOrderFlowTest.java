@@ -1,5 +1,6 @@
 package test;
 
+import config.AppConfig;
 import dao.cart.CartDAO;
 import dao.catalog.CategoryDAO;
 import dao.order.OrderDAO;
@@ -304,12 +305,22 @@ public class CartOrderFlowTest {
 
     /**
      * TC-ORDER-02: Luồng chuyển trạng thái đơn hàng hợp lệ theo SRS.
-     * Nghiệp vụ: PENDING_PAYMENT -> CONFIRMED -> DISPATCHED -> DELIVERED.
+     * Nghiệp vụ: PENDING_PAYMENT -> CONFIRMED -> APPROVED -> DISPATCHED -> DELIVERED.
      */
     @Test
     public void test07_OrderStatusTransitionFlow() throws SQLException {
         Order order = buildTestOrder(testCustomerId, testOwnerId, VARIANT_PRICE);
         testOrderId = orderDAO.save(order);
+
+        try {
+            orderService.confirmOrder(testOrderId, testOwnerId);
+            fail("Shop không được duyệt đơn khi chưa xác nhận thanh toán.");
+        } catch (RuntimeException expected) {
+            assertEquals("Chỉ có thể duyệt đơn hàng khi trạng thái là CONFIRMED.", expected.getMessage());
+        }
+
+        orderDAO.updateStatus(testOrderId, AppConfig.ORDER_CONFIRMED);
+        assertEquals("Sau xác nhận thanh toán", "CONFIRMED", getOrderStatus(testOrderId));
 
         orderService.confirmOrder(testOrderId, testOwnerId);
         assertEquals("Sau APPROVED", "APPROVED", getOrderStatus(testOrderId));

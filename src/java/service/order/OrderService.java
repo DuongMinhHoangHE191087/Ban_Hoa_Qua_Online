@@ -78,9 +78,8 @@ public class OrderService {
         if (order == null || order.getOwnerId() != ownerId) {
             throw new RuntimeException("Đơn hàng không hợp lệ hoặc bạn không có quyền duyệt!");
         }
-        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
-                && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
-            throw new RuntimeException("Chỉ có thể duyệt đơn hàng ở trạng thái PENDING_PAYMENT hoặc CONFIRMED.");
+        if (!AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
+            throw new RuntimeException("Chỉ có thể duyệt đơn hàng khi trạng thái là CONFIRMED.");
         }
         orderDAO.updateStatus(orderId, AppConfig.ORDER_APPROVED);
     }
