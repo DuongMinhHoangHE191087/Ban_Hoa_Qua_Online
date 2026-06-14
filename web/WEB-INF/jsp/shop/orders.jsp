@@ -207,7 +207,7 @@
                                 </td>
                                 <td class="py-3.5 px-5 text-right">
                                     <div class="inline-flex items-center gap-2">
-                                        <c:if test="${order.status == 'CONFIRMED' || order.status == 'PENDING_PAYMENT'}">
+                                        <c:if test="${order.status == 'CONFIRMED'}">
                                             <form action="${pageContext.request.contextPath}/shop/orders" method="POST" class="inline">
                                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                 <input type="hidden" name="action" value="approve">
