@@ -948,20 +948,9 @@ function Run-Tests {
     Write-Host "`nRunning JUnit Tests..." -ForegroundColor Cyan
     $runClasspath = "build/test/classes;build/web/WEB-INF/classes;web/WEB-INF/lib/*;lib/test/*;$tomcatHome/lib/*"
     
-    $testClasses = @(
-        "com.fruitmkt.test.ProductApprovalTest",
-        "com.fruitmkt.test.CategoryCRUDTest",
-        "com.fruitmkt.test.CartOrderFlowTest",
-        "com.fruitmkt.test.CheckoutServletPricingRegressionTest",
-        "com.fruitmkt.test.UserAuthFlowTest",
-        "com.fruitmkt.test.PromotionVoucherTest",
-        "com.fruitmkt.test.PromotionServletCrudToggleTest",
-        "com.fruitmkt.test.PaymentDashboardSmokeTest",
-        "com.fruitmkt.test.ProductBusinessRulesTest",
-        "com.fruitmkt.test.SettlementAndReturnRulesTest",
-        "com.fruitmkt.test.AiSearchTest",
-        "com.fruitmkt.test.ChatNotificationTest"
-    )
+    # Dynamically find all test classes under test/test
+    $testJavaFiles = Get-ChildItem -Path "test/test" -Filter "*.java" -Recurse | ForEach-Object { $_.BaseName }
+    $testClasses = $testJavaFiles | ForEach-Object { "test.$_" }
     
     $cmdRun = "java -cp `"$runClasspath`" org.junit.runner.JUnitCore $($testClasses -join ' ')"
     cmd.exe /c $cmdRun

@@ -1,11 +1,11 @@
-/**
+﻿/**
  * chat.js — WebSocket client cho tính năng Chat real-time.
  *
  * ENDPOINT: ws://<host>/<contextPath>/chat-ws
  * QUERY PARAMS: ?sessionId=<int>&userId=<int>
  *
  * SERVER SIDE: Cần tạo ChatWebSocketEndpoint.java với @ServerEndpoint
- * Package: com.fruitmkt.servlet.api.ChatWebSocketEndpoint
+ * Package: servlet.api.ChatWebSocketEndpoint
  *
  * CÁCH DÙNG TRONG JSP:
  * <script src="${ctx}/assets/js/components/chat.js"></script>

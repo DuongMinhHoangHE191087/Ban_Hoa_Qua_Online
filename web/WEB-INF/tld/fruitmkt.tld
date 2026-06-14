@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!--
   fruitmkt.tld — Tag Library Descriptor cho custom tags của dự án.
 
@@ -12,7 +12,7 @@
     <ft:pagination current="${page}" total="${totalPages}" baseUrl="/products"/>
     <ft:allow role="ADMIN">...</ft:allow>
 
-  Tag classes nằm trong package: com.fruitmkt.tag
+  Tag classes nằm trong package: tag
 -->
 <taglib xmlns="https://jakarta.ee/xml/ns/jakartaee"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -30,7 +30,7 @@
     <tag>
         <description>Format số tiền sang định dạng VND. Ví dụ: 150000 → 150.000 ₫</description>
         <name>currency</name>
-        <tag-class>com.fruitmkt.tag.CurrencyFormatTag</tag-class>
+        <tag-class>tag.CurrencyFormatTag</tag-class>
         <body-content>empty</body-content>
         <attribute>
             <name>value</name>
@@ -47,7 +47,7 @@
     <tag>
         <description>Render star rating từ 1 đến 5. Hỗ trợ nửa sao.</description>
         <name>stars</name>
-        <tag-class>com.fruitmkt.tag.StarRatingTag</tag-class>
+        <tag-class>tag.StarRatingTag</tag-class>
         <body-content>empty</body-content>
         <attribute>
             <name>rating</name>
@@ -70,7 +70,7 @@
     <tag>
         <description>Render badge HTML có màu cho order status (DELIVERED=xanh, CANCELLED=đỏ...)</description>
         <name>orderStatus</name>
-        <tag-class>com.fruitmkt.tag.OrderStatusTag</tag-class>
+        <tag-class>tag.OrderStatusTag</tag-class>
         <body-content>empty</body-content>
         <attribute>
             <name>code</name>
@@ -87,7 +87,7 @@
     <tag>
         <description>Render thanh phân trang với Prev/Next và các số trang</description>
         <name>pagination</name>
-        <tag-class>com.fruitmkt.tag.PaginationTag</tag-class>
+        <tag-class>tag.PaginationTag</tag-class>
         <body-content>empty</body-content>
         <attribute>
             <name>current</name>
@@ -116,7 +116,7 @@
     <tag>
         <description>Render body content chỉ khi user có role khớp</description>
         <name>allow</name>
-        <tag-class>com.fruitmkt.tag.PermissionTag</tag-class>
+        <tag-class>tag.PermissionTag</tag-class>
         <body-content>scriptless</body-content>
         <attribute>
             <name>role</name>

@@ -1,0 +1,305 @@
+package service.system;
+
+import config.AppConfig;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * EmailTemplateService — Xây dựng HTML template cho từng loại email gửi đi.
+ *
+ * SRP: Class này CHỈ build HTML string, không gửi email.
+ * Mỗi public method tương ứng 1 loại email nghiệp vụ.
+ *
+ * @author fruitmkt-team
+ */
+public class EmailTemplateService {
+
+    // ── Style constants ────────────────────────────────────────────────────
+    private static final String EMAIL_STYLE_BASE =
+            "font-family:Arial,Helvetica,sans-serif;background:#f5f8f6;margin:0;padding:0;color:#1f2937;";
+    private static final String CARD_STYLE =
+            "max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #dbe7df;"
+            + "border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(20,83,45,0.10);";
+    private static final String HEADER_STYLE =
+            "padding:28px 28px 20px;background:linear-gradient(135deg,#14532d 0%,#1f6d3b 100%);color:#ffffff;";
+    private static final String BODY_STYLE = "padding:28px;line-height:1.7;font-size:15px;";
+    private static final String FOOTER_STYLE =
+            "padding:20px 28px 28px;border-top:1px solid #e5efe8;background:#fbfdfb;"
+            + "color:#607166;font-size:12px;line-height:1.6;";
+
+    // ── Public template builders ───────────────────────────────────────────
+
+    /** Template email xác minh OTP 6 số. */
+    public String buildVerificationEmail(String fullName, String verificationCode) {
+        Map<String, String> facts = new LinkedHashMap<>();
+        facts.put("Mã có hiệu lực", "5 phút");
+        facts.put("Gửi lại mã", "Sau 1 phút");
+        facts.put("Bảo mật", "Không chia sẻ cho bất kỳ ai");
+
+        String factsHtml = buildFactsTable(facts);
+        String mainHtml = buildOtpBox(verificationCode, factsHtml);
+        String footerHtml = "Nếu bạn không tạo tài khoản này, chỉ cần bỏ qua email. "
+                + "Không ai có thể kích hoạt tài khoản nếu không có mã này."
+                + "<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "Xác minh tài khoản",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(fullName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Cảm ơn bạn đã đăng ký. Để hoàn tất việc tạo tài khoản, "
+                + "vui lòng nhập mã xác minh bên dưới.</p>",
+                mainHtml,
+                "Xem trang xác minh",
+                AppConfig.APP_BASE_URL + "/auth/verify",
+                footerHtml);
+    }
+
+    /** Template email đặt lại mật khẩu. */
+    public String buildPasswordResetEmail(String fullName, String resetLink) {
+        String mainHtml = "<div style='text-align:center;margin:22px 0;'>"
+                + "<a href='" + escapeHtml(resetLink) + "' "
+                + "style='display:inline-block;padding:14px 28px;border-radius:14px;"
+                + "background:#14532d;color:#fff;font-weight:700;text-decoration:none;font-size:15px;'>"
+                + "Đặt lại mật khẩu</a></div>"
+                + "<p style='font-size:13px;color:#607166;text-align:center;margin:0;'>"
+                + "Liên kết có hiệu lực trong 15 phút.</p>";
+
+        String footerHtml = "Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này. "
+                + "Tài khoản vẫn an toàn.<br><br>Trân trọng,<br><strong>Đội ngũ "
+                + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "Đặt lại mật khẩu",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(fullName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>",
+                mainHtml,
+                null, null,
+                footerHtml);
+    }
+
+    /** Template email thông báo đơn hàng. */
+    public String buildOrderNotificationEmail(String fullName, String orderId, String status, String orderDetailUrl) {
+        String mainHtml = "<div style='background:#f0f8f3;border:1px solid #c8e2d0;border-radius:14px;"
+                + "padding:16px 20px;margin:16px 0;'>"
+                + "<p style='margin:0 0 8px;font-size:13px;color:#607166;'>Mã đơn hàng</p>"
+                + "<p style='margin:0;font-size:18px;font-weight:800;color:#14532d;letter-spacing:2px;'>"
+                + escapeHtml(orderId) + "</p>"
+                + "<p style='margin:8px 0 0;font-size:14px;color:#1f2937;'>Trạng thái: <strong>"
+                + escapeHtml(status) + "</strong></p>"
+                + "</div>";
+
+        String footerHtml = "Cảm ơn bạn đã tin tưởng " + escapeHtml(AppConfig.APP_NAME)
+                + ".<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "Cập nhật đơn hàng",
+                "<p style='margin:0;'>Xin chào <strong>" + escapeHtml(fullName)
+                + "</strong>, đơn hàng của bạn vừa được cập nhật.</p>",
+                mainHtml,
+                "Xem chi tiết đơn hàng",
+                orderDetailUrl,
+                footerHtml);
+    }
+
+    /**
+     * Template email xác nhận đã nhận đơn đăng ký shop.
+     * Gửi ngay sau khi người dùng nộp đơn thành công.
+     */
+    public String buildShopApplicationReceivedEmail(String ownerName, String shopName) {
+        String mainHtml = "<div style='background:#f0f8f3;border:1px solid #c8e2d0;border-radius:14px;"
+                + "padding:16px 20px;margin:16px 0;'>"
+                + "<p style='margin:0 0 8px;font-size:13px;color:#607166;'>Tên cửa hàng đăng ký</p>"
+                + "<p style='margin:0;font-size:18px;font-weight:800;color:#14532d;'>"
+                + escapeHtml(shopName) + "</p>"
+                + "<p style='margin:12px 0 0;font-size:13px;color:#1f2937;'>"
+                + "Trạng thái: <strong style='color:#92400e;'>⏳ Đang chờ xét duyệt</strong></p>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#607166;margin:12px 0 0;'>"
+                + "Thời gian xét duyệt thông thường là <strong>1-3 ngày làm việc</strong>. "
+                + "Chúng tôi sẽ thông báo kết quả qua email này.</p>";
+
+        String footerHtml = "Nếu bạn không thực hiện đăng ký này, hãy liên hệ bộ phận hỗ trợ."
+                + "<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "Đã nhận đơn đăng ký gian hàng",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(ownerName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Chúng tôi đã nhận được đơn đăng ký mở gian hàng của bạn. "
+                + "Đội ngũ kiểm duyệt sẽ xem xét thông tin và tài liệu bạn cung cấp.</p>",
+                mainHtml,
+                "Xem trạng thái đơn",
+                AppConfig.APP_BASE_URL + "/customer/shop-apply",
+                footerHtml);
+    }
+
+    /**
+     * Template email thông báo shop đã được APPROVE.
+     * Gửi khi Admin duyệt thành công.
+     */
+    public String buildShopApprovedEmail(String ownerName, String shopName) {
+        String mainHtml = "<div style='background:#f0f8f3;border:2px solid #14532d;border-radius:14px;"
+                + "padding:18px 22px;margin:16px 0;text-align:center;'>"
+                + "<div style='font-size:36px;margin-bottom:8px;'>🎉</div>"
+                + "<p style='margin:0 0 6px;font-size:15px;font-weight:800;color:#14532d;'>"
+                + escapeHtml(shopName) + "</p>"
+                + "<p style='margin:0;font-size:13px;color:#065f46;font-weight:700;'>"
+                + "✅ ĐÃ ĐƯỢC PHÊ DUYỆT</p>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#1f2937;margin:12px 0;'>"
+                + "Bạn có thể <strong>đăng nhập lại</strong> và bắt đầu quản lý gian hàng ngay hôm nay. "
+                + "Chào mừng bạn trở thành đối tác chính thức của " + escapeHtml(AppConfig.APP_NAME) + "!</p>";
+
+        String footerHtml = "Cảm ơn bạn đã lựa chọn " + escapeHtml(AppConfig.APP_NAME) + " làm nền tảng kinh doanh."
+                + "<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "🎉 Chúc mừng! Gian hàng đã được duyệt",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(ownerName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Sau khi xem xét, chúng tôi vui mừng thông báo đơn đăng ký "
+                + "mở gian hàng của bạn đã được <strong style='color:#14532d;'>PHÊ DUYỆT</strong>.</p>",
+                mainHtml,
+                "Vào Dashboard bán hàng",
+                AppConfig.APP_BASE_URL + "/shop/dashboard",
+                footerHtml);
+    }
+
+    /**
+     * Template email thông báo đơn đăng ký shop bị REJECT.
+     * Gửi khi Admin từ chối đơn.
+     */
+    public String buildShopRejectedEmail(String ownerName, String shopName, String rejectionReason) {
+        String mainHtml = "<div style='background:#fff5f5;border:1px solid #fca5a5;border-radius:14px;"
+                + "padding:16px 20px;margin:16px 0;'>"
+                + "<p style='margin:0 0 8px;font-size:13px;color:#991b1b;font-weight:700;'>Lý do từ chối:</p>"
+                + "<p style='margin:0;font-size:14px;color:#1f2937;'>"
+                + escapeHtml(rejectionReason) + "</p>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#607166;margin:12px 0;'>"
+                + "Bạn có thể cập nhật thông tin và nộp lại đơn đăng ký. "
+                + "Nếu cần hỗ trợ, hãy liên hệ chúng tôi qua email hỗ trợ bên dưới.</p>";
+
+        String footerHtml = "Chúng tôi mong được hỗ trợ bạn trong tương lai."
+                + "<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
+
+        return buildBrandedEmail(
+                "Thông báo về đơn đăng ký gian hàng",
+                "<p style='margin:0 0 10px 0;'>Xin chào <strong>" + escapeHtml(ownerName) + "</strong>,</p>"
+                + "<p style='margin:0;'>Rất tiếc, đơn đăng ký mở gian hàng <strong>"
+                + escapeHtml(shopName) + "</strong> của bạn chưa đáp ứng điều kiện phê duyệt lần này.</p>",
+                mainHtml,
+                "Nộp lại đơn đăng ký",
+                AppConfig.APP_BASE_URL + "/customer/shop-apply",
+                footerHtml);
+    }
+
+    // ── Core layout builder (dùng nội bộ) ─────────────────────────────────
+
+    /**
+     * Tổng hợp HTML hoàn chỉnh cho 1 email branded.
+     * primaryCtaText/Url nullable — bỏ qua nếu null hoặc rỗng.
+     */
+    public String buildBrandedEmail(
+            String headline,
+            String introHtml,
+            String mainHtml,
+            String primaryCtaText,
+            String primaryCtaUrl,
+            String footerHtml) {
+
+        return "<html><body style='" + EMAIL_STYLE_BASE + "'>"
+                + "<div style='padding:32px 16px;'>"
+                + "<div style='" + CARD_STYLE + "'>"
+                + buildHeader(headline)
+                + "<div style='" + BODY_STYLE + "'>"
+                + "<div style='font-size:16px;color:#385143;margin-bottom:16px;'>" + introHtml + "</div>"
+                + mainHtml
+                + buildCta(primaryCtaText, primaryCtaUrl)
+                + "</div>"
+                + buildFooter(footerHtml)
+                + "</div>"
+                + "</div>"
+                + "</body></html>";
+    }
+
+    // ── Private helpers ────────────────────────────────────────────────────
+
+    private String buildHeader(String headline) {
+        return "<div style='" + HEADER_STYLE + "'>"
+                + "<div style='display:flex;align-items:center;gap:12px;margin-bottom:18px;'>"
+                + "<div style='width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,0.18);"
+                + "display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;'>M</div>"
+                + "<div>"
+                + "<div style='font-size:13px;letter-spacing:1.2px;text-transform:uppercase;opacity:0.88;'>"
+                + escapeHtml(AppConfig.APP_NAME) + "</div>"
+                + "<div style='font-size:24px;font-weight:800;margin-top:4px;'>" + escapeHtml(headline) + "</div>"
+                + "</div>"
+                + "</div>"
+                + "<div style='font-size:14px;opacity:0.92;max-width:520px;'>"
+                + "Sàn nông sản sạch, hiện đại và an toàn cho người dùng.</div>"
+                + "</div>";
+    }
+
+    private String buildCta(String text, String url) {
+        if (text == null || text.trim().isEmpty() || url == null || url.trim().isEmpty()) {
+            return "";
+        }
+        return "<div style='margin-top:24px;text-align:center;'>"
+                + "<a href='" + escapeHtml(url) + "' style='display:inline-block;background:"
+                + AppConfig.APP_BRAND_COLOR + ";color:#fff;text-decoration:none;font-weight:700;"
+                + "padding:12px 20px;border-radius:12px;'>"
+                + escapeHtml(text)
+                + "</a></div>";
+    }
+
+    private String buildFooter(String footerHtml) {
+        return "<div style='" + FOOTER_STYLE + "'>"
+                + "<div style='margin-bottom:10px;'>" + footerHtml + "</div>"
+                + "<div>Hỗ trợ: <a href='mailto:" + escapeHtml(AppConfig.APP_SUPPORT_EMAIL) + "' "
+                + "style='color:" + AppConfig.APP_BRAND_COLOR + ";text-decoration:none;'>"
+                + escapeHtml(AppConfig.APP_SUPPORT_EMAIL) + "</a></div>"
+                + "</div>";
+    }
+
+    private String buildOtpBox(String verificationCode, String factsHtml) {
+        return "<div style='text-align:center;margin:22px 0 18px;'>"
+                + "<div style='display:inline-block;padding:14px 22px;border-radius:16px;"
+                + "background:#eef8f1;border:1px solid #c8e2d0;'>"
+                + "<div style='font-size:12px;letter-spacing:1.4px;text-transform:uppercase;"
+                + "color:#5e7162;margin-bottom:6px;'>Mã xác minh của bạn</div>"
+                + "<div style='font-size:34px;font-weight:800;letter-spacing:8px;color:"
+                + AppConfig.APP_BRAND_COLOR + ";line-height:1.2;'>"
+                + escapeHtml(verificationCode) + "</div>"
+                + "</div></div>"
+                + "<div style='background:#fbfdfb;border:1px solid #e2ede5;border-radius:14px;"
+                + "padding:16px 18px;'>"
+                + factsHtml
+                + "</div>";
+    }
+
+    private String buildFactsTable(Map<String, String> facts) {
+        StringBuilder sb = new StringBuilder(
+                "<table role='presentation' style='width:100%;border-collapse:separate;"
+                + "border-spacing:0 10px;margin-top:18px;'>");
+        for (Map.Entry<String, String> entry : facts.entrySet()) {
+            sb.append("<tr>")
+              .append("<td style='padding:0;width:38%;font-size:13px;color:#607166;'>")
+              .append(escapeHtml(entry.getKey()))
+              .append("</td>")
+              .append("<td style='padding:0;font-size:13px;color:#1f2937;font-weight:700;'>")
+              .append(escapeHtml(entry.getValue()))
+              .append("</td>")
+              .append("</tr>");
+        }
+        sb.append("</table>");
+        return sb.toString();
+    }
+
+    public static String escapeHtml(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#39;")
+                    .replace("=", "&#61;");
+    }
+}
