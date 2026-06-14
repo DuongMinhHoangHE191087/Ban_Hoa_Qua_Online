@@ -323,6 +323,9 @@ public class AuthService {
         if (email == null || email.trim().isEmpty()) {
             throw new IllegalArgumentException("Email không được để trống.");
         }
+        if (fullName == null || fullName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Họ và tên không được để trống.");
+        }
         User existingUser = userDAO.findByEmail(email);
         if (existingUser != null) {
             if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(existingUser.getStatus()) || !existingUser.isEmailVerified()) {

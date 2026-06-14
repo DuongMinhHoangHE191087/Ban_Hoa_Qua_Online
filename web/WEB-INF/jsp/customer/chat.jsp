@@ -198,6 +198,7 @@
     const CTX = window.CTX;
     const sessionId = parseInt('${activeSessionId}');
     const currentUserId = parseInt('${sessionScope.currentUser != null ? sessionScope.currentUser.userId : -1}');
+    const CSRF_TOKEN = '${sessionScope._csrfToken}';
     
     const chatBox = document.getElementById('chatBox');
     const chatInput = document.getElementById('chatInput');
@@ -381,7 +382,8 @@
                 sessionId: sessionId,
                 content: content,
                 mediaUrl: pendingMediaUrl || '',
-                mediaType: pendingMediaType || ''
+                mediaType: pendingMediaType || '',
+                _csrf: CSRF_TOKEN
             });
             fetch(CTX + '/api/chat', { 
                 method: 'POST', 
@@ -404,14 +406,43 @@
         const file = this.files[0];
         if (!file) return;
 
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+
+        // Client-side file size and format validation
+        if (isImage) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Hình ảnh không được vượt quá 5MB.');
+                this.value = '';
+                return;
+            }
+            if (!file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+                alert('Định dạng ảnh không hợp lệ (chỉ cho phép JPG, PNG, GIF, WEBP).');
+                this.value = '';
+                return;
+            }
+        } else if (isVideo) {
+            if (file.size > 50 * 1024 * 1024) {
+                alert('Video không được vượt quá 50MB.');
+                this.value = '';
+                return;
+            }
+            if (!file.name.toLowerCase().match(/\.(mp4|webm|ogg)$/)) {
+                alert('Định dạng video không hợp lệ (chỉ cho phép MP4, WEBM, OGG).');
+                this.value = '';
+                return;
+            }
+        } else {
+            alert('Định dạng không được hỗ trợ. Chỉ cho phép tải lên hình ảnh và video.');
+            this.value = '';
+            return;
+        }
+
         previewFileName.textContent = file.name;
         uploadPreviewPanel.classList.remove('hidden');
         uploadProgressOverlay.classList.remove('hidden');
         uploadProgressOverlay.textContent = '0%';
         isUploading = true;
-
-        const isImage = file.type.startsWith('image/');
-        const isVideo = file.type.startsWith('video/');
 
         if (isImage) {
             imagePreview.src = URL.createObjectURL(file);
@@ -425,9 +456,11 @@
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('_csrf', CSRF_TOKEN);
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', CTX + '/api/chat/upload', true);
+        xhr.setRequestHeader('X-CSRF-Token', CSRF_TOKEN);
 
         xhr.upload.onprogress = function(e) {
             if (e.lengthComputable) {
@@ -496,7 +529,6 @@
 </c:if>
 
 <script>
-    const CTX = window.CTX;
     // Search filter cho Sidebar
     const searchInput = document.getElementById('searchSessions');
     if (searchInput) {
@@ -516,7 +548,7 @@
             fetch(CTX + '/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                body: new URLSearchParams({ action:'createAdminSession', adminId:'1' }).toString()
+                body: new URLSearchParams({ action:'createAdminSession', adminId:'1', _csrf: '${sessionScope._csrfToken}' }).toString()
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     location.href = CTX + '/chat?sessionId=' + data.sessionId;

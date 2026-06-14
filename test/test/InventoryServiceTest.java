@@ -40,7 +40,7 @@ public class InventoryServiceTest {
 
     @Test(expected = RuntimeException.class)
     public void reserve_insufficientStock_throws() throws Exception {
-        inventoryService.reserve(1, 100, 1);
+        inventoryService.reserve(1, 999999, 1);
     }
 
     @Test(expected = IllegalArgumentException.class)

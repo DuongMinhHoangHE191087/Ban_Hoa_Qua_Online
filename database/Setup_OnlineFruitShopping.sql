@@ -39,7 +39,7 @@ BEGIN
         full_name NVARCHAR(100) NOT NULL,
         email NVARCHAR(255) NOT NULL CONSTRAINT UQ_users_email UNIQUE,
         password_hash NVARCHAR(255) NULL,
-        phone NVARCHAR(15) NULL CONSTRAINT UQ_users_phone UNIQUE,
+        phone NVARCHAR(15) NULL,
         role NVARCHAR(20) NOT NULL CONSTRAINT CK_users_role DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER', 'SHOP_OWNER', 'DELIVERY', 'ADMIN')),
         status NVARCHAR(20) NOT NULL CONSTRAINT CK_users_status DEFAULT 'INACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'LOCKED', 'SUSPENDED')),
         user_address NVARCHAR(500) NULL,
@@ -54,6 +54,8 @@ BEGIN
         created_at DATETIME NOT NULL CONSTRAINT DF_users_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_users_updated_at DEFAULT GETDATE()
     );
+
+    EXEC('SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_users_phone ON dbo.users(phone) WHERE phone IS NOT NULL;');
 END
 GO
 
@@ -270,29 +272,15 @@ BEGIN
         log_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_inventory_logs PRIMARY KEY,
         variant_id INT NOT NULL,
         changed_by INT NOT NULL,
-        change_type NVARCHAR(20) NOT NULL CONSTRAINT CK_inventory_logs_change_type CHECK (change_type IN ('MANUAL_ADJUST', 'ORDER_RESERVE', 'ORDER_RELEASE', 'ORDER_CONFIRM', 'RETURN')),
+        change_type NVARCHAR(20) NOT NULL CONSTRAINT CK_inventory_logs_change_type CHECK (change_type IN ('MANUAL_ADJUST', 'ORDER_RESERVE', 'ORDER_RELEASE', 'ORDER_CONFIRM', 'RETURN', 'EXPIRED', 'SPOILED')),
         quantity_delta INT NOT NULL,
         quantity_after INT NOT NULL,
         note NVARCHAR(300) NULL,
+        expires_at DATE NULL,
+        is_expired BIT NOT NULL CONSTRAINT DF_inventory_logs_is_expired DEFAULT 0,
         changed_at DATETIME NOT NULL CONSTRAINT DF_inventory_logs_changed_at DEFAULT GETDATE(),
         CONSTRAINT FK_inventory_logs_variants FOREIGN KEY (variant_id) REFERENCES dbo.product_variants(variant_id),
         CONSTRAINT FK_inventory_logs_users FOREIGN KEY (changed_by) REFERENCES dbo.users(user_id)
-    );
-END
-GO
-
-IF OBJECT_ID(N'dbo.replenishment_logs', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.replenishment_logs (
-        log_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_replenishment_logs PRIMARY KEY,
-        variant_id INT NOT NULL,
-        replenished_by INT NOT NULL,
-        quantity INT NOT NULL CONSTRAINT CK_replenishment_logs_quantity CHECK (quantity > 0),
-        supplier_details NVARCHAR(500) NULL,
-        replenishment_date DATE NOT NULL,
-        created_at DATETIME NOT NULL CONSTRAINT DF_replenishment_logs_created_at DEFAULT GETDATE(),
-        CONSTRAINT FK_replenishment_logs_variants FOREIGN KEY (variant_id) REFERENCES dbo.product_variants(variant_id) ON DELETE CASCADE,
-        CONSTRAINT FK_replenishment_logs_users FOREIGN KEY (replenished_by) REFERENCES dbo.users(user_id)
     );
 END
 GO
@@ -797,6 +785,26 @@ BEGIN
         ('gemini_api_key',          '',     N'API Key cho mô hình Gemini 2.5 Flash để hỗ trợ AI Search & Tư vấn.', 'STRING');
 
     PRINT 'Created system_config table and seeded defaults.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.audit_logs', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.audit_logs (
+        log_id      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_audit_logs PRIMARY KEY,
+        user_id     INT NULL,
+        action      NVARCHAR(100) NOT NULL,
+        target_type NVARCHAR(50) NOT NULL,
+        target_id   INT NULL,
+        detail      NVARCHAR(MAX) NOT NULL,
+        ip_address  NVARCHAR(45) NULL,
+        created_at  DATETIME NOT NULL CONSTRAINT DF_audit_logs_created_at DEFAULT GETDATE(),
+        CONSTRAINT FK_audit_logs_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id) ON DELETE SET NULL
+    );
+
+    CREATE NONCLUSTERED INDEX IX_audit_logs_user_id ON dbo.audit_logs(user_id);
+    CREATE NONCLUSTERED INDEX IX_audit_logs_created_at ON dbo.audit_logs(created_at DESC);
+    PRINT 'Created audit_logs table.';
 END
 GO
 

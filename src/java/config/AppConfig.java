@@ -58,6 +58,8 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         public static final String ACCOUNT_STATUS_ACTIVE = "ACTIVE";
         public static final String ACCOUNT_STATUS_INACTIVE = "INACTIVE";
+        public static final String ACCOUNT_STATUS_LOCKED = "LOCKED";
+        public static final String ACCOUNT_STATUS_SUSPENDED = "SUSPENDED";
 
         // ------------------------------------------------------------------
         // Phân trang (Pagination)
@@ -183,6 +185,17 @@ public final class AppConfig {
         public static final String NOTIF_SYSTEM = "SYSTEM";
         public static final String NOTIF_INVENTORY_ALERT = "INVENTORY_ALERT";
         public static final String NOTIF_PAYMENT = "PAYMENT";
+
+        // ------------------------------------------------------------------
+        // Inventory Change Types
+        // ------------------------------------------------------------------
+        public static final String INVENTORY_CHANGE_MANUAL = "MANUAL_ADJUST";
+        public static final String INVENTORY_CHANGE_RESERVE = "ORDER_RESERVE";
+        public static final String INVENTORY_CHANGE_RELEASE = "ORDER_RELEASE";
+        public static final String INVENTORY_CHANGE_CONFIRM = "ORDER_CONFIRM";
+        public static final String INVENTORY_CHANGE_RETURN = "RETURN";
+        public static final String INVENTORY_CHANGE_EXPIRED = "EXPIRED";
+        public static final String INVENTORY_CHANGE_SPOILED = "SPOILED";
 
         // ------------------------------------------------------------------
         // Security
