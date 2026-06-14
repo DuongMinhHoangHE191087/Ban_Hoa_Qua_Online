@@ -2,10 +2,7 @@ package websocket;
 
 import config.AppConfig;
 import dao.chat.ChatDAO;
-import dao.chat.NotificationDAO;
-import model.entity.chat.ChatMessage;
 import model.entity.chat.ChatSession;
-import model.entity.chat.Notification;
 import model.entity.auth.User;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.CloseReason;
@@ -19,16 +16,14 @@ import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import service.chat.ChatDeliveryService;
 
 /**
  * ChatEndpoint — WebSocket endpoint cho hệ thống chat real-time.
@@ -61,7 +56,60 @@ public class ChatEndpoint {
     private static final Map<Integer, Set<Session>> ROOM_MAP = new ConcurrentHashMap<>();
 
     private final ChatDAO chatDAO = new ChatDAO();
-    private final NotificationDAO notificationDAO = new NotificationDAO();
+    private final ChatDeliveryService chatDeliveryService = new ChatDeliveryService();
+
+    public static boolean isUserOnline(int sessionId, int userId) {
+        Set<Session> room = ROOM_MAP.get(sessionId);
+        if (room == null) {
+            return false;
+        }
+        for (Session peer : room) {
+            if (peer.isOpen()) {
+                Object uid = peer.getUserProperties().get("userId");
+                if (uid != null && uid.equals(userId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static void broadcastMessage(int sessionId, int senderId, String senderRole, String senderName,
+                                        int messageId, String content, String mediaUrl, String mediaType,
+                                        String createdAtStr) {
+        Set<Session> room = ROOM_MAP.get(sessionId);
+        if (room == null) {
+            return;
+        }
+
+        for (Session peer : room) {
+            if (!peer.isOpen()) {
+                continue;
+            }
+            try {
+                String peerRole = (String) peer.getUserProperties().get("userRole");
+                boolean peerIsAdmin = AppConfig.ROLE_ADMIN.equals(peerRole);
+                String displayName = senderName != null ? senderName : "";
+                if (!peerIsAdmin && AppConfig.ROLE_ADMIN.equals(senderRole)) {
+                    displayName = "Hỗ trợ Admin";
+                }
+
+                String responseJson = buildMessageJson(
+                        messageId,
+                        senderId,
+                        displayName,
+                        senderRole,
+                        content,
+                        mediaUrl,
+                        mediaType,
+                        createdAtStr
+                );
+                peer.getBasicRemote().sendText(responseJson);
+            } catch (IOException e) {
+                LOG.log(Level.WARNING, "ChatEndpoint: không gửi được tới peer", e);
+            }
+        }
+    }
 
     // ----------------------------------------------------------------
     // Lifecycle callbacks
@@ -138,50 +186,23 @@ public class ChatEndpoint {
             content = content.trim();
         }
 
-        // Lưu vào DB
-        ChatMessage msg = new ChatMessage();
-        msg.setSessionId(sessionId);
-        msg.setSenderId(senderId);
-        msg.setContent(content);
-        msg.setMediaUrl(mediaUrl);
-        msg.setMediaType(mediaType);
-        msg.setIsRead(false);
-
-        int messageId = 0;
         try {
-            messageId = chatDAO.saveMessage(msg);
+            chatDeliveryService.sendMessage(
+                    sessionId,
+                    senderId,
+                    senderRole,
+                    senderName,
+                    content,
+                    mediaUrl,
+                    mediaType
+            );
+            return;
+        } catch (IllegalArgumentException e) {
+            sendError(wsSession, e.getMessage());
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "ChatEndpoint.onMessage: lỗi lưu tin nhắn", e);
             sendError(wsSession, "Lỗi lưu tin nhắn.");
-            return;
         }
-
-        // Build JSON response per peer to support name masking
-        String createdAtStr = LocalDateTime.now().toString();
-
-        // Broadcast tới tất cả WS sessions trong room
-        Set<Session> room = ROOM_MAP.get(sessionId);
-        if (room != null) {
-            for (Session peer : room) {
-                if (peer.isOpen()) {
-                    try {
-                        String peerRole = (String) peer.getUserProperties().get("userRole");
-                        boolean peerIsAdmin = AppConfig.ROLE_ADMIN.equals(peerRole);
-                        String displayName = senderName;
-                        if (!peerIsAdmin && "ADMIN".equals(senderRole)) {
-                            displayName = "Hỗ trợ Admin";
-                        }
-                        String responseJson = buildMessageJson(messageId, senderId, displayName, senderRole, content, mediaUrl, mediaType, createdAtStr);
-                        peer.getBasicRemote().sendText(responseJson);
-                    } catch (IOException e) {
-                        LOG.log(Level.WARNING, "ChatEndpoint: không gửi được tới peer", e);
-                    }
-                }
-            }
-        }
-
-        // Offline fallback: gửi notification cho người nhận nếu họ không có trong room
-        sendOfflineNotification(sessionId, senderId, content, mediaUrl, mediaType, room);
     }
 
     @OnClose
@@ -198,89 +219,6 @@ public class ChatEndpoint {
     // ----------------------------------------------------------------
     // Private helpers
     // ----------------------------------------------------------------
-
-    /**
-     * Gửi notification DB khi người nhận không online trong room.
-     * Tích hợp cơ chế CHỐNG SPAM: Chỉ gửi 1 thông báo chưa đọc duy nhất cho mỗi session.
-     */
-    private void sendOfflineNotification(int sessionId, int senderId, String content, String mediaUrl, String mediaType, Set<Session> room) {
-        try {
-            ChatSession cs = chatDAO.findSessionById(sessionId);
-            if (cs == null) return;
-
-            // Xác định người nhận
-            int recipientId = (cs.getCustomerId() == senderId) ? cs.getOwnerId() : cs.getCustomerId();
-
-            // Kiểm tra recipient có đang trong room không
-            boolean recipientOnline = false;
-            if (room != null) {
-                for (Session peer : room) {
-                    if (peer.isOpen()) {
-                        Object uid = peer.getUserProperties().get("userId");
-                        if (uid != null && uid.equals(recipientId)) {
-                            recipientOnline = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (!recipientOnline) {
-                // CHỐNG SPAM: Kiểm tra xem đã có thông báo chưa đọc của session này cho recipient chưa
-                boolean hasPending = false;
-                String checkSql = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0 AND action_url LIKE ?";
-                try (Connection conn = chatDAO.getConnection();
-                     PreparedStatement ps = conn.prepareStatement(checkSql)) {
-                    ps.setInt(1, recipientId);
-                    ps.setString(2, "%sessionId=" + sessionId + "%");
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next() && rs.getInt(1) > 0) {
-                            hasPending = true;
-                        }
-                    }
-                }
-
-                if (!hasPending) {
-                    // Người nhận offline và chưa có thông báo chưa đọc cho session này -> Ghi notification mới
-                    Notification notif = new Notification();
-                    notif.setUserId(recipientId);
-                    notif.setType(AppConfig.NOTIF_SYSTEM);
-                    notif.setTitle("Bạn có tin nhắn mới");
-
-                    String text = content;
-                    if (text == null || text.trim().isEmpty()) {
-                        if ("IMAGE".equals(mediaType)) {
-                            text = "[Hình ảnh]";
-                        } else if ("VIDEO".equals(mediaType)) {
-                            text = "[Video]";
-                        } else {
-                            text = "[Tin nhắn mới]";
-                        }
-                    }
-                    String preview = text.length() > 50 ? text.substring(0, 50) + "…" : text;
-                    notif.setMessage(preview);
-
-                    // Phân biệt action url cho từng vai trò
-                    String actionUrl = "/chat?sessionId=" + sessionId;
-                    // Nếu là ADMIN session và người nhận là Admin hoặc Shop
-                    if ("ADMIN".equals(cs.getSessionType())) {
-                        actionUrl = "/admin/chat?sessionId=" + sessionId;
-                    } else if (recipientId == cs.getOwnerId()) {
-                        actionUrl = "/shop/chat?sessionId=" + sessionId;
-                    }
-                    
-                    notif.setActionUrl(actionUrl);
-                    notif.setIsRead(false);
-                    notificationDAO.save(notif);
-                    LOG.info("ChatEndpoint: Created offline notification for user #" + recipientId + " on session #" + sessionId);
-                } else {
-                    LOG.info("ChatEndpoint: Skip offline notification for user #" + recipientId + " (notification already pending)");
-                }
-            }
-        } catch (Exception e) {
-            LOG.log(Level.WARNING, "ChatEndpoint: lỗi gửi offline notification", e);
-        }
-    }
 
     /**
      * Xóa wsSession khỏi ROOM_MAP và dọn room rỗng.
@@ -352,7 +290,7 @@ public class ChatEndpoint {
      }
 
     /** Build JSON message response */
-    private String buildMessageJson(int messageId, int senderId, String senderName, String senderRole, String content, String mediaUrl, String mediaType, String createdAt) {
+    private static String buildMessageJson(int messageId, int senderId, String senderName, String senderRole, String content, String mediaUrl, String mediaType, String createdAt) {
         StringBuilder sb = new StringBuilder();
         sb.append("{");
         sb.append("\"messageId\":").append(messageId);
@@ -368,7 +306,7 @@ public class ChatEndpoint {
     }
 
     /** Escape JSON string — tránh XSS và JSON injection */
-    private String escapeJson(String s) {
+    private static String escapeJson(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")

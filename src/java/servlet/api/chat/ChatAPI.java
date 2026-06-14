@@ -1,11 +1,13 @@
 package servlet.api.chat;
 
 import config.AppConfig;
+import dao.auth.UserDAO;
 import dao.chat.ChatDAO;
 import model.entity.chat.ChatMessage;
 import model.entity.chat.ChatSession;
 import model.entity.auth.User;
 import model.response.ApiResponse;
+import service.chat.ChatDeliveryService;
 import util.JsonUtil;
 import util.LoggerUtil;
 import util.SessionUtil;
@@ -15,9 +17,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -31,6 +30,8 @@ public class ChatAPI extends HttpServlet {
     private static final Logger log = Logger.getLogger(ChatAPI.class.getName());
 
     private final ChatDAO chatDAO = new ChatDAO();
+    private final UserDAO userDAO = new UserDAO();
+    private final ChatDeliveryService chatDeliveryService = new ChatDeliveryService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -150,20 +151,21 @@ public class ChatAPI extends HttpServlet {
                 String mediaUrl = request.getParameter("mediaUrl");
                 String mediaType = request.getParameter("mediaType");
 
-                if ((content == null || content.trim().isEmpty()) && (mediaUrl == null || mediaUrl.trim().isEmpty())) {
-                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Nội dung tin nhắn hoặc tệp đính kèm không được rỗng"));
-                } else {
-                    ChatMessage msg = new ChatMessage();
-                    msg.setSessionId(sessionId);
-                    msg.setSenderId(currentUser.getUserId());
-                    msg.setContent(content != null ? content.trim() : null);
-                    msg.setMediaUrl(mediaUrl != null ? mediaUrl.trim() : null);
-                    msg.setMediaType(mediaType != null ? mediaType.trim() : null);
-                    msg.setIsRead(false);
-                    chatDAO.saveMessage(msg);
+                try {
+                    chatDeliveryService.sendMessage(
+                            sessionId,
+                            currentUser.getUserId(),
+                            currentUser.getRole(),
+                            currentUser.getFullName(),
+                            content,
+                            mediaUrl,
+                            mediaType
+                    );
                     response.setStatus(HttpServletResponse.SC_OK);
                     JsonUtil.writeJson(response, ApiResponse.ok(Map.of("message", "Đã gửi tin nhắn")));
+                } catch (IllegalArgumentException e) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
                 }
             } else if ("createAdminSession".equals(action)) {
                 if (AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
@@ -176,27 +178,16 @@ public class ChatAPI extends HttpServlet {
                 String adminIdStr = request.getParameter("adminId");
                 if (adminIdStr != null && !adminIdStr.trim().isEmpty()) {
                     adminId = Integer.parseInt(adminIdStr);
-                    try (Connection conn = chatDAO.getConnection();
-                         PreparedStatement ps = conn.prepareStatement(
-                                 "SELECT COUNT(*) FROM users WHERE user_id = ? AND role = 'ADMIN' AND status = 'ACTIVE'")) {
-                        ps.setInt(1, adminId);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            if (!rs.next() || rs.getInt(1) == 0) {
-                                adminId = 0;
-                            }
-                        }
+                    User requestedAdmin = userDAO.findActiveAdminById(adminId);
+                    if (requestedAdmin == null) {
+                        adminId = 0;
                     }
                 }
 
                 if (adminId <= 0) {
-                    try (Connection conn = chatDAO.getConnection();
-                         PreparedStatement ps = conn.prepareStatement(
-                                 "SELECT TOP 1 user_id FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' ORDER BY user_id ASC")) {
-                        try (ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()) {
-                                adminId = rs.getInt("user_id");
-                            }
-                        }
+                    User fallbackAdmin = userDAO.findFirstActiveAdmin();
+                    if (fallbackAdmin != null) {
+                        adminId = fallbackAdmin.getUserId();
                     }
                 }
 

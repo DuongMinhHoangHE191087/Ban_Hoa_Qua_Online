@@ -431,6 +431,32 @@ public class UserDAO extends BaseDAO {
         return null;
     }
 
+    public User findActiveAdminById(int id) throws SQLException {
+        String sql = "SELECT * FROM users WHERE user_id = ? AND role = 'ADMIN' AND status = 'ACTIVE'";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    public User findFirstActiveAdmin() throws SQLException {
+        String sql = "SELECT TOP 1 * FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' ORDER BY user_id ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return mapRow(rs);
+            }
+        }
+        return null;
+    }
+
     /**
      * Lưu trữ Refresh Token (Session) mới vào bảng user_sessions
      */
