@@ -233,6 +233,27 @@ public class ProductVariantDAO extends BaseDAO {
         throw new SQLException("Biến thể sản phẩm không tồn tại hoặc không hoạt động.");
     }
 
+    /**
+     * Trừ kho của biến thể sản phẩm nguyên tử (atomic update check)
+     * và trả về số lượng tồn kho mới sau khi trừ.
+     */
+    public int decrementStockQuantity(Connection conn, int variantId, int qty) throws SQLException {
+        String sql = "UPDATE product_variants SET stock_quantity = stock_quantity - ?, updated_at = GETDATE() "
+                   + "OUTPUT INSERTED.stock_quantity "
+                   + "WHERE variant_id = ? AND stock_quantity >= ? AND is_active = 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, qty);
+            ps.setInt(2, variantId);
+            ps.setInt(3, qty);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("stock_quantity");
+                }
+            }
+        }
+        throw new SQLException("Không đủ số lượng hàng tồn kho cho sản phẩm hoặc sản phẩm không hoạt động.");
+    }
+
     public int getProductId(Connection conn, int variantId) throws SQLException {
         String sql = "SELECT product_id FROM product_variants WHERE variant_id = ? AND is_active = 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

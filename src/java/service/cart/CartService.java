@@ -436,8 +436,8 @@ public class CartService {
         }
 
         // Cap discount với max value nếu có
-        if (promo.getMaxDiscountAmount() != null && discount.compareTo(promo.getMaxDiscountAmount()) > 0) {
-            discount = promo.getMaxDiscountAmount();
+        if (promo.getDiscountMax() != null && discount.compareTo(promo.getDiscountMax()) > 0) {
+            discount = promo.getDiscountMax();
         }
 
         return discount.max(BigDecimal.ZERO);
