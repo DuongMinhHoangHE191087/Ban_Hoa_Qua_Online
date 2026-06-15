@@ -83,7 +83,7 @@ public class ChatAPIHttpFallbackIntegrationTest {
 
         servlet.doPostPublic(env.request, env.response);
 
-        assertEquals(HttpServletResponse.SC_OK, env.status);
+        assertEquals(HttpServletResponse.SC_OK, (int) env.status);
         assertTrue(env.getResponseBody().contains("\"success\":true"));
         assertTrue(env.getResponseBody().contains("Đã gửi tin nhắn"));
 
@@ -126,7 +126,7 @@ public class ChatAPIHttpFallbackIntegrationTest {
 
             servlet.doPostPublic(env.request, env.response);
 
-            assertEquals(HttpServletResponse.SC_OK, env.status);
+            assertEquals(HttpServletResponse.SC_OK, (int) env.status);
             assertTrue(env.getResponseBody().contains("\"success\":true"));
             assertTrue(env.getResponseBody().contains("Đã gửi tin nhắn"));
 
@@ -137,8 +137,9 @@ public class ChatAPIHttpFallbackIntegrationTest {
             assertEquals("ADMIN", messages.get(0).getSenderRole());
 
             List<Notification> notifications = notificationDAO.findByUser(senderUserId, true);
+            final int targetId = adminSessionId;
             Notification notification = notifications.stream()
-                    .filter(n -> n.getActionUrl() != null && n.getActionUrl().contains("sessionId=" + adminSessionId))
+                    .filter(n -> n.getActionUrl() != null && n.getActionUrl().contains("sessionId=" + targetId))
                     .findFirst()
                     .orElse(null);
             assertNotNull(notification);

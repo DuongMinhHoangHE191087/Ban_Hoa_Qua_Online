@@ -298,11 +298,17 @@ public class ShopApprovalAPISecurityTest {
     // Helpers
     // ---------------------------------------------------------------
 
+    static class ShopApprovalAPIHarness extends ShopApprovalAPI {
+        public void doPostPublic(HttpServletRequest req, HttpServletResponse resp) throws jakarta.servlet.ServletException, java.io.IOException {
+            super.doPost(req, resp);
+        }
+    }
+
     private int invokeApproval(MockEnv env) throws Exception {
-        ShopApprovalAPI servlet = new ShopApprovalAPI();
+        ShopApprovalAPIHarness servlet = new ShopApprovalAPIHarness();
         HttpServletRequest  req  = env.buildRequest();
         HttpServletResponse resp = env.buildResponse();
-        servlet.doPost(req, resp);
+        servlet.doPostPublic(req, resp);
         return env.statusCode.get();
     }
 

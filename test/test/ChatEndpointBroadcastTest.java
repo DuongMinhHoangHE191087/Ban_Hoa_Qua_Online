@@ -143,12 +143,13 @@ public class ChatEndpointBroadcastTest {
             assertEquals(adminId, messages.get(0).getSenderId());
 
             List<model.entity.chat.Notification> notifications = notificationDAO.findByUser(customerId, true);
+            final int targetSessionId = sessionId;
             model.entity.chat.Notification notification = notifications.stream()
-                    .filter(n -> n.getActionUrl() != null && n.getActionUrl().contains("sessionId=" + sessionId))
+                    .filter(n -> n.getActionUrl() != null && n.getActionUrl().contains("sessionId=" + targetSessionId))
                     .findFirst()
                     .orElse(null);
             assertNotNull(notification);
-            assertEquals("/chat?sessionId=" + sessionId, notification.getActionUrl());
+            assertEquals("/chat?sessionId=" + targetSessionId, notification.getActionUrl());
             assertEquals(adminMessage, notification.getMessage());
         } finally {
             roomMap.clear();

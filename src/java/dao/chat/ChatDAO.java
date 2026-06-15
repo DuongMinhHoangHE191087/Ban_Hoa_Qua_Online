@@ -243,8 +243,17 @@ public class ChatDAO extends BaseDAO {
                     ps.setInt(1, msg.getSessionId());
                     ps.setInt(2, msg.getSenderId());
                     ps.setString(3, msg.getContent());
-                    ps.setString(4, msg.getMediaUrl());
-                    ps.setString(5, msg.getMediaType());
+                    String mediaUrl = msg.getMediaUrl();
+                    if (mediaUrl != null && mediaUrl.trim().isEmpty()) {
+                        mediaUrl = null;
+                    }
+                    ps.setString(4, mediaUrl);
+
+                    String mediaType = msg.getMediaType();
+                    if (mediaType != null && mediaType.trim().isEmpty()) {
+                        mediaType = null;
+                    }
+                    ps.setString(5, mediaType);
                     ps.setBoolean(6, msg.getIsRead());
                     ps.executeUpdate();
                     try (ResultSet rs = ps.getGeneratedKeys()) {
