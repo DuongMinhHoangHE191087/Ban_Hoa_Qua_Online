@@ -10,11 +10,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.Set;
 import util.LoggerUtil;
 
 /**
@@ -429,6 +433,68 @@ public class UserDAO extends BaseDAO {
             }
         }
         return null;
+    }
+
+    public User findActiveAdminById(int id) throws SQLException {
+        String sql = "SELECT * FROM users WHERE user_id = ? AND role = 'ADMIN' AND status = 'ACTIVE'";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    public User findFirstActiveAdmin() throws SQLException {
+        String sql = "SELECT TOP 1 * FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' ORDER BY user_id ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return mapRow(rs);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Batch load users theo danh sách ID.
+     */
+    public Map<Integer, User> findByIds(Collection<Integer> ids) throws SQLException {
+        Map<Integer, User> map = new LinkedHashMap<>();
+        if (ids == null || ids.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(ids);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM users WHERE user_id IN (" + placeholders + ")";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer id : distinctIds) {
+                stmt.setInt(paramIndex++, id);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    User user = mapRow(rs);
+                    map.put(user.getUserId(), user);
+                }
+            }
+        }
+        return map;
     }
 
     public User findActiveAdminById(int id) throws SQLException {

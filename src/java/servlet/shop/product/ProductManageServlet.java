@@ -66,76 +66,29 @@ public class ProductManageServlet extends HttpServlet {
             List<Product> rawProducts = productDAO.findByOwner(currentUser.getUserId());
             List<Map<String, Object>> products = new ArrayList<>();
 
-            // 3. Tải danh mục phục vụ hiển thị tên danh mục
+            // 3. Tải danh mục một lần rồi tách ra map hiển thị + danh sách active cho modal
             List<Category> categories = categoryDAO.findAll();
             Map<Integer, String> categoryMap = new HashMap<>();
+            List<Category> activeCategories = new ArrayList<>();
             for (Category c : categories) {
                 categoryMap.put(c.getCategoryId(), c.getName());
+                if (c.getIsActive()) {
+                    activeCategories.add(c);
+                }
             }
-
-            // Tải danh sách danh mục hoạt động cho Popup Modal tạo mới
-            List<Category> activeCategories = categoryDAO.findAllActive();
             req.setAttribute("categories", activeCategories);
 
+            List<Integer> productIds = new ArrayList<>();
             for (Product p : rawProducts) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("productId", p.getProductId());
-                map.put("name", p.getName());
-                map.put("originCountry", p.getOriginCountry());
-                map.put("originRegion", p.getOriginRegion());
-                map.put("harvestDate", p.getFormattedHarvestDate());
-                map.put("shelfLifeDays", p.getShelfLifeDays());
-                map.put("status", p.getStatus());
-                map.put("viewCount", p.getViewCount());
-                map.put("rating", p.getRating());
-                map.put("soldQuantity", p.getSoldQuantity());
-                map.put("approvalStatus", p.getApprovalStatus());
-                map.put("rejectionReason", p.getRejectionReason());
-                map.put("categoryName", categoryMap.getOrDefault(p.getCategoryId(), "Không xác định"));
+                productIds.add(p.getProductId());
+            }
+            Map<Integer, ProductImage> primaryImages = productImageDAO.findPrimaryByProductIds(productIds);
+            Map<Integer, List<ProductVariant>> variantsByProduct = productVariantDAO.findByProductIds(productIds);
 
-                // Lấy ảnh chính thực tế
-                ProductImage primaryImg = productImageDAO.findPrimary(p.getProductId());
-                String imagePath = null;
-                if (primaryImg != null && primaryImg.getFilePath() != null && !primaryImg.getFilePath().trim().isEmpty()) {
-                    imagePath = primaryImg.getFilePath().trim().replace('\\', '/');
-                }
-                
-                if (imagePath == null) {
-                    imagePath = req.getContextPath() + "/assets/img/placeholder.png";
-                } else if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
-                    if (!imagePath.startsWith("/")) {
-                        imagePath = "/" + imagePath;
-                    }
-                    imagePath = req.getContextPath() + imagePath;
-                }
-                map.put("image", imagePath);
-
-                // Lấy thông tin biến thể đại diện để lấy giá và tồn kho
-                List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
-                BigDecimal minPrice = BigDecimal.ZERO;
-                BigDecimal maxPrice = BigDecimal.ZERO;
-                int totalStock = 0;
-                String unitDisplay = "Chưa có";
-                if (variants != null && !variants.isEmpty()) {
-                    minPrice = variants.get(0).getPrice();
-                    maxPrice = variants.get(variants.size() - 1).getPrice();
-                    for (ProductVariant v : variants) {
-                        totalStock += v.getStockQuantity();
-                    }
-                    if (variants.size() == 1) {
-                        unitDisplay = variants.get(0).getVariantLabel();
-                    } else {
-                        unitDisplay = variants.size() + " phân loại";
-                    }
-                }
-                map.put("price", minPrice);
-                map.put("minPrice", minPrice);
-                map.put("maxPrice", maxPrice);
-                map.put("hasMultipleVariants", variants != null && variants.size() > 1);
-                map.put("stock", totalStock);
-                map.put("unit", unitDisplay);
-
-                products.add(map);
+            for (Product p : rawProducts) {
+                products.add(buildManageProductCard(req, p, categoryMap,
+                        primaryImages.get(p.getProductId()),
+                        variantsByProduct.get(p.getProductId())));
             }
 
             // 4. Gán thuộc tính vào request
@@ -150,6 +103,68 @@ public class ProductManageServlet extends HttpServlet {
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "error");
             resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
         }
+    }
+
+    private Map<String, Object> buildManageProductCard(HttpServletRequest req, Product product,
+                                                       Map<Integer, String> categoryMap,
+                                                       ProductImage primaryImage,
+                                                       List<ProductVariant> variants) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("productId", product.getProductId());
+        map.put("name", product.getName());
+        map.put("originCountry", product.getOriginCountry());
+        map.put("originRegion", product.getOriginRegion());
+        map.put("harvestDate", product.getFormattedHarvestDate());
+        map.put("shelfLifeDays", product.getShelfLifeDays());
+        map.put("status", product.getStatus());
+        map.put("viewCount", product.getViewCount());
+        map.put("rating", product.getRating());
+        map.put("soldQuantity", product.getSoldQuantity());
+        map.put("approvalStatus", product.getApprovalStatus());
+        map.put("rejectionReason", product.getRejectionReason());
+        map.put("categoryName", categoryMap.getOrDefault(product.getCategoryId(), "Không xác định"));
+        map.put("image", resolveImagePath(req, primaryImage));
+
+        BigDecimal minPrice = BigDecimal.ZERO;
+        BigDecimal maxPrice = BigDecimal.ZERO;
+        int totalStock = 0;
+        String unitDisplay = "Chưa có";
+        if (variants != null && !variants.isEmpty()) {
+            minPrice = variants.get(0).getPrice();
+            maxPrice = variants.get(variants.size() - 1).getPrice();
+            for (ProductVariant variant : variants) {
+                totalStock += variant.getStockQuantity();
+            }
+            if (variants.size() == 1) {
+                unitDisplay = variants.get(0).getVariantLabel();
+            } else {
+                unitDisplay = variants.size() + " phân loại";
+            }
+        }
+        map.put("price", minPrice);
+        map.put("minPrice", minPrice);
+        map.put("maxPrice", maxPrice);
+        map.put("hasMultipleVariants", variants != null && variants.size() > 1);
+        map.put("stock", totalStock);
+        map.put("unit", unitDisplay);
+        return map;
+    }
+
+    private String resolveImagePath(HttpServletRequest req, ProductImage image) {
+        String imagePath = null;
+        if (image != null && image.getFilePath() != null && !image.getFilePath().trim().isEmpty()) {
+            imagePath = image.getFilePath().trim().replace('\\', '/');
+        }
+        if (imagePath == null) {
+            return req.getContextPath() + "/assets/img/placeholder.png";
+        }
+        if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
+            if (!imagePath.startsWith("/")) {
+                imagePath = "/" + imagePath;
+            }
+            imagePath = req.getContextPath() + imagePath;
+        }
+        return imagePath;
     }
 
     @Override

@@ -83,9 +83,22 @@ public class RoleFilter implements Filter {
                     allowed = true;
                 } else {
                     try {
-                        ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
-                        List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
-                        if (!profiles.isEmpty() && "APPROVED".equals(profiles.get(0).getApprovalStatus())) {
+                        // Try to get cached profile from session to avoid DB query per request
+                        ShopProfile cachedProfile = (ShopProfile) session.getAttribute("_shopProfile");
+                        ShopProfile profile = null;
+
+                        if (cachedProfile != null) {
+                            profile = cachedProfile;
+                        } else {
+                            ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+                            List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
+                            if (!profiles.isEmpty()) {
+                                profile = profiles.get(0);
+                                session.setAttribute("_shopProfile", profile);
+                            }
+                        }
+
+                        if (profile != null && "APPROVED".equals(profile.getApprovalStatus())) {
                             allowed = true;
                         } else {
                             resp.sendRedirect(ctx + "/shop/status");

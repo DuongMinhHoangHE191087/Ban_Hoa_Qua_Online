@@ -9,8 +9,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Collection;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import java.util.logging.Logger;
 import util.LoggerUtil;
@@ -132,6 +137,45 @@ public class PromotionDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Batch load active product promotions theo productId.
+     * Chỉ lấy 1 promotion đại diện mỗi sản phẩm theo discount_value/promo_id.
+     */
+    public Map<Integer, Promotion> findActivePromotionsByProductIds(Collection<Integer> productIds) throws SQLException {
+        Map<Integer, Promotion> map = new LinkedHashMap<>();
+        if (productIds == null || productIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(productIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM promotions WHERE product_id IN (" + placeholders + ") AND scope = 'PRODUCT' "
+                   + "AND is_active = 1 AND is_deleted = 0 AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
+                   + "ORDER BY product_id ASC, discount_value DESC, promo_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer productId : distinctIds) {
+                ps.setInt(paramIndex++, productId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Promotion promo = mapRow(rs);
+                    map.putIfAbsent(promo.getProductId(), promo);
+                }
+            }
+        }
+        return map;
     }
 
     /**

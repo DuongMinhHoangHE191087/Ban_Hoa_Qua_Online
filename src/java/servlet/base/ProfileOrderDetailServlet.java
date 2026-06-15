@@ -2,7 +2,6 @@ package servlet.base;
 
 import config.AppConfig;
 import dao.order.OrderDAO;
-import dao.shop.ShopProfileDAO;
 import model.dto.order.OrderDetailViewDTO;
 import model.entity.order.Order;
 import model.entity.auth.User;
@@ -34,7 +33,6 @@ public class ProfileOrderDetailServlet extends HttpServlet {
 
     private final OrderViewService orderViewService = new OrderViewService();
     private final OrderDAO orderDAO = new OrderDAO();
-    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -92,16 +90,43 @@ public class ProfileOrderDetailServlet extends HttpServlet {
                 List<Order> childOrders = orderDAO.findChildrenByParentId(orderId);
                 req.setAttribute("childOrders", childOrders);
 
-                java.util.Map<Integer, List<model.entity.order.OrderItem>> childItemsMap = new java.util.HashMap<>();
+                java.util.List<Integer> childOrderIds = new java.util.ArrayList<>();
+                java.util.List<Integer> ownerIds = new java.util.ArrayList<>();
+                for (Order child : childOrders) {
+                    childOrderIds.add(child.getOrderId());
+                    ownerIds.add(child.getOwnerId());
+                }
+                java.util.Map<Integer, java.util.List<model.entity.order.OrderItem>> childItemsMap = new java.util.HashMap<>();
+                try {
+                    childItemsMap = orderViewService.getOrderItemsMap(childOrderIds);
+                } catch (Exception e) {
+                    LoggerUtil.warn(log, "Không thể tải items của đơn con theo batch", e);
+                    for (Order child : childOrders) {
+                        childItemsMap.put(child.getOrderId(), new java.util.ArrayList<>());
+                    }
+                }
+
+                java.util.Map<Integer, String> ownerNames = new java.util.HashMap<>();
+                try {
+                    ownerNames = orderViewService.getShopNamesMap(ownerIds);
+                } catch (Exception e) {
+                    LoggerUtil.warn(log, "Không thể tải tên shop cho đơn con theo batch", e);
+                }
                 java.util.Map<Integer, String> shopNamesMap = new java.util.HashMap<>();
                 for (Order child : childOrders) {
-                    childItemsMap.put(child.getOrderId(), orderDAO.findItemsByOrderId(child.getOrderId()));
-                    shopNamesMap.put(child.getOrderId(), resolveShopName(child.getOwnerId()));
+                    shopNamesMap.put(child.getOrderId(), ownerNames.getOrDefault(child.getOwnerId(), "Cửa hàng"));
                 }
                 req.setAttribute("childOrderItemsMap", childItemsMap);
                 req.setAttribute("shopNamesMap", shopNamesMap);
             } else {
-                req.setAttribute("shopName", resolveShopName(order.getOwnerId()));
+                java.util.Map<Integer, String> ownerNames;
+                try {
+                    ownerNames = orderViewService.getShopNamesMap(java.util.List.of(order.getOwnerId()));
+                } catch (Exception e) {
+                    LoggerUtil.warn(log, "Không thể tải tên shop cho đơn #" + orderId, e);
+                    ownerNames = new java.util.HashMap<>();
+                }
+                req.setAttribute("shopName", ownerNames.getOrDefault(order.getOwnerId(), "Cửa hàng"));
             }
 
             req.getRequestDispatcher("/WEB-INF/jsp/customer/profile-order-detail.jsp").forward(req, resp);
@@ -134,18 +159,6 @@ public class ProfileOrderDetailServlet extends HttpServlet {
             SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra khi tải hóa đơn.");
         }
         resp.sendRedirect(req.getContextPath() + "/profile?tab=orders");
-    }
-
-    private String resolveShopName(int ownerId) {
-        try {
-            java.util.List<model.entity.shop.ShopProfile> profiles = shopProfileDAO.findByUserId(ownerId);
-            if (!profiles.isEmpty() && profiles.get(0).getShopName() != null) {
-                return profiles.get(0).getShopName();
-            }
-        } catch (Exception e) {
-            // fallback
-        }
-        return "Cửa hàng";
     }
 
     private Integer parseOrderId(String str) {

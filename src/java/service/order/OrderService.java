@@ -65,8 +65,7 @@ public class OrderService {
     }
 
     public Order getOrderDetail(int orderId) throws SQLException {
-        List<Order> list = orderDAO.findById(orderId);
-        return list.isEmpty() ? null : list.get(0);
+        return orderDAO.findOneById(orderId);
     }
 
     public PagedResultDTO getOrderHistory(int customerId, int page) throws SQLException {
@@ -87,7 +86,7 @@ public class OrderService {
     public void cancelOrder(int orderId, int cancelledBy, String reason) throws SQLException {
         Order order = getOrderDetail(orderId);
         if (order == null) {
-            throw new RuntimeException("Đơn hàng không tồn tại!");
+            throw new IllegalArgumentException("Đơn hàng không tồn tại!");
         }
         if (AppConfig.ORDER_DELIVERED.equals(order.getStatus()) || AppConfig.ORDER_CANCELLED.equals(order.getStatus())) {
             throw new RuntimeException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm!");

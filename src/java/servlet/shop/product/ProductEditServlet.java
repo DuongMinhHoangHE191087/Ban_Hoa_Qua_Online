@@ -85,14 +85,12 @@ public class ProductEditServlet extends HttpServlet {
 
         try {
             // 1. Tải thông tin sản phẩm và kiểm tra chủ sở hữu
-            List<Product> products = productDAO.findById(productId);
-            if (products == null || products.isEmpty()) {
+            Product p = productDAO.findOneById(productId);
+            if (p == null) {
                 SessionUtil.flashError(session, "Không tìm thấy sản phẩm.");
                 resp.sendRedirect(req.getContextPath() + "/shop/products");
                 return;
             }
-
-            Product p = products.get(0);
             if (p.getOwnerId() != currentUser.getUserId() || "DELETED".equals(p.getStatus())) {
                 SessionUtil.flashError(session, "Bạn không có quyền chỉnh sửa sản phẩm này.");
                 resp.sendRedirect(req.getContextPath() + "/shop/products");
@@ -160,14 +158,12 @@ public class ProductEditServlet extends HttpServlet {
 
         try {
             // Kiểm tra sở hữu sản phẩm
-            List<Product> products = productDAO.findById(productId);
-            if (products == null || products.isEmpty()) {
+            Product p = productDAO.findOneById(productId);
+            if (p == null) {
                 SessionUtil.flashError(session, "Sản phẩm không tồn tại.");
                 resp.sendRedirect(req.getContextPath() + "/shop/products");
                 return;
             }
-
-            Product p = products.get(0);
             if (p.getOwnerId() != currentUser.getUserId() || "DELETED".equals(p.getStatus())) {
                 SessionUtil.flashError(session, "Bạn không có quyền chỉnh sửa sản phẩm này.");
                 resp.sendRedirect(req.getContextPath() + "/shop/products");
@@ -404,6 +400,22 @@ public class ProductEditServlet extends HttpServlet {
 
             // Cập nhật danh sách biến thể
             List<ProductVariant> existingVariants = productVariantDAO.findByProduct(productId);
+            Map<Integer, ProductVariant> existingVariantMap = new java.util.LinkedHashMap<>();
+            if (existingVariants != null) {
+                for (ProductVariant ev : existingVariants) {
+                    existingVariantMap.put(ev.getVariantId(), ev);
+                }
+            }
+
+            ProductPackagingOptionDAO ppoDAO = new ProductPackagingOptionDAO();
+            List<ProductPackagingOption> existingPackagingOptions = ppoDAO.findByProduct(productId);
+            Map<Integer, ProductPackagingOption> existingPackagingMap = new java.util.LinkedHashMap<>();
+            if (existingPackagingOptions != null) {
+                for (ProductPackagingOption option : existingPackagingOptions) {
+                    existingPackagingMap.put(option.getPackagingId(), option);
+                }
+            }
+
             Set<Integer> submittedIds = new HashSet<>();
             if (variantIds != null) {
                 for (String vidStr : variantIds) {
@@ -501,16 +513,7 @@ public class ProductEditServlet extends HttpServlet {
                         productVariantDAO.save(v);
                     } else {
                         // Cập nhật biến thể cũ
-                        ProductVariant v = null;
-                        for (ProductVariant ev : existingVariants) {
-                            if (ev.getVariantId() == currentVid) {
-                                v = ev;
-                                break;
-                            }
-                        }
-                        if (v == null) {
-                            v = productVariantDAO.findById(currentVid);
-                        }
+                        ProductVariant v = existingVariantMap.get(currentVid);
                         if (v != null) {
                             v.setVariantLabel(label);
                             v.setPrice(vPrice);
@@ -525,7 +528,6 @@ public class ProductEditServlet extends HttpServlet {
             }
 
             // 3. Cập nhật danh sách bao bì tùy chọn
-            ProductPackagingOptionDAO ppoDAO = new ProductPackagingOptionDAO();
             List<Integer> keepPackagingIds = new ArrayList<>();
             if (packagingLabels != null) {
                 for (int i = 0; i < packagingLabels.length; i++) {
@@ -560,7 +562,7 @@ public class ProductEditServlet extends HttpServlet {
                             keepPackagingIds.add(newId);
                         } else {
                             // Cập nhật
-                            ProductPackagingOption option = ppoDAO.findById(currentPpid);
+                            ProductPackagingOption option = existingPackagingMap.get(currentPpid);
                             if (option != null) {
                                 option.setLabel(pLabel.trim());
                                 option.setPriceAdd(priceAdd);

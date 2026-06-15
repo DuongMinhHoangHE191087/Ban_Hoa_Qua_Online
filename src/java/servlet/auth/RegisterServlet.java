@@ -364,14 +364,6 @@ public class RegisterServlet extends HttpServlet {
                 shopProfileDAO.updateDocPaths(profileId, docPathsJson);
             }
 
-            // Cập nhật vai trò thành SHOP_OWNER trong DB
-            dao.auth.UserDAO userDAO = new dao.auth.UserDAO();
-            userDAO.updateRole(currentUser.getUserId(), "SHOP_OWNER");
-
-            // Cập nhật session user
-            currentUser.setRole("SHOP_OWNER");
-            SessionUtil.setCurrentUser(req.getSession(), currentUser);
-
             // Gửi email xác nhận nhận đơn đăng ký shop async
             final String finalStoreName = storeName;
             new Thread(() -> {

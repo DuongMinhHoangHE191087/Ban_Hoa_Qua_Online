@@ -72,13 +72,11 @@ public class AdminOrderServlet extends HttpServlet {
             req.setAttribute("totalPages",    totalPages);
 
             // Fetch payment transactions mapping for main orders
-            java.util.Map<Integer, PaymentTransaction> txMap = new java.util.HashMap<>();
+            java.util.List<Integer> orderIds = new java.util.ArrayList<>();
             for (Order order : orders) {
-                PaymentTransaction tx = paymentService.getPaymentByOrder(order.getOrderId());
-                if (tx != null) {
-                    txMap.put(order.getOrderId(), tx);
-                }
+                orderIds.add(order.getOrderId());
             }
+            java.util.Map<Integer, PaymentTransaction> txMap = paymentService.getPaymentMapByOrderIds(orderIds);
             req.setAttribute("txMap", txMap);
 
             // Danh sách đơn CK đang chờ xác nhận (cho tab "Chờ duyệt thanh toán")
@@ -86,13 +84,11 @@ public class AdminOrderServlet extends HttpServlet {
             req.setAttribute("pendingPayments", pendingPayments);
 
             // Fetch payment transactions mapping for pending payments
-            java.util.Map<Integer, PaymentTransaction> pendingTxMap = new java.util.HashMap<>();
+            java.util.List<Integer> pendingOrderIds = new java.util.ArrayList<>();
             for (Order order : pendingPayments) {
-                PaymentTransaction tx = paymentService.getPaymentByOrder(order.getOrderId());
-                if (tx != null) {
-                    pendingTxMap.put(order.getOrderId(), tx);
-                }
+                pendingOrderIds.add(order.getOrderId());
             }
+            java.util.Map<Integer, PaymentTransaction> pendingTxMap = paymentService.getPaymentMapByOrderIds(pendingOrderIds);
             req.setAttribute("pendingTxMap", pendingTxMap);
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/orders.jsp").forward(req, resp);
@@ -129,12 +125,9 @@ public class AdminOrderServlet extends HttpServlet {
 
             } else if ("cancelOrder".equals(action)) {
                 String reason = req.getParameter("reason");
-                List<Order> orders = orderDAO.findById(orderId);
-                if (!orders.isEmpty()) {
-                    orderService.cancelOrder(orderId, admin.getUserId(), reason);
-                    SessionUtil.setFlashMessage(req.getSession(),
-                        "Đã hủy đơn hàng #" + orderId + ".", "success");
-                }
+                orderService.cancelOrder(orderId, admin.getUserId(), reason);
+                SessionUtil.setFlashMessage(req.getSession(),
+                    "Đã hủy đơn hàng #" + orderId + ".", "success");
             } else {
                 SessionUtil.setFlashMessage(req.getSession(), "Hành động không hợp lệ.", "error");
             }

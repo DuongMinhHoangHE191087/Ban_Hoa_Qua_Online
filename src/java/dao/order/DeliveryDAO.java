@@ -9,7 +9,12 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import java.util.logging.Logger;
 import util.LoggerUtil;
@@ -157,6 +162,40 @@ public class DeliveryDAO extends BaseDAO {
             }
         }
         return null;
+    }
+
+    public Map<Integer, Delivery> findByOrderIds(Collection<Integer> orderIds) throws SQLException {
+        Map<Integer, Delivery> map = new LinkedHashMap<>();
+        if (orderIds == null || orderIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(orderIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM deliveries WHERE order_id IN (" + placeholders + ") "
+                   + "ORDER BY order_id ASC, created_at DESC, delivery_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer orderId : distinctIds) {
+                ps.setInt(paramIndex++, orderId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Delivery delivery = mapRow(rs);
+                    map.putIfAbsent(delivery.getOrderId(), delivery);
+                }
+            }
+        }
+        return map;
     }
 
     /**

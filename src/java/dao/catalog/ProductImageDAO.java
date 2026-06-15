@@ -9,9 +9,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
+import java.util.Set;
 
 /**
  * ProductImageDAO — DAO cho entity ProductImage.
@@ -79,6 +84,43 @@ public class ProductImageDAO extends BaseDAO {
             }
         }
         return null;
+    }
+
+    /**
+     * Batch load ảnh chính cho nhiều sản phẩm.
+     */
+    public Map<Integer, ProductImage> findPrimaryByProductIds(Collection<Integer> productIds) throws SQLException {
+        Map<Integer, ProductImage> map = new LinkedHashMap<>();
+        if (productIds == null || productIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(productIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM product_images WHERE product_id IN (" + placeholders + ") "
+                   + "ORDER BY product_id ASC, is_primary DESC, display_order ASC, image_id ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer productId : distinctIds) {
+                ps.setInt(paramIndex++, productId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ProductImage image = mapRow(rs);
+                    map.putIfAbsent(image.getProductId(), image);
+                }
+            }
+        }
+        return map;
     }
 
     /**

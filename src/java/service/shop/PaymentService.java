@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -52,9 +53,8 @@ public class PaymentService {
     }
 
     public PaymentTransaction initPayment(int orderId, String method, String ipAddress) throws SQLException {
-        List<Order> orders = orderDAO.findById(orderId);
-        if (orders.isEmpty()) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
-        Order order = orders.get(0);
+        Order order = orderDAO.findOneById(orderId);
+        if (order == null) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
 
         String reference = buildSepayReference(orderId);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
@@ -79,8 +79,11 @@ public class PaymentService {
      * Lấy thông tin payment transaction của đơn hàng.
      */
     public PaymentTransaction getPaymentByOrder(int orderId) throws SQLException {
-        List<PaymentTransaction> list = paymentDAO.findByOrder(orderId);
-        return list.isEmpty() ? null : list.get(0);
+        return paymentDAO.findOneByOrder(orderId);
+    }
+
+    public Map<Integer, PaymentTransaction> getPaymentMapByOrderIds(Collection<Integer> orderIds) throws SQLException {
+        return paymentDAO.findByOrderIds(orderIds);
     }
 
     /**
@@ -134,9 +137,8 @@ public class PaymentService {
             throw new SecurityException("Bạn không có quyền thực hiện phê duyệt thanh toán này.");
         }
 
-        List<Order> orders = orderDAO.findById(orderId);
-        if (orders.isEmpty()) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
-        Order order = orders.get(0);
+        Order order = orderDAO.findOneById(orderId);
+        if (order == null) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
 
         if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
             throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
@@ -269,9 +271,8 @@ public class PaymentService {
         
         // Gửi thông báo thanh toán thành công cho Customer
         try {
-            List<Order> orders = orderDAO.findById(tx.getOrderId());
-            if (!orders.isEmpty()) {
-                Order order = orders.get(0);
+            Order order = orderDAO.findOneById(tx.getOrderId());
+            if (order != null) {
                 User customer = userDAO.findUserById(order.getCustomerId());
                 if (customer != null) {
                     String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";

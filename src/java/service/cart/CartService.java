@@ -2,16 +2,19 @@ package service.cart;
 
 import dao.cart.CartDAO;
 import dao.catalog.ProductVariantDAO;
+import dao.shop.PromotionDAO;
 import model.dto.product.CartSummaryDTO;
 import model.entity.cart.Cart;
 import model.entity.cart.CartItem;
 import model.entity.catalog.ProductVariant;
+import model.entity.Promotion;
 import util.JsonUtil;
 import util.LoggerUtil;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -391,9 +394,52 @@ public class CartService {
     }
 
     /**
-     * TODO: Triển khai áp dụng voucher (nếu cần)
+     * Áp dụng voucher cho giỏ hàng — validate coupon và tính discount
+     * Lưu ý: Cart table không có field `applied_promotion_id`, nên discount được lưu trong session/request attribute.
+     *
+     * @param customerId ID khách hàng
+     * @param code Mã coupon
+     * @return Số tiền giảm (BigDecimal), hoặc BigDecimal.ZERO nếu invalid
+     * @throws SQLException nếu lỗi DB
      */
-    public BigDecimal applyVoucher(int cartId, String code) throws SQLException {
-        throw new UnsupportedOperationException("Not implemented: applyVoucher(int cartId, String code)");
+    public BigDecimal applyVoucher(int customerId, String code) throws SQLException {
+        if (customerId <= 0 || code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Customer ID hoặc mã voucher không hợp lệ.");
+        }
+
+        PromotionDAO promotionDAO = new PromotionDAO();
+        Promotion promo = promotionDAO.findByCode(code.trim());
+
+        if (promo == null) {
+            throw new IllegalArgumentException("Mã voucher không tồn tại hoặc đã hết hạn.");
+        }
+
+        // Validate expire time
+        if (promo.getValidUntil() != null && LocalDateTime.now().isAfter(promo.getValidUntil())) {
+            throw new IllegalArgumentException("Mã voucher đã hết hạn.");
+        }
+
+        CartSummaryDTO cartSummary = getCart(customerId);
+        BigDecimal subtotal = cartSummary.getSubtotal();
+
+        // Validate minimum order value
+        if (promo.getMinOrderValue() != null && subtotal.compareTo(promo.getMinOrderValue()) < 0) {
+            throw new IllegalArgumentException("Mã voucher chỉ áp dụng cho đơn hàng từ " + promo.getMinOrderValue() + "đ trở lên.");
+        }
+
+        // Tính discount
+        BigDecimal discount = BigDecimal.ZERO;
+        if ("PERCENT".equalsIgnoreCase(promo.getDiscountType())) {
+            discount = subtotal.multiply(promo.getDiscountValue()).divide(new BigDecimal("100"), 2, RoundingMode.DOWN);
+        } else if ("FIXED".equalsIgnoreCase(promo.getDiscountType())) {
+            discount = promo.getDiscountValue();
+        }
+
+        // Cap discount với max value nếu có
+        if (promo.getMaxDiscountAmount() != null && discount.compareTo(promo.getMaxDiscountAmount()) > 0) {
+            discount = promo.getMaxDiscountAmount();
+        }
+
+        return discount.max(BigDecimal.ZERO);
     }
 }

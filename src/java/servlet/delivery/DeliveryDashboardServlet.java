@@ -15,8 +15,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * DeliveryDashboardServlet — Dashboard giao hàng cho Delivery Staff.
@@ -52,24 +55,23 @@ public class DeliveryDashboardServlet extends HttpServlet {
 
         try {
             List<Delivery> deliveries = deliveryService.getDashboardDeliveries(currentUser.getUserId());
-            List<DeliveryWithOrderDTO> enrichedList = new ArrayList<>();
 
+            // Lọc theo status trước để giảm batch size
+            if (filterStatus != null && !filterStatus.isEmpty()) {
+                deliveries = deliveries.stream()
+                        .filter(d -> filterStatus.equals(d.getStatus()))
+                        .collect(Collectors.toList());
+            }
+
+            // Batch load toàn bộ orders trong 1 query thay vì N queries (N+1 fix)
+            Collection<Integer> orderIds = deliveries.stream()
+                    .map(Delivery::getOrderId)
+                    .collect(Collectors.toList());
+            Map<Integer, Order> ordersById = orderDAO.findByIds(orderIds);
+
+            List<DeliveryWithOrderDTO> enrichedList = new ArrayList<>();
             for (Delivery del : deliveries) {
-                // Skip filtered statuses if tab is active
-                if (filterStatus != null && !filterStatus.isEmpty() && !filterStatus.equals(del.getStatus())) {
-                    continue;
-                }
-                // Enrich with Order info (recipient name, address)
-                Order order = null;
-                try {
-                    List<Order> orders = orderDAO.findById(del.getOrderId());
-                    if (!orders.isEmpty()) {
-                        order = orders.get(0);
-                    }
-                } catch (Exception e) {
-                    LoggerUtil.warn(log, "Không thể tải thông tin đơn hàng cho delivery " + del.getDeliveryId(), e);
-                }
-                enrichedList.add(new DeliveryWithOrderDTO(del, order));
+                enrichedList.add(new DeliveryWithOrderDTO(del, ordersById.get(del.getOrderId())));
             }
 
             req.setAttribute("deliveryList", enrichedList);

@@ -45,6 +45,16 @@ public class ForgotPasswordServlet extends HttpServlet {
             throws ServletException, IOException {
         req.setCharacterEncoding("UTF-8");
 
+        // CSRF check — ngăn kẻ tấn công trigger gửi email reset cho nạn nhân
+        HttpSession csrfSession = req.getSession(false);
+        String sessionToken = (csrfSession != null)
+                ? (String) csrfSession.getAttribute(AppConfig.SESSION_CSRF_TOKEN) : null;
+        String requestToken = req.getParameter("_csrf");
+        if (sessionToken == null || !sessionToken.equals(requestToken)) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ");
+            return;
+        }
+
         String email = req.getParameter("email");
 
         try {

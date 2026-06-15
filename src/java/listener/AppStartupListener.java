@@ -1,6 +1,7 @@
 package listener;
 
 import config.AppConfig;
+import dao.system.ConnectionPool;
 import util.LoggerUtil;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -22,6 +23,11 @@ public class AppStartupListener implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
+        // Load .env TRƯỚC KHI AppConfig được class-loaded lần đầu.
+        // DotEnvLoader ghi vào System.setProperty() để AppConfig.getEnvOrDefault() đọc được.
+        String realPath = sce.getServletContext().getRealPath("");
+        util.DotEnvLoader.load(realPath);
+
         try {
             AppConfig.validateSecretsForProduction();
             LoggerUtil.info(log, "[AppStartup] Configuration validation passed");
@@ -29,6 +35,9 @@ public class AppStartupListener implements ServletContextListener {
             LoggerUtil.error(log, "[AppStartup] FATAL: " + ex.getMessage(), ex);
             throw ex;
         }
+
+        // Warm up pool và log trạng thái ngay khi startup
+        ConnectionPool.logPoolStats();
     }
 
     @Override
