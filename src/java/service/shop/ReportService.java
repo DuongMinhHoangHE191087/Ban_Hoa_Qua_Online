@@ -27,7 +27,7 @@ public class ReportService {
     /**
      * Lấy dữ liệu báo cáo cho Admin.
      */
-    public Map<String, Object> getAdminReportData(String startDate, String endDate) throws SQLException {
+    public Map<String, Object> getAdminReportData(String startDate, String endDate, Integer categoryId, Integer shopId) throws SQLException {
         Map<String, Object> report = new HashMap<>();
         
         // Thiết lập ngày mặc định (30 ngày gần đây) nếu trống
@@ -37,10 +37,12 @@ public class ReportService {
         
         report.put("startDate", start);
         report.put("endDate", end);
-        report.put("revenueTrend", orderDAO.getRevenueTrend(null, start, end));
-        report.put("orderStatusStats", orderDAO.getOrderStatusStats(null, start, end));
-        report.put("cancellationReasonStats", orderDAO.getCancellationReasonStats(null, start, end));
-        report.put("fruitUsage", orderDAO.getFruitUsageReport(null, start, end));
+        report.put("selectedCategoryId", categoryId);
+        report.put("selectedShopId", shopId);
+        report.put("revenueTrend", orderDAO.getRevenueTrend(shopId, start, end, categoryId));
+        report.put("orderStatusStats", orderDAO.getOrderStatusStats(shopId, start, end, categoryId));
+        report.put("cancellationReasonStats", orderDAO.getCancellationReasonStats(shopId, start, end, categoryId));
+        report.put("fruitUsage", orderDAO.getFruitUsageReport(shopId, start, end, categoryId));
         report.put("userGrowth", userDAO.getUserRegistrationTrend(start, end));
         
         return report;
@@ -49,7 +51,7 @@ public class ReportService {
     /**
      * Lấy dữ liệu báo cáo cho Shop Owner.
      */
-    public Map<String, Object> getShopReportData(int ownerId, String startDate, String endDate) throws SQLException {
+    public Map<String, Object> getShopReportData(int ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
         Map<String, Object> report = new HashMap<>();
         
         // Thiết lập ngày mặc định (30 ngày gần đây) nếu trống
@@ -59,10 +61,11 @@ public class ReportService {
         
         report.put("startDate", start);
         report.put("endDate", end);
-        report.put("revenueTrend", orderDAO.getRevenueTrend(ownerId, start, end));
-        report.put("orderStatusStats", orderDAO.getOrderStatusStats(ownerId, start, end));
-        report.put("cancellationReasonStats", orderDAO.getCancellationReasonStats(ownerId, start, end));
-        report.put("fruitUsage", orderDAO.getFruitUsageReport(ownerId, start, end));
+        report.put("selectedCategoryId", categoryId);
+        report.put("revenueTrend", orderDAO.getRevenueTrend(ownerId, start, end, categoryId));
+        report.put("orderStatusStats", orderDAO.getOrderStatusStats(ownerId, start, end, categoryId));
+        report.put("cancellationReasonStats", orderDAO.getCancellationReasonStats(ownerId, start, end, categoryId));
+        report.put("fruitUsage", orderDAO.getFruitUsageReport(ownerId, start, end, categoryId));
         
         return report;
     }

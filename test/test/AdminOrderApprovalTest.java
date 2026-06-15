@@ -103,7 +103,7 @@ public class AdminOrderApprovalTest {
     public void should_confirmOrder_when_adminApprovesPayment() throws Exception {
         paymentService.adminApprovePayment(testOrderId, adminId);
 
-        Order order = orderDAO.findById(testOrderId);
+        Order order = orderDAO.findOneById(testOrderId);
         assertNotNull("Order phải tồn tại", order);
         assertNotEquals("Status phải thay đổi sau approve",
                 AppConfig.ORDER_PENDING_PAYMENT, order.getStatus());

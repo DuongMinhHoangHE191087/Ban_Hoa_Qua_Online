@@ -372,7 +372,7 @@ public class CheckoutServiceExceptionHandlingTest {
     }
 
     @Test
-    public void placeOrder_customerBuyingOwnProduct_throws() {
+    public void placeOrder_customerBuyingOwnProduct_throws() throws Exception {
         try {
             User shopOwner = createTestUser(2, "shop@example.com", "Shop Owner", "0999999999");
             shopOwner.setRole("SHOP_OWNER");

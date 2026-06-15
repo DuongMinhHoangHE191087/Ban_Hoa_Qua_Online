@@ -100,11 +100,14 @@ public class InventoryService {
 
     public void reserve(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
-        int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
-        if (currentStock < qty) {
+        
+        // Trực tiếp cập nhật nguyên tử tồn kho và lấy ra tồn kho mới sau cập nhật
+        int stockAfter;
+        try {
+            stockAfter = productVariantDAO.decrementStockQuantity(conn, variantId, qty);
+        } catch (SQLException e) {
             throw new RuntimeException("Không đủ số lượng hàng tồn kho cho sản phẩm.");
         }
-        int stockAfter = currentStock - qty;
 
         InventoryLog logEntry = new InventoryLog();
         logEntry.setVariantId(variantId);
@@ -116,7 +119,6 @@ public class InventoryService {
         logEntry.setChangedAt(LocalDateTime.now());
         
         inventoryDAO.save(conn, logEntry);
-        productVariantDAO.updateStock(conn, variantId, -qty);
         checkAndSendLowStockAlert(conn, variantId, stockAfter);
     }
 

@@ -34,13 +34,13 @@ Danh sách toàn bộ các task được giao cho Duong (cập nhật theo file 
 - [x] **Promotion Management** (Shop Owner) - *Đã hoàn thành (create/update/toggle/delete voucher)*
 
 ## Phase 5: Advanced Admin & Shop Management
-- [ ] **Category Management** (Admin)
+- [x] **Category Management** (Admin) - *Đã hoàn thành (`CategoryServlet` & `admin-categories.jsp`)*
 - [x] **System Config (Fee, Logo)** (Admin) - *Đã hoàn thành (validate fee/logo/config update qua service)*
-- [ ] **Detailed Order & Refund Status** (System/Admin)
-- [ ] **Chat with Customer** (Customer, Shop Owner)
-- [ ] **Refund Approval** (Admin)
-- [ ] **Global Shop Management** (Admin)
-- [ ] **Admin Profile** (Admin)
+- [x] **Detailed Order & Refund Status** (System/Admin) - *Đã hoàn thành (đồng bộ status đơn hàng/đổi trả)*
+- [x] **Chat with Customer** (Customer, Shop Owner) - *Đã hoàn thành (hệ thống chat real-time)*
+- [x] **Refund Approval** (Admin) - *Đã hoàn thành (phê duyệt hoàn trả & tự động hoàn tiền/tồn)*
+- [x] **Global Shop Management** (Admin) - *Đã hoàn thành (`AdminShopManageServlet` & khóa/mở khóa cửa hàng)*
+- [x] **Admin Profile** (Admin) - *Đã hoàn thành (`AdminProfileServlet` & `admin-profile.jsp`)*
 
 ## Priority Next
 

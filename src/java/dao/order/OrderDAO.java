@@ -69,6 +69,42 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
+     * Tìm tất cả đơn hàng (bao gồm cả Parent và Child) của khách hàng.
+     */
+    public List<Order> findByCustomerId(int customerId) throws SQLException {
+        List<Order> list = new ArrayList<>();
+        String sql = "SELECT * FROM orders WHERE customer_id = ? ORDER BY order_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+
+    /**
+     * Tìm đơn hàng theo ID và trả về 1 object duy nhất.
+     */
+    public Order findOneById(int id) throws SQLException {
+        String sql = "SELECT * FROM orders WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Tìm đơn hàng theo ID khách hàng có phân trang.
      */
     public List<Order> findByCustomer(int customerId, int page, int pageSize) throws SQLException {
@@ -718,27 +754,55 @@ public class OrderDAO extends BaseDAO {
         return map;
     }
 
-    public List<Map<String, Object>> getRevenueTrend(Integer ownerId, String startDate, String endDate) throws SQLException {
+    public List<Map<String, Object>> getRevenueTrend(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
-        StringBuilder sql = new StringBuilder(
-            "SELECT CAST(created_at AS DATE) AS order_date, SUM(final_amount) AS total_revenue " +
-            "FROM orders " +
-            "WHERE status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND order_type = 'CHILD' "
-        );
+        StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
-        if (ownerId != null) {
-            sql.append("AND owner_id = ? ");
-            params.add(ownerId);
+        
+        if (categoryId != null) {
+            sql.append(
+                "SELECT CAST(o.created_at AS DATE) AS order_date, SUM(oi.subtotal) AS total_revenue " +
+                "FROM orders o " +
+                "JOIN order_items oi ON o.order_id = oi.order_id " +
+                "JOIN product_variants pv ON oi.variant_id = pv.variant_id " +
+                "JOIN products p ON pv.product_id = p.product_id " +
+                "WHERE o.status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND o.order_type = 'CHILD' "
+            );
+            if (ownerId != null) {
+                sql.append("AND o.owner_id = ? ");
+                params.add(ownerId);
+            }
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                sql.append("AND CAST(o.created_at AS DATE) >= ? ");
+                params.add(java.sql.Date.valueOf(startDate));
+            }
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                sql.append("AND CAST(o.created_at AS DATE) <= ? ");
+                params.add(java.sql.Date.valueOf(endDate));
+            }
+            sql.append("AND p.category_id = ? ");
+            params.add(categoryId);
+            sql.append("GROUP BY CAST(o.created_at AS DATE) ORDER BY order_date");
+        } else {
+            sql.append(
+                "SELECT CAST(created_at AS DATE) AS order_date, SUM(final_amount) AS total_revenue " +
+                "FROM orders " +
+                "WHERE status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND order_type = 'CHILD' "
+            );
+            if (ownerId != null) {
+                sql.append("AND owner_id = ? ");
+                params.add(ownerId);
+            }
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                sql.append("AND CAST(created_at AS DATE) >= ? ");
+                params.add(java.sql.Date.valueOf(startDate));
+            }
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                sql.append("AND CAST(created_at AS DATE) <= ? ");
+                params.add(java.sql.Date.valueOf(endDate));
+            }
+            sql.append("GROUP BY CAST(created_at AS DATE) ORDER BY order_date");
         }
-        if (startDate != null && !startDate.trim().isEmpty()) {
-            sql.append("AND CAST(created_at AS DATE) >= ? ");
-            params.add(java.sql.Date.valueOf(startDate));
-        }
-        if (endDate != null && !endDate.trim().isEmpty()) {
-            sql.append("AND CAST(created_at AS DATE) <= ? ");
-            params.add(java.sql.Date.valueOf(endDate));
-        }
-        sql.append("GROUP BY CAST(created_at AS DATE) ORDER BY order_date");
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -757,27 +821,55 @@ public class OrderDAO extends BaseDAO {
         return list;
     }
 
-    public List<Map<String, Object>> getOrderStatusStats(Integer ownerId, String startDate, String endDate) throws SQLException {
+    public List<Map<String, Object>> getOrderStatusStats(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
-        StringBuilder sql = new StringBuilder(
-            "SELECT status, COUNT(*) AS order_count " +
-            "FROM orders " +
-            "WHERE order_type = 'CHILD' "
-        );
+        StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
-        if (ownerId != null) {
-            sql.append("AND owner_id = ? ");
-            params.add(ownerId);
+        
+        if (categoryId != null) {
+            sql.append(
+                "SELECT o.status, COUNT(DISTINCT o.order_id) AS order_count " +
+                "FROM orders o " +
+                "JOIN order_items oi ON o.order_id = oi.order_id " +
+                "JOIN product_variants pv ON oi.variant_id = pv.variant_id " +
+                "JOIN products p ON pv.product_id = p.product_id " +
+                "WHERE o.order_type = 'CHILD' "
+            );
+            if (ownerId != null) {
+                sql.append("AND o.owner_id = ? ");
+                params.add(ownerId);
+            }
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                sql.append("AND CAST(o.created_at AS DATE) >= ? ");
+                params.add(java.sql.Date.valueOf(startDate));
+            }
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                sql.append("AND CAST(o.created_at AS DATE) <= ? ");
+                params.add(java.sql.Date.valueOf(endDate));
+            }
+            sql.append("AND p.category_id = ? ");
+            params.add(categoryId);
+            sql.append("GROUP BY o.status");
+        } else {
+            sql.append(
+                "SELECT status, COUNT(*) AS order_count " +
+                "FROM orders " +
+                "WHERE order_type = 'CHILD' "
+            );
+            if (ownerId != null) {
+                sql.append("AND owner_id = ? ");
+                params.add(ownerId);
+            }
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                sql.append("AND CAST(created_at AS DATE) >= ? ");
+                params.add(java.sql.Date.valueOf(startDate));
+            }
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                sql.append("AND CAST(created_at AS DATE) <= ? ");
+                params.add(java.sql.Date.valueOf(endDate));
+            }
+            sql.append("GROUP BY status");
         }
-        if (startDate != null && !startDate.trim().isEmpty()) {
-            sql.append("AND CAST(created_at AS DATE) >= ? ");
-            params.add(java.sql.Date.valueOf(startDate));
-        }
-        if (endDate != null && !endDate.trim().isEmpty()) {
-            sql.append("AND CAST(created_at AS DATE) <= ? ");
-            params.add(java.sql.Date.valueOf(endDate));
-        }
-        sql.append("GROUP BY status");
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -796,27 +888,55 @@ public class OrderDAO extends BaseDAO {
         return list;
     }
 
-    public List<Map<String, Object>> getCancellationReasonStats(Integer ownerId, String startDate, String endDate) throws SQLException {
+    public List<Map<String, Object>> getCancellationReasonStats(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
-        StringBuilder sql = new StringBuilder(
-            "SELECT COALESCE(cancellation_reason, N'Không có lý do') AS reason, COUNT(*) AS cancel_count " +
-            "FROM orders " +
-            "WHERE status = 'CANCELLED' AND order_type = 'CHILD' "
-        );
+        StringBuilder sql = new StringBuilder();
         List<Object> params = new ArrayList<>();
-        if (ownerId != null) {
-            sql.append("AND owner_id = ? ");
-            params.add(ownerId);
+        
+        if (categoryId != null) {
+            sql.append(
+                "SELECT COALESCE(o.cancellation_reason, N'Không có lý do') AS reason, COUNT(DISTINCT o.order_id) AS cancel_count " +
+                "FROM orders o " +
+                "JOIN order_items oi ON o.order_id = oi.order_id " +
+                "JOIN product_variants pv ON oi.variant_id = pv.variant_id " +
+                "JOIN products p ON pv.product_id = p.product_id " +
+                "WHERE o.status = 'CANCELLED' AND o.order_type = 'CHILD' "
+            );
+            if (ownerId != null) {
+                sql.append("AND o.owner_id = ? ");
+                params.add(ownerId);
+            }
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                sql.append("AND CAST(o.created_at AS DATE) >= ? ");
+                params.add(java.sql.Date.valueOf(startDate));
+            }
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                sql.append("AND CAST(o.created_at AS DATE) <= ? ");
+                params.add(java.sql.Date.valueOf(endDate));
+            }
+            sql.append("AND p.category_id = ? ");
+            params.add(categoryId);
+            sql.append("GROUP BY o.cancellation_reason ORDER BY cancel_count DESC");
+        } else {
+            sql.append(
+                "SELECT COALESCE(cancellation_reason, N'Không có lý do') AS reason, COUNT(*) AS cancel_count " +
+                "FROM orders " +
+                "WHERE status = 'CANCELLED' AND order_type = 'CHILD' "
+            );
+            if (ownerId != null) {
+                sql.append("AND owner_id = ? ");
+                params.add(ownerId);
+            }
+            if (startDate != null && !startDate.trim().isEmpty()) {
+                sql.append("AND CAST(created_at AS DATE) >= ? ");
+                params.add(java.sql.Date.valueOf(startDate));
+            }
+            if (endDate != null && !endDate.trim().isEmpty()) {
+                sql.append("AND CAST(created_at AS DATE) <= ? ");
+                params.add(java.sql.Date.valueOf(endDate));
+            }
+            sql.append("GROUP BY cancellation_reason ORDER BY cancel_count DESC");
         }
-        if (startDate != null && !startDate.trim().isEmpty()) {
-            sql.append("AND CAST(created_at AS DATE) >= ? ");
-            params.add(java.sql.Date.valueOf(startDate));
-        }
-        if (endDate != null && !endDate.trim().isEmpty()) {
-            sql.append("AND CAST(created_at AS DATE) <= ? ");
-            params.add(java.sql.Date.valueOf(endDate));
-        }
-        sql.append("GROUP BY cancellation_reason ORDER BY cancel_count DESC");
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -835,7 +955,7 @@ public class OrderDAO extends BaseDAO {
         return list;
     }
 
-    public List<Map<String, Object>> getFruitUsageReport(Integer ownerId, String startDate, String endDate) throws SQLException {
+    public List<Map<String, Object>> getFruitUsageReport(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
             "SELECT oi.product_name_snapshot, oi.variant_label_snapshot, " +
@@ -856,6 +976,11 @@ public class OrderDAO extends BaseDAO {
             sql.append("LEFT JOIN shop_owner_profiles s ON o.owner_id = s.user_id ");
         }
         
+        if (categoryId != null) {
+            sql.append("JOIN product_variants pv ON oi.variant_id = pv.variant_id ");
+            sql.append("JOIN products p ON pv.product_id = p.product_id ");
+        }
+        
         sql.append("WHERE o.status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND o.order_type = 'CHILD' ");
         
         List<Object> params = new ArrayList<>();
@@ -870,6 +995,10 @@ public class OrderDAO extends BaseDAO {
         if (endDate != null && !endDate.trim().isEmpty()) {
             sql.append("AND CAST(o.created_at AS DATE) <= ? ");
             params.add(java.sql.Date.valueOf(endDate));
+        }
+        if (categoryId != null) {
+            sql.append("AND p.category_id = ? ");
+            params.add(categoryId);
         }
         
         sql.append("GROUP BY oi.product_name_snapshot, oi.variant_label_snapshot ");
