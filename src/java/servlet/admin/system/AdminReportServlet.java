@@ -13,6 +13,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import dao.catalog.CategoryDAO;
+import dao.shop.ShopProfileDAO;
 import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -31,6 +33,8 @@ public class AdminReportServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(AdminReportServlet.class.getName());
 
     private final ReportService reportService = new ReportService();
+    private final CategoryDAO categoryDAO = new CategoryDAO();
+    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -49,14 +53,40 @@ public class AdminReportServlet extends HttpServlet {
 
         String startDate = req.getParameter("startDate");
         String endDate = req.getParameter("endDate");
+        
+        String catParam = req.getParameter("categoryId");
+        Integer categoryId = null;
+        if (catParam != null && !catParam.trim().isEmpty()) {
+            try {
+                categoryId = Integer.parseInt(catParam);
+            } catch (NumberFormatException e) {
+                // Ignore
+            }
+        }
+        
+        String shopParam = req.getParameter("shopId");
+        Integer shopId = null;
+        if (shopParam != null && !shopParam.trim().isEmpty()) {
+            try {
+                shopId = Integer.parseInt(shopParam);
+            } catch (NumberFormatException e) {
+                // Ignore
+            }
+        }
 
         try {
-            Map<String, Object> reportData = reportService.getAdminReportData(startDate, endDate);
+            Map<String, Object> reportData = reportService.getAdminReportData(startDate, endDate, categoryId, shopId);
             
             // Đưa dữ liệu thô vào request attributes để JSTL xử lý
             req.setAttribute("startDate", reportData.get("startDate"));
             req.setAttribute("endDate", reportData.get("endDate"));
             req.setAttribute("fruitUsage", reportData.get("fruitUsage"));
+            req.setAttribute("selectedCategoryId", categoryId);
+            req.setAttribute("selectedShopId", shopId);
+            
+            // Metadata for dropdowns
+            req.setAttribute("categories", categoryDAO.findAllActive());
+            req.setAttribute("shops", shopProfileDAO.findAll("APPROVED")); // Only approved shops can sell products
             
             // Serialize dữ liệu biểu đồ sang JSON để Chart.js ở Client-side vẽ biểu đồ
             req.setAttribute("revenueTrendJson", JsonUtil.toJson(reportData.get("revenueTrend")));
