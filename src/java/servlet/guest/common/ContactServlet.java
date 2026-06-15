@@ -65,10 +65,11 @@ public class ContactServlet extends HttpServlet {
             return;
         }
 
-        // ── 3. Ghi log yêu cầu liên hệ (thay thế bằng gửi email hoặc lưu DB khi có) ──
+        // ── 3. Lưu yêu cầu liên hệ vào log ──────────────────────────────────
+        // Note: Trong tương lai, có thể mở rộng để lưu DB hoặc gửi email admin
         LOG.info(String.format(
-            "[CONTACT] name=%s | email=%s | phone=%s | subject=%s | message=%s",
-            name, email, phone, subject, message.replace("\n", " ")
+            "[CONTACT] name=%s | email=%s | phone=%s | subject=%s | message=%s | timestamp=%s",
+            name, email, phone, subject, message.replace("\n", " "), java.time.LocalDateTime.now()
         ));
 
         // ── 4. PRG: flash success + redirect ──────────────────────────────
