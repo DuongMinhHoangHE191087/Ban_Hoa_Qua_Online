@@ -2,17 +2,14 @@ package servlet.customer.order;
 
 import config.AppConfig;
 import dao.order.OrderDAO;
-import dao.shop.ShopProfileDAO;
 import model.dto.order.OrderDetailViewDTO;
 import model.dto.order.OrderListViewDTO;
 import model.dto.order.ReorderResultDTO;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
-import model.entity.shop.ShopProfile;
 import model.entity.auth.User;
 import service.order.OrderService;
 import service.order.OrderViewService;
-import service.auth.UserService;
 import util.SessionUtil;
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -38,8 +35,6 @@ public class OrderServlet extends HttpServlet {
     private final OrderService orderService = new OrderService();
     private final OrderViewService orderViewService = new OrderViewService();
     private final OrderDAO orderDAO = new OrderDAO();
-    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
-    private final UserService userService = new UserService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -167,40 +162,44 @@ public class OrderServlet extends HttpServlet {
                     List<Order> childOrders = orderDAO.findChildrenByParentId(orderId);
                     req.setAttribute("childOrders", childOrders);
 
+                    List<Integer> childOrderIds = new ArrayList<>();
+                    List<Integer> ownerIds = new ArrayList<>();
+                    for (Order child : childOrders) {
+                        childOrderIds.add(child.getOrderId());
+                        ownerIds.add(child.getOwnerId());
+                    }
                     Map<Integer, List<OrderItem>> childOrderItemsMap = new HashMap<>();
+                    try {
+                        childOrderItemsMap = orderViewService.getOrderItemsMap(childOrderIds);
+                    } catch (Exception e) {
+                        LoggerUtil.warn(log, "Không thể tải items của đơn con theo batch", e);
+                        for (Order child : childOrders) {
+                            childOrderItemsMap.put(child.getOrderId(), new ArrayList<>());
+                        }
+                    }
+
+                    Map<Integer, String> ownerNames = new HashMap<>();
+                    try {
+                        ownerNames = orderViewService.getShopNamesMap(ownerIds);
+                    } catch (Exception e) {
+                        LoggerUtil.warn(log, "Không thể tải tên shop cho đơn con theo batch", e);
+                    }
                     Map<Integer, String> shopNamesMap = new HashMap<>();
                     for (Order child : childOrders) {
-                        childOrderItemsMap.put(child.getOrderId(), orderDAO.findItemsByOrderId(child.getOrderId()));
-                        try {
-                            List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(child.getOwnerId());
-                            if (!shopProfiles.isEmpty() && shopProfiles.get(0).getShopName() != null) {
-                                shopNamesMap.put(child.getOrderId(), shopProfiles.get(0).getShopName());
-                            } else {
-                                User owner = userService.findById(child.getOwnerId());
-                                shopNamesMap.put(child.getOrderId(), owner != null ? owner.getFullName() : "Cửa hàng");
-                            }
-                        } catch (Exception e) {
-                            LoggerUtil.warn(log, "Không thể tải tên shop cho đơn con #" + child.getOrderId(), e);
-                        }
+                        shopNamesMap.put(child.getOrderId(), ownerNames.getOrDefault(child.getOwnerId(), "Cửa hàng"));
                     }
                     req.setAttribute("childOrderItemsMap", childOrderItemsMap);
                     req.setAttribute("shopNamesMap", shopNamesMap);
                 } else {
                     // For single shop order, load its shop name
-                    String shopName = "Cửa hàng";
-                    if (order.getOwnerIdObject() != null) {
-                        try {
-                            List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(order.getOwnerId());
-                            if (!shopProfiles.isEmpty() && shopProfiles.get(0).getShopName() != null) {
-                                shopName = shopProfiles.get(0).getShopName();
-                            } else {
-                                User owner = userService.findById(order.getOwnerId());
-                                if (owner != null) shopName = owner.getFullName();
-                            }
-                        } catch (Exception e) {
-                            LoggerUtil.warn(log, "Không thể tải tên shop cho đơn #" + orderId, e);
-                        }
+                    Map<Integer, String> ownerNames;
+                    try {
+                        ownerNames = orderViewService.getShopNamesMap(List.of(order.getOwnerId()));
+                    } catch (Exception e) {
+                        LoggerUtil.warn(log, "Không thể tải tên shop cho đơn #" + orderId, e);
+                        ownerNames = new HashMap<>();
                     }
+                    String shopName = ownerNames.getOrDefault(order.getOwnerId(), "Cửa hàng");
                     req.setAttribute("shopName", shopName);
                 }
 

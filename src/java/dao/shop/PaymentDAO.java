@@ -11,11 +11,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.Set;
 import util.LoggerUtil;
 
 /**
@@ -73,6 +77,59 @@ public class PaymentDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Tìm payment transaction duy nhất theo orderId.
+     */
+    public PaymentTransaction findOneByOrder(int orderId) throws SQLException {
+        String sql = "SELECT * FROM payment_transactions WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Batch load payment transaction theo danh sách orderId.
+     */
+    public Map<Integer, PaymentTransaction> findByOrderIds(Collection<Integer> orderIds) throws SQLException {
+        Map<Integer, PaymentTransaction> map = new LinkedHashMap<>();
+        if (orderIds == null || orderIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(orderIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM payment_transactions WHERE order_id IN (" + placeholders + ")";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer orderId : distinctIds) {
+                ps.setInt(paramIndex++, orderId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    PaymentTransaction tx = mapRow(rs);
+                    map.put(tx.getOrderId(), tx);
+                }
+            }
+        }
+        return map;
     }
 
     /**

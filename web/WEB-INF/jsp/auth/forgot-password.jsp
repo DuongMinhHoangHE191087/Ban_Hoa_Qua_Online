@@ -191,6 +191,7 @@
                                                 <%-- Form --%>
                                                     <form action="${pageContext.request.contextPath}/auth/forgot"
                                                         method="post" class="space-y-6" id="forgotForm">
+                                                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
 
                                                         <div
                                                             class="bg-white/40 p-5 rounded-xl border border-white/60 space-y-4">

@@ -1,14 +1,17 @@
 package servlet.admin.shop;
 
+import config.AppConfig;
 import model.response.ApiResponse;
 import service.shop.ShopService;
 import util.JsonUtil;
 import util.LoggerUtil;
+import util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -24,6 +27,28 @@ public class ShopApprovalAPI extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
+
+        // Auth check
+        HttpSession httpSession = request.getSession(false);
+        if (httpSession == null || !SessionUtil.isLoggedIn(httpSession)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_UNAUTHORIZED, "Chưa đăng nhập."));
+            return;
+        }
+        if (!SessionUtil.hasRole(httpSession, AppConfig.ROLE_ADMIN)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện hành động này."));
+            return;
+        }
+
+        // CSRF check
+        String sessionCsrf = (String) httpSession.getAttribute(AppConfig.SESSION_CSRF_TOKEN);
+        String reqCsrf = request.getParameter("_csrf");
+        if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ."));
+            return;
+        }
 
         try {
             int profileId = Integer.parseInt(request.getParameter("profileId"));

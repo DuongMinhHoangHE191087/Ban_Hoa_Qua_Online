@@ -29,6 +29,7 @@ public class DeliveryDetailServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(DeliveryDetailServlet.class.getName());
 
     private final DeliveryService deliveryService = new DeliveryService();
+    private final DeliveryDAO deliveryDAO = new DeliveryDAO();
     private final OrderDAO orderDAO = new OrderDAO();
     private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
 
@@ -60,7 +61,7 @@ public class DeliveryDetailServlet extends HttpServlet {
 
             // Fallback: search in unassigned if not found in staff's list
             if (delivery == null) {
-                Delivery d = new dao.order.DeliveryDAO().findById(deliveryId);
+                Delivery d = deliveryDAO.findById(deliveryId);
                 if (d != null && (d.getStaffId() == null || d.getStaffId().equals(currentUser.getUserId()))) {
                     delivery = d;
                 }
@@ -74,18 +75,14 @@ public class DeliveryDetailServlet extends HttpServlet {
 
             // Load order
             Order order = null;
-            List<Order> orders = orderDAO.findById(delivery.getOrderId());
-            if (!orders.isEmpty()) {
-                order = orders.get(0);
-            }
+            order = orderDAO.findOneById(delivery.getOrderId());
 
             // Load shop pickup address
             String pickupAddress = "Chưa xác định";
             String shopName = "Cửa hàng";
             if (order != null) {
-                List<ShopProfile> shops = shopProfileDAO.findByUserId(order.getOwnerId());
-                if (!shops.isEmpty()) {
-                    ShopProfile shop = shops.get(0);
+                ShopProfile shop = shopProfileDAO.findOneByUserId(order.getOwnerId());
+                if (shop != null) {
                     shopName = shop.getShopName();
                     if (shop.getDeliveryAddress() != null && !shop.getDeliveryAddress().trim().isEmpty()) {
                         pickupAddress = shop.getDeliveryAddress();

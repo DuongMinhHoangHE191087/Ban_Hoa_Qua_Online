@@ -2,16 +2,19 @@ package dao.shop;
 
 import dao.system.BaseDAO;
 import model.entity.shop.ShopProfile;
-import util.LoggerUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * ShopProfileDAO — DAO cho entity ShopProfile.
@@ -25,74 +28,6 @@ import java.util.logging.Logger;
  * @author fruitmkt-team
  */
 public class ShopProfileDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(ShopProfileDAO.class.getName());
-    private static boolean schemaChecked = false;
-
-    public ShopProfileDAO() {
-        checkSchemaOnce();
-    }
-
-    private synchronized void checkSchemaOnce() {
-        if (schemaChecked) return;
-        try (Connection conn = getConnection()) {
-            // Check business_email
-            boolean emailColExists = false;
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 business_email FROM shop_owner_profiles")) {
-                emailColExists = rs != null;
-            } catch (SQLException e) {
-                LoggerUtil.warn(log, "business_email column not yet present, will attempt to add", e);
-            }
-            if (!emailColExists) {
-                try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD business_email NVARCHAR(255) NULL");
-                    LoggerUtil.info(log, "[DB Migrator] Success: Added business_email column.");
-                }
-                try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("SET QUOTED_IDENTIFIER ON; CREATE UNIQUE NONCLUSTERED INDEX UX_shop_owner_profiles_business_email ON shop_owner_profiles(business_email) WHERE business_email IS NOT NULL");
-                    LoggerUtil.info(log, "[DB Migrator] Success: Created filtered unique index on business_email.");
-                } catch (SQLException ex) {
-                    LoggerUtil.warn(log, "[DB Migrator] Warning creating index on business_email", ex);
-                }
-            }
-
-            // Check logo_url
-            boolean logoColExists = false;
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 logo_url FROM shop_owner_profiles")) {
-                logoColExists = rs != null;
-            } catch (SQLException e) {
-                LoggerUtil.warn(log, "logo_url column not yet present, will attempt to add", e);
-            }
-            if (!logoColExists) {
-                try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD logo_url NVARCHAR(500) NULL");
-                    LoggerUtil.info(log, "[DB Migrator] Success: Added logo_url column.");
-                }
-            }
-
-            // Check cover_url
-            boolean coverColExists = false;
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 cover_url FROM shop_owner_profiles")) {
-                coverColExists = rs != null;
-            } catch (SQLException e) {
-                LoggerUtil.warn(log, "cover_url column not yet present, will attempt to add", e);
-            }
-            if (!coverColExists) {
-                try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("ALTER TABLE shop_owner_profiles ADD cover_url NVARCHAR(500) NULL");
-                    LoggerUtil.info(log, "[DB Migrator] Success: Added cover_url column.");
-                }
-            }
-
-            schemaChecked = true;
-        } catch (SQLException e) {
-            LoggerUtil.error(log, "[DB Migrator] Error checking/adding shop_owner_profiles columns", e);
-            schemaChecked = true;
-        }
-    }
 
     /**
      * Tìm shop profile theo ID người dùng.
@@ -110,6 +45,23 @@ public class ShopProfileDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Tìm shop profile duy nhất theo ID người dùng.
+     */
+    public ShopProfile findOneByUserId(int userId) throws SQLException {
+        String sql = "SELECT * FROM shop_owner_profiles WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -159,6 +111,42 @@ public class ShopProfileDAO extends BaseDAO {
     /** Lọc theo approvalStatus — alias ngắn hơn cho admin code */
     public List<ShopProfile> findByApprovalStatus(String status) throws SQLException {
         return findAll(status);
+    }
+
+    /**
+     * Batch load shop profiles theo danh sách user_id.
+     */
+    public Map<Integer, ShopProfile> findByUserIds(Collection<Integer> userIds) throws SQLException {
+        Map<Integer, ShopProfile> map = new LinkedHashMap<>();
+        if (userIds == null || userIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(userIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM shop_owner_profiles WHERE user_id IN (" + placeholders + ")";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer userId : distinctIds) {
+                ps.setInt(paramIndex++, userId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ShopProfile profile = mapRow(rs);
+                    map.put(profile.getUserId(), profile);
+                }
+            }
+        }
+        return map;
     }
 
     /**
@@ -225,34 +213,41 @@ public class ShopProfileDAO extends BaseDAO {
 
     /**
      * Duyệt hoặc từ chối phê duyệt shop.
-     * [BUGFIX] Khi APPROVED: cập nhật đồng thời users.role = 'SHOP_OWNER'.
-     * Dùng hai UPDATE riêng vì MSSQL không hỗ trợ UPDATE multi-table.
-     * Nếu update thứ 2 thất bại sẽ throw lên để Service rollback logic.
+     * [BUGFIX] Khi APPROVED: cập nhật đồng thời users.role = 'SHOP_OWNER' trong cùng 1 transaction.
+     * TRANSACTION: Nếu bất kỳ UPDATE nào thất bại, cả hai sẽ rollback → dữ liệu nhất quán.
      */
     public void updateApprovalStatus(int profileId, int userId, String status, String rejectionReason) throws SQLException {
-        // Bước 1: Cập nhật trạng thái duyệt trên shop_owner_profiles
-        String sqlProfile = "UPDATE shop_owner_profiles "
-                + "SET approval_status = ?, rejection_reason = ?, approved_at = ?, updated_at = GETDATE() "
-                + "WHERE profile_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sqlProfile)) {
-            ps.setString(1, status);
-            ps.setString(2, rejectionReason);
-            ps.setTimestamp(3, "APPROVED".equals(status) ? new Timestamp(System.currentTimeMillis()) : null);
-            ps.setInt(4, profileId);
-            ps.executeUpdate();
-        }
-
-        // Bước 2: Nếu APPROVED → đổi role user thành SHOP_OWNER
-        if ("APPROVED".equals(status) && userId > 0) {
-            String sqlUser = "UPDATE users SET role = 'SHOP_OWNER', updated_at = GETDATE() WHERE user_id = ?";
-            try (Connection conn = getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sqlUser)) {
-                ps.setInt(1, userId);
-                int rows = ps.executeUpdate();
-                if (rows == 0) {
-                    throw new SQLException("[CRITICAL] Cập nhật role SHOP_OWNER thất bại cho user_id=" + userId);
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Bước 1: Cập nhật trạng thái duyệt trên shop_owner_profiles
+                String sqlProfile = "UPDATE shop_owner_profiles "
+                        + "SET approval_status = ?, rejection_reason = ?, approved_at = ?, updated_at = GETDATE() "
+                        + "WHERE profile_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlProfile)) {
+                    ps.setString(1, status);
+                    ps.setString(2, rejectionReason);
+                    ps.setTimestamp(3, "APPROVED".equals(status) ? new Timestamp(System.currentTimeMillis()) : null);
+                    ps.setInt(4, profileId);
+                    ps.executeUpdate();
                 }
+
+                // Bước 2: Nếu APPROVED → đổi role user thành SHOP_OWNER
+                if ("APPROVED".equals(status) && userId > 0) {
+                    String sqlUser = "UPDATE users SET role = 'SHOP_OWNER', updated_at = GETDATE() WHERE user_id = ?";
+                    try (PreparedStatement ps = conn.prepareStatement(sqlUser)) {
+                        ps.setInt(1, userId);
+                        int rows = ps.executeUpdate();
+                        if (rows == 0) {
+                            throw new SQLException("[CRITICAL] Cập nhật role SHOP_OWNER thất bại cho user_id=" + userId);
+                        }
+                    }
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
             }
         }
     }

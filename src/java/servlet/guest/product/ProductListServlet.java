@@ -73,16 +73,21 @@ public class ProductListServlet extends HttpServlet {
             String suggestedIdsParam = req.getParameter("suggestedIds");
             if (suggestedIdsParam != null && !suggestedIdsParam.trim().isEmpty()) {
                 String[] idsStr = suggestedIdsParam.split(",");
-                List<Product> productsList = new ArrayList<>();
+                List<Integer> requestedIds = new ArrayList<>();
                 for (String idStr : idsStr) {
                     try {
                         int id = Integer.parseInt(idStr.trim());
-                        Product p = productService.getProductById(id);
-                        if (p != null && "ACTIVE".equals(p.getStatus()) && "APPROVED".equals(p.getApprovalStatus())) {
-                            productsList.add(p);
-                        }
+                        requestedIds.add(id);
                     } catch (NumberFormatException e) {
                         LoggerUtil.warn(log, "ID sản phẩm không hợp lệ trong filter", e);
+                    }
+                }
+                Map<Integer, Product> productsById = productService.getProductsByIds(requestedIds);
+                List<Product> productsList = new ArrayList<>();
+                for (Integer id : requestedIds) {
+                    Product p = productsById.get(id);
+                    if (p != null) {
+                        productsList.add(p);
                     }
                 }
                 pagedResult = new PagedResultDTO(productsList, 1, 1, productsList.size(), AppConfig.PAGE_SIZE_PRODUCTS);
@@ -94,80 +99,19 @@ public class ProductListServlet extends HttpServlet {
             if (pagedResult != null && pagedResult.getItems() != null) {
                 @SuppressWarnings("unchecked")
                 List<Product> rawProducts = (List<Product>) pagedResult.getItems();
+                List<Integer> productIds = new ArrayList<>();
+                for (Product p : rawProducts) {
+                    productIds.add(p.getProductId());
+                }
+                Map<Integer, ProductImage> primaryImages = productImageDAO.findPrimaryByProductIds(productIds);
+                Map<Integer, List<ProductVariant>> variantsByProduct = productVariantDAO.findByProductIds(productIds);
+                Map<Integer, Promotion> promotionsByProduct = promotionDAO.findActivePromotionsByProductIds(productIds);
                 List<Map<String, Object>> mappedProducts = new ArrayList<>();
                 for (Product p : rawProducts) {
-                    Map<String, Object> item = new HashMap<>();
-                    item.put("productId", p.getProductId());
-                    item.put("name", p.getName());
-                    item.put("description", p.getDescription());
-                    item.put("rating", p.getRating() != null ? p.getRating() : new BigDecimal("4.8"));
-                    item.put("soldQuantity", p.getSoldQuantity());
-
-                    // Lấy ảnh chính thực tế
-                    ProductImage pi = productImageDAO.findPrimary(p.getProductId());
-                    String imagePath = null;
-                    if (pi != null && pi.getFilePath() != null && !pi.getFilePath().trim().isEmpty()) {
-                        imagePath = pi.getFilePath().trim().replace('\\', '/');
-                    }
-                    if (imagePath == null) {
-                        imagePath = req.getContextPath() + "/assets/img/placeholder.png";
-                    } else if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
-                        if (!imagePath.startsWith("/")) {
-                            imagePath = "/" + imagePath;
-                        }
-                        imagePath = req.getContextPath() + imagePath;
-                    }
-                    item.put("image", imagePath);
-
-                    item.put("categoryId", p.getCategoryId());
-
-                    // Lấy biến thể rẻ nhất làm giá đại diện và đơn vị
-                    List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
-                    BigDecimal basePrice = new BigDecimal("45000");
-                    String unit = "kg";
-                    int totalStock = 0;
-                    int defaultVariantId = 0;
-                    int cheapestStock = 0;
-                    if (variants != null && !variants.isEmpty()) {
-                        ProductVariant cheapestVariant = variants.get(0);
-                        basePrice = cheapestVariant.getPrice();
-                        unit = cheapestVariant.getVariantLabel();
-                        defaultVariantId = cheapestVariant.getVariantId();
-                        cheapestStock = cheapestVariant.getStockQuantity();
-                        for (ProductVariant v : variants) {
-                            totalStock += v.getStockQuantity();
-                        }
-                    }
-                    item.put("variantId", defaultVariantId);
-                    item.put("stockQuantity", cheapestStock);
-                    item.put("unit", unit);
-                    item.put("inStock", totalStock > 0);
-
-                    // Kiểm tra khuyến mãi đang hoạt động
-                    List<Promotion> activePromos = promotionDAO.findActivePromotionsByProduct(p.getProductId());
-                    if (activePromos != null && !activePromos.isEmpty()) {
-                        Promotion promo = activePromos.get(0);
-                        BigDecimal discountValue = promo.getDiscountValue();
-                        BigDecimal finalPrice = basePrice;
-                        if ("PERCENT".equals(promo.getDiscountType())) {
-                            BigDecimal discountAmount = basePrice.multiply(discountValue).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
-                            if (promo.getDiscountMax() != null && promo.getDiscountMax().compareTo(BigDecimal.ZERO) > 0) {
-                                if (discountAmount.compareTo(promo.getDiscountMax()) > 0) {
-                                    discountAmount = promo.getDiscountMax();
-                                }
-                            }
-                            finalPrice = basePrice.subtract(discountAmount);
-                        } else if ("FIXED".equals(promo.getDiscountType())) {
-                            finalPrice = basePrice.subtract(discountValue);
-                        }
-                        if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {
-                            finalPrice = BigDecimal.ZERO;
-                        }
-                        item.put("price", finalPrice);
-                    } else {
-                        item.put("price", basePrice);
-                    }
-                    mappedProducts.add(item);
+                    mappedProducts.add(buildProductCard(req, p,
+                            primaryImages.get(p.getProductId()),
+                            variantsByProduct.get(p.getProductId()),
+                            promotionsByProduct.get(p.getProductId())));
                 }
                 pagedResult.setItems(mappedProducts);
             }
@@ -218,5 +162,83 @@ public class ProductListServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private Map<String, Object> buildProductCard(HttpServletRequest req, Product product,
+                                                 ProductImage primaryImage,
+                                                 List<ProductVariant> variants,
+                                                 Promotion promo) {
+        Map<String, Object> item = new HashMap<>();
+        item.put("productId", product.getProductId());
+        item.put("name", product.getName());
+        item.put("description", product.getDescription());
+        item.put("rating", product.getRating() != null ? product.getRating() : new BigDecimal("4.8"));
+        item.put("soldQuantity", product.getSoldQuantity());
+        item.put("categoryId", product.getCategoryId());
+        item.put("image", resolveImagePath(req, primaryImage));
+
+        BigDecimal basePrice = new BigDecimal("45000");
+        String unit = "kg";
+        int totalStock = 0;
+        int defaultVariantId = 0;
+        int cheapestStock = 0;
+        if (variants != null && !variants.isEmpty()) {
+            ProductVariant cheapestVariant = variants.get(0);
+            basePrice = cheapestVariant.getPrice();
+            unit = cheapestVariant.getVariantLabel();
+            defaultVariantId = cheapestVariant.getVariantId();
+            cheapestStock = cheapestVariant.getStockQuantity();
+            for (ProductVariant variant : variants) {
+                totalStock += variant.getStockQuantity();
+            }
+        }
+
+        item.put("variantId", defaultVariantId);
+        item.put("stockQuantity", cheapestStock);
+        item.put("unit", unit);
+        item.put("inStock", totalStock > 0);
+        item.put("price", applyPromotion(basePrice, promo));
+        return item;
+    }
+
+    private String resolveImagePath(HttpServletRequest req, ProductImage image) {
+        String imagePath = null;
+        if (image != null && image.getFilePath() != null && !image.getFilePath().trim().isEmpty()) {
+            imagePath = image.getFilePath().trim().replace('\\', '/');
+        }
+        if (imagePath == null) {
+            return req.getContextPath() + "/assets/img/placeholder.png";
+        }
+        if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
+            if (!imagePath.startsWith("/")) {
+                imagePath = "/" + imagePath;
+            }
+            imagePath = req.getContextPath() + imagePath;
+        }
+        return imagePath;
+    }
+
+    private BigDecimal applyPromotion(BigDecimal basePrice, Promotion promo) {
+        if (promo == null) {
+            return basePrice;
+        }
+
+        BigDecimal finalPrice = basePrice;
+        BigDecimal discountValue = promo.getDiscountValue();
+        if ("PERCENT".equals(promo.getDiscountType())) {
+            BigDecimal discountAmount = basePrice.multiply(discountValue).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+            if (promo.getDiscountMax() != null && promo.getDiscountMax().compareTo(BigDecimal.ZERO) > 0
+                    && discountAmount.compareTo(promo.getDiscountMax()) > 0) {
+                discountAmount = promo.getDiscountMax();
+            }
+            finalPrice = basePrice.subtract(discountAmount);
+        } else if ("FIXED".equals(promo.getDiscountType())) {
+            finalPrice = basePrice.subtract(discountValue);
+        }
+
+        if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {
+            finalPrice = BigDecimal.ZERO;
+        }
+        return finalPrice;
     }
 }

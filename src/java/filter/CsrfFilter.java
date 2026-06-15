@@ -42,8 +42,13 @@ public class CsrfFilter implements Filter {
             session.setAttribute(AppConfig.SESSION_CSRF_TOKEN, UUID.randomUUID().toString());
         }
 
-        // Chỉ kiểm tra POST (bỏ qua GET, webhook /api/* và /auth/* trong lúc phát triển, và cả /cart)
-        // Bỏ qua /ws/chat/* vì WebSocket handshake là GET với header Upgrade — không có CSRF token body
+        // Chỉ kiểm tra POST đối với các route protected.
+        // /api/* bỏ qua: webhook SePay và API endpoint không dùng session cookie.
+        // /auth/* bỏ qua ở filter-level vì LoginServlet, RegisterServlet, ForgotPasswordServlet
+        //   đã tự check CSRF token thủ công (manual check). Token vẫn được tạo ở trên
+        //   cho mọi request nên form luôn có token khi render.
+        // /cart bỏ qua: Beacon API (navigator.sendBeacon khi unload tab) không gửi header CSRF.
+        // /ws/* bỏ qua: WebSocket handshake là GET với header Upgrade — không có CSRF token body.
         if ("POST".equalsIgnoreCase(req.getMethod()) 
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/api/")
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")

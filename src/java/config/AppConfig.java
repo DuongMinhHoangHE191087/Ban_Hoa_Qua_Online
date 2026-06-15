@@ -12,11 +12,11 @@ public final class AppConfig {
         // ——————————————————————————————————————————————————————————————————
         // Database
         // ------------------------------------------------------------------
-        public static final String DB_HOST = System.getenv("DB_HOST") != null ? System.getenv("DB_HOST") : "localhost";
-        public static final String DB_PORT = System.getenv("DB_PORT") != null ? System.getenv("DB_PORT") : "1433";
-        public static final String DB_NAME = System.getenv("DB_NAME") != null ? System.getenv("DB_NAME") : "OnlineFruitShopping";
-        public static final String DB_USER = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "sa";
-        public static final String DB_PASSWORD = System.getenv("DB_PASSWORD") != null ? System.getenv("DB_PASSWORD") : "123";
+        public static final String DB_HOST     = getEnvOrDefault("DB_HOST",     "localhost");
+        public static final String DB_PORT     = getEnvOrDefault("DB_PORT",     "1433");
+        public static final String DB_NAME     = getEnvOrDefault("DB_NAME",     "OnlineFruitShopping");
+        public static final String DB_USER     = getEnvOrDefault("DB_USER",     "sa");
+        public static final String DB_PASSWORD = getEnvOrDefault("DB_PASSWORD", "123");
         public static final String DB_DRIVER_CLASS = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
         public static final String DB_JDBC_URL = "jdbc:sqlserver://" + DB_HOST + ":" + DB_PORT
                         + ";databaseName=" + DB_NAME
@@ -35,12 +35,8 @@ public final class AppConfig {
         public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "duongminhhoanginwork@gmail.com");
         public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", "jkhg przg aohf pwla");
         public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", "fruitmkt-super-secret-key-2026-secure-sha256");
-        public static final long ACCESS_TOKEN_EXPIRY_MS = System.getenv("ACCESS_TOKEN_EXPIRY_MS") != null 
-                        ? Long.parseLong(System.getenv("ACCESS_TOKEN_EXPIRY_MS")) 
-                        : 15L * 60 * 1000;
-        public static final int REFRESH_TOKEN_EXPIRY_SECS = System.getenv("REFRESH_TOKEN_EXPIRY_SECS") != null 
-                        ? Integer.parseInt(System.getenv("REFRESH_TOKEN_EXPIRY_SECS")) 
-                        : 7 * 24 * 60 * 60;
+        public static final long ACCESS_TOKEN_EXPIRY_MS   = getLongEnvOrDefault("ACCESS_TOKEN_EXPIRY_MS",   15L * 60 * 1000);
+        public static final int  REFRESH_TOKEN_EXPIRY_SECS = getIntEnvOrDefault("REFRESH_TOKEN_EXPIRY_SECS",  7 * 24 * 60 * 60);
         public static final String APP_NAME = "MetaFruit";
         public static final String APP_SUPPORT_EMAIL = EMAIL_FROM;
         public static final String APP_BRAND_COLOR = "#14532d";
@@ -230,9 +226,9 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         // SePay / VietQR (thêm domain deploy ở đây khi lên production)
         // ------------------------------------------------------------------
-        public static final String SEPAY_BANK_ID       = System.getenv("SEPAY_BANK_ID") != null ? System.getenv("SEPAY_BANK_ID") : "MBBank";
-        public static final String SEPAY_ACCOUNT_NO    = System.getenv("SEPAY_ACCOUNT_NO") != null ? System.getenv("SEPAY_ACCOUNT_NO") : "SBSEPAY3NHWA061W5V2";
-        public static final String SEPAY_ACCOUNT_NAME  = System.getenv("SEPAY_ACCOUNT_NAME") != null ? System.getenv("SEPAY_ACCOUNT_NAME") : "Duong Minh Hoang";
+        public static final String SEPAY_BANK_ID      = getEnvOrDefault("SEPAY_BANK_ID",      "MBBank");
+        public static final String SEPAY_ACCOUNT_NO   = getEnvOrDefault("SEPAY_ACCOUNT_NO",   "SBSEPAY3NHWA061W5V2");
+        public static final String SEPAY_ACCOUNT_NAME = getEnvOrDefault("SEPAY_ACCOUNT_NAME", "Duong Minh Hoang");
         public static final String PAYMENT_REF_PREFIX  = "MF";
         /** Thời hạn hiệu lực của mã QR (phút). */
         public static final int    QR_EXPIRE_MINUTES   = 15;
@@ -241,9 +237,7 @@ public final class AppConfig {
          * Dùng cho SePay Webhook URL và link email.
          * Đổi sang domain thật khi deploy: https://yourdomain.com
          */
-        public static final String DEPLOY_BASE_URL     = System.getenv("APP_DEPLOY_URL") != null
-                                                         ? System.getenv("APP_DEPLOY_URL")
-                                                         : APP_BASE_URL;
+        public static final String DEPLOY_BASE_URL    = getEnvOrDefault("APP_DEPLOY_URL", APP_BASE_URL);
         public static final String SEPAY_WEBHOOK_PATH  = "/api/payment/webhook";
 
         // ------------------------------------------------------------------
@@ -267,8 +261,23 @@ public final class AppConfig {
          * If env var is not set and default is provided, returns default.
          */
         private static String getEnvOrDefault(String varName, String defaultValue) {
-                String envValue = System.getenv(varName);
-                return envValue != null ? envValue : defaultValue;
+                // Ưu tiên: OS env var > System property (set bởi DotEnvLoader từ .env) > hardcoded default
+                String val = System.getenv(varName);
+                if (val != null && !val.isEmpty()) return val;
+                val = System.getProperty(varName);
+                return (val != null && !val.isEmpty()) ? val : defaultValue;
+        }
+
+        private static long getLongEnvOrDefault(String varName, long defaultValue) {
+                String raw = getEnvOrDefault(varName, null);
+                if (raw == null) return defaultValue;
+                try { return Long.parseLong(raw); } catch (NumberFormatException e) { return defaultValue; }
+        }
+
+        private static int getIntEnvOrDefault(String varName, int defaultValue) {
+                String raw = getEnvOrDefault(varName, null);
+                if (raw == null) return defaultValue;
+                try { return Integer.parseInt(raw); } catch (NumberFormatException e) { return defaultValue; }
         }
 
         /**

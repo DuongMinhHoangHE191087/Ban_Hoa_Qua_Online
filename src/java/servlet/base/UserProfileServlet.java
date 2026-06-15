@@ -9,10 +9,9 @@ import model.entity.shop.PaymentTransaction;
 import dao.auth.UserAddressDAO;
 import dao.order.OrderDAO;
 import dao.shop.PaymentDAO;
-import dao.shop.ShopProfileDAO;
-import model.entity.shop.ShopProfile;
 import service.auth.UserService;
 import service.auth.AuthService;
+import service.order.OrderViewService;
 import util.SessionUtil;
 import util.FileUploadUtil;
 import util.ValidationUtil;
@@ -29,6 +28,7 @@ import jakarta.servlet.http.Part;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +49,7 @@ public class UserProfileServlet extends HttpServlet {
     private final UserAddressDAO addressDAO = new UserAddressDAO();
     private final OrderDAO orderDAO = new OrderDAO();
     private final PaymentDAO paymentDAO = new PaymentDAO();
-    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+    private final OrderViewService orderViewService = new OrderViewService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -72,22 +72,32 @@ public class UserProfileServlet extends HttpServlet {
             List<Order> orders = orderDAO.findByCustomer(dbUser.getUserId(), 1, 100);
             req.setAttribute("orders", orders);
 
+            List<Integer> orderIds = new ArrayList<>();
+            List<Integer> ownerIds = new ArrayList<>();
+            for (Order o : orders) {
+                orderIds.add(o.getOrderId());
+                ownerIds.add(o.getOwnerId());
+            }
+
             Map<Integer, List<OrderItem>> orderItemsMap = new HashMap<>();
+            try {
+                orderItemsMap = orderViewService.getOrderItemsMap(orderIds);
+            } catch (Exception e) {
+                LoggerUtil.warn(log, "Không thể tải danh sách item theo batch cho profile", e);
+                for (Order order : orders) {
+                    orderItemsMap.put(order.getOrderId(), new ArrayList<>());
+                }
+            }
+
+            Map<Integer, String> ownerNames = new HashMap<>();
+            try {
+                ownerNames = orderViewService.getShopNamesMap(ownerIds);
+            } catch (Exception e) {
+                LoggerUtil.warn(log, "Không thể tải tên shop theo batch cho profile", e);
+            }
             Map<Integer, String> shopNamesMap = new HashMap<>();
             for (Order o : orders) {
-                orderItemsMap.put(o.getOrderId(), orderDAO.findItemsByOrderId(o.getOrderId()));
-                try {
-                    // Ưu tiên lấy shopName từ shop_owner_profiles; fallback về fullName
-                    List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(o.getOwnerId());
-                    if (!shopProfiles.isEmpty() && shopProfiles.get(0).getShopName() != null) {
-                        shopNamesMap.put(o.getOrderId(), shopProfiles.get(0).getShopName());
-                    } else {
-                        User owner = userService.findById(o.getOwnerId());
-                        shopNamesMap.put(o.getOrderId(), owner != null ? owner.getFullName() : "Cửa hàng");
-                    }
-                } catch (Exception e) {
-                    LoggerUtil.warn(log, "Không thể tải chi tiết sản phẩm cho đơn hàng", e);
-                }
+                shopNamesMap.put(o.getOrderId(), ownerNames.getOrDefault(o.getOwnerId(), "Cửa hàng"));
             }
             req.setAttribute("orderItemsMap", orderItemsMap);
             req.setAttribute("shopNamesMap", shopNamesMap);

@@ -3,7 +3,6 @@ package dao.order;
 import dao.system.BaseDAO;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
-import util.LoggerUtil;
 import util.PaginationHelper;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,10 +12,13 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
+import java.util.Set;
 
 /**
  * OrderDAO — DAO cho entity Order.
@@ -30,36 +32,6 @@ import java.util.logging.Logger;
  * @author fruitmkt-team
  */
 public class OrderDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(OrderDAO.class.getName());
-    private static boolean schemaChecked = false;
-
-    public OrderDAO() {
-        checkSchemaOnce();
-    }
-
-    private synchronized void checkSchemaOnce() {
-        if (schemaChecked) return;
-        try (Connection conn = getConnection()) {
-            boolean colExists = false;
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT TOP 0 received_status FROM orders")) {
-                colExists = rs != null;
-            } catch (SQLException e) {
-                LoggerUtil.warn(log, "received_status column not yet present, will attempt to add", e);
-            }
-            if (!colExists) {
-                try (Statement stmt = conn.createStatement()) {
-                    stmt.executeUpdate("ALTER TABLE orders ADD received_status NVARCHAR(30) NULL");
-                    LoggerUtil.info(log, "[DB Migrator] Success: Added received_status column to orders.");
-                }
-            }
-            schemaChecked = true;
-        } catch (SQLException e) {
-            LoggerUtil.error(log, "[DB Migrator] Error checking/adding orders columns", e);
-            schemaChecked = true;
-        }
-    }
 
     /**
      * Tìm đơn hàng theo ID.
@@ -77,6 +49,23 @@ public class OrderDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Tìm đơn hàng theo ID và trả về 1 object duy nhất.
+     */
+    public Order findOneById(int id) throws SQLException {
+        String sql = "SELECT * FROM orders WHERE order_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -681,6 +670,54 @@ public class OrderDAO extends BaseDAO {
         return list;
     }
 
+    /**
+     * Batch load order_items cho nhiều order_id để tránh N+1 khi render danh sách đơn.
+     */
+    public Map<Integer, List<OrderItem>> findItemsByOrderIds(Collection<Integer> orderIds) throws SQLException {
+        Map<Integer, List<OrderItem>> map = new LinkedHashMap<>();
+        if (orderIds == null || orderIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(orderIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM order_items WHERE order_id IN (" + placeholders + ") ORDER BY order_id ASC, order_item_id ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer orderId : distinctIds) {
+                ps.setInt(paramIndex++, orderId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    OrderItem item = new OrderItem();
+                    item.setOrderItemId(rs.getInt("order_item_id"));
+                    item.setOrderId(rs.getInt("order_id"));
+                    int vId = rs.getInt("variant_id");
+                    item.setVariantId(rs.wasNull() ? null : vId);
+                    item.setProductNameSnapshot(rs.getString("product_name_snapshot"));
+                    item.setVariantLabelSnapshot(rs.getString("variant_label_snapshot"));
+                    item.setQuantity(rs.getInt("quantity"));
+                    item.setUnitPrice(rs.getBigDecimal("unit_price"));
+                    item.setSubtotal(rs.getBigDecimal("subtotal"));
+                    item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
+                    item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
+
+                    map.computeIfAbsent(item.getOrderId(), key -> new ArrayList<>()).add(item);
+                }
+            }
+        }
+        return map;
+    }
+
     public List<Map<String, Object>> getRevenueTrend(Integer ownerId, String startDate, String endDate) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
@@ -877,6 +914,35 @@ public class OrderDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Batch load orders theo danh sách order_id để tránh N+1.
+     * Trả về Map<orderId, Order> — các id không tồn tại sẽ không có trong map.
+     */
+    public Map<Integer, Order> findByIds(Collection<Integer> orderIds) throws SQLException {
+        Map<Integer, Order> map = new LinkedHashMap<>();
+        if (orderIds == null || orderIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(orderIds);
+        String placeholders = String.join(",", java.util.Collections.nCopies(distinctIds.size(), "?"));
+        String sql = "SELECT * FROM orders WHERE order_id IN (" + placeholders + ")";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer id : distinctIds) {
+                ps.setInt(paramIndex++, id);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Order o = mapRow(rs);
+                    map.put(o.getOrderId(), o);
+                }
+            }
+        }
+        return map;
     }
 
     public void updateReceivedStatus(int orderId, String receivedStatus) throws SQLException {

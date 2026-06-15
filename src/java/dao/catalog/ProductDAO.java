@@ -13,7 +13,10 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -41,17 +44,28 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> findById(int id) throws SQLException {
         List<Product> list = new ArrayList<>();
+        Product product = findOneById(id);
+        if (product != null) {
+            list.add(product);
+        }
+        return list;
+    }
+
+    /**
+     * Tìm sản phẩm theo ID và trả về 1 object duy nhất.
+     */
+    public Product findOneById(int id) throws SQLException {
         String sql = "SELECT * FROM products WHERE product_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    list.add(mapRow(rs));
+                    return mapRow(rs);
                 }
             }
         }
-        return list;
+        return null;
     }
 
     public static final String DTO_SELECT_FIELDS = 
@@ -100,6 +114,25 @@ public class ProductDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Lấy danh sách sản phẩm đang ACTIVE của một shop owner cụ thể.
+     */
+    public Map<Integer, Product> findActiveByOwner(int ownerId) throws SQLException {
+        Map<Integer, Product> map = new LinkedHashMap<>();
+        String sql = "SELECT * FROM products WHERE owner_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Product product = mapRow(rs);
+                    map.put(product.getProductId(), product);
+                }
+            }
+        }
+        return map;
     }
 
     /**
@@ -931,6 +964,43 @@ public class ProductDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Lấy danh sách sản phẩm theo nhiều ID, giữ lại các sản phẩm ACTIVE và APPROVED.
+     */
+    public Map<Integer, Product> findByIds(Collection<Integer> ids) throws SQLException {
+        Map<Integer, Product> map = new LinkedHashMap<>();
+        if (ids == null || ids.isEmpty()) {
+            return map;
+        }
+
+        Collection<Integer> distinctIds = new LinkedHashSet<>(ids);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM products WHERE product_id IN (" + placeholders + ") "
+                   + "AND status = 'ACTIVE' AND approval_status = 'APPROVED'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer id : distinctIds) {
+                ps.setInt(paramIndex++, id);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Product product = mapRow(rs);
+                    map.put(product.getProductId(), product);
+                }
+            }
+        }
+        return map;
     }
 
     private Map<String, Object> mapRowToProductMap(ResultSet rs, String contextPath) throws SQLException {

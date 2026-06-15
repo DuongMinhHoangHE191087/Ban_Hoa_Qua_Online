@@ -33,7 +33,6 @@ public class ProductService {
      */
     public PagedResultDTO getProductList(int page, String keyword, Integer categoryId,
                                           BigDecimal minPrice, BigDecimal maxPrice) throws SQLException {
-        productDAO.autoDeactivateExpiredProducts();
         if (page < 1) page = 1;
 
         int pageSize = AppConfig.PAGE_SIZE_PRODUCTS;
@@ -56,12 +55,18 @@ public class ProductService {
         if (productId <= 0) {
             throw new IllegalArgumentException("productId không hợp lệ.");
         }
-        productDAO.autoDeactivateExpiredProducts();
-        List<Product> results = productDAO.findById(productId);
-        if (results == null || results.isEmpty()) {
-            return null;
-        }
-        return results.get(0);
+        return productDAO.findOneById(productId);
+    }
+
+    /**
+     * Lấy nhiều sản phẩm theo danh sách ID.
+     *
+     * @param productIds danh sách ID sản phẩm
+     * @return map theo productId
+     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     */
+    public Map<Integer, Product> getProductsByIds(List<Integer> productIds) throws SQLException {
+        return productDAO.findByIds(productIds);
     }
 
     /**
@@ -205,11 +210,10 @@ public class ProductService {
         if (reason == null || reason.trim().isEmpty()) {
             throw new IllegalArgumentException("Lý do từ chối không được để trống.");
         }
-        List<Product> list = productDAO.findById(productId);
-        if (list == null || list.isEmpty()) {
+        Product p = productDAO.findOneById(productId);
+        if (p == null) {
             throw new IllegalArgumentException("Sản phẩm không tồn tại.");
         }
-        Product p = list.get(0);
         return productDAO.updateApprovalStatus(productId, "REJECTED", reason.trim(), p.getIsOrganic(), p.getIsImported(), p.getCategoryId());
     }
 

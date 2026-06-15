@@ -149,7 +149,9 @@ public class ProductDetailServlet extends HttpServlet {
                 boolean isOutOfSeasonJson = Boolean.TRUE.equals(req.getAttribute("isOutOfSeason"));
 
                 // Tự động map các trường sang HashMap để tránh NullPointerException của Map.of khi có giá trị null
-                ProductImage pi = productImageDAO.findPrimary(product.getProductId());
+                Map<Integer, ProductImage> primaryImageMap = productImageDAO.findPrimaryByProductIds(
+                        java.util.Collections.singletonList(product.getProductId()));
+                ProductImage pi = primaryImageMap.get(product.getProductId());
                 String primaryImage = null;
                 if (pi != null && pi.getFilePath() != null) {
                     primaryImage = pi.getFilePath().trim().replace('\\', '/');
@@ -214,13 +216,16 @@ public class ProductDetailServlet extends HttpServlet {
 
             // 5. Đọc hồ sơ cửa hàng của chủ sở hữu sản phẩm (Shop Owner Profile)
             ShopProfile shopProfile = null;
-            List<ShopProfile> shopProfiles = shopProfileDAO.findByUserId(product.getOwnerId());
-            if (shopProfiles != null && !shopProfiles.isEmpty()) {
-                shopProfile = shopProfiles.get(0);
-            }
+            shopProfile = shopProfileDAO.findOneByUserId(product.getOwnerId());
 
             // 6. Đọc danh sách sản phẩm tương tự cùng danh mục (loại trừ sản phẩm hiện tại, giới hạn 8 sản phẩm)
             List<Product> similarProductsRaw = productDAO.findSimilarProducts(productId, product.getCategoryId(), 8);
+            List<Integer> similarProductIds = new java.util.ArrayList<>();
+            for (Product p : similarProductsRaw) {
+                similarProductIds.add(p.getProductId());
+            }
+            Map<Integer, ProductImage> similarImageMap = productImageDAO.findPrimaryByProductIds(similarProductIds);
+            Map<Integer, List<ProductVariant>> similarVariantMap = productVariantDAO.findByProductIds(similarProductIds);
             List<Map<String, Object>> similarProducts = new java.util.ArrayList<>();
             for (Product p : similarProductsRaw) {
                 Map<String, Object> item = new java.util.HashMap<>();
@@ -230,23 +235,10 @@ public class ProductDetailServlet extends HttpServlet {
                 item.put("originRegion", p.getOriginRegion());
 
                 // Lấy ảnh chính thực tế
-                ProductImage pi = productImageDAO.findPrimary(p.getProductId());
-                String imagePath = null;
-                if (pi != null && pi.getFilePath() != null && !pi.getFilePath().trim().isEmpty()) {
-                    imagePath = pi.getFilePath().trim().replace('\\', '/');
-                }
-                if (imagePath == null) {
-                    imagePath = req.getContextPath() + "/assets/img/placeholder.png";
-                } else if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
-                    if (!imagePath.startsWith("/")) {
-                        imagePath = "/" + imagePath;
-                    }
-                    imagePath = req.getContextPath() + imagePath;
-                }
-                item.put("image", imagePath);
+                item.put("image", resolveImagePath(req, similarImageMap.get(p.getProductId())));
 
                 // Lấy biến thể rẻ nhất làm giá đại diện và đơn vị
-                List<ProductVariant> pVariants = productVariantDAO.findByProduct(p.getProductId());
+                List<ProductVariant> pVariants = similarVariantMap.get(p.getProductId());
                 java.math.BigDecimal basePrice = new java.math.BigDecimal("45000");
                 String unit = "kg";
                 if (pVariants != null && !pVariants.isEmpty()) {
@@ -263,24 +255,19 @@ public class ProductDetailServlet extends HttpServlet {
             // 7. Lấy các sản phẩm khác của shop này để hiển thị "Xem thêm từ cửa hàng"
             List<Map<String, Object>> shopOtherProducts = new java.util.ArrayList<>();
             List<Product> shopProductsRaw = productDAO.findByOwnerAndActiveStatus(product.getOwnerId(), productId, 8);
+            List<Integer> shopProductIds = new java.util.ArrayList<>();
+            for (Product sp : shopProductsRaw) {
+                shopProductIds.add(sp.getProductId());
+            }
+            Map<Integer, ProductImage> shopImageMap = productImageDAO.findPrimaryByProductIds(shopProductIds);
+            Map<Integer, List<ProductVariant>> shopVariantMap = productVariantDAO.findByProductIds(shopProductIds);
             for (Product sp : shopProductsRaw) {
                 Map<String, Object> spItem = new java.util.HashMap<>();
                 spItem.put("productId", sp.getProductId());
                 spItem.put("name", sp.getName());
                 spItem.put("rating", sp.getRating() != null ? sp.getRating() : new java.math.BigDecimal("4.5"));
-                ProductImage spPi = productImageDAO.findPrimary(sp.getProductId());
-                String spImg = null;
-                if (spPi != null && spPi.getFilePath() != null && !spPi.getFilePath().trim().isEmpty()) {
-                    spImg = spPi.getFilePath().trim().replace('\\', '/');
-                }
-                if (spImg == null) {
-                    spImg = req.getContextPath() + "/assets/img/placeholder.png";
-                } else if (!spImg.startsWith("http://") && !spImg.startsWith("https://")) {
-                    if (!spImg.startsWith("/")) spImg = "/" + spImg;
-                    spImg = req.getContextPath() + spImg;
-                }
-                spItem.put("image", spImg);
-                List<ProductVariant> spVars = productVariantDAO.findByProduct(sp.getProductId());
+                spItem.put("image", resolveImagePath(req, shopImageMap.get(sp.getProductId())));
+                List<ProductVariant> spVars = shopVariantMap.get(sp.getProductId());
                 java.math.BigDecimal spPrice = new java.math.BigDecimal("45000");
                 if (spVars != null && !spVars.isEmpty()) {
                     spPrice = spVars.get(0).getPrice();
@@ -387,9 +374,8 @@ public class ProductDetailServlet extends HttpServlet {
         }
 
         try {
-            List<Product> products = productDAO.findById(productId);
-            if (products != null && !products.isEmpty()) {
-                Product p = products.get(0);
+            Product p = productDAO.findOneById(productId);
+            if (p != null) {
 
                 // Nếu sản phẩm INACTIVE thì chặn gửi yêu cầu restock
                 if ("INACTIVE".equals(p.getStatus())) {
@@ -414,5 +400,22 @@ public class ProductDetailServlet extends HttpServlet {
             getServletContext().log("Error in sending restock request: " + e.getMessage(), e);
             util.JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
         }
+    }
+
+    private String resolveImagePath(HttpServletRequest req, ProductImage image) {
+        String imagePath = null;
+        if (image != null && image.getFilePath() != null && !image.getFilePath().trim().isEmpty()) {
+            imagePath = image.getFilePath().trim().replace('\\', '/');
+        }
+        if (imagePath == null) {
+            return req.getContextPath() + "/assets/img/placeholder.png";
+        }
+        if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
+            if (!imagePath.startsWith("/")) {
+                imagePath = "/" + imagePath;
+            }
+            imagePath = req.getContextPath() + imagePath;
+        }
+        return imagePath;
     }
 }

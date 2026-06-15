@@ -8,12 +8,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
 import java.util.logging.Logger;
+import java.util.Set;
 import util.LoggerUtil;
 
 /**
@@ -64,6 +68,43 @@ public class ProductVariantDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Batch load biến thể đang hoạt động theo nhiều productId.
+     */
+    public Map<Integer, List<ProductVariant>> findByProductIds(Collection<Integer> productIds) throws SQLException {
+        Map<Integer, List<ProductVariant>> map = new LinkedHashMap<>();
+        if (productIds == null || productIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(productIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM product_variants WHERE product_id IN (" + placeholders + ") AND is_active = 1 "
+                   + "ORDER BY product_id ASC, price ASC, variant_id ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer productId : distinctIds) {
+                ps.setInt(paramIndex++, productId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ProductVariant variant = mapRow(rs);
+                    map.computeIfAbsent(variant.getProductId(), key -> new ArrayList<>()).add(variant);
+                }
+            }
+        }
+        return map;
     }
 
     /**
