@@ -110,7 +110,8 @@ public class ChatEndpointBroadcastTest {
         int sessionId = -1;
         int customerId = -1;
         int adminId = -1;
-        String adminMessage = "Realtime admin reply " + System.currentTimeMillis();
+        String adminMessage1 = "Realtime admin reply 1 " + System.currentTimeMillis();
+        String adminMessage2 = "Fallback admin reply 2 " + System.currentTimeMillis();
 
         List<String> customerPayloads = new ArrayList<>();
         List<String> adminPayloads = new ArrayList<>();
@@ -123,24 +124,33 @@ public class ChatEndpointBroadcastTest {
             sessionId = createChatSession(customerId, adminId, "ADMIN");
             Session customer = createSessionMock(customerId, AppConfig.ROLE_CUSTOMER, "Customer A", sessionId, customerPayloads);
             Session admin = createSessionMock(adminId, AppConfig.ROLE_ADMIN, "Admin A", sessionId, adminPayloads);
+            
+            // 1. Both online: should broadcast via WS, no DB notification
             roomMap.put(sessionId, new java.util.concurrent.CopyOnWriteArraySet<>(List.of(customer, admin)));
             customer.getUserProperties().put("sessionId", sessionId);
             admin.getUserProperties().put("sessionId", sessionId);
 
-            String rawMessage = "{\"content\":\"" + adminMessage.replace("\"", "\\\"") + "\"}";
-            endpoint.onMessage(admin, rawMessage);
+            String rawMessage1 = "{\"content\":\"" + adminMessage1.replace("\"", "\\\"") + "\"}";
+            endpoint.onMessage(admin, rawMessage1);
 
             assertEquals(1, customerPayloads.size());
             assertEquals(1, adminPayloads.size());
             assertTrue(customerPayloads.get(0).contains("\"messageId\":"));
             assertTrue(customerPayloads.get(0).contains("\"senderRole\":\"ADMIN\""));
-            assertTrue(customerPayloads.get(0).contains("\"senderName\":\"Admin A\""));
+            assertTrue(customerPayloads.get(0).contains("\"senderName\":\"Hỗ trợ Admin\""));
             assertTrue(adminPayloads.get(0).contains("\"senderName\":\"Admin A\""));
 
+            // 2. Customer goes offline: should trigger DB notification
+            roomMap.put(sessionId, new java.util.concurrent.CopyOnWriteArraySet<>(List.of(admin)));
+            
+            String rawMessage2 = "{\"content\":\"" + adminMessage2.replace("\"", "\\\"") + "\"}";
+            endpoint.onMessage(admin, rawMessage2);
+
+            // Customer WS shouldn't get more messages
+            assertEquals(1, customerPayloads.size());
+
             List<model.entity.chat.ChatMessage> messages = chatDAO.findMessages(sessionId);
-            assertEquals(1, messages.size());
-            assertEquals(adminMessage, messages.get(0).getContent());
-            assertEquals(adminId, messages.get(0).getSenderId());
+            assertEquals(2, messages.size());
 
             List<model.entity.chat.Notification> notifications = notificationDAO.findByUser(customerId, true);
             final int targetSessionId = sessionId;
@@ -150,7 +160,7 @@ public class ChatEndpointBroadcastTest {
                     .orElse(null);
             assertNotNull(notification);
             assertEquals("/chat?sessionId=" + targetSessionId, notification.getActionUrl());
-            assertEquals(adminMessage, notification.getMessage());
+            assertEquals(adminMessage2, notification.getMessage());
         } finally {
             roomMap.clear();
             if (sessionId > 0) {

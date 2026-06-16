@@ -83,7 +83,7 @@
                                         </c:choose>
                                     </h3>
                                     <span class="text-[9px] text-slate-400 shrink-0">
-                                        <fmt:formatDate value="${session.updatedAt}" pattern="dd/MM HH:mm"/>
+                                        <fmt:formatDate value="${session.updatedAtAsDate}" pattern="dd/MM HH:mm"/>
                                     </span>
                                 </div>
                                 <span class="text-[9px] px-2 py-0.5 rounded-full font-semibold ${session.sessionType == 'ADMIN' ? 'badge-admin' : 'badge-shop'}">

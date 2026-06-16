@@ -79,7 +79,13 @@ public class ChatDAO extends BaseDAO {
         List<ChatSession> list = new ArrayList<>();
         String sql = "SELECT cs.*, " +
                      "  COALESCE(sop.shop_name, u.full_name) AS partner_name, " +
-                     "  u.avatar_url AS partner_avatar " +
+                     "  u.avatar_url AS partner_avatar, " +
+                     "  (SELECT COUNT(*) FROM chat_messages cm " +
+                     "   WHERE cm.session_id = cs.session_id AND cm.sender_id != ? AND cm.is_read = 0) AS unread_count, " +
+                     "  (SELECT TOP 1 cm2.content FROM chat_messages cm2 " +
+                     "   WHERE cm2.session_id = cs.session_id ORDER BY cm2.created_at DESC) AS last_message, " +
+                     "  (SELECT TOP 1 cm3.media_type FROM chat_messages cm3 " +
+                     "   WHERE cm3.session_id = cs.session_id ORDER BY cm3.created_at DESC) AS last_message_type " +
                      "FROM chat_sessions cs " +
                      "JOIN users u ON u.user_id = cs.owner_id " +
                      "LEFT JOIN shop_owner_profiles sop ON sop.user_id = cs.owner_id " +
@@ -88,11 +94,15 @@ public class ChatDAO extends BaseDAO {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, customerId);
+            ps.setInt(2, customerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     ChatSession cs = mapRow(rs);
                     cs.setPartnerName(rs.getString("partner_name"));
                     cs.setPartnerAvatar(rs.getString("partner_avatar"));
+                    cs.setUnreadCount(rs.getInt("unread_count"));
+                    cs.setLastMessage(rs.getString("last_message"));
+                    cs.setLastMessageType(rs.getString("last_message_type"));
                     list.add(cs);
                 }
             }
@@ -106,7 +116,13 @@ public class ChatDAO extends BaseDAO {
      */
     public List<ChatSession> findSessionsByOwner(int ownerId) throws SQLException {
         List<ChatSession> list = new ArrayList<>();
-        String sql = "SELECT cs.*, u.full_name AS partner_name, u.avatar_url AS partner_avatar " +
+        String sql = "SELECT cs.*, u.full_name AS partner_name, u.avatar_url AS partner_avatar, " +
+                     "  (SELECT COUNT(*) FROM chat_messages cm " +
+                     "   WHERE cm.session_id = cs.session_id AND cm.sender_id != ? AND cm.is_read = 0) AS unread_count, " +
+                     "  (SELECT TOP 1 cm2.content FROM chat_messages cm2 " +
+                     "   WHERE cm2.session_id = cs.session_id ORDER BY cm2.created_at DESC) AS last_message, " +
+                     "  (SELECT TOP 1 cm3.media_type FROM chat_messages cm3 " +
+                     "   WHERE cm3.session_id = cs.session_id ORDER BY cm3.created_at DESC) AS last_message_type " +
                      "FROM chat_sessions cs " +
                      "JOIN users u ON u.user_id = cs.customer_id " +
                      "WHERE cs.owner_id = ? " +
@@ -114,11 +130,15 @@ public class ChatDAO extends BaseDAO {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
+            ps.setInt(2, ownerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     ChatSession cs = mapRow(rs);
                     cs.setPartnerName(rs.getString("partner_name"));
                     cs.setPartnerAvatar(rs.getString("partner_avatar"));
+                    cs.setUnreadCount(rs.getInt("unread_count"));
+                    cs.setLastMessage(rs.getString("last_message"));
+                    cs.setLastMessageType(rs.getString("last_message_type"));
                     list.add(cs);
                 }
             }

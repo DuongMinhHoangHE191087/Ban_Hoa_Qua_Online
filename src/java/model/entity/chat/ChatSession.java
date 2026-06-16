@@ -20,6 +20,8 @@ public class ChatSession {
     private String partnerName;     // Tên đối tác hiển thị trên sidebar [NEW]
     private String partnerAvatar;   // Avatar URL của đối tác [NEW]
     private int unreadCount;        // Số tin chưa đọc (computed) [NEW]
+    private String lastMessage;     // Preview tin nhắn cuối cùng [NEW]
+    private String lastMessageType; // IMAGE | VIDEO | null [NEW]
 
     public ChatSession() {}
 
@@ -55,4 +57,18 @@ public class ChatSession {
 
     public int getUnreadCount() { return unreadCount; }
     public void setUnreadCount(int unreadCount) { this.unreadCount = unreadCount; }
+
+    public String getLastMessage() { return lastMessage; }
+    public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }
+
+    public String getLastMessageType() { return lastMessageType; }
+    public void setLastMessageType(String lastMessageType) { this.lastMessageType = lastMessageType; }
+
+    public java.util.Date getUpdatedAtAsDate() {
+        return updatedAt != null ? java.util.Date.from(updatedAt.atZone(java.time.ZoneId.systemDefault()).toInstant()) : null;
+    }
+
+    public java.util.Date getCreatedAtAsDate() {
+        return createdAt != null ? java.util.Date.from(createdAt.atZone(java.time.ZoneId.systemDefault()).toInstant()) : null;
+    }
 }

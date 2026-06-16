@@ -124,7 +124,7 @@
                     <button class="flex-1 md:flex-none inline-flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md">
                         <span class="material-symbols-outlined text-sm">person_add</span> Theo dõi
                     </button>
-                    <button class="flex-1 md:flex-none inline-flex items-center gap-1.5 bg-white border border-[#c5c8b7] text-on-surface-variant text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                    <button id="btnChatWithShop" data-owner-id="${shopProfile.userId}" class="flex-1 md:flex-none inline-flex items-center gap-1.5 bg-white border border-[#c5c8b7] text-on-surface-variant text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
                         <span class="material-symbols-outlined text-sm">chat</span> Chat
                     </button>
                 </div>
@@ -606,6 +606,47 @@
         paginateProducts();
         paginatePromos();
     });
+
+    const btnChatWithShop = document.getElementById('btnChatWithShop');
+    if (btnChatWithShop) {
+        btnChatWithShop.addEventListener('click', function() {
+            const ownerId = this.getAttribute('data-owner-id');
+            const csrfToken = '${sessionScope._csrfToken}';
+            const ctx = '${pageContext.request.contextPath}';
+            
+            fetch(ctx + '/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({
+                    action: 'createShopSession',
+                    ownerId: ownerId,
+                    _csrf: csrfToken
+                }).toString()
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data && data.data.sessionId) {
+                    window.location.href = ctx + '/chat?sessionId=' + data.data.sessionId;
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Chưa đăng nhập hoặc lỗi',
+                        text: data.error || data.message || 'Vui lòng đăng nhập tài khoản khách hàng để nhắn tin với cửa hàng.',
+                        confirmButtonColor: '#14532D'
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối',
+                    text: 'Không thể kết nối tới máy chủ.',
+                    confirmButtonColor: '#14532D'
+                });
+            });
+        });
+    }
 </script>
 </body>
 </html>

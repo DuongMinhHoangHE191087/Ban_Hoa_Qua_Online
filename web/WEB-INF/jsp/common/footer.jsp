@@ -307,6 +307,9 @@
         }
 
         function clearAiChatHistory() {
+            const shouldResetProductList = document.getElementById('productsGrid')
+                    && (new URLSearchParams(window.location.search).get('fromAi') === 'true'
+                        || sessionStorage.getItem('aiFilteredProductIds'));
             sessionStorage.removeItem(AI_HISTORY_KEY);
             sessionStorage.removeItem('aiFilteredProductIds');
             const log = document.getElementById('ai-message-log');
@@ -315,10 +318,19 @@
             // Nếu không còn phần tử nào (log rỗng), thêm lại lời chào
             if (log.children.length === 0) renderWelcomeMessage();
             log.scrollTop = 0;
-            // B7: Nếu đang ở trang sản phẩm, cập nhật lại grid ngay lập tức
+            // B7: Nếu đang ở trang sản phẩm và còn AI context, thoát về danh sách chuẩn
+            if (shouldResetProductList && typeof resetAiProductFilter === 'function') {
+                resetAiProductFilter();
+                return;
+            }
             if (typeof applyClientFilters === 'function') {
                 applyClientFilters();
             }
+        }
+
+        function isAiScopedProductListPage() {
+            return window.location.pathname.endsWith('/products')
+                && new URLSearchParams(window.location.search).get('fromAi') === 'true';
         }
 
         function renderWelcomeMessage() {
@@ -526,11 +538,15 @@
                     productsHtml += '</div>';
 
                     // Save selected product IDs to sessionStorage to maintain filter state
+                    // only when the current route is the AI-scoped product list.
                     if (suggestedIds && suggestedIds.length > 0) {
-                        sessionStorage.setItem('aiFilteredProductIds', JSON.stringify(suggestedIds));
+                        const shouldApplyAiFilter = saveToHistory || isAiScopedProductListPage();
+                        if (shouldApplyAiFilter) {
+                            sessionStorage.setItem('aiFilteredProductIds', JSON.stringify(suggestedIds));
 
-                        if (typeof applyClientFilters === 'function') {
-                            applyClientFilters();
+                            if (typeof applyClientFilters === 'function') {
+                                applyClientFilters();
+                            }
                         } else {
                             const ctxPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
                             productsHtml += '<div class="mt-3 text-center">' +

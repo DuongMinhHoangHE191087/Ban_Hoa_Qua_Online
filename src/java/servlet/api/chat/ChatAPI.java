@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -84,6 +85,34 @@ public class ChatAPI extends HttpServlet {
                     "messages", messages,
                     "currentUserId", currentUser.getUserId()
                 )));
+            } else if ("getOnlineStatus".equals(action)) {
+                int targetSessionId = Integer.parseInt(request.getParameter("sessionId"));
+                int targetUserId = Integer.parseInt(request.getParameter("userId"));
+                boolean online = websocket.ChatEndpoint.isUserOnline(targetSessionId, targetUserId);
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(Map.of("online", online)));
+            } else if ("getSessions".equals(action)) {
+                List<ChatSession> sessions;
+                String role = currentUser.getRole();
+                if (AppConfig.ROLE_SHOP_OWNER.equals(role)) {
+                    sessions = chatDAO.findSessionsByOwner(currentUser.getUserId());
+                } else if (AppConfig.ROLE_CUSTOMER.equals(role)) {
+                    sessions = chatDAO.findSessionsByCustomer(currentUser.getUserId());
+                } else if (AppConfig.ROLE_ADMIN.equals(role)) {
+                    sessions = chatDAO.findAllSessions();
+                } else {
+                    sessions = new ArrayList<>();
+                }
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(Map.of(
+                    "sessions", sessions,
+                    "currentUserId", currentUser.getUserId()
+                )));
+            } else if ("markRead".equals(action)) {
+                int targetSessionId = Integer.parseInt(request.getParameter("sessionId"));
+                chatDAO.markRead(targetSessionId, currentUser.getUserId());
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(Map.of("message", "Đã đánh dấu đã đọc")));
             } else {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
@@ -203,6 +232,30 @@ public class ChatAPI extends HttpServlet {
                     sessionId = existing.get(0).getSessionId();
                 } else {
                     sessionId = chatDAO.createSession(currentUser.getUserId(), adminId, "ADMIN");
+                }
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(Map.of("sessionId", sessionId)));
+            } else if ("createShopSession".equals(action)) {
+                String ownerIdStr = request.getParameter("ownerId");
+                if (ownerIdStr == null || ownerIdStr.trim().isEmpty()) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Thiếu thông tin ownerId"));
+                    return;
+                }
+                int ownerId = Integer.parseInt(ownerIdStr.trim());
+                User requestedOwner = userDAO.findUserById(ownerId);
+                if (requestedOwner == null) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Cửa hàng không tồn tại hoặc không hợp lệ"));
+                    return;
+                }
+
+                List<ChatSession> existing = chatDAO.findSessionByParticipants(currentUser.getUserId(), ownerId);
+                int sessionId;
+                if (!existing.isEmpty()) {
+                    sessionId = existing.get(0).getSessionId();
+                } else {
+                    sessionId = chatDAO.createSession(currentUser.getUserId(), ownerId, "SHOP");
                 }
                 response.setStatus(HttpServletResponse.SC_OK);
                 JsonUtil.writeJson(response, ApiResponse.ok(Map.of("sessionId", sessionId)));
