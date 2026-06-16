@@ -281,8 +281,26 @@
             </div>
         </div>
 
-    </div>
+</div>
 
+<!-- Success Modal (Thanh toán thành công) -->
+<div id="payment-success-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden opacity-0 transition-all duration-300">
+    <div class="glass-card max-w-md w-full p-8 rounded-2xl text-center shadow-2xl border border-white/80 transform scale-95 transition-all duration-300 flex flex-col items-center gap-5 bg-white">
+        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 animate-bounce">
+            <span class="material-symbols-outlined text-[40px] font-bold">check_circle</span>
+        </div>
+        <h3 class="text-2xl font-black text-[#00210d]">Thanh toán thành công!</h3>
+        <p class="text-sm text-on-surface-variant leading-relaxed">
+            Hệ thống đã ghi nhận thanh toán của bạn thành công. Đơn hàng đang được chuẩn bị để giao tới bạn sớm nhất!
+        </p>
+        <div class="text-xs text-emerald-700 bg-emerald-50 py-1.5 px-3 rounded-full font-bold">
+            Tự động chuyển hướng sau <span id="success-countdown">3</span> giây...
+        </div>
+        <a href="${pageContext.request.contextPath}/profile?tab=orders" class="w-full bg-[#14532D] hover:bg-[#0d3d20] text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all">
+            <span class="material-symbols-outlined text-lg">list_alt</span>
+            Quản lý đơn hàng
+        </a>
+    </div>
 </div>
 
 <!-- JavaScript Controls for Countdown and Real-time Polling -->
@@ -341,7 +359,36 @@
 
     // Real-time Polling every 3 seconds to check order payment status
     const pollingUrl = '${pageContext.request.contextPath}/checkout?action=status&orderId=${order.orderId}';
-    const successUrl = '${pageContext.request.contextPath}/profile?tab=orders';
+    const successUrl = '${pageContext.request.contextPath}/checkout?action=success&orderId=${order.orderId}';
+
+    // Hiển thị modal thông báo thành công và đếm ngược tự động chuyển hướng
+    function showSuccessModal(redirectUrl) {
+        const modal = document.getElementById('payment-success-modal');
+        if (!modal) {
+            window.location.href = redirectUrl;
+            return;
+        }
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            const innerCard = modal.querySelector('.glass-card');
+            if (innerCard) {
+                innerCard.classList.remove('scale-95');
+                innerCard.classList.add('scale-100');
+            }
+        }, 50);
+
+        let countdown = 3;
+        const countdownEl = document.getElementById('success-countdown');
+        const interval = setInterval(() => {
+            countdown--;
+            if (countdownEl) countdownEl.textContent = countdown;
+            if (countdown <= 0) {
+                clearInterval(interval);
+                window.location.href = redirectUrl;
+            }
+        }, 1000);
+    }
 
     const pollingInterval = setInterval(() => {
         fetch(pollingUrl, {
@@ -354,7 +401,7 @@
                 if (data.status && data.status !== 'PENDING_PAYMENT' && data.status !== 'UNKNOWN') {
                     clearInterval(timerInterval);
                     clearInterval(pollingInterval);
-                    window.location.href = successUrl;
+                    showSuccessModal(successUrl);
                 }
             })
             .catch(error => {
@@ -381,7 +428,7 @@
         .then(res => {
             if (res.ok) {
                 console.log('[Dev Sim] Webhook sent successfully');
-                window.location.href = successUrl;
+                showSuccessModal(successUrl);
             } else {
                 alert('Gửi webhook mô phỏng thất bại.');
             }

@@ -170,21 +170,48 @@ public class AiSearchServlet extends HttpServlet {
 
             String requestBody = mapper.writeValueAsString(payload);
 
-            // 5. Gọi API Gemini 2.5 Flash
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
-            
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                    .build();
+            // 5. Gọi API Gemini với cơ chế tự động thử lại (Retry & Fallback) phòng lỗi 503/429
+            HttpResponse<String> httpResponse = null;
+            int maxRetries = 3;
+            int retryDelayMs = 1000;
+            String model = "gemini-2.5-flash";
 
-            HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            for (int attempt = 1; attempt <= maxRetries; attempt++) {
+                String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
+                
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+                        .build();
 
-            if (httpResponse.statusCode() != 200) {
+                httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                int status = httpResponse.statusCode();
+
+                if (status == 200) {
+                    break;
+                }
+
+                // Nếu bị 503 Service Unavailable hoặc 429 Rate Limit thì tiến hành thử lại
+                if (status == 503 || status == 429) {
+                    LoggerUtil.warn(log, String.format("Gemini API trả về HTTP %d ở lần thử %d/%d. Đang thử lại...", status, attempt, maxRetries));
+                    if (attempt < maxRetries) {
+                        try {
+                            Thread.sleep((long) retryDelayMs * attempt);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
+                        continue;
+                    }
+                }
+                break;
+            }
+
+            if (httpResponse == null || httpResponse.statusCode() != 200) {
+                int finalStatus = httpResponse != null ? httpResponse.statusCode() : HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Lỗi khi kết nối với dịch vụ AI: HTTP " + httpResponse.statusCode()));
+                    "Lỗi khi kết nối với dịch vụ AI: HTTP " + finalStatus));
                 return;
             }
 

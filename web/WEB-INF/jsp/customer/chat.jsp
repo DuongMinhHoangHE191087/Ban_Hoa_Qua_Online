@@ -3,102 +3,115 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Verdant Market - Chat" />
+    <jsp:param name="pageTitle" value="Tin nhắn - Verdant Market" />
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-<script>
-    window.CTX = '${pageContext.request.contextPath}';
-</script>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
 <style>
     body { font-family: 'Lexend', sans-serif; }
-    .glass-panel {
-        background-color: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-    }
+    .glass-panel { background-color: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4); }
     .chat-layout { height: calc(100vh - 120px); min-height: 550px; }
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #c5c8b7; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #75796a; }
-    .session-item.active { background: rgba(217, 249, 157, 0.6); border-color: #4d661c; }
-    
+    .session-item.active { background: rgba(217,249,157,0.6); border-color: #4d661c; }
     .ws-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; }
-    .ws-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .ws-dot.connected { background: #22c55e; animation: pulse 2s infinite; }
-    .ws-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
+    .ws-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .ws-dot.connected { background: #22c55e; animation: pulse-dot 2s infinite; }
+    .ws-dot.connecting { background: #f59e0b; animation: pulse-dot 1s infinite; }
     .ws-dot.disconnected { background: #ef4444; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .ws-dot.offline { background: #94a3b8; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .msg-link { color: #3b82f6; text-decoration: underline; word-break: break-all; }
+    .unread-badge { background:#ef4444; color:white; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; line-height:1; }
+    #infoPanel { transition: width .25s ease, opacity .25s ease; overflow: hidden; }
+    #infoPanel.collapsed { width: 0 !important; opacity: 0; pointer-events: none; }
+    .msg-status { font-size: 10px; color: #94a3b8; margin-top: 2px; display: flex; align-items: center; gap: 2px; }
+    .msg-status.seen { color: #3b82f6; }
+    .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: skeleton-shine 1.2s infinite; border-radius: 12px; }
+    @keyframes skeleton-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 </style>
 
-<main class="flex-1 overflow-hidden bg-[#eaffea] text-[#00210d] flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(217, 249, 157, 0.15), transparent 40%);">
+<main class="flex-1 overflow-hidden bg-[#eaffea] text-[#00210d] flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(217,249,157,0.15), transparent 40%);">
     
-    <!-- Left Column: Chat List -->
-    <aside class="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 flex flex-col border-r border-white/30 glass-panel bg-white/40 relative z-10 hidden md:flex">
-        <!-- Header & Search -->
+    <aside class="w-full md:w-[300px] lg:w-[340px] flex-shrink-0 flex flex-col border-r border-white/30 glass-panel bg-white/40 relative z-10 hidden md:flex">
         <div class="p-4 border-b border-white/20">
             <div class="flex justify-between items-center mb-3">
-                <h1 class="font-headline-md text-xl font-bold text-[#4d661c]">Tin nhắn</h1>
-                <!-- Nút Chat với Admin -->
+                <h1 class="text-lg font-bold text-[#4d661c] flex items-center gap-2">
+                    <span class="material-symbols-outlined">forum</span> Tin nhắn
+                    <c:if test="${not empty chatSessions}">
+                        <c:set var="totalUnread" value="0"/>
+                        <c:forEach var="s" items="${chatSessions}"><c:set var="totalUnread" value="${totalUnread + s.unreadCount}"/></c:forEach>
+                        <c:if test="${totalUnread > 0}"><span class="unread-badge ml-auto">${totalUnread > 99 ? '99+' : totalUnread}</span></c:if>
+                    </c:if>
+                </h1>
                 <button id="btnChatAdmin" title="Chat với Admin hỗ trợ"
-                        class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full bg-[#ceee93] hover:bg-[#b3d17a] text-[#364e03] transition-colors shadow-sm">
-                    <span class="material-symbols-outlined text-sm">support_agent</span> Hỗ trợ Admin
+                        class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full bg-[#ceee93] hover:bg-[#b3d17a] text-[#364e03] transition-colors shadow-sm shrink-0">
+                    <span class="material-symbols-outlined text-sm">support_agent</span> Admin
                 </button>
             </div>
             <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                <input id="searchSessions" class="w-full pl-10 pr-4 py-2 bg-white/50 border border-white/40 rounded-xl focus:outline-none focus:border-[#4d661c] focus:ring-1 focus:ring-[#4d661c] text-sm transition-colors placeholder:text-slate-400 shadow-sm" placeholder="Tìm kiếm cuộc trò chuyện..." type="text">
+                <input id="searchSessions" class="w-full pl-10 pr-4 py-2 bg-white/50 border border-white/40 rounded-xl focus:outline-none focus:border-[#4d661c] text-sm placeholder:text-slate-400" placeholder="Tìm cuộc trò chuyện..." type="text">
             </div>
         </div>
-        
-        <!-- Chat List Items -->
         <div id="sessionList" class="flex-1 overflow-y-auto p-2 space-y-1">
             <c:choose>
                 <c:when test="${empty chatSessions}">
                     <div class="p-8 text-center text-slate-400">
-                        <span class="material-symbols-outlined text-4xl mb-2">forum</span>
+                        <span class="material-symbols-outlined text-4xl block mb-2">inbox</span>
                         <p class="text-sm">Chưa có cuộc trò chuyện nào.</p>
-                        <p class="text-xs mt-1">Hãy bấm "Nhắn tin" tại trang shop.</p>
+                        <p class="text-xs mt-1">Hãy nhấn "Nhắn tin" tại trang chi tiết cửa hàng.</p>
                     </div>
                 </c:when>
                 <c:otherwise>
                     <c:forEach var="session" items="${chatSessions}">
                         <a href="${pageContext.request.contextPath}/chat?sessionId=${session.sessionId}"
                            class="session-item flex items-center gap-3 p-3 rounded-xl hover:bg-white/40 border border-transparent transition-all ${session.sessionId == activeSessionId ? 'active shadow-sm' : 'bg-white/20'}"
-                           data-name="${session.partnerName}">
-                            <div class="relative">
+                           data-name="${session.partnerName}" data-session-id="${session.sessionId}">
+                            <div class="relative shrink-0">
                                 <c:choose>
                                     <c:when test="${not empty session.partnerAvatar}">
-                                        <img src="${fn:startsWith(session.partnerAvatar, 'http') ? session.partnerAvatar : pageContext.request.contextPath.concat('/').concat(session.partnerAvatar)}" alt="Avatar" class="w-11 h-11 rounded-full object-cover border border-white shadow-sm">
+                                        <img src="${fn:startsWith(session.partnerAvatar,'http') ? session.partnerAvatar : pageContext.request.contextPath.concat('/').concat(session.partnerAvatar)}" class="w-11 h-11 rounded-full object-cover border border-white shadow-sm" alt="Avatar">
                                     </c:when>
                                     <c:otherwise>
-                                        <div class="w-11 h-11 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border border-white shadow-sm">
+                                        <div class="w-11 h-11 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border border-white shadow-sm">
                                             <span class="material-symbols-outlined text-lg">
-                                                ${session.sessionType == 'ADMIN' ? 'support_agent' : 'storefront'}
+                                                <c:out value="${session.sessionType == 'ADMIN' ? 'support_agent' : 'storefront'}"/>
                                             </span>
                                         </div>
                                     </c:otherwise>
                                 </c:choose>
+                                <span class="online-dot-${session.sessionId} absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white bg-slate-300"></span>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-baseline mb-0.5">
-                                    <h3 class="font-label-md text-sm font-semibold text-slate-800 truncate">
+                                <div class="flex justify-between items-center mb-0.5">
+                                    <span class="text-sm font-semibold text-slate-800 truncate">
                                         <c:choose>
                                             <c:when test="${not empty session.partnerName}">${session.partnerName}</c:when>
                                             <c:when test="${session.sessionType == 'ADMIN'}">Hỗ trợ Admin</c:when>
                                             <c:otherwise>Cửa hàng #${session.ownerId}</c:otherwise>
                                         </c:choose>
-                                    </h3>
-                                    <span class="text-[10px] text-slate-400 shrink-0 ml-1">
-                                        <fmt:formatDate value="${session.updatedAt}" pattern="HH:mm"/>
                                     </span>
+                                    <span class="text-[10px] text-slate-400 shrink-0 ml-1"><fmt:formatDate value="${session.updatedAtAsDate}" pattern="HH:mm"/></span>
                                 </div>
-                                <p class="text-xs text-slate-400 truncate">Bấm để xem cuộc trò chuyện</p>
+                                <div class="flex items-center gap-1">
+                                    <p class="text-xs text-slate-400 truncate flex-1 last-msg-${session.sessionId}">
+                                        <c:choose>
+                                            <c:when test="${session.lastMessageType == 'IMAGE'}">📷 Hình ảnh</c:when>
+                                            <c:when test="${session.lastMessageType == 'VIDEO'}">🎥 Video</c:when>
+                                            <c:when test="${not empty session.lastMessage}">${fn:length(session.lastMessage) > 35 ? fn:substring(session.lastMessage,0,35).concat('…') : session.lastMessage}</c:when>
+                                            <c:otherwise>Bấm để xem cuộc trò chuyện</c:otherwise>
+                                        </c:choose>
+                                    </p>
+                                    <c:if test="${session.unreadCount > 0}">
+                                        <span class="unread-badge shrink-0 unread-badge-${session.sessionId}">${session.unreadCount > 99 ? '99+' : session.unreadCount}</span>
+                                    </c:if>
+                                </div>
                             </div>
                         </a>
                     </c:forEach>
@@ -107,11 +120,9 @@
         </div>
     </aside>
     
-    <!-- Right Column: Active Chat Window -->
-    <section class="flex-1 flex flex-col relative bg-white bg-opacity-40">
+    <section class="flex-1 flex flex-col relative bg-white/40 min-w-0">
         <c:choose>
             <c:when test="${activeSessionId > 0}">
-                <!-- Chat Header -->
                 <div class="px-4 py-3 border-b border-white/40 glass-panel bg-white/70 flex justify-between items-center sticky top-0 z-10 shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="md:hidden">
@@ -119,63 +130,87 @@
                                 <span class="material-symbols-outlined">arrow_back</span>
                             </a>
                         </div>
-                        <div class="w-10 h-10 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border border-white shadow-sm">
-                            <span class="material-symbols-outlined">
-                                <c:out value="${activeSession.sessionType == 'ADMIN' ? 'support_agent' : 'storefront'}"/>
-                            </span>
+                        <div class="relative">
+                            <c:choose>
+                                <c:when test="${not empty activeSession.partnerAvatar}">
+                                    <img id="headerAvatar" src="${fn:startsWith(activeSession.partnerAvatar,'http') ? activeSession.partnerAvatar : pageContext.request.contextPath.concat('/').concat(activeSession.partnerAvatar)}" class="w-10 h-10 rounded-full object-cover border border-white shadow-sm" alt="Avatar">
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="w-10 h-10 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border border-white shadow-sm">
+                                        <span class="material-symbols-outlined">
+                                            <c:out value="${activeSession.sessionType == 'ADMIN' ? 'support_agent' : 'storefront'}"/>
+                                        </span>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                            <span id="partnerOnlineDot" class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white bg-slate-300"></span>
                         </div>
                         <div>
-                            <h2 class="font-label-md text-sm font-bold text-slate-800">
+                            <h2 class="text-sm font-bold text-slate-800">
                                 <c:choose>
                                     <c:when test="${not empty activeSession.partnerName}">${activeSession.partnerName}</c:when>
                                     <c:when test="${activeSession.sessionType == 'ADMIN'}">Hỗ trợ Admin</c:when>
                                     <c:otherwise>Cửa hàng #${activeSession.ownerId}</c:otherwise>
                                 </c:choose>
                             </h2>
-                            <div id="wsStatusBadge" class="ws-status text-amber-600">
-                                <span class="ws-dot connecting"></span> Đang kết nối...
+                            <div id="partnerStatusText" class="ws-status text-slate-400">
+                                <span class="ws-dot offline"></span> Đang kiểm tra...
                             </div>
                         </div>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <div id="wsStatusBadge" class="ws-status text-amber-600 hidden lg:flex">
+                            <span class="ws-dot connecting"></span> Đang kết nối...
+                        </div>
+                        <button id="btnToggleInfo" title="Thông tin chi tiết" class="p-2 text-slate-500 hover:text-[#4d661c] hover:bg-[#eaffea] rounded-full transition-colors flex items-center justify-center">
+                            <span class="material-symbols-outlined text-xl">info</span>
+                        </button>
+                    </div>
                 </div>
                 
-                <!-- Messages Area -->
-                <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-                    <div class="flex justify-center">
-                        <span class="text-[11px] font-label-sm bg-white/50 backdrop-blur-sm border border-white/40 text-slate-400 px-3 py-1 rounded-full shadow-sm">Bắt đầu cuộc trò chuyện</span>
+                <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
+                    <div id="skeletonLoader" class="space-y-3">
+                        <div class="flex gap-2 items-end max-w-[60%]">
+                            <div class="w-7 h-7 skeleton rounded-full flex-shrink-0"></div>
+                            <div class="space-y-1 flex-1"><div class="h-10 skeleton rounded-2xl rounded-bl-sm"></div></div>
+                        </div>
+                        <div class="flex gap-2 items-end max-w-[60%] self-end flex-row-reverse">
+                            <div class="space-y-1 flex-1"><div class="h-8 skeleton rounded-2xl rounded-br-sm"></div></div>
+                        </div>
+                        <div class="flex gap-2 items-end max-w-[50%]">
+                            <div class="w-7 h-7 skeleton rounded-full flex-shrink-0"></div>
+                            <div class="space-y-1 flex-1"><div class="h-6 skeleton rounded-2xl rounded-bl-sm"></div></div>
+                        </div>
+                    </div>
+                    <div id="chatStart" class="hidden flex justify-center">
+                        <span class="text-[11px] bg-white/50 backdrop-blur-sm border border-white/40 text-slate-400 px-3 py-1 rounded-full shadow-sm">Bắt đầu cuộc trò chuyện</span>
                     </div>
                 </div>
 
-                <!-- Media Preview Panel (ẩn mặc định) -->
                 <div id="uploadPreviewPanel" class="hidden px-4 py-2 bg-slate-50 border-t border-white/40 flex items-center gap-3">
-                    <div class="relative w-16 h-16 rounded-lg border border-slate-300 overflow-hidden bg-black flex items-center justify-center">
-                        <img id="imagePreview" class="hidden w-full h-full object-cover" />
-                        <video id="videoPreview" class="hidden w-full h-full object-cover" /></video>
-                        <div id="uploadProgressOverlay" class="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">0%</div>
+                    <div class="relative w-14 h-14 rounded-lg border border-slate-300 overflow-hidden bg-black flex items-center justify-center">
+                        <img id="imagePreview" class="hidden w-full h-full object-cover" alt="preview"/>
+                        <video id="videoPreview" class="hidden w-full h-full object-cover"></video>
+                        <div id="uploadProgressOverlay" class="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xs font-bold">0%</div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-xs font-semibold text-slate-700 truncate" id="previewFileName">filename.jpg</p>
-                        <p class="text-[10px] text-slate-400">Đang chuẩn bị gửi...</p>
+                        <p class="text-xs font-semibold text-slate-700 truncate" id="previewFileName">file.jpg</p>
+                        <p class="text-[10px] text-slate-400" id="previewStatus">Đang tải lên...</p>
                     </div>
                     <button id="btnCancelUpload" class="p-1 hover:bg-slate-200 text-slate-500 rounded-full transition-colors">
                         <span class="material-symbols-outlined text-lg">close</span>
                     </button>
                 </div>
                 
-                <!-- Input Area -->
                 <div class="p-3 bg-white/60 backdrop-blur-lg border-t border-white/40 shadow-sm z-10">
-                    <div class="flex items-end gap-2 bg-[#eaffea] border border-[#c5c8b7]/40 p-2 rounded-2xl shadow-inner focus-within:border-[#4d661c]">
-                        <!-- Input file ẩn -->
+                    <div class="flex items-end gap-2 bg-[#eaffea] border border-[#c5c8b7]/40 p-2 rounded-2xl shadow-inner focus-within:border-[#4d661c] transition-colors">
                         <input type="file" id="mediaInput" accept="image/*,video/*" class="hidden">
-                        
-                        <button type="button" id="btnTriggerUpload" class="p-2 text-slate-500 hover:text-[#4d661c] transition-colors rounded-full hover:bg-white/40 flex items-center justify-center flex-shrink-0" title="Tải ảnh/video">
+                        <button type="button" id="btnTriggerUpload" class="p-2 text-slate-500 hover:text-[#4d661c] transition-colors rounded-full hover:bg-white/40 flex-shrink-0" title="Tải ảnh/video">
                             <span class="material-symbols-outlined text-xl">image</span>
                         </button>
-                        
-                        <textarea id="chatInput" class="flex-1 bg-transparent border-none resize-none focus:ring-0 text-slate-800 placeholder:text-slate-400 font-body-md text-sm py-2 px-1 max-h-32 min-h-[40px] border-transparent focus:border-transparent focus:outline-none" placeholder="Nhập tin nhắn..." rows="1"></textarea>
-                        
-                        <button type="button" id="btnSendMessage" class="p-2 bg-[#4d661c] text-white hover:bg-[#31694b] transition-colors rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mb-0.5">
-                            <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">send</span>
+                        <textarea id="chatInput" class="flex-1 bg-transparent border-none resize-none focus:ring-0 text-slate-800 placeholder:text-slate-400 text-sm py-2 px-1 max-h-32 min-h-[40px] focus:outline-none" placeholder="Nhập tin nhắn..." rows="1"></textarea>
+                        <button type="button" id="btnSendMessage" class="p-2 bg-[#4d661c] text-white hover:bg-[#31694b] transition-colors rounded-full flex-shrink-0 mb-0.5 disabled:opacity-50" disabled>
+                            <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">send</span>
                         </button>
                     </div>
                 </div>
@@ -186,261 +221,373 @@
                         <span class="material-symbols-outlined text-5xl text-[#4d661c]/60">chat_bubble</span>
                     </div>
                     <h3 class="text-base font-bold text-[#4d661c] mb-1">Chưa chọn đoạn chat</h3>
-                    <p class="text-xs text-slate-500">Chọn một đoạn chat ở danh sách bên trái hoặc bấm "Hỗ trợ Admin" để bắt đầu</p>
+                    <p class="text-xs text-slate-500">Chọn một cuộc trò chuyện hoặc nhấn "Admin" để nhận hỗ trợ</p>
                 </div>
             </c:otherwise>
         </c:choose>
     </section>
+
+    <c:if test="${activeSessionId > 0}">
+    <aside id="infoPanel" class="w-[260px] flex-shrink-0 flex flex-col border-l border-white/30 glass-panel bg-white/40 overflow-y-auto collapsed">
+        <div class="p-4 border-b border-white/20 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-[#4d661c] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base">person_info</span> Thông tin chi tiết
+            </h3>
+            <button id="btnCloseInfo" class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+        <div class="p-4 flex flex-col items-center text-center border-b border-white/20">
+            <c:choose>
+                <c:when test="${not empty activeSession.partnerAvatar}">
+                    <img src="${fn:startsWith(activeSession.partnerAvatar,'http') ? activeSession.partnerAvatar : pageContext.request.contextPath.concat('/').concat(activeSession.partnerAvatar)}" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md mb-2" alt="Avatar">
+                </c:when>
+                <c:otherwise>
+                    <div class="w-16 h-16 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border-2 border-white shadow-md mb-2">
+                        <span class="material-symbols-outlined text-2xl">
+                            <c:out value="${activeSession.sessionType == 'ADMIN' ? 'support_agent' : 'storefront'}"/>
+                        </span>
+                    </div>
+                </c:otherwise>
+            </c:choose>
+            <p class="text-sm font-bold text-slate-800">
+                <c:choose>
+                    <c:when test="${not empty activeSession.partnerName}">${activeSession.partnerName}</c:when>
+                    <c:when test="${activeSession.sessionType == 'ADMIN'}">Hỗ trợ Admin</c:when>
+                    <c:otherwise>Cửa hàng #${activeSession.ownerId}</c:otherwise>
+                </c:choose>
+            </p>
+            <p class="text-[11px] text-slate-400 mt-0.5">ID: #${activeSession.sessionType == 'ADMIN' ? activeSession.ownerId : activeSession.ownerId}</p>
+            <div class="mt-2 ws-status text-slate-400" id="infoPanelStatus">
+                <span class="ws-dot offline"></span> <span id="infoPanelStatusLabel">Không trực tuyến</span>
+            </div>
+        </div>
+        <div class="p-4 border-b border-white/20 space-y-2">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Phiên chat</p>
+            <div class="flex justify-between text-xs"><span class="text-slate-500">Session ID</span><span class="font-medium">#${activeSession.sessionId}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-slate-500">Trạng thái</span><span class="font-medium ${activeSession.status == 'ACTIVE' ? 'text-emerald-600' : 'text-slate-500'}">${activeSession.status}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-slate-500">Bắt đầu</span><span class="font-medium"><fmt:formatDate value="${activeSession.createdAtAsDate}" pattern="dd/MM HH:mm"/></span></div>
+        </div>
+        <div class="p-4 flex-1">
+            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-3">Ảnh &amp; Video đã chia sẻ</p>
+            <div id="sharedMediaGrid" class="grid grid-cols-3 gap-1">
+                <p class="col-span-3 text-xs text-slate-400 text-center py-4">Chưa có ảnh/video</p>
+            </div>
+        </div>
+    </aside>
+    </c:if>
 </main>
 
 <c:if test="${activeSessionId > 0}">
 <script>
-    const CTX = window.CTX;
-    const sessionId = parseInt('${activeSessionId}');
-    const currentUserId = parseInt('${sessionScope.currentUser != null ? sessionScope.currentUser.userId : -1}');
+(function() {
+    const CTX = '${pageContext.request.contextPath}';
+    const sessionId = parseInt('${activeSessionId}', 10);
+    const currentUserId = parseInt('${sessionScope.currentUser != null ? sessionScope.currentUser.userId : -1}', 10);
+    const partnerUserId = parseInt('${activeSession.sessionType == "ADMIN" ? 1 : activeSession.ownerId}', 10);
     const CSRF_TOKEN = '${sessionScope._csrfToken}';
-    
+
     const chatBox = document.getElementById('chatBox');
     const chatInput = document.getElementById('chatInput');
-    const btnSendMessage = document.getElementById('btnSendMessage');
+    const btnSend = document.getElementById('btnSendMessage');
     const wsBadge = document.getElementById('wsStatusBadge');
-    
-    // Tải tệp lên
-    const btnTriggerUpload = document.getElementById('btnTriggerUpload');
-    const mediaInput = document.getElementById('mediaInput');
-    const uploadPreviewPanel = document.getElementById('uploadPreviewPanel');
-    const imagePreview = document.getElementById('imagePreview');
-    const videoPreview = document.getElementById('videoPreview');
+    const partnerDot = document.getElementById('partnerOnlineDot');
+    const partnerStatus = document.getElementById('partnerStatusText');
+    const infoPanel = document.getElementById('infoPanel');
+    const btnToggleInfo = document.getElementById('btnToggleInfo');
+    const btnCloseInfo = document.getElementById('btnCloseInfo');
+    const skeletonLoader = document.getElementById('skeletonLoader');
+    const chatStart = document.getElementById('chatStart');
+    const sharedMediaGrid = document.getElementById('sharedMediaGrid');
+    const uploadPanel = document.getElementById('uploadPreviewPanel');
+    const imgPreview = document.getElementById('imagePreview');
+    const vidPreview = document.getElementById('videoPreview');
     const previewFileName = document.getElementById('previewFileName');
-    const uploadProgressOverlay = document.getElementById('uploadProgressOverlay');
-    const btnCancelUpload = document.getElementById('btnCancelUpload');
-    
-    let ws = null;
-    let wsReady = false;
-    let renderedIds = new Set();
-    let pendingMediaUrl = null;
-    let pendingMediaType = null;
-    let isUploading = false;
+    const previewStatus = document.getElementById('previewStatus');
+    const progressOverlay = document.getElementById('uploadProgressOverlay');
+    const mediaInput = document.getElementById('mediaInput');
 
-    function setStatus(state, label) {
+    let ws = null, wsReady = false, isUploading = false;
+    let renderedIds = new Set();
+    let pendingMedia = null;
+    let sharedMedia = [];
+    let lastMsgEl = null;
+
+    if (btnToggleInfo) {
+        btnToggleInfo.addEventListener('click', () => {
+            infoPanel && infoPanel.classList.toggle('collapsed');
+        });
+    }
+    if (btnCloseInfo) {
+        btnCloseInfo.addEventListener('click', () => {
+            infoPanel && infoPanel.classList.add('collapsed');
+        });
+    }
+
+    function setWsStatus(state, label) {
         if (!wsBadge) return;
         wsBadge.innerHTML = '<span class="ws-dot ' + state + '"></span> ' + label;
-        wsBadge.className = 'ws-status ' + (state === 'connected' ? 'text-emerald-600' : state === 'connecting' ? 'text-amber-600' : 'text-red-500');
+        wsBadge.className = 'ws-status hidden lg:flex ' + (state==='connected' ? 'text-emerald-600' : state==='connecting' ? 'text-amber-600' : 'text-red-500');
+    }
+
+    function setPartnerOnline(online) {
+        const cls = online ? 'connected' : 'offline';
+        const txt = online ? 'Đang trực tuyến' : 'Không trực tuyến';
+        const color = online ? 'text-emerald-600' : 'text-slate-400';
+        if (partnerStatus) { partnerStatus.innerHTML = '<span class="ws-dot ' + cls + '"></span> ' + txt; partnerStatus.className = 'ws-status ' + color; }
+        if (partnerDot) partnerDot.className = 'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ' + (online ? 'bg-emerald-400' : 'bg-slate-300');
+        const dot = document.querySelector('#infoPanelStatus .ws-dot');
+        const lbl = document.getElementById('infoPanelStatusLabel');
+        if (dot) dot.className = 'ws-dot ' + cls;
+        if (lbl) lbl.textContent = txt;
+        const sdot = document.querySelector('.online-dot-' + sessionId);
+        if (sdot) sdot.className = 'online-dot-' + sessionId + ' absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ' + (online ? 'bg-emerald-400' : 'bg-slate-300');
+    }
+
+    function pollPartnerStatus() {
+        fetch(CTX + '/api/chat?action=getOnlineStatus&sessionId=' + sessionId + '&userId=' + partnerUserId)
+            .then(r => r.json())
+            .then(resp => { if (resp.success && resp.data != null) setPartnerOnline(resp.data.online); })
+            .catch(() => {});
     }
 
     function connectWS() {
         const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-        const wsUrl = proto + '://' + location.host + CTX + '/ws/chat/' + sessionId;
-        ws = new WebSocket(wsUrl);
+        ws = new WebSocket(proto + '://' + location.host + CTX + '/ws/chat/' + sessionId);
+        setWsStatus('connecting', 'Đang kết nối...');
 
         ws.onopen = () => {
             wsReady = true;
-            setStatus('connected', 'Trực tuyến');
+            setWsStatus('connected', 'Kết nối');
+            pollPartnerStatus();
+            btnSend.disabled = false;
         };
-
         ws.onmessage = (e) => {
             try {
                 const msg = JSON.parse(e.data);
-                if (msg.error) { console.warn('WS error:', msg.error); return; }
+                if (msg.error) { console.warn('WS err:', msg.error); return; }
                 if (msg.messageId && !renderedIds.has(msg.messageId)) {
                     renderedIds.add(msg.messageId);
-                    const isMine = (msg.senderId === currentUserId);
-                    chatBox.appendChild(renderMessage(msg, isMine));
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                }
-            } catch(err) { console.error('WS parse error', err); }
-        };
+                    const isMine = msg.senderId === currentUserId;
+                    
+                    if (isMine) {
+                        const optimisticEl = chatBox.querySelector('[data-msg-id^="tmp-"]');
+                        if (optimisticEl) {
+                            optimisticEl.dataset.msgId = msg.messageId;
+                            setMsgStatus(optimisticEl, 'sent');
+                            if (msg.mediaUrl) trackMedia(msg);
+                            refreshSidebar();
+                            return;
+                        }
+                    }
 
+                    appendMessage(msg, isMine);
+                    if (!isMine && lastMsgEl) setMsgStatus(lastMsgEl, 'seen');
+                    if (!isMine) fetch(CTX + '/api/chat?action=markRead&sessionId=' + sessionId).catch(() => {});
+                    if (msg.mediaUrl) trackMedia(msg);
+                    refreshSidebar();
+                }
+            } catch(err) { console.error('WS parse err', err); }
+        };
         ws.onclose = () => {
             wsReady = false;
-            setStatus('disconnected', 'Mất kết nối — đang thử lại...');
+            setWsStatus('disconnected', 'Mất kết nối');
+            btnSend.disabled = true;
             setTimeout(connectWS, 3000);
         };
-
-        ws.onerror = () => {
-            setStatus('disconnected', 'Lỗi kết nối');
-        };
+        ws.onerror = () => { setWsStatus('disconnected', 'Lỗi kết nối'); };
     }
 
     function formatTime(val) {
         if (!val) return '';
-        let d = Array.isArray(val)
-            ? new Date(val[0], val[1]-1, val[2], val[3]||0, val[4]||0, val[5]||0)
-            : new Date(val);
-        return d.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
+        let d;
+        if (Array.isArray(val)) d = new Date(val[0], val[1]-1, val[2], val[3]||0, val[4]||0, val[5]||0);
+        else d = new Date(val);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
     }
 
-    function renderMessage(msg, isMine) {
+    function linkify(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" class="msg-link">$1</a>');
+    }
+
+    function createStatusEl(initial) {
+        const el = document.createElement('div');
+        el.className = 'msg-status';
+        setMsgStatusInner(el, initial);
+        return el;
+    }
+    function setMsgStatusInner(el, status) {
+        const icons = { sending: '⏳', sent: '✓', received: '✓✓', seen: '✓✓' };
+        const labels = { sending: 'Đang gửi', sent: 'Đã gửi', received: 'Đã nhận', seen: 'Đã xem' };
+        el.innerHTML = '<span>' + (icons[status]||'') + '</span><span>' + (labels[status]||'') + '</span>';
+        el.className = 'msg-status' + (status === 'seen' ? ' seen' : '');
+    }
+    function setMsgStatus(msgWrap, status) {
+        const el = msgWrap.querySelector('.msg-status');
+        if (el) setMsgStatusInner(el, status);
+    }
+
+    function appendMessage(msg, isMine, statusOverride) {
         const wrap = document.createElement('div');
-        wrap.className = 'flex gap-3 max-w-[80%] ' + (isMine ? 'self-end flex-row-reverse' : 'items-start');
+        wrap.dataset.msgId = msg.messageId;
+        wrap.className = 'flex gap-2 max-w-[80%] ' + (isMine ? 'self-end flex-row-reverse' : 'items-end');
 
-        // Avatar
         if (!isMine) {
-            const avatar = document.createElement('div');
-            avatar.className = 'w-8 h-8 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border border-white/50 shadow-sm shrink-0 mt-auto';
-            avatar.innerHTML = '<span class="material-symbols-outlined text-sm">person</span>';
-            wrap.appendChild(avatar);
+            const av = document.createElement('div');
+            av.className = 'w-7 h-7 rounded-full bg-[#b4f0c9] flex items-center justify-center text-[#175034] border border-white/50 shadow-sm shrink-0';
+            av.innerHTML = '<span class="material-symbols-outlined text-sm">storefront</span>';
+            wrap.appendChild(av);
         }
 
-        const container = document.createElement('div');
-        container.className = 'flex flex-col gap-1 ' + (isMine ? 'items-end' : 'items-start');
+        const col = document.createElement('div');
+        col.className = 'flex flex-col gap-0.5 ' + (isMine ? 'items-end' : 'items-start');
 
-        // Thời gian gửi
-        const info = document.createElement('span');
-        info.className = 'text-[10px] text-slate-400 ' + (isMine ? 'mr-1' : 'ml-1');
-        info.textContent = (isMine ? 'Bạn' : 'Đối tác') + ', ' + formatTime(msg.createdAt);
-        container.appendChild(info);
+        const time = document.createElement('span');
+        time.className = 'text-[10px] text-slate-400 ' + (isMine ? 'mr-1' : 'ml-1');
+        time.textContent = (isMine ? 'Bạn' : 'Đối tác') + ' · ' + formatTime(msg.createdAt);
+        col.appendChild(time);
 
-        // Nội dung tin nhắn
-        const contentBox = document.createElement('div');
-        
-        // CSS Bubble
-        if (isMine) {
-            contentBox.className = 'bg-[#4d661c] text-white p-3 rounded-2xl rounded-br-sm shadow-md text-sm border border-white/10';
-        } else {
-            contentBox.className = 'glass-panel bg-white/90 p-3 rounded-2xl rounded-bl-sm shadow-sm text-slate-800 text-sm border border-white/60';
-        }
+        const bubble = document.createElement('div');
+        bubble.className = isMine
+            ? 'bg-[#4d661c] text-white p-3 rounded-2xl rounded-br-sm shadow-md text-sm max-w-xs'
+            : 'glass-panel bg-white/90 p-3 rounded-2xl rounded-bl-sm shadow-sm text-slate-800 text-sm max-w-xs';
 
-        // Tải ảnh/video lên nếu có
         if (msg.mediaUrl) {
-            const mediaWrap = document.createElement('div');
-            mediaWrap.className = 'mb-1';
-            
+            const mw = document.createElement('div'); mw.className = 'mb-1';
             if (msg.mediaType === 'IMAGE') {
                 const img = document.createElement('img');
-                img.src = msg.mediaUrl;
-                img.className = 'max-w-xs max-h-48 rounded-lg shadow-sm cursor-zoom-in';
+                img.src = msg.mediaUrl; img.alt = 'Hình ảnh';
+                img.className = 'max-w-[200px] max-h-48 rounded-xl shadow-sm cursor-zoom-in block';
+                img.loading = 'lazy';
                 img.onclick = () => window.open(msg.mediaUrl, '_blank');
-                mediaWrap.appendChild(img);
+                mw.appendChild(img);
             } else if (msg.mediaType === 'VIDEO') {
                 const vid = document.createElement('video');
-                vid.src = msg.mediaUrl;
-                vid.controls = true;
-                vid.className = 'max-w-xs max-h-48 rounded-lg shadow-sm';
-                mediaWrap.appendChild(vid);
+                vid.src = msg.mediaUrl; vid.controls = true;
+                vid.className = 'max-w-[200px] max-h-48 rounded-xl shadow-sm block';
+                vid.preload = 'metadata';
+                mw.appendChild(vid);
             }
-            contentBox.appendChild(mediaWrap);
+            bubble.appendChild(mw);
         }
-
         if (msg.content) {
-            const textNode = document.createElement('p');
-            textNode.textContent = msg.content;
-            contentBox.appendChild(textNode);
+            const p = document.createElement('p');
+            p.innerHTML = linkify(msg.content);
+            bubble.appendChild(p);
+        }
+        col.appendChild(bubble);
+
+        if (isMine) {
+            const statusEl = createStatusEl(statusOverride || 'received');
+            col.appendChild(statusEl);
         }
 
-        container.appendChild(contentBox);
-        wrap.appendChild(container);
+        wrap.appendChild(col);
+        chatBox.appendChild(wrap);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        if (isMine) lastMsgEl = wrap;
         return wrap;
     }
 
     function loadHistory() {
         fetch(CTX + '/api/chat?action=getMessages&sessionId=' + sessionId)
             .then(r => r.json())
-            .then(data => {
-                if (!data.success) return;
-                data.messages.forEach(msg => {
+            .then(resp => {
+                skeletonLoader && skeletonLoader.remove();
+                chatStart && chatStart.classList.remove('hidden');
+
+                if (!resp.success || !resp.data) {
+                    console.error('loadHistory: API error', resp.error);
+                    return;
+                }
+                const { messages, currentUserId: apiUid } = resp.data;
+                if (!messages || !Array.isArray(messages)) return;
+                messages.forEach(msg => {
                     if (!renderedIds.has(msg.messageId)) {
                         renderedIds.add(msg.messageId);
-                        chatBox.appendChild(renderMessage(msg, msg.senderId === data.currentUserId));
+                        const isMine = msg.senderId === (apiUid || currentUserId);
+                        appendMessage(msg, isMine, isMine ? 'received' : null);
+                        if (msg.mediaUrl) trackMedia(msg);
                     }
                 });
                 chatBox.scrollTop = chatBox.scrollHeight;
             })
-            .catch(err => console.error('loadHistory error', err));
+            .catch(err => {
+                console.error('loadHistory error', err);
+                skeletonLoader && skeletonLoader.remove();
+                chatStart && chatStart.classList.remove('hidden');
+            });
     }
 
     function handleSend() {
         if (isUploading) return;
         const content = chatInput.value.trim();
-        if (!content && !pendingMediaUrl) return;
+        if (!content && !pendingMedia) return;
+
+        const tempId = 'tmp-' + Date.now();
+        const fakeMsg = { messageId: tempId, senderId: currentUserId, content, mediaUrl: pendingMedia?.url || null, mediaType: pendingMedia?.type || null, createdAt: new Date().toISOString() };
+        const wrap = appendMessage(fakeMsg, true, 'sending');
+        renderedIds.add(tempId);
 
         chatInput.value = '';
+        chatInput.style.height = 'auto';
+
+        const mediaUrl = pendingMedia?.url || null;
+        const mediaType = pendingMedia?.type || null;
+        resetUpload();
 
         if (wsReady && ws && ws.readyState === WebSocket.OPEN) {
-            const payload = {
-                content: content,
-                mediaUrl: pendingMediaUrl,
-                mediaType: pendingMediaType
-            };
-            ws.send(JSON.stringify(payload));
+            ws.send(JSON.stringify({ content, mediaUrl, mediaType }));
+            setMsgStatus(wrap, 'sent');
         } else {
-            // Fallback HTTP POST
-            const fd = new URLSearchParams({
-                action: 'sendMessage',
-                sessionId: sessionId,
-                content: content,
-                mediaUrl: pendingMediaUrl || '',
-                mediaType: pendingMediaType || '',
-                _csrf: CSRF_TOKEN
-            });
-            fetch(CTX + '/api/chat', { 
-                method: 'POST', 
-                headers: {'Content-Type':'application/x-www-form-urlencoded'}, 
-                body: fd.toString() 
-            }).then(r => r.json()).then(data => {
-                if (!data.success) alert(data.message);
-                else loadHistory();
-            });
+            const fd = new URLSearchParams({ action:'sendMessage', sessionId, content: content||'', mediaUrl: mediaUrl||'', mediaType: mediaType||'', _csrf: CSRF_TOKEN });
+            fetch(CTX + '/api/chat', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: fd.toString() })
+                .then(r => r.json())
+                .then(resp => {
+                    if (resp.success) {
+                        setMsgStatus(wrap, 'sent');
+                        refreshSidebar();
+                    } else {
+                        alert(resp.error || resp.message || 'Gửi thất bại');
+                        wrap.remove(); renderedIds.delete(tempId);
+                    }
+                })
+                .catch(() => { wrap.remove(); renderedIds.delete(tempId); });
         }
-        
-        // Reset preview media
-        resetUpload();
+        refreshSidebar();
     }
 
-    // Xử lý Upload Media
-    btnTriggerUpload.addEventListener('click', () => mediaInput.click());
-    
+    document.getElementById('btnTriggerUpload').addEventListener('click', () => mediaInput.click());
+
     mediaInput.addEventListener('change', function() {
         const file = this.files[0];
         if (!file) return;
 
-        const isImage = file.type.startsWith('image/');
-        const isVideo = file.type.startsWith('video/');
+        const isImg = file.type.startsWith('image/');
+        const isVid = file.type.startsWith('video/');
 
-        // Client-side file size and format validation
-        if (isImage) {
-            if (file.size > 5 * 1024 * 1024) {
-                alert('Hình ảnh không được vượt quá 5MB.');
-                this.value = '';
-                return;
-            }
-            if (!file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-                alert('Định dạng ảnh không hợp lệ (chỉ cho phép JPG, PNG, GIF, WEBP).');
-                this.value = '';
-                return;
-            }
-        } else if (isVideo) {
-            if (file.size > 50 * 1024 * 1024) {
-                alert('Video không được vượt quá 50MB.');
-                this.value = '';
-                return;
-            }
-            if (!file.name.toLowerCase().match(/\.(mp4|webm|ogg)$/)) {
-                alert('Định dạng video không hợp lệ (chỉ cho phép MP4, WEBM, OGG).');
-                this.value = '';
-                return;
-            }
-        } else {
-            alert('Định dạng không được hỗ trợ. Chỉ cho phép tải lên hình ảnh và video.');
-            this.value = '';
-            return;
-        }
+        if (isImg) {
+            if (file.size > 5*1024*1024) { alert('Hình ảnh tối đa 5MB.'); this.value=''; return; }
+            if (!file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) { alert('Định dạng ảnh không hợp lệ.'); this.value=''; return; }
+        } else if (isVid) {
+            if (file.size > 50*1024*1024) { alert('Video tối đa 50MB.'); this.value=''; return; }
+            if (!file.name.toLowerCase().match(/\.(mp4|webm|ogg)$/)) { alert('Định dạng video không hợp lệ.'); this.value=''; return; }
+        } else { alert('Chỉ hỗ trợ ảnh và video.'); this.value=''; return; }
 
         previewFileName.textContent = file.name;
-        uploadPreviewPanel.classList.remove('hidden');
-        uploadProgressOverlay.classList.remove('hidden');
-        uploadProgressOverlay.textContent = '0%';
+        previewStatus.textContent = 'Đang tải lên...';
+        uploadPanel.classList.remove('hidden');
+        progressOverlay.style.display = 'flex';
+        progressOverlay.textContent = '0%';
         isUploading = true;
+        btnSend.disabled = true;
 
-        if (isImage) {
-            imagePreview.src = URL.createObjectURL(file);
-            imagePreview.classList.remove('hidden');
-            videoPreview.classList.add('hidden');
-        } else if (isVideo) {
-            videoPreview.src = URL.createObjectURL(file);
-            videoPreview.classList.remove('hidden');
-            imagePreview.classList.add('hidden');
-        }
+        if (isImg) { imgPreview.src=URL.createObjectURL(file); imgPreview.classList.remove('hidden'); vidPreview.classList.add('hidden'); }
+        else { vidPreview.src=URL.createObjectURL(file); vidPreview.classList.remove('hidden'); imgPreview.classList.add('hidden'); }
 
         const formData = new FormData();
         formData.append('file', file);
@@ -450,99 +597,122 @@
         xhr.open('POST', CTX + '/api/chat/upload', true);
         xhr.setRequestHeader('X-CSRF-Token', CSRF_TOKEN);
 
-        xhr.upload.onprogress = function(e) {
-            if (e.lengthComputable) {
-                const percent = Math.round((e.loaded / e.total) * 100);
-                uploadProgressOverlay.textContent = percent + '%';
-            }
+        xhr.upload.onprogress = e => {
+            if (e.lengthComputable) progressOverlay.textContent = Math.round(e.loaded/e.total*100) + '%';
         };
-
-        xhr.onload = function() {
+        xhr.onload = () => {
             isUploading = false;
-            uploadProgressOverlay.classList.add('hidden');
+            progressOverlay.style.display = 'none';
             if (xhr.status === 200) {
                 try {
                     const resp = JSON.parse(xhr.responseText);
-                    if (resp.success) {
-                        pendingMediaUrl = resp.url;
-                        pendingMediaType = resp.type;
+                    if (resp.success && resp.data) {
+                        pendingMedia = { url: resp.data.url, type: resp.data.type };
+                        previewStatus.textContent = 'Sẵn sàng gửi';
+                        btnSend.disabled = false;
                     } else {
-                        alert('Lỗi tải tệp: ' + resp.message);
+                        alert('Lỗi tải lên: ' + (resp.error || 'Không rõ'));
                         resetUpload();
                     }
-                } catch(e) {
-                    alert('Lỗi phản hồi từ server.');
-                    resetUpload();
-                }
+                } catch(e) { alert('Lỗi phân tích phản hồi server.'); resetUpload(); }
             } else {
-                alert('Tải lên thất bại.');
+                alert('Tải lên thất bại (HTTP ' + xhr.status + '). Kiểm tra kích thước file và kết nối.');
                 resetUpload();
             }
         };
-
-        xhr.onerror = function() {
-            isUploading = false;
-            alert('Lỗi kết nối khi tải lên.');
-            resetUpload();
-        };
-
+        xhr.onerror = () => { isUploading=false; alert('Lỗi kết nối khi tải lên.'); resetUpload(); };
         xhr.send(formData);
     });
 
     function resetUpload() {
-        mediaInput.value = '';
-        pendingMediaUrl = null;
-        pendingMediaType = null;
-        isUploading = false;
-        uploadPreviewPanel.classList.add('hidden');
-        imagePreview.classList.add('hidden');
-        imagePreview.src = '';
-        videoPreview.classList.add('hidden');
-        videoPreview.src = '';
+        mediaInput.value=''; pendingMedia=null; isUploading=false;
+        uploadPanel.classList.add('hidden');
+        imgPreview.classList.add('hidden'); imgPreview.src='';
+        vidPreview.classList.add('hidden'); vidPreview.src='';
+        previewStatus.textContent='';
+        progressOverlay.style.display='none';
+        if (!isUploading) btnSend.disabled = !wsReady && !pendingMedia;
     }
 
-    btnCancelUpload.addEventListener('click', resetUpload);
+    document.getElementById('btnCancelUpload').addEventListener('click', resetUpload);
+    btnSend.addEventListener('click', handleSend);
+    chatInput.addEventListener('keydown', e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
+    chatInput.addEventListener('input', () => { chatInput.style.height='auto'; chatInput.style.height=Math.min(chatInput.scrollHeight,128)+'px'; });
 
-    btnSendMessage.addEventListener('click', handleSend);
-    chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    });
+    function trackMedia(msg) {
+        if (!msg.mediaUrl) return;
+        sharedMedia.push(msg);
+        renderSharedMedia();
+    }
+    function renderSharedMedia() {
+        if (!sharedMediaGrid) return;
+        if (sharedMedia.length === 0) { sharedMediaGrid.innerHTML='<p class="col-span-3 text-xs text-slate-400 text-center py-4">Chưa có ảnh/video</p>'; return; }
+        sharedMediaGrid.innerHTML='';
+        sharedMedia.slice(-9).reverse().forEach(m => {
+            const cell = document.createElement('div');
+            cell.className = 'aspect-square rounded-lg overflow-hidden bg-slate-200 cursor-pointer hover:opacity-80 transition-opacity';
+            if (m.mediaType === 'IMAGE') {
+                cell.innerHTML = '<img src="' + m.mediaUrl + '" class="w-full h-full object-cover" loading="lazy" onclick="window.open(\'' + m.mediaUrl + '\',\'_blank\')">';
+            } else {
+                cell.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-700 text-white" onclick="window.open(\'' + m.mediaUrl + '\',\'_blank\')"><span class="material-symbols-outlined text-2xl">play_circle</span></div>';
+            }
+            sharedMediaGrid.appendChild(cell);
+        });
+    }
+
+    function refreshSidebar() {
+        fetch(CTX + '/api/chat?action=getSessions')
+            .then(r => r.json())
+            .then(resp => {
+                if (!resp.success || !resp.data || !resp.data.sessions) return;
+                resp.data.sessions.forEach(s => {
+                    const badge = document.querySelector('.unread-badge-' + s.sessionId);
+                    if (badge) {
+                        if (s.sessionId === sessionId) {
+                            badge.style.display = 'none';
+                        } else if (s.unreadCount > 0) {
+                            badge.textContent = s.unreadCount > 99 ? '99+' : s.unreadCount;
+                            badge.style.display = '';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                    const prev = document.querySelector('.last-msg-' + s.sessionId);
+                    if (prev && s.lastMessage) {
+                        prev.textContent = s.lastMessageType==='IMAGE' ? '📷 Hình ảnh' : s.lastMessageType==='VIDEO' ? '🎥 Video' : (s.lastMessage.length>35 ? s.lastMessage.substring(0,35)+'…' : s.lastMessage);
+                    }
+                });
+            }).catch(() => {});
+    }
 
     loadHistory();
     connectWS();
+    pollPartnerStatus();
+    setInterval(pollPartnerStatus, 15000);
+    setInterval(refreshSidebar, 30000);
+})();
 </script>
 </c:if>
 
 <script>
-    // Search filter cho Sidebar
-    const searchInput = document.getElementById('searchSessions');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const q = this.value.toLowerCase();
-            document.querySelectorAll('#sessionList a').forEach(el => {
-                const name = (el.dataset.name || '').toLowerCase();
-                el.style.display = name.includes(q) ? '' : 'none';
-            });
+    const _si = document.getElementById('searchSessions');
+    if (_si) _si.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#sessionList a').forEach(el => {
+            el.style.display = (el.dataset.name||'').toLowerCase().includes(q) ? '' : 'none';
         });
-    }
+    });
 
-    // Nút chat với Admin
     const btnChatAdmin = document.getElementById('btnChatAdmin');
     if (btnChatAdmin) {
         btnChatAdmin.addEventListener('click', function() {
-            fetch(CTX + '/api/chat', {
+            fetch('${pageContext.request.contextPath}/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                body: new URLSearchParams({ action:'createAdminSession', adminId:'1', _csrf: '${sessionScope._csrfToken}' }).toString()
-            }).then(r => r.json()).then(data => {
-                if (data.success) {
-                    location.href = CTX + '/chat?sessionId=' + data.sessionId;
-                } else {
-                    alert(data.message || 'Không thể tạo session hỗ trợ.');
-                }
+                body: new URLSearchParams({action:'createAdminSession', adminId:'1', _csrf:'${sessionScope._csrfToken}'}).toString()
+            }).then(r=>r.json()).then(data=>{
+                if (data.success) location.href = '${pageContext.request.contextPath}/chat?sessionId=' + data.sessionId;
+                else alert(data.message||'Không thể tạo session hỗ trợ.');
             });
         });
     }

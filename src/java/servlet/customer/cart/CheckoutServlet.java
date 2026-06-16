@@ -142,7 +142,9 @@ public class CheckoutServlet extends HttpServlet {
 
     private void handleSuccessView(HttpServletRequest req, HttpServletResponse resp, User user)
             throws IOException, ServletException {
-        resp.sendRedirect(req.getContextPath() + "/profile?tab=orders");
+        Order order = findCustomerOrder(req.getParameter("orderId"), user.getUserId());
+        req.setAttribute("order", order);
+        req.getRequestDispatcher("/WEB-INF/jsp/customer/order-success.jsp").forward(req, resp);
     }
 
     private void handlePaymentView(HttpServletRequest req, HttpServletResponse resp, User user)
