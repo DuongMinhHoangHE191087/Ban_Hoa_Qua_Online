@@ -10,6 +10,7 @@ import java.util.UUID;
 import config.AppConfig;
 import dao.cart.CartDAO;
 import dao.auth.UserDAO;
+import dao.auth.UserSessionDAO;
 import model.entity.auth.User;
 import service.system.EmailService;
 import util.HashUtil;
@@ -27,6 +28,7 @@ import util.ValidationUtil;
  */
 public class AuthService {
     private final UserDAO userDAO = new UserDAO();
+    private final UserSessionDAO userSessionDAO = new UserSessionDAO();
     private final EmailService emailService = new EmailService();
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -453,10 +455,10 @@ public class AuthService {
     }
 
     public void saveUserSession(int userId, String token, Timestamp expiresAt) throws SQLException {
-        userDAO.saveUserSession(userId, token, expiresAt);
+        userSessionDAO.saveUserSession(userId, token, expiresAt);
     }
 
     public void deleteUserSession(String token) throws SQLException {
-        userDAO.deleteUserSession(token);
+        userSessionDAO.deleteUserSession(token);
     }
 }

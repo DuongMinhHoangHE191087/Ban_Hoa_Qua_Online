@@ -1,6 +1,7 @@
 package service.auth;
 
 import dao.auth.UserDAO;
+import dao.auth.UserSessionDAO;
 import model.entity.auth.User;
 import dao.auth.UserAddressDAO;
 import model.entity.auth.UserAddress;
@@ -9,9 +10,11 @@ import java.util.List;
 
 public class UserService {
     private final UserDAO userDAO;
+    private final UserSessionDAO userSessionDAO;
 
     public UserService() {
         this.userDAO = new UserDAO();
+        this.userSessionDAO = new UserSessionDAO();
     }
 
     public List<User> searchUsers(String role, String keyword, int offset, int limit) throws SQLException {
@@ -124,6 +127,6 @@ public class UserService {
         if (userId <= 0) {
             throw new IllegalArgumentException("User ID không hợp lệ.");
         }
-        userDAO.deleteSessionsByUserId(userId);
+        userSessionDAO.deleteSessionsByUserId(userId);
     }
 }
