@@ -1154,10 +1154,11 @@
 
         row.innerHTML = `
             <input type="hidden" name="variantId" value="\${variantId}">
+            <input type="hidden" name="variantStock" value="\${stock}">
             
             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end w-full">
                 <!-- Variant Name/Label -->
-                <div class="col-span-1 md:col-span-3">
+                <div class="col-span-1 md:col-span-4">
                     <label class="block text-[10px] font-bold text-txt-2 mb-1">Tên phân loại / Đơn vị <span class="text-red-500">*</span></label>
                     <input type="text" name="variantLabel" required placeholder="Ví dụ: kg, Hộp 500g, Thùng 5kg" 
                            value="\${variantLabel}"
@@ -1165,7 +1166,7 @@
                 </div>
                 
                 <!-- Price -->
-                <div class="col-span-1 md:col-span-2">
+                <div class="col-span-1 md:col-span-3">
                     <label class="block text-[10px] font-bold text-txt-2 mb-1">Giá bán lẻ (VND) <span class="text-red-500">*</span></label>
                     <div class="relative rounded-xl">
                         <input type="number" name="variantPrice" required min="1000" step="1000" placeholder="50000" 
@@ -1176,22 +1177,13 @@
                 </div>
 
                 <!-- Weight (Kg) -->
-                <div class="col-span-1 md:col-span-2">
+                <div class="col-span-1 md:col-span-3">
                     <label class="block text-[10px] font-bold text-txt-2 mb-1">Cân nặng (Kg) <span class="text-red-500">*</span></label>
                     <div class="relative rounded-xl">
                         <input type="number" name="variantWeight" required min="0.001" step="0.001" placeholder="1.0" 
                                value="\${weightKg}"
                                class="form-control-custom py-1.5 text-xs pr-8">
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-txt-3 font-bold">Kg</span>
-                    </div>
-                </div>
-
-                <!-- Stock Quantity -->
-                <div class="col-span-1 md:col-span-3">
-                    <label class="block text-[10px] font-bold text-txt-2 mb-1 text-txt-3">Tồn kho</label>
-                    <input type="hidden" name="variantStock" value="\${stock}">
-                    <div class="form-control-custom py-1.5 text-xs bg-slate-100 text-txt-2 cursor-not-allowed">
-                        \${stock !== '' ? stock : '0 (Cập nhật khi nhập hàng)'}
                     </div>
                 </div>
 
