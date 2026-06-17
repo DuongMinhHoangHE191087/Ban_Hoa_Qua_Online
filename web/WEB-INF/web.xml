@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
@@ -66,27 +66,27 @@
     -->
     <filter>
         <filter-name>EncodingFilter</filter-name>
-        <filter-class>com.fruitmkt.filter.EncodingFilter</filter-class>
+        <filter-class>filter.EncodingFilter</filter-class>
     </filter>
     <filter>
         <filter-name>LoggingFilter</filter-name>
-        <filter-class>com.fruitmkt.filter.LoggingFilter</filter-class>
+        <filter-class>filter.LoggingFilter</filter-class>
     </filter>
     <filter>
         <filter-name>SessionRestoreFilter</filter-name>
-        <filter-class>com.fruitmkt.filter.SessionRestoreFilter</filter-class>
+        <filter-class>filter.SessionRestoreFilter</filter-class>
     </filter>
     <filter>
         <filter-name>CsrfFilter</filter-name>
-        <filter-class>com.fruitmkt.filter.CsrfFilter</filter-class>
+        <filter-class>filter.CsrfFilter</filter-class>
     </filter>
     <filter>
         <filter-name>AuthFilter</filter-name>
-        <filter-class>com.fruitmkt.filter.AuthFilter</filter-class>
+        <filter-class>filter.AuthFilter</filter-class>
     </filter>
     <filter>
         <filter-name>RoleFilter</filter-name>
-        <filter-class>com.fruitmkt.filter.RoleFilter</filter-class>
+        <filter-class>filter.RoleFilter</filter-class>
     </filter>
 
     <!-- MAPPING FILTERS THEO THỨ TỰ THỰC THI (Rất quan trọng) -->

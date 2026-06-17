@@ -18,12 +18,12 @@ CREATE TABLE users (
     full_name NVARCHAR(100) NOT NULL,
     email NVARCHAR(255) NOT NULL UNIQUE,
     password_hash NVARCHAR(255) NULL,
-    phone NVARCHAR(15) NULL UNIQUE,
+    phone NVARCHAR(15) NULL,
     role NVARCHAR(20) NOT NULL DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER','SHOP_OWNER','DELIVERY','ADMIN')),
     status NVARCHAR(20) NOT NULL DEFAULT 'INACTIVE' CHECK (status IN ('ACTIVE','INACTIVE','LOCKED','SUSPENDED')),
     user_address NVARCHAR(500) NULL,
     avatar_url NVARCHAR(500) NULL,
-
+ 
     is_email_verified BIT NOT NULL DEFAULT 0,
     email_verification_code_hash NVARCHAR(255) NULL,
     email_verification_expires_at DATETIME NULL,
@@ -34,6 +34,20 @@ CREATE TABLE users (
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]
     updated_at DATETIME NOT NULL DEFAULT GETDATE()  -- [cite: 29]
 );
+
+-- Index for users phone (allow multiple NULL values)
+-- [BUGFIX] SET QUOTED_IDENTIFIER ON is required to create a filtered index
+GO
+SET QUOTED_IDENTIFIER ON;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_users_phone' AND object_id = OBJECT_ID(N'dbo.users'))
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UX_users_phone 
+        ON dbo.users(phone) 
+        WHERE phone IS NOT NULL;
+END
+GO
+
 
 -- 2. user_sessions [cite: 40]
 CREATE TABLE user_sessions (
@@ -173,22 +187,13 @@ CREATE TABLE inventory_logs (
     log_id INT IDENTITY(1,1) PRIMARY KEY,
     variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id),
     changed_by INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
-    change_type NVARCHAR(20) NOT NULL CHECK (change_type IN ('MANUAL_ADJUST','ORDER_RESERVE','ORDER_RELEASE','ORDER_CONFIRM','RETURN')),
+    change_type NVARCHAR(20) NOT NULL CHECK (change_type IN ('MANUAL_ADJUST','ORDER_RESERVE','ORDER_RELEASE','ORDER_CONFIRM','RETURN','EXPIRED','SPOILED')),
     quantity_delta INT NOT NULL,
     quantity_after INT NOT NULL,
     note NVARCHAR(300) NULL,
+    expires_at DATE NULL,
+    is_expired BIT NOT NULL DEFAULT 0,
     changed_at DATETIME NOT NULL DEFAULT GETDATE()
-);
-
--- 9b. replenishment_logs
-CREATE TABLE replenishment_logs (
-    log_id INT IDENTITY(1,1) PRIMARY KEY,
-    variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id) ON DELETE CASCADE,
-    replenished_by INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
-    quantity INT NOT NULL CHECK (quantity > 0),
-    supplier_details NVARCHAR(500) NULL,
-    replenishment_date DATE NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
 
@@ -471,6 +476,18 @@ CREATE TABLE system_config (
     updated_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
+-- 18. audit_logs
+CREATE TABLE audit_logs (
+    log_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NULL FOREIGN KEY REFERENCES users(user_id) ON DELETE SET NULL,
+    action NVARCHAR(100) NOT NULL,
+    target_type NVARCHAR(50) NOT NULL,
+    target_id INT NULL,
+    detail NVARCHAR(MAX) NOT NULL,
+    ip_address NVARCHAR(45) NULL,
+    created_at DATETIME NOT NULL DEFAULT GETDATE()
+);
+
 -- (replenishment_logs đã được khai báo ở mục 9b phía trên — bỏ block trùng lập này)
 
 CREATE INDEX IX_orders_acceptance_auto_cancel ON orders (status, shop_acceptance_deadline) WHERE status = 'CONFIRMED' AND shop_acceptance_deadline IS NOT NULL;
@@ -506,6 +523,8 @@ CREATE INDEX IX_chat_messages_session_id_created_at_desc ON chat_messages (sessi
 CREATE INDEX IX_notifications_user_id_is_read_created_at_desc ON notifications (user_id, is_read, created_at DESC);
 CREATE INDEX IX_notifications_user_id_created_at_desc ON notifications (user_id, created_at DESC);
 CREATE INDEX IX_payment_transactions_sepay_transaction_id ON payment_transactions (sepay_transaction_id);
+CREATE INDEX IX_audit_logs_user_id ON audit_logs (user_id);
+CREATE INDEX IX_audit_logs_created_at_desc ON audit_logs (created_at DESC);
 
 
 -- Optional: Create Full-Text Search configuration [cite: 19]

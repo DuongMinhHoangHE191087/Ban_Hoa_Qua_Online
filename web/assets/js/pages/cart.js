@@ -346,6 +346,25 @@ const CartPage = {
             }
         });
 
+        // Bắt sự kiện gõ/thay đổi số lượng trực tiếp
+        cartContainer.addEventListener('change', (e) => {
+            const target = e.target;
+            if (target.classList.contains('input-qty')) {
+                const input = target;
+                const maxStock = parseInt(input.getAttribute('data-stock')) || 999;
+                let val = parseInt(input.value) || 1;
+                
+                if (isNaN(val) || val < 1) {
+                    val = 1;
+                } else if (val > maxStock) {
+                    val = maxStock;
+                    this.showToast(`Chỉ còn tối đa ${maxStock} sản phẩm trong kho!`, 'warning');
+                }
+                input.value = val;
+                this.handleQuantityChange(input, val);
+            }
+        });
+
         // Bắt sự kiện thay đổi biến thể trực tiếp trong giỏ
         cartContainer.addEventListener('change', async (e) => {
             const target = e.target;
@@ -717,8 +736,7 @@ const CartPage = {
                                 <button aria-label="Decrease quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-minus">
                                     <span class="material-symbols-outlined text-sm">remove</span>
                                 </button>
-                                <span class="font-label-md text-label-md w-8 text-center text-inverse-surface fw-bold input-qty-value">${item.quantity}</span>
-                                <input type="number" class="input-qty hidden" value="${item.quantity}" data-stock="${item.stockQuantity || 99}" min="1">
+                                <input type="number" class="font-label-md text-label-md w-12 text-center text-inverse-surface fw-bold bg-transparent border-0 focus:ring-0 focus:outline-none input-qty [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" value="${item.quantity}" data-stock="${item.stockQuantity || 99}" min="1">
                                 <button aria-label="Increase quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-plus">
                                     <span class="material-symbols-outlined text-sm">add</span>
                                 </button>

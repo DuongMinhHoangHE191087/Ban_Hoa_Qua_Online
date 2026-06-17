@@ -166,9 +166,9 @@ body { background: #F0FDF4; }
                             </div>
                             <div>
                                 <span class="text-xs text-txt-3 block font-semibold uppercase tracking-wider">Người nhận</span>
-                                <span class="font-bold text-txt">${dto.recipientName}</span>
+                                <span class="font-bold text-txt"><c:out value="${dto.recipientName}"/></span>
                                 <c:if test="${not empty dto.recipientPhone}">
-                                    <span class="text-txt-2 ml-1 text-xs">(${dto.recipientPhone})</span>
+                                    <span class="text-txt-2 ml-1 text-xs">(<c:out value="${dto.recipientPhone}"/>)</span>
                                 </c:if>
                             </div>
                         </div>
@@ -182,7 +182,7 @@ body { background: #F0FDF4; }
                             </div>
                             <div>
                                 <span class="text-xs text-txt-3 block font-semibold uppercase tracking-wider">Địa chỉ giao</span>
-                                <p class="text-txt font-medium leading-snug">${dto.deliveryAddress}</p>
+                                <p class="text-txt font-medium leading-snug"><c:out value="${dto.deliveryAddress}"/></p>
                             </div>
                         </div>
                     </c:if>
@@ -213,7 +213,7 @@ body { background: #F0FDF4; }
                     <c:if test="${dto.deliveryStatus == 'FAILED' && not empty dto.failureReason}">
                         <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700 font-semibold">
                             <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                            <strong>Lý do thất bại:</strong> ${dto.failureReason}
+                            <strong>Lý do thất bại:</strong> <c:out value="${dto.failureReason}"/>
                         </div>
                     </c:if>
                 </div>

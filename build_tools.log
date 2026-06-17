@@ -237,3 +237,57 @@
 [2026-06-11 17:31:35] [INFO] Kill-tomcat executed
 [2026-06-11 17:31:35] [INFO] Clean-all executed
 [2026-06-11 17:31:53] [INFO] Open-app executed
+[2026-06-14 10:47:09] [INFO] Clean-all executed
+[2026-06-14 12:50:53] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 12:50:57] [INFO] Database setup completed successfully.
+[2026-06-14 12:57:15] [INFO] Kill-tomcat executed
+[2026-06-14 12:57:16] [INFO] Clean-all executed
+[2026-06-14 12:57:34] [INFO] Open-app executed
+[2026-06-14 12:59:59] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 13:00:05] [INFO] Database setup completed successfully.
+[2026-06-14 13:06:18] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 13:06:24] [INFO] Database setup completed successfully.
+[2026-06-14 13:08:25] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 13:08:30] [INFO] Database setup completed successfully.
+[2026-06-14 13:11:48] [INFO] Kill-tomcat executed
+[2026-06-14 13:11:48] [INFO] Clean-all executed
+[2026-06-14 13:12:05] [INFO] Open-app executed
+[2026-06-14 13:18:39] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 13:18:46] [INFO] Database setup completed successfully.
+[2026-06-14 13:29:33] [INFO] Kill-tomcat executed
+[2026-06-14 13:29:33] [INFO] Clean-all executed
+[2026-06-14 13:29:51] [INFO] Open-app executed
+[2026-06-14 14:02:20] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 14:02:26] [INFO] Database setup completed successfully.
+[2026-06-14 14:06:23] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 14:06:28] [INFO] Database setup completed successfully.
+[2026-06-14 14:08:52] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 14:08:57] [INFO] Database setup completed successfully.
+[2026-06-14 14:28:45] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-06-14 14:28:51] [INFO] Database setup completed successfully.
+[2026-06-14 14:34:02] [INFO] Kill-tomcat executed
+[2026-06-14 14:34:03] [INFO] Clean-all executed
+[2026-06-14 14:34:18] [INFO] Open-app executed
+[2026-06-14 14:42:05] [INFO] Kill-tomcat executed
+[2026-06-14 14:42:05] [INFO] Clean-all executed
+[2026-06-14 14:42:20] [INFO] Open-app executed
+[2026-06-15 15:35:54] [INFO] Kill-tomcat executed
+[2026-06-15 15:35:55] [INFO] Clean-all executed
+[2026-06-15 15:36:20] [INFO] Open-app executed
+[2026-06-15 16:11:40] [INFO] Kill-tomcat executed
+[2026-06-15 16:11:40] [INFO] Clean-all executed
+[2026-06-15 16:11:58] [INFO] Open-app executed
+[2026-06-15 16:22:30] [INFO] Kill-tomcat executed
+[2026-06-15 16:22:30] [INFO] Clean-all executed
+[2026-06-15 16:22:54] [INFO] Open-app executed
+[2026-06-15 16:31:34] [INFO] Kill-tomcat executed
+[2026-06-15 16:31:35] [INFO] Clean-all executed
+[2026-06-15 16:32:11] [INFO] Open-app executed
+[2026-06-15 17:53:00] [INFO] Kill-tomcat executed
+[2026-06-15 17:53:00] [INFO] Clean-all executed
+[2026-06-15 17:53:55] [INFO] Kill-tomcat executed
+[2026-06-15 17:53:55] [INFO] Clean-all executed
+[2026-06-15 17:54:22] [INFO] Open-app executed
+[2026-06-16 13:19:18] [INFO] Kill-tomcat executed
+[2026-06-16 13:19:18] [INFO] Clean-all executed
+[2026-06-16 13:19:36] [INFO] Open-app executed

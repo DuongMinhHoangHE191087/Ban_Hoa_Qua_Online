@@ -80,30 +80,52 @@
 
         <%-- Date Range Filter Form --%>
         <form method="GET" action="${pageContext.request.contextPath}/admin/reports" class="glass-card p-5 mb-8">
-            <div class="flex flex-wrap items-end gap-4">
-                <div class="flex-grow min-w-[200px]">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                <div class="w-full">
                     <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Từ ngày</label>
                     <div class="relative">
                         <input type="date" name="startDate" value="${startDate}" required
                                class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-primary">
                     </div>
                 </div>
-                <div class="flex-grow min-w-[200px]">
+                <div class="w-full">
                     <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Đến ngày</label>
                     <div class="relative">
                         <input type="date" name="endDate" value="${endDate}" required
                                class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-primary">
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="bg-primary hover:bg-primary-dk text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
-                        <i class="fa-solid fa-filter mr-1.5"></i> Lọc dữ liệu
+                <div class="w-full">
+                    <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Danh mục</label>
+                    <select name="categoryId" class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-primary">
+                        <option value="">Tất cả danh mục</option>
+                        <c:forEach var="cat" items="${categories}">
+                            <option value="${cat.categoryId}" ${selectedCategoryId == cat.categoryId ? 'selected' : ''}>
+                                <c:out value="${cat.name}"/>
+                            </option>
+                        </c:forEach>
+                    </select>
+                </div>
+                <div class="w-full">
+                    <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Cửa hàng</label>
+                    <select name="shopId" class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-primary">
+                        <option value="">Tất cả cửa hàng</option>
+                        <c:forEach var="shop" items="${shops}">
+                            <option value="${shop.userId}" ${selectedShopId == shop.userId ? 'selected' : ''}>
+                                <c:out value="${shop.shopName}"/>
+                            </option>
+                        </c:forEach>
+                    </select>
+                </div>
+                <div class="flex gap-2 w-full lg:col-span-1">
+                    <button type="submit" class="bg-primary hover:bg-primary-dk text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer flex-1 border-none text-center">
+                        <i class="fa-solid fa-filter mr-1"></i> Lọc
                     </button>
-                    <button type="button" onclick="setQuickDateRange(30)" class="bg-white border border-border hover:bg-surface-2 text-txt text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
-                        30 ngày qua
+                    <button type="button" onclick="setQuickDateRange(30)" class="bg-white border border-border hover:bg-surface-2 text-txt text-xs px-2 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
+                        30d
                     </button>
-                    <button type="button" onclick="setQuickDateRange(7)" class="bg-white border border-border hover:bg-surface-2 text-txt text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
-                        7 ngày qua
+                    <button type="button" onclick="setQuickDateRange(7)" class="bg-white border border-border hover:bg-surface-2 text-txt text-xs px-2 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
+                        7d
                     </button>
                 </div>
             </div>

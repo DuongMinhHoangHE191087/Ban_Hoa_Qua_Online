@@ -203,7 +203,7 @@
                             <span class="material-symbols-outlined text-[16px]">done</span>
                             Áp dụng bộ lọc
                         </button>
-                        <a href="${pageContext.request.contextPath}/products" onclick="sessionStorage.removeItem('aiFilteredProductIds')"
+                        <a href="${pageContext.request.contextPath}/products" onclick="return resetAiProductFilter(event)"
                            class="w-full border border-primary/20 bg-white/60 hover:bg-emerald-50 text-primary text-xs font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center">
                             <span class="material-symbols-outlined text-[16px]">refresh</span>
                             Đặt lại bộ lọc
@@ -239,7 +239,7 @@
                         <span class="material-symbols-outlined text-[20px] text-emerald-600 animate-pulse">psychology</span>
                         <span>Đang lọc danh sách sản phẩm theo gợi ý của Trợ lý AI.</span>
                     </div>
-                    <button onclick="clearAiFilter()" class="bg-white hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-sm flex items-center gap-1">
+                    <button type="button" onclick="resetAiProductFilter(event)" class="bg-white hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-sm flex items-center gap-1">
                         <span class="material-symbols-outlined text-[14px]">refresh</span> Đặt lại
                     </button>
                 </div>
@@ -437,10 +437,16 @@
 </div>
 
 <script>
-    // Helper to clear AI filter
-    function clearAiFilter() {
+    const PRODUCT_LIST_URL = '${pageContext.request.contextPath}/products';
+
+    // Helper to exit AI-filtered product mode and return to the canonical product list.
+    function resetAiProductFilter(event) {
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
         sessionStorage.removeItem('aiFilteredProductIds');
-        applyClientFilters();
+        window.location.replace(PRODUCT_LIST_URL);
+        return false;
     }
 
     // Client-side Filter & Sort logic

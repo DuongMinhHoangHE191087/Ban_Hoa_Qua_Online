@@ -268,22 +268,41 @@
                             }
                             
                             let html = '';
+                            function formatNotifTime(val) {
+                                if (!val) return '';
+                                let d = Array.isArray(val)
+                                    ? new Date(val[0], val[1]-1, val[2], val[3]||0, val[4]||0, val[5]||0)
+                                    : new Date(val);
+                                return isNaN(d) ? '' : d.toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'});
+                            }
+
+                            function escapeHtml(value) {
+                                return String(value == null ? '' : value)
+                                    .replace(/&/g, '&amp;')
+                                    .replace(/</g, '&lt;')
+                                    .replace(/>/g, '&gt;')
+                                    .replace(/"/g, '&quot;')
+                                    .replace(/'/g, '&#39;');
+                            }
+
                             data.notifications.forEach(n => {
                                 const bg = n.isRead ? 'transparent' : '#f8fafc';
                                 const dot = n.isRead ? '' : '<span style="display:inline-block; width:6px; height:6px; background:#4d661c; border-radius:50%; margin-right:4px;"></span>';
-                                const dateStr = new Date(n.createdAt).toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'});
+                                const dateStr = formatNotifTime(n.createdAt);
                                 const link = n.actionUrl ? window.contextPath + n.actionUrl : '#';
+                                const title = escapeHtml(n.title);
+                                const message = escapeHtml(n.message);
                                 
                                 html += `
-                                    <div class="notif-dropdown-item" style="padding:12px 16px; background:${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick="handleNotifClick(event, ${n.notificationId}, '${link}')">
+                                    <div class="notif-dropdown-item" style="padding:12px 16px; background:\${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick='handleNotifClick(event, \${n.notificationId}, ${JSON.stringify(link)})'>
                                         <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
                                             <span style="font-weight:600; font-size:13px; color:#334155; display:flex; align-items:center;">
-                                                ${dot}${n.title}
+                                                \${dot}\${title}
                                             </span>
-                                            <span style="font-size:10px; color:#94a3b8; white-space:nowrap; margin-left:8px;">${dateStr}</span>
+                                            <span style="font-size:10px; color:#94a3b8; white-space:nowrap; margin-left:8px;">\${dateStr}</span>
                                         </div>
                                         <p style="margin:0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
-                                            ${n.message}
+                                            \${message}
                                         </p>
                                     </div>
                                 `;

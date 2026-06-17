@@ -640,22 +640,25 @@ function Compile-Java-Atomic {
         Write-Host "[ERROR] No Java files found in src/java!" -ForegroundColor Red
         return $false
     }
-    [System.IO.File]::WriteAllLines("sources.txt", $javaFiles)
+    
+    # Sử dụng đường dẫn tuyệt đối để tránh lỗi "file not found: sources.txt" do lệch working directory
+    $sourcesTxtPath = Join-Path (Get-Location).Path "sources.txt"
+    [System.IO.File]::WriteAllLines($sourcesTxtPath, $javaFiles)
     
     # Capture javac output in-memory — no temp file, no file-lock risk
-    $javacArgs = "-encoding UTF-8 -g:none -nowarn -target 17 -source 17 -cp `"$classpath`" -d `"$classesTempDir`" @sources.txt"
+    $javacArgs = "-encoding UTF-8 -g:none -nowarn -target 17 -source 17 -cp `"$classpath`" -d `"$classesTempDir`" @`"$sourcesTxtPath`""
     $compileOutput = cmd.exe /c "javac $javacArgs 2>&1"
     $javacExit = $LASTEXITCODE
-    if (Test-Path "sources.txt") { Remove-Item "sources.txt" -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $sourcesTxtPath) { Remove-Item $sourcesTxtPath -Force -ErrorAction SilentlyContinue }
     
     if ($javacExit -eq 0) {
         if (-not (Test-Path $classesDir)) {
             New-Item -ItemType Directory -Path $classesDir -Force | Out-Null
         }
         
-        # Mirror compiled class files atomically using robocopy
+        # Đồng bộ các class file mà không dùng /mir (tránh làm rỗng thư mục gốc khiến Tomcat reload bị sập 404)
         Start-Process -FilePath "robocopy" `
-            -ArgumentList "`"$classesTempDir`"", "`"$classesDir`"", "/mir", "/w:1", "/r:1", "/ndl", "/nfl" `
+            -ArgumentList "`"$classesTempDir`"", "`"$classesDir`"", "/e", "/w:1", "/r:1", "/ndl", "/nfl" `
             -NoNewWindow -Wait
             
         Remove-Item $classesTempDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -740,8 +743,7 @@ function Deploy-App {
         Write-Host "Context XML updated at: $contextXmlPath" -ForegroundColor Yellow
     }
 
-    Write-Host "`n===== [5/6] STARTING TOMCAT SERVER =====" -ForegroundColor Green
-    Start-Process -FilePath "$tomcatHome\bin\startup.bat" -NoNewWindow
+    Start-Process -FilePath "$tomcatHome\bin\startup.bat"
     Write-Host "Tomcat startup script executed." -ForegroundColor Yellow
 
     # Wait for Tomcat to start
@@ -927,16 +929,18 @@ function Run-Tests {
         Write-Host "[ERROR] No test Java files found in test/!" -ForegroundColor Red
         return
     }
-    [System.IO.File]::WriteAllLines("test_sources.txt", $testFiles)
+    
+    $testSourcesTxtPath = Join-Path (Get-Location).Path "test_sources.txt"
+    [System.IO.File]::WriteAllLines($testSourcesTxtPath, $testFiles)
     
     $testClasspath = "build/web/WEB-INF/classes;web/WEB-INF/lib/*;lib/test/*;$tomcatHome/lib/*"
     
     Write-Host "Compiling test Java classes..." -ForegroundColor Yellow
-    $testJavacArgs = "-encoding UTF-8 -cp `"$testClasspath`" -d `"$testBuildDir`" @test_sources.txt"
+    $testJavacArgs = "-encoding UTF-8 -cp `"$testClasspath`" -d `"$testBuildDir`" @`"$testSourcesTxtPath`""
     $testOutput = cmd.exe /c "javac $testJavacArgs 2>&1"
     $testExit = $LASTEXITCODE
     
-    if (Test-Path "test_sources.txt") { Remove-Item "test_sources.txt" -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $testSourcesTxtPath) { Remove-Item $testSourcesTxtPath -Force -ErrorAction SilentlyContinue }
     
     if ($testExit -ne 0) {
         Write-Host "[ERROR] Test compilation failed!" -ForegroundColor Red
@@ -949,20 +953,9 @@ function Run-Tests {
     Write-Host "`nRunning JUnit Tests..." -ForegroundColor Cyan
     $runClasspath = "build/test/classes;build/web/WEB-INF/classes;web/WEB-INF/lib/*;lib/test/*;$tomcatHome/lib/*"
     
-    $testClasses = @(
-        "com.fruitmkt.test.ProductApprovalTest",
-        "com.fruitmkt.test.CategoryCRUDTest",
-        "com.fruitmkt.test.CartOrderFlowTest",
-        "com.fruitmkt.test.CheckoutServletPricingRegressionTest",
-        "com.fruitmkt.test.UserAuthFlowTest",
-        "com.fruitmkt.test.PromotionVoucherTest",
-        "com.fruitmkt.test.PromotionServletCrudToggleTest",
-        "com.fruitmkt.test.PaymentDashboardSmokeTest",
-        "com.fruitmkt.test.ProductBusinessRulesTest",
-        "com.fruitmkt.test.SettlementAndReturnRulesTest",
-        "com.fruitmkt.test.AiSearchTest",
-        "com.fruitmkt.test.ChatNotificationTest"
-    )
+    # Dynamically find all test classes under test/test
+    $testJavaFiles = Get-ChildItem -Path "test/test" -Filter "*.java" -Recurse | ForEach-Object { $_.BaseName }
+    $testClasses = $testJavaFiles | ForEach-Object { "test.$_" }
     
     $cmdRun = "java -cp `"$runClasspath`" org.junit.runner.JUnitCore $($testClasses -join ' ')"
     cmd.exe /c $cmdRun

@@ -68,15 +68,25 @@
             </div>
 
             <!-- Flash Message (PRG pattern support) -->
+            <%-- Dùng data-* attribute để tránh JS string injection khi message chứa ' hoặc \ --%>
             <c:if test="${not empty sessionScope.flashMsg}">
+                <div id="flashData" hidden
+                     data-icon="<c:out value="${sessionScope.flashType == 'success' ? 'success' : 'error'}"/>"
+                     data-title="<c:out value="${sessionScope.flashType == 'success' ? 'Thành công' : 'Lỗi'}"/>"
+                     data-text="<c:out value="${sessionScope.flashMsg}"/>"></div>
                 <script>
-                    Swal.fire({
-                        icon: '${sessionScope.flashType == "success" ? "success" : "error"}',
-                        title: '${sessionScope.flashType == "success" ? "Thành công" : "Lỗi"}',
-                        text: '${sessionScope.flashMsg}',
-                        timer: 3000,
-                        showConfirmButton: false
-                    });
+                    (function() {
+                        var el = document.getElementById('flashData');
+                        if (el) {
+                            Swal.fire({
+                                icon: el.dataset.icon,
+                                title: el.dataset.title,
+                                text: el.dataset.text,
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                        }
+                    })();
                 </script>
                 <c:remove var="flashMsg" scope="session"/>
                 <c:remove var="flashType" scope="session"/>

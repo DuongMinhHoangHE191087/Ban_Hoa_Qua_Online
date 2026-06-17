@@ -1399,9 +1399,14 @@
                             </div>
                         </div>
                     </div>
-                    <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" class="btn-visit-shop-hero">
-                        <i class="fa-solid fa-store"></i> Ghé Thăm Shop
-                    </a>
+                    <div class="flex items-center gap-2">
+                        <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" class="btn-visit-shop-hero">
+                            <i class="fa-solid fa-store"></i> Ghé Thăm Shop
+                        </a>
+                        <button type="button" id="btnChatWithShop" data-owner-id="${shopProfile.userId}" class="btn-visit-shop-hero" style="background: white; color: var(--color-primary); border: 2.5px solid var(--color-primary); display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px;">
+                            <i class="fa-solid fa-comments"></i> Chat Với Shop
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Shipping Info Section -->
@@ -2284,6 +2289,37 @@
                 const initialStock = parseInt(fillIndicator.getAttribute('data-initial-stock')) || 0;
                 updateStockIndicator(initialStock);
             }
+        }
+
+        const btnChatWithShop = document.getElementById('btnChatWithShop');
+        if (btnChatWithShop) {
+            btnChatWithShop.addEventListener('click', function() {
+                const ownerId = this.getAttribute('data-owner-id');
+                const csrfToken = '${sessionScope._csrfToken}';
+                const ctx = '${pageContext.request.contextPath}';
+                
+                fetch(ctx + '/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({
+                        action: 'createShopSession',
+                        ownerId: ownerId,
+                        _csrf: csrfToken
+                    }).toString()
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data && data.data.sessionId) {
+                        window.location.href = ctx + '/chat?sessionId=' + data.data.sessionId;
+                    } else {
+                        alert(data.error || data.message || 'Vui lòng đăng nhập tài khoản khách hàng để nhắn tin với cửa hàng.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Lỗi kết nối máy chủ.');
+                });
+            });
         }
     });
 </script>
