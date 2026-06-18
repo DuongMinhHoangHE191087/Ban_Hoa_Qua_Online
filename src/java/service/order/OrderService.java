@@ -318,6 +318,10 @@ public class OrderService {
         return orderDAO.getRevenueByOwner(ownerId);
     }
 
+    public BigDecimal getEstimatedRevenueByOwner(int ownerId) throws SQLException {
+        return orderDAO.getEstimatedRevenueByOwner(ownerId);
+    }
+
     public int getOrderCountByOwner(int ownerId) throws SQLException {
         return orderDAO.countByOwner(ownerId, null);
     }
