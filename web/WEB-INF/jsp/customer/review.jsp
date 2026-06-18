@@ -83,34 +83,82 @@
 
 <style>
     .premium-glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.05);
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1.5px solid rgba(134, 239, 172, 0.35);
+        box-shadow: 
+            0 20px 40px -15px rgba(34, 197, 94, 0.08),
+            0 1px 3px rgba(20, 83, 45, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .premium-glass-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 30px 60px -20px rgba(34, 197, 94, 0.15),
+            0 2px 8px rgba(20, 83, 45, 0.08);
+        border-color: rgba(134, 239, 172, 0.55);
     }
     .star-rating {
         display: flex;
         flex-direction: row-reverse;
         justify-content: flex-end;
-        gap: 6px;
+        gap: 8px;
     }
     .star-rating input {
         display: none;
     }
     .star-rating label {
-        font-size: 2.25rem;
-        color: #cbd5e1;
+        font-size: 2.5rem;
+        color: #e2e8f0;
         cursor: pointer;
-        transition: all 0.15s ease-in-out;
+        transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
     .star-rating input:checked ~ label,
     .star-rating label:hover,
     .star-rating label:hover ~ label {
         color: #fbbf24;
+        transform: scale(1.15) rotate(3deg);
+        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
     }
     .star-rating label:active {
-        transform: scale(0.9);
+        transform: scale(0.9) rotate(-3deg);
+    }
+    .file-upload-box {
+        border: 2px dashed rgba(197, 200, 183, 0.6);
+        background: rgba(255, 255, 255, 0.6);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .file-upload-box:hover {
+        border-color: #4d661c;
+        background: rgba(240, 253, 244, 0.6);
+        box-shadow: 0 0 15px rgba(77, 102, 28, 0.08);
+    }
+    .textarea-premium {
+        border: 1px solid rgba(197, 200, 183, 0.6);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.7);
+    }
+    .textarea-premium:focus {
+        border-color: #4d661c;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(77, 102, 28, 0.12);
+        outline: none;
+    }
+    .btn-submit-premium {
+        background: linear-gradient(135deg, #4d661c 0%, #31694b 100%);
+        box-shadow: 0 4px 15px rgba(77, 102, 28, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-submit-premium:hover {
+        background: linear-gradient(135deg, #364e03 0%, #1e3f2d 100%);
+        box-shadow: 0 8px 25px rgba(77, 102, 28, 0.45);
+        transform: translateY(-1.5px);
+    }
+    .btn-submit-premium:active {
+        transform: translateY(0);
     }
 </style>
 
@@ -170,19 +218,19 @@
                             <label class="block text-sm font-bold text-inverse-surface mb-2">Đánh giá chất lượng (Sao):</label>
                             <div class="flex items-center gap-4">
                                 <div class="star-rating">
-                                    <input type="radio" id="star5-${item.orderItemId}" name="rating" value="5" required onclick="updateRatingLabel(${item.orderItemId}, 5)" />
+                                    <input type="radio" id="star5-${item.orderItemId}" name="rating" value="5" required onclick="updateRatingLabel('${item.orderItemId}', 5)" />
                                     <label for="star5-${item.orderItemId}" class="fa-solid fa-star hover:scale-110"></label>
                                     
-                                    <input type="radio" id="star4-${item.orderItemId}" name="rating" value="4" onclick="updateRatingLabel(${item.orderItemId}, 4)" />
+                                    <input type="radio" id="star4-${item.orderItemId}" name="rating" value="4" onclick="updateRatingLabel('${item.orderItemId}', 4)" />
                                     <label for="star4-${item.orderItemId}" class="fa-solid fa-star hover:scale-110"></label>
                                     
-                                    <input type="radio" id="star3-${item.orderItemId}" name="rating" value="3" onclick="updateRatingLabel(${item.orderItemId}, 3)" />
+                                    <input type="radio" id="star3-${item.orderItemId}" name="rating" value="3" onclick="updateRatingLabel('${item.orderItemId}', 3)" />
                                     <label for="star3-${item.orderItemId}" class="fa-solid fa-star hover:scale-110"></label>
                                     
-                                    <input type="radio" id="star2-${item.orderItemId}" name="rating" value="2" onclick="updateRatingLabel(${item.orderItemId}, 2)" />
+                                    <input type="radio" id="star2-${item.orderItemId}" name="rating" value="2" onclick="updateRatingLabel('${item.orderItemId}', 2)" />
                                     <label for="star2-${item.orderItemId}" class="fa-solid fa-star hover:scale-110"></label>
                                     
-                                    <input type="radio" id="star1-${item.orderItemId}" name="rating" value="1" onclick="updateRatingLabel(${item.orderItemId}, 1)" />
+                                    <input type="radio" id="star1-${item.orderItemId}" name="rating" value="1" onclick="updateRatingLabel('${item.orderItemId}', 1)" />
                                     <label for="star1-${item.orderItemId}" class="fa-solid fa-star hover:scale-110"></label>
                                 </div>
                                 <span id="rating-label-${item.orderItemId}" class="text-sm font-extrabold text-amber-500 transition-all duration-200"></span>
@@ -192,11 +240,11 @@
                         <!-- Image Attachment Upload -->
                         <div>
                             <label class="block text-sm font-bold text-inverse-surface mb-1.5">Hình ảnh sản phẩm thực tế (Tải lên ảnh):</label>
-                            <div class="border border-dashed border-outline-variant/60 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-white"
+                            <div class="file-upload-box rounded-xl p-4 text-center cursor-pointer bg-white"
                                  onclick="document.getElementById('reviewImage-${item.orderItemId}').click()">
                                 <span class="material-symbols-outlined text-outline text-2xl mb-1 block">cloud_upload</span>
                                 <span class="text-xs text-on-surface-variant font-medium block">Nhấn để chọn hình ảnh tải lên từ máy của bạn</span>
-                                <input type="file" name="reviewImage" id="reviewImage-${item.orderItemId}" accept="image/*" class="hidden" onchange="previewReviewImage(event, ${item.orderItemId})">
+                                <input type="file" name="reviewImage" id="reviewImage-${item.orderItemId}" accept="image/*" class="hidden" onchange="previewReviewImage(event, '${item.orderItemId}')">
                                 <div class="mt-3 flex justify-center">
                                     <img id="imagePreview-${item.orderItemId}" src="#" alt="Preview" class="hidden max-h-36 rounded-lg shadow-sm border border-outline-variant/20 object-cover">
                                 </div>
@@ -206,11 +254,11 @@
                         <!-- Review Text -->
                         <div>
                             <label class="block text-sm font-bold text-inverse-surface mb-1.5" for="reviewText-${item.orderItemId}">Nhận xét chi tiết sản phẩm:</label>
-                            <textarea class="w-full rounded-xl border border-outline-variant/40 p-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary text-sm transition-all" id="reviewText-${item.orderItemId}" name="reviewText" rows="4" placeholder="Nhập cảm nhận của bạn về độ tươi, mùi vị, quy cách đóng gói hộp lạnh..." required></textarea>
+                            <textarea class="w-full rounded-xl textarea-premium p-3 text-sm" id="reviewText-${item.orderItemId}" name="reviewText" rows="4" placeholder="Nhập cảm nhận của bạn về độ tươi, mùi vị, quy cách đóng gói hộp lạnh..." required></textarea>
                         </div>
 
                         <div class="text-end border-t border-outline-variant/20 pt-4">
-                            <button type="submit" class="bg-primary text-on-primary hover:bg-inverse-surface px-6 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 transform flex items-center justify-center gap-1.5 ml-auto cursor-pointer">
+                            <button type="submit" class="btn-submit-premium text-on-primary px-6 py-3 rounded-xl font-bold active:scale-95 transform flex items-center justify-center gap-1.5 ml-auto cursor-pointer">
                                 <span class="material-symbols-outlined text-lg">send</span> Gửi đánh giá
                             </button>
                         </div>
