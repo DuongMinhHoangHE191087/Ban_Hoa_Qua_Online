@@ -69,6 +69,29 @@ public class ShopProfileServlet extends HttpServlet {
                 profile.setDeliveryAddress(req.getParameter("deliveryAddress"));
                 profile.setPreferredCategories(req.getParameter("preferredCategories"));
                 profile.setBusinessEmail(req.getParameter("businessEmail"));
+                
+                String expiryDaysRaw = req.getParameter("expiryWarningDays");
+                if (expiryDaysRaw != null && !expiryDaysRaw.trim().isEmpty()) {
+                    try {
+                        profile.setExpiryWarningDays(Integer.parseInt(expiryDaysRaw.trim()));
+                    } catch (NumberFormatException e) {
+                        profile.setExpiryWarningDays(3);
+                    }
+                } else {
+                    profile.setExpiryWarningDays(3);
+                }
+
+                String lowStockRaw = req.getParameter("lowStockThreshold");
+                if (lowStockRaw != null && !lowStockRaw.trim().isEmpty()) {
+                    try {
+                        profile.setLowStockThreshold(Integer.parseInt(lowStockRaw.trim()));
+                    } catch (NumberFormatException e) {
+                        profile.setLowStockThreshold(5);
+                    }
+                } else {
+                    profile.setLowStockThreshold(5);
+                }
+
                 // Note: shopName update might be restricted, but let's allow it for now
                 String newName = req.getParameter("shopName");
                 if (newName != null && !newName.trim().isEmpty()) {
