@@ -134,7 +134,39 @@ public class ProductDetailServlet extends HttpServlet {
             // AJAX format=json support for quick-view and variant selector modals on Home page
             String format = req.getParameter("format");
             boolean isJson = "json".equals(format) || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+            
             if (isJson) {
+                String actionParam = req.getParameter("action");
+                if ("getReviews".equals(actionParam)) {
+                    // Xử lý bộ lọc đánh giá theo số sao
+                    String ratingParam = req.getParameter("rating");
+                    Integer ratingFilter = null;
+                    try {
+                        if (ratingParam != null && !ratingParam.trim().isEmpty()) {
+                            int ratingVal = Integer.parseInt(ratingParam.trim());
+                            if (ratingVal >= 1 && ratingVal <= 5) {
+                                ratingFilter = ratingVal;
+                            }
+                        }
+                    } catch (NumberFormatException e) {}
+
+                    // Xử lý phân trang
+                    String pageParam = req.getParameter("page");
+                    int reviewPage = 1;
+                    try {
+                        if (pageParam != null && !pageParam.trim().isEmpty()) {
+                            reviewPage = Integer.parseInt(pageParam.trim());
+                            if (reviewPage < 1) reviewPage = 1;
+                        }
+                    } catch (NumberFormatException e) {}
+
+                    int reviewPageSize = 5;
+                    PagedResultDTO reviewPagedResult = reviewService.getReviewsPaginated(productId, ratingFilter, reviewPage, reviewPageSize);
+
+                    util.JsonUtil.writeJson(resp, ApiResponse.ok(reviewPagedResult));
+                    return;
+                }
+
                 // ── Kiểm tra điều kiện tồn tại trước khi trả JSON ──
                 // Sản phẩm hết mùa — khách không thể mua
                 if (isExpiredProduct) {

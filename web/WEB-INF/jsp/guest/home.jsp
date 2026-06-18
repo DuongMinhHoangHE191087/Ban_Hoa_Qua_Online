@@ -171,7 +171,7 @@
                                     <div
                                         class="w-full glass-panel p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group focus-within:ring-2 focus-within:ring-primary/20 relative z-20">
                                         <form action="${pageContext.request.contextPath}/home" method="get"
-                                            class="flex items-center w-full">
+                                            class="flex items-center w-full" id="heroSearchForm" onsubmit="handleHeroSearch(event)">
                                             <c:if test="${not empty selectedCategoryId}">
                                                 <input type="hidden" name="categoryId" value="${selectedCategoryId}">
                                             </c:if>
@@ -984,22 +984,22 @@
 
                                 <div class="flex items-center gap-2.5 overflow-x-auto pb-2.5 hide-scrollbar">
                                     <!-- All category option -->
-                                    <a href="${pageContext.request.contextPath}/home?keyword=${keyword}" class="px-5 py-2 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm border
+                                    <a href="${pageContext.request.contextPath}/home?keyword=${keyword}" class="category-pill px-5 py-2 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm border
                                 transition-all hover:scale-105 duration-200 ${empty selectedCategoryId ? 'bg-primary
                                 text-white border-primary shadow-emerald-950/10' : 'bg-white border-white/60
-                                text-on-surface-variant hover:bg-emerald-50'}">
+                                text-on-surface-variant hover:bg-emerald-50'}" onclick="filterCategoryAjax(event, null)">
                                         Tất cả sản phẩm
                                     </a>
 
                                     <!-- Database Driven Categories -->
                                     <c:forEach var="cat" items="${categories}">
                                         <a href="${pageContext.request.contextPath}/home?categoryId=${cat.categoryId}&keyword=${keyword}"
-                                            class="px-5 py-2 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm
+                                            class="category-pill px-5 py-2 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm
                                     border
                                     transition-all hover:scale-105 duration-200 ${selectedCategoryId == cat.categoryId ?
                                     'bg-primary text-white border-primary shadow-emerald-950/10' : 'bg-white
                                     border-white/60
-                                    text-on-surface-variant hover:bg-emerald-50'}">
+                                    text-on-surface-variant hover:bg-emerald-50'}" onclick="filterCategoryAjax(event, '${cat.categoryId}')">
                                             <c:out value="${cat.name}" />
                                         </a>
                                     </c:forEach>
@@ -1008,7 +1008,7 @@
                         </section>
 
                         <!-- SEASONAL HARVEST CATALOG GRID -->
-                        <section class="px-6 md:px-12 max-w-7xl mx-auto pb-32 relative z-10">
+                        <section id="catalog-grid" class="px-6 md:px-12 max-w-7xl mx-auto pb-32 relative z-10">
 
                             <!-- Section Header -->
                             <div class="flex justify-between items-center mb-8">
@@ -1032,6 +1032,7 @@
                                 </c:if>
                             </div>
 
+                             <div id="catalog-products-container" class="w-full" data-selected-category="${selectedCategoryId}" data-keyword="${fn:escapeXml(keyword)}">
                             <!-- Empty Products Fallback State -->
                             <c:if test="${empty normalProducts}">
                                 <div
@@ -1237,7 +1238,18 @@
                                         </c:choose>
                                     </div>
                                 </c:if>
+
+                                <!-- View All Products Button -->
+                                <div class="flex justify-center mt-8">
+                                    <a href="${pageContext.request.contextPath}/products"
+                                        class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                                        style="text-decoration: none;">
+                                        <span class="material-symbols-outlined text-[18px]">grid_view</span>
+                                        <span>Xem tất cả sản phẩm</span>
+                                    </a>
+                                </div>
                             </c:if>
+                            </div>
                         </section>
 
                     </div><!-- end main wrapper -->
@@ -1941,6 +1953,217 @@
                         }
 
                         // Launch initializers
+                        const catalogProdContainer = document.getElementById('catalog-products-container');
+                        let currentCategoryId = catalogProdContainer && catalogProdContainer.getAttribute('data-selected-category') ? catalogProdContainer.getAttribute('data-selected-category') : null;
+                        let currentKeyword = catalogProdContainer && catalogProdContainer.getAttribute('data-keyword') ? catalogProdContainer.getAttribute('data-keyword') : '';
+
+                        function handleHeroSearch(event) {
+                            if (event) event.preventDefault();
+                            const keywordInput = document.getElementById('searchInput');
+                            currentKeyword = keywordInput ? keywordInput.value.trim() : '';
+                            searchProductsAjax(currentKeyword, currentCategoryId, 1);
+                        }
+
+                        function filterCategoryAjax(event, categoryId) {
+                            if (event) event.preventDefault();
+                            currentCategoryId = categoryId;
+                            
+                            // Update active style of pills
+                            document.querySelectorAll('.category-pill').forEach(el => {
+                                el.classList.remove('bg-primary', 'text-white', 'border-primary', 'shadow-emerald-950/10');
+                                el.classList.add('bg-white', 'border-white/60', 'text-on-surface-variant', 'hover:bg-emerald-50');
+                            });
+                            
+                            const activeEl = event.currentTarget;
+                            activeEl.classList.remove('bg-white', 'border-white/60', 'text-on-surface-variant', 'hover:bg-emerald-50');
+                            activeEl.classList.add('bg-primary', 'text-white', 'border-primary', 'shadow-emerald-950/10');
+                            
+                            searchProductsAjax(currentKeyword, currentCategoryId, 1);
+                        }
+
+                        async function searchProductsAjax(keyword, categoryId, page) {
+                            const container = document.getElementById('catalog-products-container');
+                            if (!container) return;
+                            
+                            // Add opacity and disable interactions
+                            container.style.opacity = '0.5';
+                            container.style.pointerEvents = 'none';
+                            
+                            try {
+                                let url = `${pageContext.request.contextPath}/home?format=json&page=${page}`;
+                                if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+                                if (categoryId) url += `&categoryId=${categoryId}`;
+                                
+                                const response = await fetch(url);
+                                const result = await response.json();
+                                
+                                container.style.opacity = '1';
+                                container.style.pointerEvents = 'auto';
+                                
+                                if (result.success && result.data) {
+                                    renderCatalogProducts(result.data);
+                                    // Smooth scroll to catalog-grid
+                                    const catalogGrid = document.getElementById('catalog-grid');
+                                    if (catalogGrid) {
+                                        catalogGrid.scrollIntoView({ behavior: 'smooth' });
+                                    }
+                                    if (window.updateCardAddedQuantities) {
+                                        window.updateCardAddedQuantities();
+                                    }
+                                }
+                            } catch (err) {
+                                console.error("Lỗi AJAX search:", err);
+                                container.style.opacity = '1';
+                                container.style.pointerEvents = 'auto';
+                            }
+                        }
+
+                        function renderCatalogProducts(data) {
+                            const container = document.getElementById('catalog-products-container');
+                            if (!container) return;
+                            
+                            const products = data.normalProducts || [];
+                            const currentPage = data.currentPage || 1;
+                            const totalPages = data.totalPages || 1;
+                            const ctx = '${pageContext.request.contextPath}';
+                            
+                            if (products.length === 0) {
+                                container.innerHTML = `
+                                    <div class="glass-panel rounded-3xl p-16 text-center max-w-2xl mx-auto ambient-shadow flex flex-col items-center gap-4">
+                                        <span class="material-symbols-outlined text-[64px] text-primary/40 animate-pulse">eco</span>
+                                        <div>
+                                            <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
+                                            <p class="text-xs text-on-surface-variant font-light mt-1">Xin lỗi, hệ thống không tìm thấy trái cây khớp với bộ lọc tìm kiếm của bạn. Hãy thử đổi từ khóa khác nhé!</p>
+                                        </div>
+                                        <a href="${ctx}/home" class="btn btn-primary btn-sm px-6 py-2.5 rounded-full mt-2">Quay lại Trang chủ</a>
+                                    </div>
+                                `;
+                                return;
+                            }
+                            
+                            let html = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">';
+                            
+                            products.forEach(item => {
+                                let starsHtml = '';
+                                const ratingVal = parseFloat(item.rating) || 0;
+                                const fullStars = Math.floor(ratingVal);
+                                const halfStar = (ratingVal - fullStars) >= 0.5 ? 1 : 0;
+                                const emptyStars = 5 - fullStars - halfStar;
+                                
+                                for (let i = 0; i < fullStars; i++) starsHtml += '<i class="fa-solid fa-star text-amber-500 mr-0.5"></i>';
+                                if (halfStar) starsHtml += '<i class="fa-solid fa-star-half-stroke text-amber-500 mr-0.5"></i>';
+                                for (let i = 0; i < emptyStars; i++) starsHtml += '<i class="fa-regular fa-star text-amber-500 mr-0.5"></i>';
+                                
+                                const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price);
+                                
+                                html += `
+                                    <article data-product-id="${item.productId}"
+                                        class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
+                                        <a href="${ctx}/products/detail?id=${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
+                                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                                <img src="${item.image}" alt="${escapeHtml(item.name)}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-${item.productId}">Đã thêm 0</div>
+                                                <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">Nông sản sạch</div>
+                                            </div>
+                                            <div class="px-1 mb-3">
+                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">${escapeHtml(item.name)}</h3>
+                                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">${escapeHtml(item.description || '')}</p>
+                                                <div class="flex justify-between items-center">
+                                                    <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">${starsHtml}<span class="text-xs text-on-surface-variant ml-1 font-semibold">${ratingVal.toFixed(1)}</span></div>
+                                                    <span class="text-[10px] text-on-surface-variant font-medium">Đã bán ${item.soldQuantity || 0}</span>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
+                                            <div class="flex flex-col">
+                                                <span class="text-base font-bold text-primary">${formattedPrice}</span>
+                                                <span class="text-[10px] text-on-surface-variant font-light">/ ${escapeHtml(item.unit || 'kg')}</span>
+                                            </div>
+                                            <button type="button" onclick="quickAddProduct(event, '${item.productId}')" class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer" title="Thêm vào giỏ">
+                                                <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+                                            </button>
+                                        </div>
+                                    </article>
+                                `;
+                            });
+                            
+                            html += '</div>';
+                            
+                            // Pagination
+                            if (totalPages > 1) {
+                                html += '<div class="flex justify-center items-center mt-12 gap-2">';
+                                
+                                // Prev
+                                if (currentPage > 1) {
+                                    html += `
+                                        <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, ${currentPage - 1})"
+                                            class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                                        </button>
+                                    `;
+                                } else {
+                                    html += `
+                                        <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                                        </span>
+                                    `;
+                                }
+                                
+                                // Pages
+                                for (let p = 1; p <= totalPages; p++) {
+                                    if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+                                        if (currentPage === p) {
+                                            html += `<span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">${p}</span>`;
+                                        } else {
+                                            html += `
+                                                <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, ${p})"
+                                                    class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                                    ${p}
+                                                </button>
+                                            `;
+                                        }
+                                    } else if ((p === 2 && currentPage > 3) || (p === totalPages - 1 && currentPage < totalPages - 2)) {
+                                        html += `<span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>`;
+                                    }
+                                }
+                                
+                                // Next
+                                if (currentPage < totalPages) {
+                                    html += `
+                                        <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, ${currentPage + 1})"
+                                            class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                                        </button>
+                                    `;
+                                } else {
+                                    html += `
+                                        <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                                        </span>
+                                    `;
+                                }
+                                
+                                html += '</div>';
+                            }
+                            
+                            // View All button
+                            html += `
+                                <div class="flex justify-center mt-8">
+                                    <a href="${ctx}/products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer" style="text-decoration: none;">
+                                        <span class="material-symbols-outlined text-[18px]">grid_view</span>
+                                        <span>Xem tất cả sản phẩm</span>
+                                    </a>
+                                </div>
+                            `;
+                            
+                            container.innerHTML = html;
+                        }
+
+                        function escapeHtml(str) {
+                            if (!str) return '';
+                            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+                        }
+
                         document.addEventListener('DOMContentLoaded', () => {
                             // Initialize Hero Slideshow
                             showSlide(0);
@@ -1956,6 +2179,17 @@
                                     el.style.width = w + '%';
                                 }
                             });
+
+                            // Auto scroll to catalog grid if search query or category is applied
+                            const urlParams = new URLSearchParams(window.location.search);
+                            if (urlParams.has('keyword') || urlParams.has('categoryId')) {
+                                const catalogGrid = document.getElementById('catalog-grid');
+                                if (catalogGrid) {
+                                    setTimeout(() => {
+                                        catalogGrid.scrollIntoView({ behavior: 'smooth' });
+                                    }, 300);
+                                }
+                            }
                         });
                     </script>
 

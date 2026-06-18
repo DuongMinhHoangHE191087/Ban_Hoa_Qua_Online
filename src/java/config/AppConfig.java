@@ -78,6 +78,9 @@ public final class AppConfig {
         public static final long MAX_UPLOAD_SIZE_BYTES = 5L * 1024 * 1024;
         /** Thư mục upload relative với webapp root — tạo bằng FileUploadUtil */
         public static final String UPLOAD_DIR = "uploads";
+        /** Thư mục lưu trữ file upload thực tế bền vững ngoài thư mục build */
+        public static final String PERSISTENT_UPLOAD_DIR = System.getProperty("user.home") 
+                + java.io.File.separator + "fruitshop_uploads";
         /** Các đuôi file ảnh được phép */
         public static final String[] ALLOWED_IMAGE_EXTS = { "jpg", "jpeg", "png", "webp" };
 

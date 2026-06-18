@@ -86,8 +86,7 @@ public class ChatMediaUploadServlet extends HttpServlet {
                 return;
             }
 
-            String appPath = req.getServletContext().getRealPath("");
-            String savePath = appPath + File.separator + UPLOAD_DIR;
+            String savePath = AppConfig.PERSISTENT_UPLOAD_DIR + File.separator + "chat";
             File fileSaveDir = new File(savePath);
             if (!fileSaveDir.exists()) {
                 fileSaveDir.mkdirs();

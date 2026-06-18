@@ -92,7 +92,7 @@
                             <tr>
                                 <th class="text-center">Mã YC</th>
                                 <th>Đơn hàng</th>
-                                <th>Sản phẩm & Biến thể</th>
+                                <th>Sản phẩm & Phân loại</th>
                                 <th>Khách hàng</th>
                                 <th class="text-center">Loại YC</th>
                                 <th>Lý do & Mô tả</th>

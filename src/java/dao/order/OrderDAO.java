@@ -617,6 +617,22 @@ public class OrderDAO extends BaseDAO {
         return java.math.BigDecimal.ZERO;
     }
 
+    /** Tính tổng doanh thu tạm tính của shop owner (các đơn hàng active chưa DELIVERED/CANCELLED). */
+    public java.math.BigDecimal getEstimatedRevenueByOwner(int ownerId) throws SQLException {
+        String sql = "SELECT SUM(final_amount) FROM orders WHERE owner_id = ? AND status IN ('PENDING_PAYMENT', 'CONFIRMED', 'APPROVED', 'PREPARING', 'DISPATCHED') AND order_type = 'CHILD'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.math.BigDecimal revenue = rs.getBigDecimal(1);
+                    return revenue != null ? revenue : java.math.BigDecimal.ZERO;
+                }
+            }
+        }
+        return java.math.BigDecimal.ZERO;
+    }
+
 
     /** Ánh xạ ResultSet -> Order — gọi trong mọi query SELECT */
     private Order mapRow(ResultSet rs) throws SQLException {

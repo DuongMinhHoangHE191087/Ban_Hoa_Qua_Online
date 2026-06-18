@@ -436,7 +436,7 @@
                                     </div>
                                     <div class="flex flex-col flex-grow">
                                         <span class="font-label-md text-label-md text-on-surface text-lg font-bold"><c:out value="${item.productName}"/></span>
-                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Biến thể: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></span>
+                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Phân loại: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></span>
                                         <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">Trọng lượng: <c:out value="${item.weightKg}"/> kg</span>
                                         <c:if test="${not empty item.packagingLabel}">
                                             <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 block">

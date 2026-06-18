@@ -63,14 +63,35 @@ public class ShopDocServeServlet extends HttpServlet {
 
         // 4. Xác định đường dẫn tuyệt đối trên đĩa và bảo vệ sandbox
         String webAppRoot = getServletContext().getRealPath("");
-        File targetFile = new File(webAppRoot, docPath);
+        File targetFile = null;
+
+        // Trích xuất relative path sau "uploads/"
+        String relativePath = docPath;
+        if (docPath.startsWith(AppConfig.UPLOAD_DIR + "/")) {
+            relativePath = docPath.substring(AppConfig.UPLOAD_DIR.length() + 1);
+        } else if (docPath.startsWith(AppConfig.UPLOAD_DIR + "\\")) {
+            relativePath = docPath.substring(AppConfig.UPLOAD_DIR.length() + 1);
+        }
+
+        // Thử tìm trong thư mục bền vững trước
+        File persistentFile = new File(AppConfig.PERSISTENT_UPLOAD_DIR, relativePath);
+        if (persistentFile.exists() && persistentFile.isFile()) {
+            targetFile = persistentFile;
+        } else {
+            targetFile = new File(webAppRoot, docPath);
+        }
 
         try {
             // Chuẩn hóa canonical path để đối chiếu sandbox
             String canonicalRoot = new File(webAppRoot, AppConfig.UPLOAD_SHOP_DOCS_DIR).getCanonicalPath();
+            File persistentShopDocs = new File(AppConfig.PERSISTENT_UPLOAD_DIR, "shop-docs");
+            if (!persistentShopDocs.exists()) {
+                persistentShopDocs.mkdirs();
+            }
+            String canonicalPersistentRoot = persistentShopDocs.getCanonicalPath();
             String canonicalTarget = targetFile.getCanonicalPath();
 
-            if (!canonicalTarget.startsWith(canonicalRoot)) {
+            if (!canonicalTarget.startsWith(canonicalRoot) && !canonicalTarget.startsWith(canonicalPersistentRoot)) {
                 getServletContext().log("ShopDocServeServlet: Chặn truy cập ngoài sandbox! Path: " + logPath);
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Yêu cầu không hợp lệ.");
                 return;

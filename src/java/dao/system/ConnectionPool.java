@@ -40,7 +40,7 @@ public final class ConnectionPool {
     private static final long POOL_VALIDATION_INTERVAL_MS = 0L; // validate on every borrow
 
     // ---- Abandoned detection — thu hồi connection bị leak ----
-    private static final int  POOL_ABANDONED_TIMEOUT_S    = 300;      // reclaim sau 300s giữ liên tục
+    private static final int  POOL_ABANDONED_TIMEOUT_S    = 30;       // reclaim sau 30s giữ liên tục (giảm từ 300s để tránh lock DB)
 
     private static final String VALIDATION_QUERY = "SELECT 1";
 

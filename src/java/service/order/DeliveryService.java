@@ -121,17 +121,31 @@ public class DeliveryService {
 
     public void assignShipper(Connection conn, int orderId, int staffId, LocalDateTime estimatedTime) throws SQLException {
         validateEstimatedTime(estimatedTime);
-        List<Order> orders = orderDAO.findById(orderId);
-        Order order = orders.isEmpty() ? null : orders.get(0);
-        if (order == null) {
-            throw new IllegalArgumentException("Không tìm thấy thông tin đơn hàng để tạo chuyến giao.");
-        }
-        int parentOrderId = order.getParentOrderId() != null ? order.getParentOrderId() : order.getOrderId();
+        // CRITICAL FIX: Do NOT call orderDAO.findById() here — it opens a NEW connection
+        // which deadlocks against the active transaction held by `conn`.
+        // Instead, derive parentOrderId directly using the same connection.
+        int parentOrderId = getParentOrderId(conn, orderId);
         String tripStatus = staffId > 0 ? AppConfig.DELIVERY_TRIP_ASSIGNED : AppConfig.DELIVERY_TRIP_PLANNED;
         int tripId = deliveryTripDAO.save(conn, parentOrderId, staffId > 0 ? staffId : null,
                 tripStatus, null, estimatedTime);
         deliveryDAO.assignShipper(conn, orderId, tripId, 1, staffId, estimatedTime);
     }
+
+    /**
+     * Lấy parent_order_id của một đơn hàng dùng Connection đã có sẵn (tránh deadlock).
+     * Nếu không có parent thì trả về chính orderId.
+     */
+    private int getParentOrderId(Connection conn, int orderId) throws SQLException {
+        String sql = "SELECT ISNULL(parent_order_id, order_id) AS parent_id FROM orders WHERE order_id = ?";
+        try (java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("parent_id");
+            }
+        }
+        return orderId; // fallback
+    }
+
 
     public Delivery getDeliveryByOrderId(int orderId) throws SQLException {
         return deliveryDAO.findByOrderId(orderId);

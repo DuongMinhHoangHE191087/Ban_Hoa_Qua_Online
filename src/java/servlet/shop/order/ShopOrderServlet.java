@@ -2,6 +2,7 @@ package servlet.shop.order;
 
 import config.AppConfig;
 import util.SessionUtil;
+import util.LoggerUtil;
 import service.order.OrderService;
 
 import model.dto.common.PagedResultDTO;
@@ -12,6 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.logging.Logger;
 
 /**
  * ShopOrderServlet — Controller cho chức năng: Đơn hàng của shop, filter theo status
@@ -32,6 +36,8 @@ import java.time.LocalDateTime;
 @WebServlet("/shop/orders")
 public class ShopOrderServlet extends HttpServlet {
 
+    private static final Logger log = Logger.getLogger(ShopOrderServlet.class.getName());
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     private final OrderService orderService = new OrderService();
 
     @Override
@@ -96,16 +102,37 @@ public class ShopOrderServlet extends HttpServlet {
                 String estimateStr = req.getParameter("estimatedDeliveryTime");
                 LocalDateTime estimatedTime = null;
                 if (estimateStr != null && !estimateStr.trim().isEmpty()) {
-                    estimatedTime = LocalDateTime.parse(estimateStr);
+                    try {
+                        // Try standard ISO parsing first (supports seconds)
+                        estimatedTime = LocalDateTime.parse(estimateStr.trim());
+                    } catch (DateTimeParseException ex) {
+                        try {
+                            // Fallback to pattern without seconds (commonly sent by HTML5 inputs)
+                            estimatedTime = LocalDateTime.parse(estimateStr.trim(), DT_FMT);
+                        } catch (DateTimeParseException ex2) {
+                            LoggerUtil.warn(log, "estimatedDeliveryTime format không hợp lệ: " + estimateStr, ex2);
+                            // Bỏ qua thời gian, vẫn dispatch bình thường
+                        }
+                    }
                 }
                 orderService.dispatchOrder(orderId, user.getUserId(), estimatedTime);
-                SessionUtil.setFlashMessage(req.getSession(), "Đã giao đơn hàng cho vận chuyển!", "success");
+                SessionUtil.setFlashMessage(req.getSession(), "Đã bàn giao đơn hàng cho vận chuyển thành công!", "success");
+            } else {
+                SessionUtil.setFlashMessage(req.getSession(), "Hành động không hợp lệ!", "error");
             }
         } catch (Exception e) {
-            SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
+            LoggerUtil.error(log, "[ShopOrder] POST action=" + action + " orderId=" + orderIdStr, e);
+            SessionUtil.setFlashMessage(req.getSession(),
+                    "Lỗi: " + (e.getMessage() != null ? e.getMessage() : "Có lỗi không xác định."), "error");
         }
-        
-        resp.sendRedirect(req.getContextPath() + "/shop/orders");
+
+        // PRG: redirect về trang đơn hàng, giữ lại bộ lọc status nếu có
+        String status = req.getParameter("currentStatus");
+        String redirect = req.getContextPath() + "/shop/orders";
+        if (status != null && !status.trim().isEmpty()) {
+            redirect += "?status=" + status;
+        }
+        resp.sendRedirect(redirect);
     }
 
 }
