@@ -42,7 +42,7 @@ public final class FileUploadUtil {
         }
 
         // 3. Đảm bảo thư mục upload đã tồn tại
-        File dir = new File(uploadDir, AppConfig.UPLOAD_DIR);
+        File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR);
         if (!dir.exists()) {
             dir.mkdirs();
         }
@@ -63,6 +63,12 @@ public final class FileUploadUtil {
     public static void delete(String realPath) {
         if (realPath == null || realPath.trim().isEmpty()) return;
         try {
+            // Thử xóa từ thư mục bền vững trước
+            String fileName = Paths.get(realPath).getFileName().toString();
+            File persistentFile = new File(AppConfig.PERSISTENT_UPLOAD_DIR, fileName);
+            if (persistentFile.exists()) {
+                Files.deleteIfExists(persistentFile.toPath());
+            }
             Files.deleteIfExists(Paths.get(realPath));
         } catch (IOException e) {
             LoggerUtil.warn(log, "Không thể xóa file: " + realPath, e);
@@ -101,8 +107,8 @@ public final class FileUploadUtil {
                     + "' không được phép. Chỉ chấp nhận: PDF, JPG, PNG, DOCX.");
         }
 
-        // Tạo thư mục uploads/shop-docs/{userId}/ nếu chưa tồn tại
-        File dir = new File(uploadDir, AppConfig.UPLOAD_SHOP_DOCS_DIR + File.separator + userId);
+        // Tạo thư mục uploads/shop-docs/{userId}/ nếu chưa tồn tại trong thư mục bền vững
+        File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR, "shop-docs" + File.separator + userId);
         if (!dir.exists()) {
             dir.mkdirs();
         }
