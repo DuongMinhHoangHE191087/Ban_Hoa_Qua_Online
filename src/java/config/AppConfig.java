@@ -20,7 +20,7 @@ public final class AppConfig {
         public static final String DB_DRIVER_CLASS = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
         public static final String DB_JDBC_URL = "jdbc:sqlserver://" + DB_HOST + ":" + DB_PORT
                         + ";databaseName=" + DB_NAME
-                        + ";encrypt=false;trustServerCertificate=true";
+                        + ";encrypt=false;trustServerCertificate=true;keepAlive=true";
 
         public static final String GOOGLE_CLIENT_ID = getEnvOrDefault("GOOGLE_CLIENT_ID", "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com");
         public static final String GOOGLE_CLIENT_SECRET = getEnvOrDefault("GOOGLE_CLIENT_SECRET", "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");
