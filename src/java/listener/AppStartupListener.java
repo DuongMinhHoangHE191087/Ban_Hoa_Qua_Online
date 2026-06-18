@@ -42,6 +42,6 @@ public class AppStartupListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-        // Cleanup if needed
+        ConnectionPool.shutdown();
     }
 }
