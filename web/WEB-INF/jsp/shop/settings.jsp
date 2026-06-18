@@ -196,7 +196,7 @@
 
                 <div class="mt-4 p-3 bg-[#f0faf3] rounded-xl border border-[#bbf7d0]/60 text-xs text-[#364e03]">
                     <i class="fa-solid fa-circle-info mr-1.5"></i>
-                    Khi bạn <strong>ẩn hoặc deactivate sản phẩm</strong>, biến thể đó sẽ <strong>tự động biến mất</strong> khỏi danh sách cảnh báo.
+                    Khi bạn <strong>ẩn hoặc deactivate sản phẩm</strong>, phân loại đó sẽ <strong>tự động biến mất</strong> khỏi danh sách cảnh báo.
                     Bạn cũng có thể nhấn <strong>✕</strong> trên Dashboard để tạm ẩn dòng cảnh báo không còn liên quan.
                 </div>
             </div>
@@ -271,7 +271,7 @@
                             <div class="w-9 h-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center text-sm"><i class="fa-solid fa-triangle-exclamation"></i></div>
                             <div>
                                 <p class="text-sm font-semibold text-[#0f172a]">Cảnh báo tồn kho thấp</p>
-                                <p class="text-xs text-[#94a3b8]">Hiện thông báo khi có biến thể dưới ngưỡng</p>
+                                <p class="text-xs text-[#94a3b8]">Hiện thông báo khi có phân loại dưới ngưỡng</p>
                             </div>
                         </div>
                         <label class="toggle-wrapper" id="toggle-lowstock-wrap">

@@ -32,6 +32,7 @@ import java.io.IOException;
 public class ShopProfileServlet extends HttpServlet {
 
     private final service.shop.ShopService shopService = new service.shop.ShopService();
+    private final service.catalog.CategoryService categoryService = new service.catalog.CategoryService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -45,6 +46,7 @@ public class ShopProfileServlet extends HttpServlet {
         try {
             model.entity.shop.ShopProfile profile = shopService.getShopByUserId(user.getUserId());
             req.setAttribute("shopProfile", profile);
+            req.setAttribute("categories", categoryService.getActiveCategories());
             req.getRequestDispatcher("/WEB-INF/jsp/shop/profile.jsp").forward(req, resp);
         } catch (Exception e) {
             getServletContext().log("Lỗi tải thông tin shop: " + e.getMessage(), e);
@@ -67,7 +69,28 @@ public class ShopProfileServlet extends HttpServlet {
             if (profile != null) {
                 profile.setShopDescription(req.getParameter("shopDescription"));
                 profile.setDeliveryAddress(req.getParameter("deliveryAddress"));
-                profile.setPreferredCategories(req.getParameter("preferredCategories"));
+                
+                // Parse categoryIds checkbox array to JSON string
+                String[] categoryIds = req.getParameterValues("categoryIds");
+                String preferredCategoriesJson = null;
+                if (categoryIds != null && categoryIds.length > 0) {
+                    StringBuilder sb = new StringBuilder("[");
+                    boolean first = true;
+                    for (String id : categoryIds) {
+                        try {
+                            int catId = Integer.parseInt(id);
+                            if (!first) sb.append(",");
+                            sb.append(catId);
+                            first = false;
+                        } catch (NumberFormatException e) {
+                            // ignore
+                        }
+                    }
+                    sb.append("]");
+                    preferredCategoriesJson = sb.toString();
+                }
+                profile.setPreferredCategories(preferredCategoriesJson);
+                
                 profile.setBusinessEmail(req.getParameter("businessEmail"));
                 
                 String expiryDaysRaw = req.getParameter("expiryWarningDays");

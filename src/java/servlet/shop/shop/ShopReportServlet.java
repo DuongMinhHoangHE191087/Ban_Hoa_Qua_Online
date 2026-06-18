@@ -34,6 +34,7 @@ public class ShopReportServlet extends HttpServlet {
 
     private final ReportService reportService = new ReportService();
     private final CategoryDAO categoryDAO = new CategoryDAO();
+    private final service.order.OrderService orderService = new service.order.OrderService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -82,6 +83,14 @@ public class ShopReportServlet extends HttpServlet {
             
             // Tính toán nhanh số liệu tổng quan (KPI) để đưa lên thẻ đầu trang của Shop
             calculateKPIs(req, reportData);
+
+            java.math.BigDecimal estimatedRevenue = java.math.BigDecimal.ZERO;
+            try {
+                estimatedRevenue = orderService.getEstimatedRevenueByOwner(user.getUserId());
+            } catch (Exception e) {
+                // Ignore
+            }
+            req.setAttribute("kpiEstimatedRevenue", estimatedRevenue);
 
             req.getRequestDispatcher("/WEB-INF/jsp/shop/report.jsp").forward(req, resp);
         } catch (Exception e) {

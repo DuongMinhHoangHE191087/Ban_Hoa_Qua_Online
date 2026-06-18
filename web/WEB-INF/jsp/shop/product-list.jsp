@@ -418,7 +418,7 @@
                     <div class="flex items-center justify-between border-b border-primary/10 pb-1.5 mb-4">
                         <h2 class="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
                             <span class="material-symbols-outlined text-[16px]">layers</span>
-                            Biến thể / Phân loại bán <span class="text-red-500">*</span>
+                            Phân loại bán <span class="text-red-500">*</span>
                         </h2>
                         <button type="button" onclick="addVariantRow()"
                                 class="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-hover bg-primary-lt hover:bg-primary/10 px-2.5 py-1.5 rounded-lg border-0 cursor-pointer transition-colors">
