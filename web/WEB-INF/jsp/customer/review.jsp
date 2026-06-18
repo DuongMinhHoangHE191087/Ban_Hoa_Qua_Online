@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
@@ -160,7 +160,7 @@
                         </div>
                     </div>
 
-                    <form action="${pageContext.request.contextPath}/reviews" method="POST" class="flex flex-col gap-4">
+                    <form action="${pageContext.request.contextPath}/reviews" method="POST" enctype="multipart/form-data" class="flex flex-col gap-4">
                         <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                         <input type="hidden" name="orderId" value="${order.orderId}">
                         <input type="hidden" name="orderItemId" value="${item.orderItemId}">
@@ -189,11 +189,18 @@
                             </div>
                         </div>
 
-                        <!-- Image URL -->
+                        <!-- Image Attachment Upload -->
                         <div>
-                            <label class="block text-sm font-bold text-inverse-surface mb-1.5" for="reviewImageUrl-${item.orderItemId}">Hình ảnh sản phẩm thực tế (URL):</label>
-                            <input type="url" class="w-full rounded-xl border border-outline-variant/40 p-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary text-sm transition-all" id="reviewImageUrl-${item.orderItemId}" name="reviewImageUrl" placeholder="https://example.com/fruit_image.jpg">
-                            <p class="text-[10px] text-on-surface-variant mt-1">Dán liên kết hình ảnh trái cây tươi ngon bạn nhận được để minh họa thực tế.</p>
+                            <label class="block text-sm font-bold text-inverse-surface mb-1.5">Hình ảnh sản phẩm thực tế (Tải lên ảnh):</label>
+                            <div class="border border-dashed border-outline-variant/60 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-white"
+                                 onclick="document.getElementById('reviewImage-${item.orderItemId}').click()">
+                                <span class="material-symbols-outlined text-outline text-2xl mb-1 block">cloud_upload</span>
+                                <span class="text-xs text-on-surface-variant font-medium block">Nhấn để chọn hình ảnh tải lên từ máy của bạn</span>
+                                <input type="file" name="reviewImage" id="reviewImage-${item.orderItemId}" accept="image/*" class="hidden" onchange="previewReviewImage(event, ${item.orderItemId})">
+                                <div class="mt-3 flex justify-center">
+                                    <img id="imagePreview-${item.orderItemId}" src="#" alt="Preview" class="hidden max-h-36 rounded-lg shadow-sm border border-outline-variant/20 object-cover">
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Review Text -->
@@ -258,6 +265,20 @@ function updateRatingLabel(orderItemId, val) {
         el.textContent = labels[val] || '';
         el.className = 'text-sm font-extrabold text-amber-500 animate-pulse';
         setTimeout(() => el.classList.remove('animate-pulse'), 300);
+    }
+}
+
+function previewReviewImage(event, orderItemId) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const output = document.getElementById('imagePreview-' + orderItemId);
+        if (output) {
+            output.src = reader.result;
+            output.classList.remove('hidden');
+        }
+    };
+    if (event.target.files[0]) {
+        reader.readAsDataURL(event.target.files[0]);
     }
 }
 </script>
