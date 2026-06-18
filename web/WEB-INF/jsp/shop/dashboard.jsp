@@ -127,16 +127,23 @@
             </div>
 
             <c:if test="${lowStock > 0}">
-                <!-- Low Stock Alert Box -->
-                <div class="bg-red-50/80 backdrop-blur-sm border border-red-200/60 p-6 rounded-2xl shadow-sm mb-8">
+                <!-- Low Stock Alert Box — dismissible per-variant via localStorage -->
+                <div id="low-stock-alert-block" class="bg-red-50/80 backdrop-blur-sm border border-red-200/60 p-6 rounded-2xl shadow-sm mb-8">
                     <div class="flex items-start gap-4">
                         <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg flex-shrink-0">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                         </div>
                         <div class="flex-grow">
-                            <h3 class="text-sm font-bold text-red-800">Cảnh báo: Phát hiện ${lowStock} biến thể sản phẩm sắp hết hàng!</h3>
-                            <p class="text-xs text-red-700/80 mt-1">Các mặt hàng dưới đây có số lượng tồn kho thấp hơn hoặc bằng hạn mức tối thiểu (10 đơn vị). Hãy nhập thêm hàng để tránh gián đoạn kinh doanh.</p>
-                            
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-sm font-bold text-red-800">Cảnh báo: Phát hiện ${lowStock} biến thể sản phẩm sắp hết hàng!</h3>
+                                <button onclick="dismissAllLowStockAlerts()" title="Ẩn tất cả thông báo này"
+                                        class="text-red-400 hover:text-red-700 transition-colors ml-4 flex-shrink-0 p-1.5 rounded-lg hover:bg-red-100">
+                                    <i class="fa-solid fa-xmark text-base"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-red-700/80 mt-1">Các mặt hàng dưới đây có số lượng tồn kho ≤ ngưỡng cảnh báo (<strong>${lowStockThreshold}</strong> đơn vị). Hãy nhập thêm hàng để tránh gián đoạn kinh doanh.
+                                <a href="${pageContext.request.contextPath}/shop/settings" class="underline font-bold ml-1">Đổi ngưỡng →</a>
+                            </p>
                             <div class="mt-4 overflow-x-auto rounded-xl border border-red-200/40 bg-white/70">
                                 <table class="w-full text-left border-collapse text-xs">
                                     <thead>
@@ -148,9 +155,9 @@
                                             <th class="py-2.5 px-4 text-right">Thao tác</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-red-100/40 text-red-900">
+                                    <tbody class="divide-y divide-red-100/40 text-red-900" id="low-stock-table-body">
                                         <c:forEach var="item" items="${lowStockVariants}">
-                                            <tr class="hover:bg-red-100/10">
+                                            <tr class="hover:bg-red-100/10" data-variant-id="${item.variantId}" id="ls-row-${item.variantId}">
                                                 <td class="py-2.5 px-4 font-semibold">${item.productName}</td>
                                                 <td class="py-2.5 px-4">${item.variantLabel}</td>
                                                 <td class="py-2.5 px-4 font-mono">${item.sku}</td>
@@ -160,9 +167,15 @@
                                                     </span>
                                                 </td>
                                                 <td class="py-2.5 px-4 text-right">
-                                                    <a href="${pageContext.request.contextPath}/shop/inventory" class="inline-flex items-center gap-1 font-bold text-red-700 hover:text-red-950 hover:underline">
-                                                        <i class="fa-solid fa-truck-ramp-box"></i> Nhập hàng nhanh
-                                                    </a>
+                                                    <div class="flex items-center justify-end gap-2">
+                                                        <a href="${pageContext.request.contextPath}/shop/inventory" class="inline-flex items-center gap-1 font-bold text-red-700 hover:text-red-950 hover:underline">
+                                                            <i class="fa-solid fa-truck-ramp-box"></i> Nhập hàng
+                                                        </a>
+                                                        <button onclick="dismissLowStockAlert(${item.variantId})" title="Ẩn cảnh báo cho biến thể này"
+                                                                class="text-red-300 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-100 ml-1">
+                                                            <i class="fa-solid fa-xmark text-xs"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         </c:forEach>
@@ -173,6 +186,66 @@
                     </div>
                 </div>
             </c:if>
+
+            <script>
+                var LS_KEY = 'dismissedLowStock_<c:out value="${sessionScope.currentUser.userId}"/>';
+
+                function getDismissed() {
+                    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e) { return []; }
+                }
+                function saveDismissed(ids) { localStorage.setItem(LS_KEY, JSON.stringify(ids)); }
+
+                function dismissLowStockAlert(variantId) {
+                    var row = document.getElementById('ls-row-' + variantId);
+                    if (!row) return;
+                    row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(20px)';
+                    setTimeout(function() {
+                        row.remove();
+                        var dismissed = getDismissed();
+                        if (dismissed.indexOf(variantId) === -1) dismissed.push(variantId);
+                        saveDismissed(dismissed);
+                        checkAllDismissed();
+                    }, 300);
+                }
+
+                function dismissAllLowStockAlerts() {
+                    var block = document.getElementById('low-stock-alert-block');
+                    if (!block) return;
+                    var rows = block.querySelectorAll('#low-stock-table-body tr[data-variant-id]');
+                    var dismissed = getDismissed();
+                    rows.forEach(function(r) {
+                        var vid = parseInt(r.getAttribute('data-variant-id'));
+                        if (dismissed.indexOf(vid) === -1) dismissed.push(vid);
+                    });
+                    saveDismissed(dismissed);
+                    block.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    block.style.opacity = '0';
+                    block.style.transform = 'translateY(-10px)';
+                    setTimeout(function() { block.remove(); }, 300);
+                }
+
+                function checkAllDismissed() {
+                    var body = document.getElementById('low-stock-table-body');
+                    if (body && body.querySelectorAll('tr').length === 0) dismissAllLowStockAlerts();
+                }
+
+                window.addEventListener('DOMContentLoaded', function() {
+                    var dismissed = getDismissed();
+                    if (dismissed.length === 0) return;
+                    // Làm sạch dismiss list: chỉ giữ những variant vẫn có trên server
+                    var currentRows = document.querySelectorAll('#low-stock-table-body tr[data-variant-id]');
+                    var currentIds = Array.from(currentRows).map(function(r) { return parseInt(r.getAttribute('data-variant-id')); });
+                    var stillActive = dismissed.filter(function(id) { return currentIds.indexOf(id) !== -1; });
+                    saveDismissed(stillActive);
+                    stillActive.forEach(function(id) {
+                        var row = document.getElementById('ls-row-' + id);
+                        if (row) row.remove();
+                    });
+                    checkAllDismissed();
+                });
+            </script>
 
             <!-- Main Layout Split Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

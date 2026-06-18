@@ -23,6 +23,8 @@ public class ShopProfile {
     private java.time.LocalDateTime updatedAt;
     private String logoUrl;
     private String coverUrl;
+    private int expiryWarningDays;
+    private int lowStockThreshold;
 
     public ShopProfile() {}
 
@@ -73,5 +75,11 @@ public class ShopProfile {
 
     public String getCoverUrl() { return coverUrl; }
     public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
+
+    public int getExpiryWarningDays() { return expiryWarningDays; }
+    public void setExpiryWarningDays(int expiryWarningDays) { this.expiryWarningDays = expiryWarningDays; }
+
+    public int getLowStockThreshold() { return lowStockThreshold; }
+    public void setLowStockThreshold(int lowStockThreshold) { this.lowStockThreshold = lowStockThreshold; }
 
 }

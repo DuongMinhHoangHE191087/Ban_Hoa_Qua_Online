@@ -155,8 +155,8 @@ public class ShopProfileDAO extends BaseDAO {
     public int save(ShopProfile profile) throws SQLException {
         String sql = "INSERT INTO shop_owner_profiles "
                    + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
-                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, logo_url, cover_url, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, logo_url, cover_url, expiry_warning_days, low_stock_threshold, created_at, updated_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, profile.getUserId());
@@ -172,6 +172,8 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setString(11, profile.getBusinessEmail());
             ps.setString(12, profile.getLogoUrl());
             ps.setString(13, profile.getCoverUrl());
+            ps.setInt(14, profile.getExpiryWarningDays() > 0 ? profile.getExpiryWarningDays() : 3);
+            ps.setInt(15, profile.getLowStockThreshold() > 0 ? profile.getLowStockThreshold() : 5);
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -191,7 +193,7 @@ public class ShopProfileDAO extends BaseDAO {
     public void update(ShopProfile profile) throws SQLException {
         String sql = "UPDATE shop_owner_profiles SET shop_name = ?, shop_description = ?, approval_status = ?, "
                    + "rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, "
-                   + "preferred_categories = ?, doc_paths = ?, business_email = ?, logo_url = ?, cover_url = ?, updated_at = GETDATE() WHERE profile_id = ?";
+                   + "preferred_categories = ?, doc_paths = ?, business_email = ?, logo_url = ?, cover_url = ?, expiry_warning_days = ?, low_stock_threshold = ?, updated_at = GETDATE() WHERE profile_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, profile.getShopName());
@@ -206,7 +208,9 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setString(10, profile.getBusinessEmail());
             ps.setString(11, profile.getLogoUrl());
             ps.setString(12, profile.getCoverUrl());
-            ps.setInt(13, profile.getProfileId());
+            ps.setInt(13, profile.getExpiryWarningDays() > 0 ? profile.getExpiryWarningDays() : 3);
+            ps.setInt(14, profile.getLowStockThreshold() > 0 ? profile.getLowStockThreshold() : 5);
+            ps.setInt(15, profile.getProfileId());
             ps.executeUpdate();
         }
     }
@@ -286,6 +290,8 @@ public class ShopProfileDAO extends BaseDAO {
         p.setBusinessEmail(rs.getString("business_email"));
         p.setLogoUrl(rs.getString("logo_url"));
         p.setCoverUrl(rs.getString("cover_url"));
+        p.setExpiryWarningDays(rs.getInt("expiry_warning_days"));
+        p.setLowStockThreshold(rs.getInt("low_stock_threshold"));
         
         Timestamp createdAtTs = rs.getTimestamp("created_at");
         if (createdAtTs != null) {

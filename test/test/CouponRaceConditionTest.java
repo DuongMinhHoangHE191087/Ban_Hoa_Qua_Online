@@ -82,7 +82,7 @@ public class CouponRaceConditionTest {
      * TC-RACE-01: 20 thread đồng thời claimUsage() — chỉ đúng MAX_USES=5 được chấp nhận.
      */
     @Test
-    public void should_allowExactlyMaxUses_whenConcurrentClaimsExceedLimit() throws InterruptedException {
+    public void should_allowExactlyMaxUses_whenConcurrentClaimsExceedLimit() throws Exception {
         final int promoId = testPromoId;
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failCount = new AtomicInteger(0);

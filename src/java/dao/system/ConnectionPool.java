@@ -37,7 +37,7 @@ public final class ConnectionPool {
     private static final int  POOL_EVICTION_TESTS_PER_RUN = 3;
 
     // ---- Validation — tránh ping DB mỗi lần borrow ----
-    private static final long POOL_VALIDATION_INTERVAL_MS = 5_000L; // cache kết quả 5s
+    private static final long POOL_VALIDATION_INTERVAL_MS = 0L; // validate on every borrow
 
     // ---- Abandoned detection — thu hồi connection bị leak ----
     private static final int  POOL_ABANDONED_TIMEOUT_S    = 300;      // reclaim sau 300s giữ liên tục

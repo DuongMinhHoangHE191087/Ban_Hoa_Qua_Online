@@ -104,6 +104,8 @@ BEGIN
         business_email NVARCHAR(255) NULL,
         logo_url NVARCHAR(500) NULL,
         cover_url NVARCHAR(500) NULL,
+        expiry_warning_days INT NOT NULL CONSTRAINT DF_shop_owner_profiles_expiry_warning_days DEFAULT 3,
+        low_stock_threshold INT NOT NULL CONSTRAINT DF_shop_owner_profiles_low_stock_threshold DEFAULT 5,
         created_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_shop_owner_profiles_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id)
@@ -128,6 +130,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'cover_url')
     BEGIN
         ALTER TABLE dbo.shop_owner_profiles ADD cover_url NVARCHAR(500) NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'expiry_warning_days')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD expiry_warning_days INT NOT NULL CONSTRAINT DF_shop_owner_profiles_expiry_warning_days DEFAULT 3;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'low_stock_threshold')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD low_stock_threshold INT NOT NULL CONSTRAINT DF_shop_owner_profiles_low_stock_threshold DEFAULT 5;
     END
 END
 GO

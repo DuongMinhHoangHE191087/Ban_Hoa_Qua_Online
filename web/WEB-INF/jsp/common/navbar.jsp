@@ -295,16 +295,19 @@
                                 const message = escapeHtml(n.message);
                                 
                                 html += `
-                                    <div class="notif-dropdown-item" style="padding:12px 16px; background:\${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick='handleNotifClick(event, \${n.notificationId}, ${JSON.stringify(link)})'>
-                                        <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
+                                    <div class="notif-dropdown-item" style="position:relative; padding:12px 16px; background:\${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick='handleNotifClick(event, \${n.notificationId}, ${JSON.stringify(link)})'>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center; padding-right:16px;">
                                             <span style="font-weight:600; font-size:13px; color:#334155; display:flex; align-items:center;">
                                                 \${dot}\${title}
                                             </span>
                                             <span style="font-size:10px; color:#94a3b8; white-space:nowrap; margin-left:8px;">\${dateStr}</span>
                                         </div>
-                                        <p style="margin:0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                                        <p style="margin:0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; padding-right:16px;">
                                             \${message}
                                         </p>
+                                        <button onclick="handleNotifDelete(event, \${n.notificationId})" style="position:absolute; right:12px; top:12px; border:none; background:none; color:#94a3b8; cursor:pointer; font-size:14px; padding:2px 6px; line-height:1; display:flex; align-items:center; justify-content:center; border-radius:4px;" onmouseover="this.style.color='#ef4444'; this.style.background='#f1f5f9';" onmouseout="this.style.color='#94a3b8'; this.style.background='none';">
+                                            &times;
+                                        </button>
                                     </div>
                                 `;
                             });
@@ -321,13 +324,27 @@
             window.handleNotifClick = function(e, notifId, link) {
                 e.preventDefault();
                 // Mark as read via AJAX, then redirect
-                fetch(window.contextPath + '/api/notifications/markAllRead?action=markRead&notifId=' + notifId, { method: 'POST' })
+                fetch(window.contextPath + '/api/notifications/markRead?action=markRead&notifId=' + notifId, { method: 'POST' })
                     .finally(() => {
                         if (link && link !== '#') {
                             window.location.href = link;
                         } else {
                             if (notifDropdown) notifDropdown.style.display = 'none';
                             updateBadges();
+                            loadRecentNotifications();
+                        }
+                    });
+            };
+
+            window.handleNotifDelete = function(e, notifId) {
+                e.preventDefault();
+                e.stopPropagation();
+                fetch(window.contextPath + '/api/notifications/delete?action=delete&notifId=' + notifId, { method: 'POST' })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            updateBadges();
+                            loadRecentNotifications();
                         }
                     });
             };

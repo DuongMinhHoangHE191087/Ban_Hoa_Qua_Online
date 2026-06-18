@@ -44,8 +44,16 @@ public class AutoExpiryListener implements ServletContextListener {
                 } else {
                     LoggerUtil.info(log, "[AutoExpiryListener] Hoàn thành kiểm tra. Không có lô hàng nào hết hạn mới.");
                 }
+
+                LoggerUtil.info(log, "[AutoExpiryListener] Bắt đầu tiến trình quét cảnh báo hàng sắp hết hạn...");
+                int alerts = inventoryService.processNearExpiryAlerts();
+                if (alerts > 0) {
+                    LoggerUtil.info(log, "[AutoExpiryListener] Hoàn thành quét. Đã gửi " + alerts + " cảnh báo sắp hết hạn.");
+                } else {
+                    LoggerUtil.info(log, "[AutoExpiryListener] Hoàn thành quét. Không có cảnh báo mới.");
+                }
             } catch (Exception e) {
-                LoggerUtil.error(log, "[AutoExpiryListener] Lỗi khi chạy job tự động trừ hàng hết hạn", e);
+                LoggerUtil.error(log, "[AutoExpiryListener] Lỗi khi chạy job tự động trừ hàng hết hạn và cảnh báo", e);
             }
         }, 15, 24 * 60 * 60, TimeUnit.SECONDS);
     }
