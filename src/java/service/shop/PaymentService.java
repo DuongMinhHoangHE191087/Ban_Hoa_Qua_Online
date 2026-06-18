@@ -241,6 +241,16 @@ public class PaymentService {
             return;
         }
 
+        // Guard: chỉ xử lý khi đơn hàng vẫn đang chờ thanh toán — tránh overwrite trạng thái đã confirmed/cancelled
+        Order order = orderDAO.findOneById(tx.getOrderId());
+        if (order == null || !AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
+            String currentStatus = order != null ? order.getStatus() : "null";
+            LoggerUtil.warn(log, "[Webhook] orderId=%d không ở trạng thái PENDING_PAYMENT (hiện tại: %s) — bỏ qua.",
+                tx.getOrderId(), currentStatus);
+            paymentDAO.insertDedup(sepayTxId, code, "skipped_wrong_status");
+            return;
+        }
+
         // Validate số tiền
         BigDecimal received;
         try {
@@ -253,33 +263,25 @@ public class PaymentService {
 
         BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
         if (received.compareTo(expected) < 0) {
-            paymentDAO.updateStatus(tx.getTransactionId(), "failed",
-                                    sepayTxId, jsonPayload);
-            paymentDAO.updateStatusFailed(tx.getTransactionId(),
-                                          "AMOUNT_MISMATCH",
-                                          "Nhận " + received + " < yêu cầu " + expected);
+            paymentDAO.updateStatus(tx.getTransactionId(), "failed", sepayTxId, jsonPayload);
             paymentDAO.insertDedup(sepayTxId, code, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
                 expected, received, tx.getOrderId());
             return;
         }
 
-        // Cập nhật payment → completed
+        // Cập nhật payment → completed, order → CONFIRMED
         paymentDAO.updateStatus(tx.getTransactionId(), "completed", sepayTxId, jsonPayload);
-        // [AUTOMATED] SePay automatically confirms the order upon successful payment match
         orderDAO.updateStatus(tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
-        
-        // Gửi thông báo thanh toán thành công cho Customer
+
+        // Gửi thông báo thanh toán thành công cho Customer (dùng `order` đã load ở trên)
         try {
-            Order order = orderDAO.findOneById(tx.getOrderId());
-            if (order != null) {
-                User customer = userDAO.findUserById(order.getCustomerId());
-                if (customer != null) {
-                    String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
-                    notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
-                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + order.getOrderId();
-                    emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(order.getOrderId()), "Xác nhận thanh toán thành công", orderDetailUrl);
-                }
+            User customer = userDAO.findUserById(order.getCustomerId());
+            if (customer != null) {
+                String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
+                notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + order.getOrderId();
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(order.getOrderId()), "Xác nhận thanh toán thành công", orderDetailUrl);
             }
         } catch (Exception ex) {
             LoggerUtil.warn(log, "Không gửi được thông báo thanh toán webhook cho orderId=" + tx.getOrderId(), ex);

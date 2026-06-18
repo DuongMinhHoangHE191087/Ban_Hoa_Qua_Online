@@ -213,7 +213,8 @@ public class PaymentDAO extends BaseDAO {
 
     /**
      * Ghi vào bảng dedup để đảm bảo idempotency.
-     * Nếu đã tồn tại (UNIQUE constraint) sẽ throw SQLException — caller bắt để bỏ qua.
+     * Nếu race condition xảy ra (hai webhook cùng lúc vượt qua isDuplicate()),
+     * UNIQUE constraint sẽ chặn INSERT thứ hai — bắt error 2627 và bỏ qua an toàn.
      */
     public void insertDedup(String sepayTxId, String orderCode, String processResult) throws SQLException {
         String sql = "INSERT INTO sepay_webhook_dedup (sepay_transaction_id, order_code, process_result) "
@@ -224,6 +225,15 @@ public class PaymentDAO extends BaseDAO {
             ps.setString(2, orderCode);
             ps.setString(3, processResult);
             ps.executeUpdate();
+        } catch (SQLException e) {
+            // SQL Server error 2627 = UNIQUE KEY constraint violation
+            // Xảy ra khi hai webhook đồng thời pass isDuplicate() trước khi cái nào insert xong.
+            // Coi như "đã xử lý" — bỏ qua an toàn, không throw.
+            if (e.getErrorCode() == 2627) {
+                LoggerUtil.info(log, "[Dedup] Race condition caught: sepayTxId=%s đã tồn tại — bỏ qua.", sepayTxId);
+                return;
+            }
+            throw e;
         }
     }
 

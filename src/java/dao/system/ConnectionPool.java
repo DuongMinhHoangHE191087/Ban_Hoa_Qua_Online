@@ -59,11 +59,11 @@ public final class ConnectionPool {
 
     public static Connection getConnection() throws SQLException {
         if (dataSource != null) {
-            return dataSource.getConnection();
+            return DaoSqlLogger.wrapConnection(dataSource.getConnection());
         }
         // DriverManager fallback — cảnh báo vì không có pooling
-        return java.sql.DriverManager.getConnection(
-                AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD);
+        return DaoSqlLogger.wrapConnection(java.sql.DriverManager.getConnection(
+                AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD));
     }
 
     /** Trả về true nếu pool đã khởi tạo thành công (Tomcat JDBC hoặc DBCP2). */
