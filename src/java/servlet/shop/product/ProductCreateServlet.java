@@ -51,6 +51,7 @@ public class ProductCreateServlet extends HttpServlet {
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final dao.system.SystemConfigDAO systemConfigDAO = new dao.system.SystemConfigDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -230,7 +231,16 @@ public class ProductCreateServlet extends HttpServlet {
             p.setStatus("ACTIVE");
             p.setIsOrganic(isOrganic);
             p.setIsImported(isImported);
-            p.setApprovalStatus("PENDING");
+            
+            String autoApproveVal = null;
+            try {
+                autoApproveVal = systemConfigDAO.getValue("product_auto_approve");
+            } catch (Exception ex) {
+                LoggerUtil.warn(log, "Không thể đọc cấu hình product_auto_approve", ex);
+            }
+            boolean isAutoApprove = "true".equalsIgnoreCase(autoApproveVal);
+            p.setApprovalStatus(isAutoApprove ? "APPROVED" : "PENDING");
+            
             p.setVerificationDocPath(docPath);
             
             try {

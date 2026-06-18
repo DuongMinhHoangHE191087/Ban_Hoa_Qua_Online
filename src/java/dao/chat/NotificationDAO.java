@@ -158,4 +158,33 @@ public class NotificationDAO extends BaseDAO {
         
         return n;
     }
+
+    public void delete(int notifId) throws SQLException {
+        String sql = "DELETE FROM notifications WHERE notification_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, notifId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Checks if a notification of a specific type containing a keyword in the message
+     * has already been sent to the user. Used to prevent duplicate alerts.
+     */
+    public boolean isNotificationSent(int userId, String type, String messageLike) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND type = ? AND message LIKE ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, type);
+            ps.setString(3, messageLike);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
 }

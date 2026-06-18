@@ -41,6 +41,57 @@ public class AppStartupListener implements ServletContextListener {
             throw ex;
         }
 
+        // Automatic DB migration check for expiry_warning_days and low_stock_threshold columns
+        try (java.sql.Connection conn = ConnectionPool.getConnection()) {
+            boolean hasExpiryCol = false;
+            try (java.sql.ResultSet rs = conn.getMetaData().getColumns(null, null, "shop_owner_profiles", "expiry_warning_days")) {
+                if (rs.next()) {
+                    hasExpiryCol = true;
+                }
+            }
+            if (!hasExpiryCol) {
+                try (java.sql.Statement stmt = conn.createStatement()) {
+                    stmt.execute("ALTER TABLE shop_owner_profiles ADD expiry_warning_days INT NOT NULL CONSTRAINT DF_shop_owner_profiles_expiry_warning_days DEFAULT 3");
+                    LoggerUtil.info(log, "[AppStartup] Successfully migrated shop_owner_profiles table to add expiry_warning_days column.");
+                }
+            }
+
+            boolean hasLowStockCol = false;
+            try (java.sql.ResultSet rs = conn.getMetaData().getColumns(null, null, "shop_owner_profiles", "low_stock_threshold")) {
+                if (rs.next()) {
+                    hasLowStockCol = true;
+                }
+            }
+            if (!hasLowStockCol) {
+                try (java.sql.Statement stmt = conn.createStatement()) {
+                    stmt.execute("ALTER TABLE shop_owner_profiles ADD low_stock_threshold INT NOT NULL CONSTRAINT DF_shop_owner_profiles_low_stock_threshold DEFAULT 5");
+                    LoggerUtil.info(log, "[AppStartup] Successfully migrated shop_owner_profiles table to add low_stock_threshold column.");
+                }
+            }
+
+            boolean hasAutoApproveKey = false;
+            try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM system_config WHERE config_key = 'product_auto_approve'")) {
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        hasAutoApproveKey = true;
+                    }
+                }
+            }
+            if (!hasAutoApproveKey) {
+                try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO system_config (config_key, config_value, description, data_type) VALUES (?, ?, ?, ?)")) {
+                    ps.setString(1, "product_auto_approve");
+                    ps.setString(2, "false");
+                    ps.setString(3, "Tự động duyệt sản phẩm khi tạo mới hoặc cập nhật (true/false). Mặc định false.");
+                    ps.setString(4, "BOOLEAN");
+                    ps.executeUpdate();
+                    LoggerUtil.info(log, "[AppStartup] Successfully seeded 'product_auto_approve' configuration key.");
+                }
+            }
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "[AppStartup] Warning during automatic DB migration: " + e.getMessage());
+        }
+
         // Warm up pool và log trạng thái ngay khi startup
         ConnectionPool.logPoolStats();
     }

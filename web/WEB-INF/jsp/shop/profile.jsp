@@ -256,6 +256,19 @@
                                       placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..." oninput="markDirty()"><c:out value="${shopProfile.deliveryAddress}"/></textarea>
                         </div>
 
+                        <!-- Settings shortcut -->
+                        <div class="flex items-center gap-3 p-3.5 bg-[#f0faf3] rounded-xl border border-[#b7f7c3]/60">
+                            <i class="fa-solid fa-sliders text-primary text-base"></i>
+                            <div class="flex-1">
+                                <p class="text-xs font-bold text-primary">Cài đặt cảnh báo tồn kho &amp; hết hạn lô</p>
+                                <p class="text-[10px] text-on-surface-variant">Ngưỡng tồn kho thấp &amp; số ngày cảnh báo trước hết hạn đã được chuyển sang trang Cài đặt riêng.</p>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/shop/settings"
+                               class="text-xs font-bold text-primary hover:underline whitespace-nowrap flex items-center gap-1">
+                                Đến Cài đặt <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
+
                         <!-- Submit Buttons -->
                         <div class="flex items-center gap-3 pt-3 border-t border-outline-variant/30">
                             <button type="submit" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-md transition-all">
