@@ -451,11 +451,17 @@
             <span class="material-symbols-outlined text-base">arrow_back</span> Đơn hàng của tôi
         </a>
         <c:if test="${order.status == 'DELIVERED'}">
-            <a href="${pageContext.request.contextPath}/profile/order-detail?action=invoice&orderId=${order.orderId}"
-               target="_blank"
-               class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary hover:bg-primary/90 rounded-xl font-semibold text-sm transition-all shadow-sm">
-                <span class="material-symbols-outlined text-base">print</span> In / Tải Hóa đơn PDF
-            </a>
+            <div class="flex gap-3">
+                <a href="${pageContext.request.contextPath}/reviews?orderId=${order.orderId}"
+                   class="flex items-center gap-2 px-5 py-2.5 bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary rounded-xl font-semibold text-sm transition-all shadow-sm">
+                    <span class="material-symbols-outlined text-base">star</span> Viết đánh giá sản phẩm
+                </a>
+                <a href="${pageContext.request.contextPath}/profile/order-detail?action=invoice&orderId=${order.orderId}"
+                   target="_blank"
+                   class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary hover:bg-primary/90 rounded-xl font-semibold text-sm transition-all shadow-sm">
+                    <span class="material-symbols-outlined text-base">print</span> In / Tải Hóa đơn PDF
+                </a>
+            </div>
         </c:if>
     </div>
 
