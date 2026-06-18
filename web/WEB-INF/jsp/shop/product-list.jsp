@@ -813,9 +813,10 @@
             }
         })
         .then(handleJSONResponse)
-        .then(data => {
+        .then(apiResponse => {
             Swal.close();
-            if (data.success) {
+            if (apiResponse.success) {
+                const data = apiResponse.data;
                 const form = document.getElementById('productForm');
                 form.reset();
                 
@@ -914,7 +915,7 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Lỗi',
-                    text: data.message || 'Không thể tải thông tin sản phẩm.',
+                    text: apiResponse.error || apiResponse.message || 'Không thể tải thông tin sản phẩm.',
                     confirmButtonColor: '#4d661c'
                 });
             }
@@ -1390,7 +1391,7 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Thành công!',
-                    text: data.message || (isEdit ? 'Thông tin sản phẩm đã được cập nhật.' : 'Sản phẩm mới đã được đăng bán.'),
+                    text: (data.data && data.data.message) || data.message || (isEdit ? 'Thông tin sản phẩm đã được cập nhật.' : 'Sản phẩm mới đã được đăng bán.'),
                     confirmButtonColor: '#4d661c'
                 }).then(() => {
                     closeProductModal();
@@ -1403,7 +1404,7 @@
                         errorHtml += '<li>' + err + '</li>';
                     });
                 } else {
-                    errorHtml += '<li>' + (data.message || 'Lỗi không xác định') + '</li>';
+                    errorHtml += '<li>' + (data.error || (data.data && data.data.message) || data.message || 'Lỗi không xác định') + '</li>';
                 }
                 errorHtml += '</ul>';
                 
