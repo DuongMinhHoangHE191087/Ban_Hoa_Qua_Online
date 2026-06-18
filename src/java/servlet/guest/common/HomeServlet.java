@@ -123,6 +123,19 @@ public class HomeServlet extends HttpServlet {
             req.getServletContext().log("Không kết nối được database hoặc truy vấn lỗi: " + e.getMessage(), e);
         }
 
+        // Support AJAX/JSON requests for real-time search & pagination
+        String format = req.getParameter("format");
+        boolean isJson = "json".equals(format) || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+        if (isJson) {
+            Map<String, Object> data = new java.util.HashMap<>();
+            data.put("normalProducts", normalProducts);
+            data.put("currentPage", page);
+            data.put("totalPages", totalPages);
+            data.put("totalProducts", totalProducts);
+            util.JsonUtil.writeJson(resp, model.response.ApiResponse.ok(data));
+            return;
+        }
+
         // 4. Gán dữ liệu vào Request scope
         req.setAttribute("categories", categoriesList);
         req.setAttribute("flashSaleProducts", flashSaleProducts);
