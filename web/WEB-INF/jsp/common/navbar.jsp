@@ -205,22 +205,22 @@
             function updateBadges() {
                 fetch(window.contextPath + '/api/notifications/unread')
                     .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
+                    .then(res => {
+                        if (res.success && res.data) {
                             const chatBadge = document.getElementById('chat-badge');
                             const notifBadge = document.getElementById('notif-badge');
                             
                             if (chatBadge) {
-                                if (data.unreadChats > 0) {
-                                    chatBadge.textContent = data.unreadChats;
+                                if (res.data.unreadChats > 0) {
+                                    chatBadge.textContent = res.data.unreadChats;
                                     chatBadge.classList.remove('hidden');
                                 } else {
                                     chatBadge.classList.add('hidden');
                                 }
                             }
                             if (notifBadge) {
-                                if (data.unreadNotifications > 0) {
-                                    notifBadge.textContent = data.unreadNotifications;
+                                if (res.data.unreadNotifications > 0) {
+                                    notifBadge.textContent = res.data.unreadNotifications;
                                     notifBadge.classList.remove('hidden');
                                 } else {
                                     notifBadge.classList.add('hidden');
@@ -260,9 +260,10 @@
                 notifDropdownList.innerHTML = '<div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 13px;">Đang tải thông báo...</div>';
                 fetch(window.contextPath + '/api/notifications/recent')
                     .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            if (!data.notifications || data.notifications.length === 0) {
+                    .then(res => {
+                        if (res.success && res.data) {
+                            const notifications = res.data.notifications;
+                            if (!notifications || notifications.length === 0) {
                                 notifDropdownList.innerHTML = '<div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 13px;">Không có thông báo nào gần đây.</div>';
                                 return;
                             }
@@ -285,7 +286,7 @@
                                     .replace(/'/g, '&#39;');
                             }
 
-                            data.notifications.forEach(n => {
+                            notifications.forEach(n => {
                                 const bg = n.isRead ? 'transparent' : '#f8fafc';
                                 const dot = n.isRead ? '' : '<span style="display:inline-block; width:6px; height:6px; background:#4d661c; border-radius:50%; margin-right:4px;"></span>';
                                 const dateStr = formatNotifTime(n.createdAt);

@@ -406,6 +406,12 @@ public class OrderDAO extends BaseDAO {
     }
 
     public void updateStatus(int orderId, String status) throws SQLException {
+        try (Connection conn = getConnection()) {
+            updateStatus(conn, orderId, status);
+        }
+    }
+
+    public void updateStatus(Connection conn, int orderId, String status) throws SQLException {
         String sql;
         if ("CONFIRMED".equals(status)) {
             sql = "UPDATE orders SET status = ?, shop_acceptance_deadline = DATEADD(minute, 30, GETDATE()), updated_at = GETDATE() WHERE order_id = ?";
@@ -414,8 +420,7 @@ public class OrderDAO extends BaseDAO {
         } else {
             sql = "UPDATE orders SET status = ?, updated_at = GETDATE() WHERE order_id = ?";
         }
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, status);
             ps.setInt(2, orderId);
             ps.executeUpdate();

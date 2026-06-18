@@ -305,7 +305,7 @@
             <input type="hidden" name="orderId" id="dispatchOrderId">
             <div class="mb-5">
                 <label class="block text-xs font-bold text-txt-2 mb-2">Dự kiến thời gian giao đến khách <span class="font-normal text-txt-3">(Tùy chọn)</span></label>
-                <input type="datetime-local" name="estimatedDeliveryTime"
+                <input type="datetime-local" name="estimatedDeliveryTime" id="dispatchEstimatedDeliveryTime"
                        class="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
             </div>
             <div class="flex gap-3 justify-end">
@@ -322,11 +322,20 @@
 </div>
 
 <script>
+    function formatDateTimeLocal(date) {
+        const pad = (value) => String(value).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
     function openRejectModal(orderId) {
         document.getElementById('rejectOrderId').value = orderId;
         document.getElementById('rejectModal').classList.add('active');
     }
     function openDispatchModal(orderId) {
+        const estimatedInput = document.getElementById('dispatchEstimatedDeliveryTime');
+        if (estimatedInput) {
+            estimatedInput.min = formatDateTimeLocal(new Date());
+        }
         document.getElementById('dispatchOrderId').value = orderId;
         document.getElementById('dispatchModal').classList.add('active');
     }

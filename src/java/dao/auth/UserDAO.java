@@ -497,7 +497,6 @@ public class UserDAO extends BaseDAO {
         return map;
     }
 
-
     /**
      * Xóa người dùng bằng ID (sử dụng khi đăng ký lỗi để đồng bộ).
      */

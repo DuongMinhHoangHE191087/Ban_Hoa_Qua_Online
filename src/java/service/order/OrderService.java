@@ -139,8 +139,18 @@ public class OrderService {
                 && !"PREPARING".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
         }
-        orderDAO.updateStatus(orderId, AppConfig.ORDER_DISPATCHED);
-        deliveryService.assignShipper(orderId, 0, estimatedTime);
+        deliveryService.validateEstimatedTime(estimatedTime);
+        try (Connection conn = orderDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                orderDAO.updateStatus(conn, orderId, AppConfig.ORDER_DISPATCHED);
+                deliveryService.assignShipper(conn, orderId, 0, estimatedTime);
+                conn.commit();
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
 
         try {
             User customer = userDAO.findUserById(order.getCustomerId());

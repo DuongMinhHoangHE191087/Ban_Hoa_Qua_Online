@@ -91,6 +91,14 @@ public final class AppConfig {
         public static final String UPLOAD_SHOP_DOCS_DIR = "uploads/shop-docs";
 
         // ------------------------------------------------------------------
+        // Logging
+        // ------------------------------------------------------------------
+        /** Thư mục chứa file log dưới webapp root hoặc working directory. */
+        public static final String LOG_DIR = "logs";
+        /** File log chính để trace SQL DAO. */
+        public static final String LOG_FILE_NAME = "log.txt";
+
+        // ------------------------------------------------------------------
         // Session Keys — dùng thống nhất trong toàn bộ code
         // ------------------------------------------------------------------
         /** Key lưu User object trong session sau khi đăng nhập */

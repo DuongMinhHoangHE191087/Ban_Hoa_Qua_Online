@@ -6,6 +6,7 @@ import util.LoggerUtil;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
+import java.nio.file.Path;
 import java.util.logging.Logger;
 
 /**
@@ -27,10 +28,14 @@ public class AppStartupListener implements ServletContextListener {
         // DotEnvLoader ghi vào System.setProperty() để AppConfig.getEnvOrDefault() đọc được.
         String realPath = sce.getServletContext().getRealPath("");
         util.DotEnvLoader.load(realPath);
+        Path logFile = LoggerUtil.configureFileLogging(realPath);
 
         try {
             AppConfig.validateSecretsForProduction();
             LoggerUtil.info(log, "[AppStartup] Configuration validation passed");
+            if (logFile != null) {
+                LoggerUtil.info(log, "[AppStartup] DAO SQL logs: %s", logFile.toAbsolutePath());
+            }
         } catch (IllegalStateException ex) {
             LoggerUtil.error(log, "[AppStartup] FATAL: " + ex.getMessage(), ex);
             throw ex;
@@ -42,6 +47,6 @@ public class AppStartupListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-        // Cleanup if needed
+        ConnectionPool.shutdown();
     }
 }

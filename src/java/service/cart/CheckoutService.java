@@ -465,8 +465,14 @@ public class CheckoutService {
         if (promo == null || promo.getPromoId() <= 0 || discount == null || discount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
+        // Atomic claim: tăng used_count CHỈ KHI còn dưới max_uses — phòng race condition.
+        // Gọi trước saveOrderPromotion để rollback sạch nếu mã đã hết lượt.
+        boolean claimed = promotionDAO.claimUsage(conn, promo.getPromoId());
+        if (!claimed) {
+            throw new IllegalStateException(
+                "Mã giảm giá [" + promo.getCode() + "] đã hết lượt sử dụng. Đặt hàng bị hủy.");
+        }
         promotionDAO.saveOrderPromotion(conn, orderId, promo.getPromoId(), customerId, discount);
-        promotionDAO.incrementUsedCount(conn, promo.getPromoId());
     }
 
     private void initPaymentIfNeeded(int orderId, String paymentMethod, String remoteAddress) throws SQLException {

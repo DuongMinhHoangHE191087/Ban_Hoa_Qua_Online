@@ -32,8 +32,10 @@ import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -122,6 +124,48 @@ public class ShopOrderServletRegressionTest {
         assertNotNull(trip);
         assertEquals(orderId, trip.getParentOrderId());
         assertEquals(AppConfig.DELIVERY_TRIP_PLANNED, trip.getStatus());
+    }
+
+    @Test
+    public void dispatchActionRejectsPastEstimatedTimeAndKeepsOrderConfirmed() throws Exception {
+        env.clearRequestState();
+        env.putParam("action", "dispatch");
+        env.putParam("orderId", String.valueOf(orderId));
+        env.putParam("estimatedDeliveryTime", "2000-01-01T09:30:00");
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/shop/orders", env.redirectLocation);
+        assertEquals("error", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
+        assertTrue(String.valueOf(env.sessionAttributes.get(AppConfig.SESSION_FLASH_MSG)).contains("quá khứ"));
+
+        Order updated = orderDAO.findById(orderId).get(0);
+        assertEquals(AppConfig.ORDER_CONFIRMED, updated.getStatus());
+        assertEquals(0, countDeliveriesForOrder(orderId));
+    }
+
+    @Test
+    public void dispatchActionUpdatesExistingDeliveryInsteadOfViolatingUniqueKey() throws Exception {
+        deliveryDAO.assignShipper(orderId, 0, LocalDateTime.now().plusHours(1));
+
+        env.clearRequestState();
+        env.putParam("action", "dispatch");
+        env.putParam("orderId", String.valueOf(orderId));
+        env.putParam("estimatedDeliveryTime", "2030-01-02T09:30:00");
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/shop/orders", env.redirectLocation);
+        assertEquals("success", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
+
+        Order updated = orderDAO.findById(orderId).get(0);
+        assertEquals(AppConfig.ORDER_DISPATCHED, updated.getStatus());
+        assertEquals(1, countDeliveriesForOrder(orderId));
+
+        Delivery delivery = deliveryDAO.findByOrderId(orderId);
+        assertNotNull(delivery);
+        assertEquals(LocalDateTime.parse("2030-01-02T09:30:00"), delivery.getEstimatedDeliveryTime());
+        assertNotNull(delivery.getDeliveryTripId());
     }
 
     @Test
@@ -260,6 +304,19 @@ public class ShopOrderServletRegressionTest {
                 ps.executeUpdate();
             }
         }
+    }
+
+    private int countDeliveriesForOrder(int orderId) throws SQLException {
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM deliveries WHERE order_id = ?")) {
+            ps.setInt(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
     }
 
     private final class ShopOrderServletHarness extends ShopOrderServlet {

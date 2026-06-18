@@ -282,6 +282,24 @@ public class PromotionDAO extends BaseDAO {
     }
 
     /**
+     * Atomic claim: tăng used_count CHỈ KHI còn dưới max_uses.
+     * Dùng trong transaction để tránh race condition khi nhiều đơn hàng dùng cùng mã giảm giá.
+     * SQL Server row-level lock đảm bảo tính nhất quán dù có nhiều thread đồng thời.
+     *
+     * @return true nếu claim thành công (còn slot), false nếu đã hết lượt (used_count >= max_uses)
+     */
+    public boolean claimUsage(Connection conn, int promoId) throws SQLException {
+        String sql = "UPDATE promotions "
+                   + "SET used_count = used_count + 1, updated_at = GETDATE() "
+                   + "WHERE promo_id = ? "
+                   + "  AND (max_uses IS NULL OR used_count < max_uses)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, promoId);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    /**
      * Lấy danh sách khuyến mãi (phạm vi ORDER) đang hoạt động của một shop owner cụ thể
      * để hiển thị trên trang chi tiết sản phẩm (giống Shopee voucher shop).
      */

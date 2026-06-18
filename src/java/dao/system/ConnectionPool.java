@@ -59,11 +59,11 @@ public final class ConnectionPool {
 
     public static Connection getConnection() throws SQLException {
         if (dataSource != null) {
-            return dataSource.getConnection();
+            return DaoSqlLogger.wrapConnection(dataSource.getConnection());
         }
         // DriverManager fallback — cảnh báo vì không có pooling
-        return java.sql.DriverManager.getConnection(
-                AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD);
+        return DaoSqlLogger.wrapConnection(java.sql.DriverManager.getConnection(
+                AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD));
     }
 
     /** Trả về true nếu pool đã khởi tạo thành công (Tomcat JDBC hoặc DBCP2). */
@@ -137,7 +137,13 @@ public final class ConnectionPool {
             set(cls, ds, "setRemoveAbandonedTimeout", int.class,     POOL_ABANDONED_TIMEOUT_S);
             set(cls, ds, "setLogAbandoned",           boolean.class, true);
 
-            dataSource = (DataSource) ds;
+            DataSource tempDs = (DataSource) ds;
+            // Test connection to trigger internal initialization & validate connectivity
+            try (Connection conn = tempDs.getConnection()) {
+                LoggerUtil.info(log, "[ConnectionPool] Tomcat JDBC Pool validation connection successful");
+            }
+
+            dataSource = tempDs;
             poolActive = true;
             LoggerUtil.info(log, "[ConnectionPool] Tomcat JDBC Pool OK — max=" + POOL_MAX_ACTIVE);
             return true;
@@ -177,7 +183,13 @@ public final class ConnectionPool {
             set(cls, ds, "setRemoveAbandonedTimeout",       int.class,    POOL_ABANDONED_TIMEOUT_S);
             set(cls, ds, "setLogAbandoned",                 boolean.class, true);
 
-            dataSource = (DataSource) ds;
+            DataSource tempDs = (DataSource) ds;
+            // Test connection to trigger internal initialization & validate connectivity
+            try (Connection conn = tempDs.getConnection()) {
+                LoggerUtil.info(log, "[ConnectionPool] Tomcat DBCP2 Pool validation connection successful");
+            }
+
+            dataSource = tempDs;
             poolActive = true;
             LoggerUtil.info(log, "[ConnectionPool] Tomcat DBCP2 Pool OK — max=" + POOL_MAX_ACTIVE);
             return true;
@@ -190,5 +202,22 @@ public final class ConnectionPool {
     private static void set(Class<?> cls, Object obj, String method, Class<?> paramType, Object value)
             throws Exception {
         cls.getMethod(method, paramType).invoke(obj, value);
+    }
+
+    /**
+     * Shut down and close the connection pool to prevent classloader/timer memory leaks.
+     */
+    public static void shutdown() {
+        if (dataSource != null) {
+            try {
+                dataSource.getClass().getMethod("close").invoke(dataSource);
+                LoggerUtil.info(log, "[ConnectionPool] Connection pool closed successfully on context destroy.");
+            } catch (Exception e) {
+                LoggerUtil.warn(log, "[ConnectionPool] Error closing pool on context destroy: " + e.getMessage());
+            } finally {
+                dataSource = null;
+                poolActive = false;
+            }
+        }
     }
 }
