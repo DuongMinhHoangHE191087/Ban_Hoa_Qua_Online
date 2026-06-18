@@ -265,6 +265,7 @@ CREATE TABLE orders (
     final_amount DECIMAL(14,2) NOT NULL,
     payment_method NVARCHAR(20) NOT NULL CHECK (payment_method IN ('CK','COD')),
     refund_status NVARCHAR(20) NOT NULL DEFAULT 'NONE' CHECK (refund_status IN ('NONE','PENDING','APPROVED','REJECTED','PROCESSING','REFUNDED','FAILED')),
+    received_status NVARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (received_status IN ('PENDING','RECEIVED','NOT_RECEIVED')),
     shop_acceptance_deadline DATETIME NULL,
     shop_accepted_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT GETDATE(), -- [cite: 29]

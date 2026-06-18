@@ -45,6 +45,16 @@ public class DeliveryService {
         return deliveryDAO.findByStaffId(staffId);
     }
 
+    public void validateEstimatedTime(LocalDateTime estimatedTime) {
+        if (estimatedTime == null) {
+            return;
+        }
+        LocalDateTime minAllowed = LocalDateTime.now().withSecond(0).withNano(0);
+        if (estimatedTime.isBefore(minAllowed)) {
+            throw new IllegalArgumentException("Thời gian giao hàng dự kiến không được ở quá khứ.");
+        }
+    }
+
     public boolean updateStatusAndProof(int staffId, int deliveryId, String status, String failureReason, String proofImageUrl) throws SQLException {
         Delivery del = deliveryDAO.findById(deliveryId);
         if (del == null) {
@@ -82,10 +92,12 @@ public class DeliveryService {
         if ("DELIVERED".equals(del.getStatus()) || "FAILED".equals(del.getStatus())) {
             throw new IllegalArgumentException("Không thể cập nhật thời gian dự kiến cho đơn hàng đã hoàn tất hoặc thất bại.");
         }
+        validateEstimatedTime(estimatedTime);
         deliveryDAO.updateEstimatedTime(deliveryId, estimatedTime);
     }
 
     public void assignShipper(int orderId, int staffId, LocalDateTime estimatedTime) throws SQLException {
+        validateEstimatedTime(estimatedTime);
         List<Order> orders = orderDAO.findById(orderId);
         Order order = orders.isEmpty() ? null : orders.get(0);
         if (order == null) {
@@ -105,6 +117,20 @@ public class DeliveryService {
                 throw ex;
             }
         }
+    }
+
+    public void assignShipper(Connection conn, int orderId, int staffId, LocalDateTime estimatedTime) throws SQLException {
+        validateEstimatedTime(estimatedTime);
+        List<Order> orders = orderDAO.findById(orderId);
+        Order order = orders.isEmpty() ? null : orders.get(0);
+        if (order == null) {
+            throw new IllegalArgumentException("Không tìm thấy thông tin đơn hàng để tạo chuyến giao.");
+        }
+        int parentOrderId = order.getParentOrderId() != null ? order.getParentOrderId() : order.getOrderId();
+        String tripStatus = staffId > 0 ? AppConfig.DELIVERY_TRIP_ASSIGNED : AppConfig.DELIVERY_TRIP_PLANNED;
+        int tripId = deliveryTripDAO.save(conn, parentOrderId, staffId > 0 ? staffId : null,
+                tripStatus, null, estimatedTime);
+        deliveryDAO.assignShipper(conn, orderId, tripId, 1, staffId, estimatedTime);
     }
 
     public Delivery getDeliveryByOrderId(int orderId) throws SQLException {
