@@ -78,8 +78,13 @@ public class AdminChatServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             resp.sendRedirect(req.getContextPath() + "/admin/chat");
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi khi lấy dữ liệu chat", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy dữ liệu chat");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminChatServlet.class.getName()),
+                    "AdminChatServlet#doGet",
+                    "Lỗi khi lấy dữ liệu chat",
+                    e);
         }
     }
 

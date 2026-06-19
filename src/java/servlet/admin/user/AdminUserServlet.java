@@ -48,8 +48,13 @@ public class AdminUserServlet extends HttpServlet {
             
             request.getRequestDispatcher("/WEB-INF/jsp/admin/user-list.jsp").forward(request, response);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi tải danh sách người dùng", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error loading users");
+            util.ServletUtil.sendPageInternalServerError(
+                    request,
+                    response,
+                    java.util.logging.Logger.getLogger(AdminUserServlet.class.getName()),
+                    "AdminUserServlet#doGet",
+                    "Error loading users",
+                    e);
         }
     }
 }

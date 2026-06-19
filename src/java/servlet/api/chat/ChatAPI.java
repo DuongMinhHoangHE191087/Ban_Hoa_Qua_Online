@@ -121,9 +121,13 @@ public class ChatAPI extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi server khi xử lý GET chat", e);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    request,
+                    response,
+                    log,
+                    "ChatAPI#doGet",
+                    "Lỗi server: " + e.getMessage(),
+                    e);
         }
     }
 
@@ -267,9 +271,13 @@ public class ChatAPI extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi server khi xử lý POST chat", e);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    request,
+                    response,
+                    log,
+                    "ChatAPI#doPost",
+                    "Lỗi server: " + e.getMessage(),
+                    e);
         }
     }
 }

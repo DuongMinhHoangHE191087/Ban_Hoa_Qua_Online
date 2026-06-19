@@ -98,7 +98,9 @@ public final class ConnectionPool {
             } catch (NoSuchMethodException e) {
                 // DBCP2 dùng getNumActive / getNumIdle — giống nhau, không cần xử lý
             }
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "[ConnectionPool] Không đọc được pool stats", e);
+        }
     }
 
     // =========================================================
@@ -169,7 +171,7 @@ public final class ConnectionPool {
             LoggerUtil.info(log, "[ConnectionPool] Tomcat JDBC Pool OK — max=" + POOL_MAX_ACTIVE);
             return true;
         } catch (Throwable e) {
-            LoggerUtil.warn(log, "[ConnectionPool] Tomcat JDBC Pool không khả dụng: " + e.getMessage());
+            LoggerUtil.warn(log, "[ConnectionPool] Tomcat JDBC Pool không khả dụng", e);
             return false;
         }
     }
@@ -223,7 +225,7 @@ public final class ConnectionPool {
             LoggerUtil.info(log, "[ConnectionPool] Tomcat DBCP2 Pool OK — max=" + POOL_MAX_ACTIVE);
             return true;
         } catch (Throwable e) {
-            LoggerUtil.warn(log, "[ConnectionPool] Tomcat DBCP2 không khả dụng: " + e.getMessage());
+            LoggerUtil.warn(log, "[ConnectionPool] Tomcat DBCP2 không khả dụng", e);
             return false;
         }
     }
@@ -239,7 +241,7 @@ public final class ConnectionPool {
         } catch (NoSuchMethodException ignored) {
             // Optional setter not available on this pool implementation.
         } catch (Exception e) {
-            LoggerUtil.warn(log, "[ConnectionPool] Không set được %s: %s", method, e.getMessage());
+            LoggerUtil.warn(log, "[ConnectionPool] Không set được " + method, e);
         }
     }
 
@@ -252,7 +254,7 @@ public final class ConnectionPool {
                 dataSource.getClass().getMethod("close").invoke(dataSource);
                 LoggerUtil.info(log, "[ConnectionPool] Connection pool closed successfully on context destroy.");
             } catch (Exception e) {
-                LoggerUtil.warn(log, "[ConnectionPool] Error closing pool on context destroy: " + e.getMessage());
+                LoggerUtil.warn(log, "[ConnectionPool] Error closing pool on context destroy", e);
             } finally {
                 dataSource = null;
                 poolActive = false;

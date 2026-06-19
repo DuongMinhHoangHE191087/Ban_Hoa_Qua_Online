@@ -119,11 +119,14 @@ public class ProductEditServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi truy vấn cơ sở dữ liệu khi tải thông tin sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "ProductEditServlet#doGet",
+                        "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(session, "Lỗi truy vấn cơ sở dữ liệu.");
@@ -612,11 +615,14 @@ public class ProductEditServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "ProductEditServlet#doPost",
+                        "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage());

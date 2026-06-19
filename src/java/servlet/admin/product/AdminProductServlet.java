@@ -78,8 +78,13 @@ public class AdminProductServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-products.jsp").forward(req, resp);
 
         } catch (SQLException e) {
-            ErrorMessageUtil.logException(log, "Failed to load admin products list", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ErrorMessageUtil.MSG_DB_ERROR);
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminProductServlet.class.getName()),
+                    "AdminProductServlet#doGet",
+                    ErrorMessageUtil.MSG_DB_ERROR,
+                    e);
         }
     }
 

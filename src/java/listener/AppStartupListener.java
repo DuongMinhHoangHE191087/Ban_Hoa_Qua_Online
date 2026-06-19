@@ -29,6 +29,21 @@ public class AppStartupListener implements ServletContextListener {
         String realPath = sce.getServletContext().getRealPath("");
         util.DotEnvLoader.load(realPath);
         Path logFile = LoggerUtil.configureFileLogging(realPath);
+        String appEnv = System.getenv("APP_ENV");
+        if (appEnv == null || appEnv.isBlank()) {
+            appEnv = System.getProperty("APP_ENV");
+        }
+        if (appEnv == null || appEnv.isBlank()) {
+            appEnv = "development";
+        }
+        sce.getServletContext().setAttribute("appEnv", appEnv);
+
+        Path effectiveLogFile = logFile != null ? logFile : LoggerUtil.getConfiguredLogFile();
+        if (effectiveLogFile == null) {
+            effectiveLogFile = Path.of(System.getProperty("user.dir"), AppConfig.LOG_DIR, AppConfig.LOG_FILE_NAME);
+        }
+        sce.getServletContext().setAttribute("appLogFilePath", effectiveLogFile.toString());
+        sce.getServletContext().setAttribute("logFilePath", effectiveLogFile.toString());
 
         try {
             AppConfig.validateSecretsForProduction();
@@ -89,7 +104,7 @@ public class AppStartupListener implements ServletContextListener {
                 }
             }
         } catch (Exception e) {
-            LoggerUtil.warn(log, "[AppStartup] Warning during automatic DB migration: " + e.getMessage());
+            LoggerUtil.warn(log, "[AppStartup] Warning during automatic DB migration", e);
         }
 
         // Warm up pool và log trạng thái ngay khi startup

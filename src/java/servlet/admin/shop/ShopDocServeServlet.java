@@ -125,8 +125,13 @@ public class ShopDocServeServlet extends HttpServlet {
             }
 
         } catch (IOException e) {
-            getServletContext().log("ShopDocServeServlet error serving file: " + logPath, e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi truyền tải tài liệu.");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(ShopDocServeServlet.class.getName()),
+                    "ShopDocServeServlet#doGet",
+                    "Lỗi khi truyền tải tài liệu.",
+                    e);
         }
     }
 }

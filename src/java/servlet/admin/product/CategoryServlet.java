@@ -52,8 +52,13 @@ public class CategoryServlet extends HttpServlet {
             // Forward tới view quản trị
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-categories.jsp").forward(req, resp);
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi khi lấy danh sách danh mục", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy danh sách danh mục: " + e.getMessage());
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(CategoryServlet.class.getName()),
+                    "CategoryServlet#doGet",
+                    "Lỗi khi lấy danh sách danh mục: " + e.getMessage(),
+                    e);
         }
     }
 

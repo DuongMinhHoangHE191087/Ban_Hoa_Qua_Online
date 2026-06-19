@@ -41,8 +41,13 @@ public class AdminUserViewServlet extends HttpServlet {
             request.setAttribute("user", user);
             request.getRequestDispatcher("/WEB-INF/jsp/admin/user-view.jsp").forward(request, response);
         } catch (Exception e) {
-            getServletContext().log("AdminUserViewServlet doGet error", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            util.ServletUtil.sendPageInternalServerError(
+                    request,
+                    response,
+                    java.util.logging.Logger.getLogger(AdminUserViewServlet.class.getName()),
+                    "AdminUserViewServlet#doGet",
+                    "Lỗi tải thông tin người dùng",
+                    e);
         }
     }
 }

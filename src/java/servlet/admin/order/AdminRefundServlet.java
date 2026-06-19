@@ -44,8 +44,13 @@ public class AdminRefundServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-refunds.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi tải danh sách yêu cầu hoàn trả", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách yêu cầu hoàn trả");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminRefundServlet.class.getName()),
+                    "AdminRefundServlet#doGet",
+                    "Lỗi khi tải danh sách yêu cầu hoàn trả",
+                    e);
         }
     }
 

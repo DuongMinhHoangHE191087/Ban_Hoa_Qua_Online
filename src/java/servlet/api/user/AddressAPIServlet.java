@@ -171,8 +171,13 @@ public class AddressAPIServlet extends HttpServlet {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(resp, ApiResponse.error("Hành động không hợp lệ."));
         } catch (Exception e) {
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, ApiResponse.error("Lỗi máy chủ: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AddressAPIServlet.class.getName()),
+                    "AddressAPIServlet#doPost",
+                    "Lỗi máy chủ: " + e.getMessage(),
+                    e);
         }
     }
 }

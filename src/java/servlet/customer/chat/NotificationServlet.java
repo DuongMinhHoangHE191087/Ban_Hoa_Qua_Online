@@ -142,9 +142,13 @@ public class NotificationServlet extends HttpServlet {
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "Lỗi xử lý POST thông báo", e);
             if (isApi) {
-                resp.setContentType("application/json;charset=UTF-8");
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.error("Có lỗi xảy ra: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        java.util.logging.Logger.getLogger(NotificationServlet.class.getName()),
+                        "NotificationServlet#doGet",
+                        "Có lỗi xảy ra: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());

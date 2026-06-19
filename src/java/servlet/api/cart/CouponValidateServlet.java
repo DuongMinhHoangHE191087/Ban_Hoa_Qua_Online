@@ -96,9 +96,13 @@ public class CouponValidateServlet extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.ok(data));
 
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi validate coupon code=" + req.getParameter("code"), e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống. Vui lòng thử lại."));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "CouponValidateServlet#doPost",
+                    "Lỗi hệ thống. Vui lòng thử lại.",
+                    e);
         }
     }
 

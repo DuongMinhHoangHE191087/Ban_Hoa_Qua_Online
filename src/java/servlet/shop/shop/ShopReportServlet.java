@@ -94,8 +94,13 @@ public class ShopReportServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/shop/report.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải báo cáo cửa hàng", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải báo cáo cửa hàng: " + e.getMessage());
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(ShopReportServlet.class.getName()),
+                    "ShopReportServlet#doGet",
+                    "Lỗi tải báo cáo cửa hàng: " + e.getMessage(),
+                    e);
         }
     }
 

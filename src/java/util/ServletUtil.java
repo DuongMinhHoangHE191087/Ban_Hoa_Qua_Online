@@ -1,12 +1,19 @@
 package util;
 
+import config.AppConfig;
+import exception.BusinessException;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import model.response.ApiResponse;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.logging.Logger;
 
 /**
  * ServletUtil — Helper đồng nhất response pattern trong toàn bộ Servlet layer.
@@ -89,6 +96,77 @@ public final class ServletUtil {
         JsonUtil.writeJson(resp, body);
     }
 
+    /**
+     * Send a standardized 500 JSON response with request-scoped diagnostics.
+     */
+    public static void sendJsonInternalServerError(HttpServletRequest req, HttpServletResponse resp,
+            Logger log, String context, String message, Exception e) throws IOException {
+        if (resp.isCommitted()) {
+            return;
+        }
+
+        String requestId = ensureRequestId(req);
+        req.setAttribute("requestId", requestId);
+        resp.setHeader("X-Request-ID", requestId);
+
+        ErrorMessageUtil.logRequestException(log, req, context, e, requestId);
+
+        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        resp.setContentType("application/json;charset=UTF-8");
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("requestId", requestId);
+        meta.put("errorType", e == null ? "Exception" : e.getClass().getSimpleName());
+
+        String logFilePath = resolveLogFilePath(req);
+        if (!logFilePath.isBlank()) {
+            meta.put("logFilePath", logFilePath);
+        }
+        if (e instanceof BusinessException businessException) {
+            meta.put("errorCode", businessException.getErrorCode());
+        }
+
+        JsonUtil.writeJson(resp, ApiResponse.fail(
+                HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                ErrorMessageUtil.withReference(message, requestId),
+                meta));
+    }
+
+    /**
+     * Forward to the standardized 500 JSP with request-scoped diagnostics.
+     */
+    public static void sendPageInternalServerError(HttpServletRequest req, HttpServletResponse resp,
+            Logger log, String context, String message, Exception e) throws IOException, ServletException {
+        if (resp.isCommitted()) {
+            return;
+        }
+
+        String requestId = ensureRequestId(req);
+        req.setAttribute("requestId", requestId);
+        resp.setHeader("X-Request-ID", requestId);
+
+        ErrorMessageUtil.logRequestException(log, req, context, e, requestId);
+
+        String logFilePath = resolveLogFilePath(req);
+        boolean showErrorDetails = isDevelopmentMode(req);
+
+        req.setAttribute("errorId", requestId);
+        req.setAttribute("logFilePath", logFilePath);
+        req.setAttribute("showErrorDetails", showErrorDetails);
+        req.setAttribute("jakarta.servlet.error.status_code", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        req.setAttribute("jakarta.servlet.error.request_uri", req.getRequestURI());
+        req.setAttribute("jakarta.servlet.error.servlet_name", req.getServletPath());
+        req.setAttribute("jakarta.servlet.error.exception", e);
+        req.setAttribute("jakarta.servlet.error.exception_type", e == null ? Exception.class : e.getClass());
+        req.setAttribute("jakarta.servlet.error.message",
+                ErrorMessageUtil.withReference(message, requestId));
+
+        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        resp.setContentType("text/html;charset=UTF-8");
+        resp.setCharacterEncoding("UTF-8");
+        req.getRequestDispatcher("/WEB-INF/jsp/error/500.jsp").forward(req, resp);
+    }
+
     // -------------------------------------------------------------------------
     // PRG Redirect with Flash (dùng cho POST handlers trả về HTML)
     // -------------------------------------------------------------------------
@@ -166,6 +244,41 @@ public final class ServletUtil {
             throw new IllegalArgumentException("Tham số '" + paramName + "' là bắt buộc.");
         }
         return val;
+    }
+
+    private static String ensureRequestId(HttpServletRequest req) {
+        Object existing = req.getAttribute("requestId");
+        if (existing instanceof String existingId && !existingId.isBlank()) {
+            return existingId;
+        }
+
+        String requestId = UUID.randomUUID().toString().substring(0, 12);
+        req.setAttribute("requestId", requestId);
+        return requestId;
+    }
+
+    private static String resolveLogFilePath(HttpServletRequest req) {
+        Object attr = req.getServletContext().getAttribute("logFilePath");
+        if (attr instanceof String path && !path.isBlank()) {
+            return path;
+        }
+
+        attr = req.getServletContext().getAttribute("appLogFilePath");
+        if (attr instanceof String path && !path.isBlank()) {
+            return path;
+        }
+
+        Path configuredLogFile = LoggerUtil.getConfiguredLogFile();
+        if (configuredLogFile != null) {
+            return configuredLogFile.toString();
+        }
+
+        return Path.of(System.getProperty("user.dir"), AppConfig.LOG_DIR, AppConfig.LOG_FILE_NAME).toString();
+    }
+
+    private static boolean isDevelopmentMode(HttpServletRequest req) {
+        Object env = req.getServletContext().getAttribute("appEnv");
+        return env == null || !"production".equalsIgnoreCase(String.valueOf(env));
     }
 
     private ServletUtil() {}

@@ -161,9 +161,13 @@ public class ProductStatusServlet extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "ID sai định dạng số"));
         } catch (SQLException e) {
             LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi cập nhật trạng thái sản phẩm", e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "Lỗi cơ sở dữ liệu: " + (e.getMessage() == null ? "Lỗi cơ sở dữ liệu" : e.getMessage())));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "ProductStatusServlet#doPost",
+                    "Lỗi cơ sở dữ liệu: " + (e.getMessage() == null ? "Lỗi cơ sở dữ liệu" : e.getMessage()),
+                    e);
         }
     }
 }

@@ -28,8 +28,13 @@ public class AdminReviewServlet extends HttpServlet {
             req.setAttribute("reviewList", reviews);
             req.getRequestDispatcher("/WEB-INF/jsp/admin/review-management.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải danh sách đánh giá", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải danh sách đánh giá");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminReviewServlet.class.getName()),
+                    "AdminReviewServlet#doGet",
+                    "Lỗi tải danh sách đánh giá",
+                    e);
         }
     }
 }

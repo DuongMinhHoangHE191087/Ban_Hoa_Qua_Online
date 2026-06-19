@@ -1,5 +1,10 @@
 package util;
 
+import exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import model.entity.auth.User;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,6 +39,10 @@ public final class ErrorMessageUtil {
             return MSG_INTERNAL_ERROR;
         }
 
+        if (e instanceof BusinessException) {
+            String message = e.getMessage();
+            return message == null || message.isBlank() ? MSG_INTERNAL_ERROR : message;
+        }
         if (e instanceof java.sql.SQLException) {
             return MSG_DB_ERROR;
         }
@@ -51,6 +60,17 @@ public final class ErrorMessageUtil {
         }
 
         return MSG_INTERNAL_ERROR;
+    }
+
+    /**
+     * Append a safe reference ID to a user-facing message.
+     */
+    public static String withReference(String message, String requestId) {
+        String base = (message == null || message.isBlank()) ? MSG_INTERNAL_ERROR : message.trim();
+        if (requestId == null || requestId.isBlank()) {
+            return base;
+        }
+        return base + " (Mã tham chiếu: " + sanitizeForLog(requestId) + ")";
     }
 
     /**
@@ -89,7 +109,9 @@ public final class ErrorMessageUtil {
 
         String logMessage = "[" + context + "] " + getSafeLogMessage(e);
 
-        if (e instanceof java.sql.SQLException) {
+        if (e instanceof BusinessException be) {
+            log.log(Level.WARNING, logMessage + " | businessCode=" + be.getErrorCode(), e);
+        } else if (e instanceof java.sql.SQLException) {
             // Database errors: log with full stack trace for debugging
             log.log(Level.SEVERE, logMessage, e);
         } else if (e instanceof java.io.IOException) {
@@ -121,7 +143,9 @@ public final class ErrorMessageUtil {
      * User errors get handled gracefully; system errors get escalated.
      */
     public static boolean isUserError(Exception e) {
-        return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
+        return e instanceof BusinessException
+                || e instanceof IllegalArgumentException
+                || e instanceof IllegalStateException;
     }
 
     /**
@@ -140,6 +164,157 @@ public final class ErrorMessageUtil {
             return "(null)";
         }
         return input.replaceAll("[\\r\\n\\t]", "_");
+    }
+
+    /**
+     * Build a compact request summary for error logs.
+     */
+    public static String buildRequestSummary(HttpServletRequest req, String requestId) {
+        if (req == null) {
+            return "requestId=" + sanitizeForLog(requestId);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("requestId=").append(sanitizeForLog(requestId));
+        sb.append(" method=").append(sanitizeForLog(req.getMethod()));
+        sb.append(" uri=").append(sanitizeForLog(req.getRequestURI()));
+
+        String query = req.getQueryString();
+        if (query != null && !query.isBlank()) {
+            sb.append(" query=").append(sanitizeForLog(query));
+        }
+
+        String accept = req.getHeader("Accept");
+        if (accept != null && !accept.isBlank()) {
+            sb.append(" accept=").append(sanitizeForLog(accept));
+        }
+
+        String xRequestedWith = req.getHeader("X-Requested-With");
+        if (xRequestedWith != null && !xRequestedWith.isBlank()) {
+            sb.append(" xrw=").append(sanitizeForLog(xRequestedWith));
+        }
+
+        String contentType = req.getContentType();
+        if (contentType != null && !contentType.isBlank()) {
+            sb.append(" contentType=").append(sanitizeForLog(contentType));
+        }
+
+        String remoteAddr = req.getRemoteAddr();
+        if (remoteAddr != null && !remoteAddr.isBlank()) {
+            sb.append(" remoteAddr=").append(sanitizeForLog(remoteAddr));
+        }
+
+        HttpSession session = req.getSession(false);
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser != null) {
+            sb.append(" userId=").append(currentUser.getUserId());
+            sb.append(" role=").append(sanitizeForLog(currentUser.getRole()));
+        }
+
+        String params = summarizeParameters(req);
+        if (!params.isEmpty()) {
+            sb.append(" params=").append(params);
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Log request-scoped exception details with a stable request summary.
+     */
+    public static void logRequestException(Logger log, HttpServletRequest req, String context, Exception e, String requestId) {
+        if (log == null || e == null) {
+            return;
+        }
+
+        String requestSummary = buildRequestSummary(req, requestId);
+        String logMessage = "[" + context + "] " + requestSummary + " | " + getSafeLogMessage(e);
+
+        if (e instanceof BusinessException be) {
+            log.log(Level.WARNING, logMessage + " | businessCode=" + be.getErrorCode(), e);
+        } else if (e instanceof java.sql.SQLException) {
+            log.log(Level.SEVERE, logMessage, e);
+        } else if (e instanceof java.io.IOException) {
+            log.log(Level.WARNING, logMessage, e);
+        } else if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) {
+            log.log(Level.WARNING, logMessage, e);
+        } else if (e instanceof SecurityException) {
+            log.log(Level.WARNING, logMessage, e);
+        } else {
+            log.log(Level.SEVERE, logMessage, e);
+        }
+    }
+
+    private static String summarizeParameters(HttpServletRequest req) {
+        java.util.Map<String, String[]> params = req.getParameterMap();
+        if (params == null || params.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder("{");
+        int count = 0;
+        for (java.util.Map.Entry<String, String[]> entry : params.entrySet()) {
+            if (count >= 6) {
+                sb.append("...");
+                break;
+            }
+            if (count > 0) {
+                sb.append(", ");
+            }
+
+            String key = sanitizeForLog(entry.getKey());
+            sb.append(key).append('=');
+            sb.append(formatParameterValue(entry.getKey(), entry.getValue()));
+            count++;
+        }
+        sb.append('}');
+        return sb.toString();
+    }
+
+    private static String formatParameterValue(String key, String[] values) {
+        if (values == null || values.length == 0) {
+            return "[]";
+        }
+
+        if (isSensitiveParameter(key)) {
+            return "***";
+        }
+
+        StringBuilder sb = new StringBuilder("[");
+        int limit = Math.min(values.length, 3);
+        for (int i = 0; i < limit; i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append('"').append(truncate(sanitizeForLog(values[i]), 120)).append('"');
+        }
+        if (values.length > limit) {
+            sb.append(", ...");
+        }
+        sb.append(']');
+        return sb.toString();
+    }
+
+    private static boolean isSensitiveParameter(String key) {
+        if (key == null) {
+            return false;
+        }
+        String normalized = key.toLowerCase();
+        return normalized.contains("password")
+                || normalized.contains("secret")
+                || normalized.contains("token")
+                || normalized.contains("csrf")
+                || normalized.contains("otp")
+                || normalized.contains("code")
+                || normalized.contains("cookie")
+                || normalized.contains("key");
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, Math.max(0, maxLength - 3)) + "...";
     }
 
     private ErrorMessageUtil() {
