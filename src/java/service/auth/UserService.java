@@ -129,4 +129,8 @@ public class UserService {
         }
         userSessionDAO.deleteSessionsByUserId(userId);
     }
+
+    public void deleteAllSessions() throws SQLException {
+        userSessionDAO.deleteAllSessions();
+    }
 }

@@ -5,6 +5,7 @@ import dao.catalog.ProductDAO;
 import dao.catalog.ProductVariantDAO;
 import dao.auth.UserDAO;
 import dao.cart.CartDAO;
+import model.dto.common.PagedResultDTO;
 import model.entity.catalog.Category;
 import model.entity.catalog.Product;
 import model.entity.catalog.ProductVariant;
@@ -24,6 +25,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ProductBusinessRulesTest — Bộ kiểm thử cho các quy tắc nghiệp vụ cốt lõi:
@@ -334,5 +336,93 @@ public class ProductBusinessRulesTest {
         // Kiểm tra xem yêu cầu hôm nay đã được ghi nhận hay chưa
         assertTrue("Yêu cầu nhập kho trong ngày của khách phải được lưu vết", 
             productDAO.hasRequestedRestockToday(testOwnerId, testCustomerId, testProductId2));
+    }
+
+    /**
+     * Nghiệp vụ 5: Sản phẩm hết mùa phải bị loại khỏi catalog public và các danh sách gợi ý.
+     */
+    @Test
+    public void testPublicCatalogHidesOutOfSeasonProducts() throws SQLException {
+        int currentMonth = LocalDate.now().getMonthValue();
+        int outOfSeasonMonth = currentMonth == 12 ? 1 : currentMonth + 1;
+        String uniqueSuffix = String.valueOf(System.currentTimeMillis());
+
+        Product inSeason = new Product();
+        inSeason.setOwnerId(testOwnerId);
+        inSeason.setCategoryId(testCategoryId);
+        inSeason.setName("Season Filter Active " + uniqueSuffix);
+        inSeason.setDescription("Season Filter Active " + uniqueSuffix);
+        inSeason.setOriginCountry("Vietnam");
+        inSeason.setOriginRegion("Da Lat");
+        inSeason.setHarvestDate(LocalDate.now().plusDays(3));
+        inSeason.setShelfLifeDays(30);
+        inSeason.setStorageInstruction("Keep cool");
+        inSeason.setStatus("ACTIVE");
+        inSeason.setViewCount(0);
+        inSeason.setRating(BigDecimal.ZERO);
+        inSeason.setSoldQuantity(0);
+        inSeason.setIsOrganic(false);
+        inSeason.setIsImported(false);
+        inSeason.setSeasonStartMonth(currentMonth);
+        inSeason.setSeasonEndMonth(currentMonth);
+        inSeason.setApprovalStatus("APPROVED");
+        testProductId1 = productDAO.save(inSeason);
+
+        ProductVariant inSeasonVariant = new ProductVariant();
+        inSeasonVariant.setProductId(testProductId1);
+        inSeasonVariant.setSku("SEASON-IN-" + uniqueSuffix);
+        inSeasonVariant.setVariantLabel("1kg");
+        inSeasonVariant.setPrice(new BigDecimal("45000.00"));
+        inSeasonVariant.setStockQuantity(10);
+        inSeasonVariant.setIsActive(true);
+        variantDAO.save(inSeasonVariant);
+
+        Product outOfSeason = new Product();
+        outOfSeason.setOwnerId(testOwnerId);
+        outOfSeason.setCategoryId(testCategoryId);
+        outOfSeason.setName("Season Filter Hidden " + uniqueSuffix);
+        outOfSeason.setDescription("Season Filter Hidden " + uniqueSuffix);
+        outOfSeason.setOriginCountry("Vietnam");
+        outOfSeason.setOriginRegion("Da Lat");
+        outOfSeason.setHarvestDate(LocalDate.now().plusDays(3));
+        outOfSeason.setShelfLifeDays(30);
+        outOfSeason.setStorageInstruction("Keep cool");
+        outOfSeason.setStatus("ACTIVE");
+        outOfSeason.setViewCount(0);
+        outOfSeason.setRating(BigDecimal.ZERO);
+        outOfSeason.setSoldQuantity(0);
+        outOfSeason.setIsOrganic(false);
+        outOfSeason.setIsImported(false);
+        outOfSeason.setSeasonStartMonth(outOfSeasonMonth);
+        outOfSeason.setSeasonEndMonth(outOfSeasonMonth);
+        outOfSeason.setApprovalStatus("APPROVED");
+        testProductId2 = productDAO.save(outOfSeason);
+
+        ProductVariant outOfSeasonVariant = new ProductVariant();
+        outOfSeasonVariant.setProductId(testProductId2);
+        outOfSeasonVariant.setSku("SEASON-OUT-" + uniqueSuffix);
+        outOfSeasonVariant.setVariantLabel("1kg");
+        outOfSeasonVariant.setPrice(new BigDecimal("48000.00"));
+        outOfSeasonVariant.setStockQuantity(10);
+        outOfSeasonVariant.setIsActive(true);
+        variantDAO.save(outOfSeasonVariant);
+
+        PagedResultDTO pagedResult = productService.getProductList(1, "Season Filter", testCategoryId, null, null);
+        assertEquals(1L, pagedResult.getTotalItems());
+
+        List<Product> catalogProducts = (List<Product>) pagedResult.getItems();
+        assertEquals(1, catalogProducts.size());
+        assertEquals(testProductId1, catalogProducts.get(0).getProductId());
+
+        List<Product> similarProducts = productDAO.findSimilarProducts(testProductId1, testCategoryId, 10);
+        assertTrue(similarProducts.isEmpty());
+
+        Map<Integer, Product> ownerProducts = productDAO.findActiveByOwner(testOwnerId);
+        assertTrue(ownerProducts.containsKey(testProductId1));
+        assertFalse(ownerProducts.containsKey(testProductId2));
+
+        Map<Integer, Product> filteredByIds = productDAO.findByIds(java.util.List.of(testProductId1, testProductId2));
+        assertTrue(filteredByIds.containsKey(testProductId1));
+        assertFalse(filteredByIds.containsKey(testProductId2));
     }
 }

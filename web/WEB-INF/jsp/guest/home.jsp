@@ -1990,9 +1990,9 @@
                             container.style.pointerEvents = 'none';
                             
                             try {
-                                let url = `${pageContext.request.contextPath}/home?format=json&page=${page}`;
-                                if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-                                if (categoryId) url += `&categoryId=${categoryId}`;
+                                let url = '${pageContext.request.contextPath}/home?format=json&page=' + page;
+                                if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+                                if (categoryId) url += '&categoryId=' + categoryId;
                                 
                                 const response = await fetch(url);
                                 const result = await response.json();
@@ -2046,6 +2046,8 @@
                             products.forEach(item => {
                                 let starsHtml = '';
                                 const ratingVal = parseFloat(item.rating) || 0;
+                                const ratingLabel = ratingVal > 0 ? ratingVal.toFixed(1) : 'Chưa có đánh giá';
+                                const ratingLabelClass = ratingVal > 0 ? 'text-xs text-on-surface-variant ml-1 font-semibold' : 'text-xs text-gray-400 ml-1 font-semibold';
                                 const fullStars = Math.floor(ratingVal);
                                 const halfStar = (ratingVal - fullStars) >= 0.5 ? 1 : 0;
                                 const emptyStars = 5 - fullStars - halfStar;
@@ -2061,15 +2063,15 @@
                                         class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                                         <a href="${ctx}/products/detail?id=${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
                                             <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                                                <img src="${item.image}" alt="${escapeHtml(item.name)}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                <img src="${item.image}" alt="${fn:escapeXml(item.name)}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                                 <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-${item.productId}">Đã thêm 0</div>
                                                 <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">Nông sản sạch</div>
                                             </div>
                                             <div class="px-1 mb-3">
-                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">${escapeHtml(item.name)}</h3>
-                                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">${escapeHtml(item.description || '')}</p>
+                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">${fn:escapeXml(item.name)}</h3>
+                                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">${fn:escapeXml(item.description || '')}</p>
                                                 <div class="flex justify-between items-center">
-                                                    <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">${starsHtml}<span class="text-xs text-on-surface-variant ml-1 font-semibold">${ratingVal.toFixed(1)}</span></div>
+                                                    <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">${starsHtml}<span class="${ratingLabelClass}">${ratingLabel}</span></div>
                                                     <span class="text-[10px] text-on-surface-variant font-medium">Đã bán ${item.soldQuantity || 0}</span>
                                                 </div>
                                             </div>
@@ -2077,7 +2079,7 @@
                                         <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
                                             <div class="flex flex-col">
                                                 <span class="text-base font-bold text-primary">${formattedPrice}</span>
-                                                <span class="text-[10px] text-on-surface-variant font-light">/ ${escapeHtml(item.unit || 'kg')}</span>
+                                                <span class="text-[10px] text-on-surface-variant font-light">/ ${fn:escapeXml(item.unit || 'kg')}</span>
                                             </div>
                                             <button type="button" onclick="quickAddProduct(event, '${item.productId}')" class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer" title="Thêm vào giỏ">
                                                 <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>

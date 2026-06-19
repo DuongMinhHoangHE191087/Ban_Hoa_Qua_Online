@@ -151,7 +151,7 @@
 
     <!-- Form container -->
     <div class="premium-glass-card rounded-[1.5rem] p-6">
-        <form action="${pageContext.request.contextPath}/returns" method="POST" class="flex flex-col gap-4">
+        <form action="${pageContext.request.contextPath}/returns" method="POST" enctype="multipart/form-data" class="flex flex-col gap-4">
             <input type="hidden" name="orderId" value="${order.orderId}"/>
             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}"/>
 
@@ -201,11 +201,11 @@
                 <p class="text-[10px] text-on-surface-variant mt-1">Không được vượt quá số lượng sản phẩm bạn đã mua thực tế.</p>
             </div>
 
-            <!-- Evidence URL -->
+            <!-- Evidence upload -->
             <div>
-                <label class="block text-sm font-bold text-inverse-surface mb-1.5" for="evidenceUrl">Hình ảnh/Video bằng chứng lỗi (URL): <span class="text-error">*</span></label>
-                <input type="url" class="w-full rounded-xl border border-outline-variant/40 p-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary text-sm" id="evidenceUrl" name="evidenceUrl" placeholder="https://example.com/damaged_fruit.jpg" required/>
-                <p class="text-[10px] text-on-surface-variant mt-1">Bắt buộc cung cấp liên kết hình ảnh trái cây bị dập nát hoặc giao sai để Admin đối soát phê duyệt.</p>
+                <label class="block text-sm font-bold text-inverse-surface mb-1.5" for="evidence">Hình ảnh/Video bằng chứng lỗi <span class="text-error">*</span></label>
+                <input type="file" class="w-full rounded-xl border border-outline-variant/40 p-3 bg-white focus:outline-none focus:ring-2 focus:ring-primary text-sm" id="evidence" name="evidence" accept="image/*,video/*" multiple required/>
+                <p class="text-[10px] text-on-surface-variant mt-1">Tải lên ít nhất 1 video hoặc ít nhất 2 ảnh để hệ thống đối soát phê duyệt. Có thể chọn nhiều tệp cùng lúc.</p>
             </div>
 
             <!-- Description -->

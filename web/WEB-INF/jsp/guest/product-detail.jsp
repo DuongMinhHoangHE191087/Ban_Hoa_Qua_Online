@@ -1173,10 +1173,20 @@
                             <i class="fa-solid fa-globe mr-1"></i> Nhập Khẩu
                         </span>
                     </c:if>
-                    <span class="badge-rating-top">
-                        <i class="fa-solid fa-star text-[#F59E0B]"></i>
-                        <c:out value="${product.rating}"/> (<c:out value="${totalReviewsCount}"/> Đánh giá)
-                    </span>
+                    <c:choose>
+                        <c:when test="${hasReviews}">
+                            <span class="badge-rating-top">
+                                <i class="fa-solid fa-star text-[#F59E0B]"></i>
+                                <c:out value="${product.rating}"/> (<c:out value="${totalReviewsCount}"/> Đánh giá)
+                            </span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="badge-rating-top" style="background: linear-gradient(120deg, #f8fafc, #e2e8f0); color: #64748b; border: 1px solid rgba(148,163,184,0.35); box-shadow: 0 2px 8px rgba(148,163,184,0.08);">
+                                <i class="fa-solid fa-star" style="color:#cbd5e1;"></i>
+                                Chưa có đánh giá
+                            </span>
+                        </c:otherwise>
+                    </c:choose>
                     <span class="text-xs text-muted"><i class="fa-solid fa-eye mr-1"></i> <c:out value="${product.viewCount}"/> lượt xem</span>
                 </div>
 
@@ -1610,9 +1620,18 @@
             <div class="review-grid mb-8">
                 <!-- Rating Score Summary -->
                 <div class="rating-summary-box">
-                    <div class="big-score"><c:out value="${product.rating}"/></div>
-                    <div class="my-2"><ft:stars rating="${product.rating}"/></div>
-                    <div class="text-sm text-muted"><c:out value="${totalReviewsCount}"/> đánh giá thực tế</div>
+                    <c:choose>
+                        <c:when test="${hasReviews}">
+                            <div class="big-score"><c:out value="${product.rating}"/></div>
+                            <div class="my-2"><ft:stars rating="${product.rating}"/></div>
+                            <div class="text-sm text-muted"><c:out value="${totalReviewsCount}"/> đánh giá thực tế</div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="big-score" style="color:#94a3b8;">--</div>
+                            <div class="my-2"><ft:stars rating="${product.rating}"/></div>
+                            <div class="text-sm text-muted">Chưa có đánh giá</div>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
 
                 <!-- Distribution Bars -->
@@ -2419,7 +2438,7 @@
                 imgHtml = `
                     <div class="review-attachment-box">
                         <div class="review-thumb-image" onclick="openPhotoModal(this)">
-                            <img src="${escapeHtml(src)}" alt="Ảnh review khách hàng">
+                            <img src="${fn:escapeXml(src)}" alt="Ảnh review khách hàng">
                         </div>
                     </div>
                 `;
