@@ -113,6 +113,22 @@ public class AppStartupListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-        ConnectionPool.shutdown();
+        LoggerUtil.info(log, "[AppStartup] contextDestroyed: Closing ConnectionPool to prevent Timer leaks...");
+        ConnectionPool.closePool();
+
+        LoggerUtil.info(log, "[AppStartup] contextDestroyed: Cleaning up JDBC drivers to prevent Timer already cancelled error...");
+        java.util.Enumeration<java.sql.Driver> drivers = java.sql.DriverManager.getDrivers();
+        while (drivers.hasMoreElements()) {
+            java.sql.Driver driver = drivers.nextElement();
+            // Lọc chỉ gỡ Driver thuộc WebApp ClassLoader hiện tại (Tránh xóa nhầm Driver của Tomcat toàn cục nếu có)
+            if (driver.getClass().getClassLoader() == this.getClass().getClassLoader()) {
+                try {
+                    java.sql.DriverManager.deregisterDriver(driver);
+                    LoggerUtil.info(log, "[AppStartup] Deregistered JDBC driver: " + driver);
+                } catch (java.sql.SQLException e) {
+                    LoggerUtil.error(log, "[AppStartup] Error deregistering driver: " + driver, e);
+                }
+            }
+        }
     }
 }

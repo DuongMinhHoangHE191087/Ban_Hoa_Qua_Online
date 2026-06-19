@@ -105,6 +105,7 @@ public class ShopApplyServlet extends HttpServlet {
         }
 
         String shopName = req.getParameter("shopName");
+        String businessEmail = req.getParameter("businessEmail");
         String shopAddress = req.getParameter("shopAddress");
         String shopDescription = req.getParameter("shopDescription");
 
@@ -121,6 +122,9 @@ public class ShopApplyServlet extends HttpServlet {
             // 1. Validate input cơ bản bằng ValidationUtil
             shopName = util.ValidationUtil.requireValidShopName(shopName, "Tên cửa hàng");
             shopAddress = util.ValidationUtil.requireValidAddress(shopAddress, "Địa chỉ kinh doanh");
+            if (businessEmail != null && !businessEmail.trim().isEmpty()) {
+                businessEmail = util.ValidationUtil.requireValidEmail(businessEmail, "Email liên hệ kinh doanh");
+            }
 
             // 2. Kiểm tra trùng: user đã có profile PENDING hoặc APPROVED chưa
             List<ShopProfile> existing = shopProfileDAO.findByUserId(currentUser.getUserId());
@@ -134,7 +138,7 @@ public class ShopApplyServlet extends HttpServlet {
                 }
                 // Nếu REJECTED → cho nộp lại bằng cách cập nhật profile cũ
                 if ("REJECTED".equals(profile.getApprovalStatus())) {
-                    resubmitApplication(req, resp, currentUser, profile, shopName, shopAddress, shopDescription);
+                    resubmitApplication(req, resp, currentUser, profile, shopName, businessEmail, shopAddress, shopDescription);
                     return;
                 }
             }
@@ -149,6 +153,7 @@ public class ShopApplyServlet extends HttpServlet {
             ShopProfile newProfile = new ShopProfile();
             newProfile.setUserId(currentUser.getUserId());
             newProfile.setShopName(shopName.trim());
+            newProfile.setBusinessEmail(businessEmail != null ? businessEmail.trim() : null);
             newProfile.setShopDescription(shopDescription != null ? shopDescription.trim() : "");
             newProfile.setApprovalStatus("PENDING");
             newProfile.setDeliveryAddress(shopAddress.trim());
@@ -183,12 +188,13 @@ public class ShopApplyServlet extends HttpServlet {
      */
     private void resubmitApplication(HttpServletRequest req, HttpServletResponse resp,
             User currentUser, ShopProfile profile,
-            String shopName, String shopAddress, String shopDescription)
+            String shopName, String businessEmail, String shopAddress, String shopDescription)
             throws Exception, ServletException, IOException {
         String preferredCategoriesJson = buildCategoryJson(req.getParameterValues("categoryIds"));
         String docPathsJson = uploadDocs(req, currentUser.getUserId());
 
         profile.setShopName(shopName.trim());
+        profile.setBusinessEmail(businessEmail != null ? businessEmail.trim() : null);
         profile.setShopDescription(shopDescription != null ? shopDescription.trim() : "");
         profile.setApprovalStatus("PENDING");
         profile.setRejectionReason(null);
