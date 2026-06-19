@@ -682,7 +682,7 @@ public class OrderDAO extends BaseDAO {
         return java.math.BigDecimal.ZERO;
     }
 
-    /** TÃ­nh tá»•ng doanh thu táº¡m tÃ­nh cá»§a shop owner (cÃ¡c Ä‘Æ¡n hÃ ng active chÆ°a DELIVERED/CANCELLED). */
+    /** Tính tổng doanh thu tạm tính của shop owner (các đơn hàng active chưa DELIVERED/CANCELLED). */
     public java.math.BigDecimal getEstimatedRevenueByOwner(int ownerId) throws SQLException {
         String sql = "SELECT SUM(final_amount) FROM orders WHERE owner_id = ? AND status IN ('PENDING_PAYMENT', 'CONFIRMED', 'APPROVED', 'PREPARING', 'DISPATCHED') AND order_type = 'CHILD'";
         try (Connection conn = getConnection();
