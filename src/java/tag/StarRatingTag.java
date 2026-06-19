@@ -19,13 +19,23 @@ public class StarRatingTag extends SimpleTagSupport {
     @Override
     public void doTag() throws JspException, IOException {
         double r = rating == null ? 0.0 : rating.doubleValue();
-        StringBuilder sb = new StringBuilder("<span class=\"star-rating\">");
+        StringBuilder sb = new StringBuilder("<span class=\"star-rating\" style=\"display:inline-flex;align-items:center;gap:2px;\">");
         for (int i = 1; i <= 5; i++) {
-            if (r >= i)       sb.append("<span class=\"star-filled\">★</span>");
-            else if (r >= i - 0.5) sb.append("<span class=\"star-half\">★</span>");
-            else              sb.append("<span class=\"star-empty\">☆</span>");
+            if (r >= i) {
+                sb.append("<span class=\"star-filled\" style=\"color:#F59E0B;\">★</span>");
+            } else if (r >= i - 0.5) {
+                sb.append("<span class=\"star-half\" style=\"color:#F59E0B;\">★</span>");
+            } else {
+                sb.append("<span class=\"star-empty\" style=\"color:#CBD5E1;\">☆</span>");
+            }
         }
-        if (showValue) sb.append(" <small>(").append(String.format("%.1f", r)).append(")</small>");
+        if (showValue) {
+            if (r <= 0.0) {
+                sb.append(" <small style=\"color:#94A3B8;font-weight:600;\">Chưa có đánh giá</small>");
+            } else {
+                sb.append(" <small style=\"color:#64748B;font-weight:600;\">(").append(String.format("%.1f", r)).append(")</small>");
+            }
+        }
         sb.append("</span>");
         getJspContext().getOut().write(sb.toString());
     }

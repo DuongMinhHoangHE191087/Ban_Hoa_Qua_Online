@@ -70,13 +70,28 @@ public class ProductDAO extends BaseDAO {
       + "p.is_organic, p.is_imported, p.approval_status, CAST(NULL AS NVARCHAR(255)) AS verification_doc_path, "
       + "p.rejection_reason, p.season_start_month, p.season_end_month, p.created_at, p.updated_at";
 
+    private String buildPublicVisibilityClause(String alias) {
+        return alias + ".status = 'ACTIVE' AND " + alias + ".approval_status = 'APPROVED' "
+             + "AND (" + alias + ".season_start_month IS NULL OR " + alias + ".season_end_month IS NULL "
+             + "OR (" + alias + ".season_start_month <= " + alias + ".season_end_month "
+             + "AND MONTH(GETDATE()) BETWEEN " + alias + ".season_start_month AND " + alias + ".season_end_month) "
+             + "OR (" + alias + ".season_start_month > " + alias + ".season_end_month "
+             + "AND (MONTH(GETDATE()) >= " + alias + ".season_start_month OR MONTH(GETDATE()) <= " + alias + ".season_end_month)))";
+    }
+
+    private String buildActiveStockExistsClause(String alias) {
+        return "EXISTS (SELECT 1 FROM product_variants pv_stock "
+             + "WHERE pv_stock.product_id = " + alias + ".product_id "
+             + "AND pv_stock.is_active = 1 AND pv_stock.stock_quantity > 0)";
+    }
+
     /**
      * Lấy danh sách toàn bộ sản phẩm có phân trang (Tối ưu hóa Deferred Join).
      */
     public List<Product> findAll(int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT " + DTO_SELECT_FIELDS + " FROM products p "
-                   + "JOIN (SELECT product_id FROM products WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' "
+                   + "JOIN (SELECT product_id FROM products p WHERE " + buildPublicVisibilityClause("p") + " AND " + buildActiveStockExistsClause("p") + " "
                    + "ORDER BY product_id DESC " + PaginationHelper.OFFSET_FETCH_SQL + ") temp "
                    + "ON p.product_id = temp.product_id "
                    + "ORDER BY p.product_id DESC";
@@ -116,7 +131,7 @@ public class ProductDAO extends BaseDAO {
      */
     public Map<Integer, Product> findActiveByOwner(int ownerId) throws SQLException {
         Map<Integer, Product> map = new LinkedHashMap<>();
-        String sql = "SELECT * FROM products WHERE owner_id = ? AND status = 'ACTIVE' ORDER BY product_id DESC";
+        String sql = "SELECT * FROM products WHERE owner_id = ? AND " + buildPublicVisibilityClause("products") + " AND " + buildActiveStockExistsClause("products") + " ORDER BY product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
@@ -136,7 +151,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findByCategory(int categoryId, int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT " + DTO_SELECT_FIELDS + " FROM products p "
-                   + "JOIN (SELECT product_id FROM products WHERE category_id = ? AND status = 'ACTIVE' AND approval_status = 'APPROVED' "
+                   + "JOIN (SELECT product_id FROM products p WHERE p.category_id = ? AND " + buildPublicVisibilityClause("p") + " AND " + buildActiveStockExistsClause("p") + " "
                    + "ORDER BY product_id DESC " + PaginationHelper.OFFSET_FETCH_SQL + ") temp "
                    + "ON p.product_id = temp.product_id "
                    + "ORDER BY p.product_id DESC";
@@ -160,7 +175,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT DISTINCT p.* FROM products p "
                    + "JOIN promotions pr ON p.product_id = pr.product_id "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
+                   + "WHERE " + buildPublicVisibilityClause("p") + " AND " + buildActiveStockExistsClause("p") + " AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
                    + "ORDER BY p.product_id DESC";
         try (Connection conn = getConnection();
@@ -182,7 +197,7 @@ public class ProductDAO extends BaseDAO {
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
         }
-        sql.append("WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' ");
+        sql.append("WHERE ").append(buildPublicVisibilityClause("p")).append(" AND ").append(buildActiveStockExistsClause("p")).append(" ");
 
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -230,8 +245,8 @@ public class ProductDAO extends BaseDAO {
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");//khang
         }
-        sql.append("WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' ");
-        sql.append("AND EXISTS (SELECT 1 FROM product_variants pv_stock WHERE pv_stock.product_id = p.product_id AND pv_stock.is_active = 1 AND pv_stock.stock_quantity > 0) ");
+        sql.append("WHERE ").append(buildPublicVisibilityClause("p")).append(" ");
+        sql.append("AND ").append(buildActiveStockExistsClause("p")).append(" ");
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -582,7 +597,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findSimilarProducts(int productId, int categoryId, int limit) throws SQLException {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products "
-                   + "WHERE category_id = ? AND product_id != ? AND status = 'ACTIVE' AND approval_status = 'APPROVED' "
+                   + "WHERE category_id = ? AND product_id != ? AND " + buildPublicVisibilityClause("products") + " AND " + buildActiveStockExistsClause("products") + " "
                    + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
                    + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
@@ -613,7 +628,7 @@ public class ProductDAO extends BaseDAO {
     public List<Product> findByOwnerAndActiveStatus(int ownerId, int excludeProductId, int limit) throws SQLException {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT * FROM products "
-                   + "WHERE owner_id = ? AND product_id != ? AND status = 'ACTIVE' AND approval_status = 'APPROVED' "
+                   + "WHERE owner_id = ? AND product_id != ? AND " + buildPublicVisibilityClause("products") + " AND " + buildActiveStockExistsClause("products") + " "
                    + "ORDER BY sold_quantity DESC, view_count DESC, product_id DESC "
                    + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
         try (Connection conn = getConnection();
@@ -814,7 +829,7 @@ public class ProductDAO extends BaseDAO {
         List<Product> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT ");
         sql.append(DTO_SELECT_FIELDS);
-        sql.append(" FROM products p WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED'");
+        sql.append(" FROM products p WHERE ").append(buildPublicVisibilityClause("p")).append(" AND ").append(buildActiveStockExistsClause("p"));
         if (lastProductId > 0) {
             sql.append(" AND p.product_id < ?");
         }
@@ -870,7 +885,8 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> findAllActiveForAI() throws SQLException {
         List<Product> list = new ArrayList<>();
-        String sql = "SELECT product_id, category_id, name, description, origin_country, view_count, rating, sold_quantity FROM products WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' ORDER BY product_id DESC";
+        String sql = "SELECT product_id, category_id, name, description, origin_country, view_count, rating, sold_quantity FROM products p WHERE "
+                   + buildPublicVisibilityClause("p") + " AND " + buildActiveStockExistsClause("p") + " ORDER BY product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -895,8 +911,9 @@ public class ProductDAO extends BaseDAO {
         String sql = "SELECT p.product_id, p.name, p.status, ISNULL(SUM(pv.stock_quantity), 0) AS total_stock "
                    + "FROM products p "
                    + "LEFT JOIN product_variants pv ON p.product_id = pv.product_id AND pv.is_active = 1 "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' "
+                   + "WHERE " + buildPublicVisibilityClause("p") + " "
                    + "GROUP BY p.product_id, p.name, p.status "
+                   + "HAVING ISNULL(SUM(pv.stock_quantity), 0) > 0 "
                    + "ORDER BY p.product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -931,13 +948,13 @@ public class ProductDAO extends BaseDAO {
         }
         
         String sql = "SELECT p.product_id, p.name, "
-                   + "       (SELECT TOP 1 pv.variant_id FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS variant_id, "
-                   + "       (SELECT TOP 1 pv.price FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS price, "
-                   + "       (SELECT TOP 1 pv.variant_label FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 ORDER BY pv.price ASC) AS unit, "
+                   + "       (SELECT TOP 1 pv.variant_id FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 AND pv.stock_quantity > 0 ORDER BY pv.price ASC) AS variant_id, "
+                   + "       (SELECT TOP 1 pv.price FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 AND pv.stock_quantity > 0 ORDER BY pv.price ASC) AS price, "
+                   + "       (SELECT TOP 1 pv.variant_label FROM product_variants pv WHERE pv.product_id = p.product_id AND pv.is_active = 1 AND pv.stock_quantity > 0 ORDER BY pv.price ASC) AS unit, "
                    // B8: Fallback — lấy ảnh primary trước, nếu không có thì lấy ảnh bất kỳ
                    + "       (SELECT TOP 1 pi.file_path FROM product_images pi WHERE pi.product_id = p.product_id ORDER BY pi.is_primary DESC, pi.display_order ASC) AS image "
                    + "FROM products p "
-                   + "WHERE p.product_id IN (" + placeholders.toString() + ") AND p.status = 'ACTIVE' AND p.approval_status = 'APPROVED'";
+                   + "WHERE p.product_id IN (" + placeholders.toString() + ") AND " + buildPublicVisibilityClause("p") + " AND " + buildActiveStockExistsClause("p");
 
                    
         try (Connection conn = getConnection();
@@ -980,8 +997,8 @@ public class ProductDAO extends BaseDAO {
             placeholders.append("?");
         }
 
-        String sql = "SELECT * FROM products WHERE product_id IN (" + placeholders + ") "
-                   + "AND status = 'ACTIVE' AND approval_status = 'APPROVED'";
+        String sql = "SELECT * FROM products p WHERE p.product_id IN (" + placeholders + ") "
+                   + "AND " + buildPublicVisibilityClause("p") + " AND " + buildActiveStockExistsClause("p");
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             int paramIndex = 1;
@@ -1005,7 +1022,7 @@ public class ProductDAO extends BaseDAO {
         item.put("name", rs.getString("name"));
         item.put("description", rs.getString("description"));
         BigDecimal rating = rs.getBigDecimal("rating");
-        item.put("rating", rating != null ? rating : new BigDecimal("4.8"));
+        item.put("rating", rating != null ? rating : BigDecimal.ZERO);
         int soldQuantity = rs.getInt("sold_quantity");
         item.put("soldQuantity", soldQuantity);
 
@@ -1097,7 +1114,7 @@ public class ProductDAO extends BaseDAO {
                    + "JOIN promotions pr ON pr.product_id = p.product_id "
                    + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' "
+                   + "WHERE " + buildPublicVisibilityClause("p") + " "
                    + "  AND pv.product_id IS NOT NULL "
                    + "ORDER BY p.product_id DESC";
         try (Connection conn = getConnection();
@@ -1127,7 +1144,7 @@ public class ProductDAO extends BaseDAO {
                    + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
                    + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND pv.product_id IS NOT NULL "
+                   + "WHERE " + buildPublicVisibilityClause("p") + " AND pv.product_id IS NOT NULL "
                    + "ORDER BY p.sold_quantity DESC, p.product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1143,7 +1160,6 @@ public class ProductDAO extends BaseDAO {
 
     public List<Map<String, Object>> findSeasonalProductsOptimized(int limit, String contextPath) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
-        int currentMonth = java.time.LocalDate.now().getMonthValue();
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
                    + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
@@ -1159,17 +1175,11 @@ public class ProductDAO extends BaseDAO {
                    + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
                    + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND pv.product_id IS NOT NULL "
-                   + "  AND (p.season_start_month IS NULL OR p.season_end_month IS NULL OR "
-                   + "       (p.season_start_month <= p.season_end_month AND ? BETWEEN p.season_start_month AND p.season_end_month) OR "
-                   + "       (p.season_start_month > p.season_end_month AND (? >= p.season_start_month OR ? <= p.season_end_month))) "
+                   + "WHERE " + buildPublicVisibilityClause("p") + " AND pv.product_id IS NOT NULL "
                    + "ORDER BY p.rating DESC, p.product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, limit);
-            ps.setInt(2, currentMonth);
-            ps.setInt(3, currentMonth);
-            ps.setInt(4, currentMonth);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRowToProductMap(rs, contextPath));
@@ -1196,7 +1206,7 @@ public class ProductDAO extends BaseDAO {
                    + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
                    + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND p.is_organic = 1 AND pv.product_id IS NOT NULL "
+                   + "WHERE " + buildPublicVisibilityClause("p") + " AND p.is_organic = 1 AND pv.product_id IS NOT NULL "
                    + "ORDER BY p.sold_quantity DESC, p.product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1227,7 +1237,7 @@ public class ProductDAO extends BaseDAO {
                    + "LEFT JOIN promotions pr ON pr.product_id = p.product_id "
                    + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                    + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
-                   + "WHERE p.status = 'ACTIVE' AND p.approval_status = 'APPROVED' AND p.is_imported = 1 AND pv.product_id IS NOT NULL "
+                   + "WHERE " + buildPublicVisibilityClause("p") + " AND p.is_imported = 1 AND pv.product_id IS NOT NULL "
                    + "ORDER BY p.sold_quantity DESC, p.product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1252,24 +1262,24 @@ public class ProductDAO extends BaseDAO {
         sql.append("       pr.discount_type, pr.discount_value, pr.discount_max ");
         sql.append("FROM products p ");
         sql.append("JOIN ( ");
-        sql.append("    SELECT product_id ");
-        sql.append("    FROM products ");
-        sql.append("    WHERE status = 'ACTIVE' AND approval_status = 'APPROVED' ");
-        sql.append("      AND EXISTS (SELECT 1 FROM product_variants pv_stock WHERE pv_stock.product_id = products.product_id AND pv_stock.is_active = 1 AND pv_stock.stock_quantity > 0) ");
+        sql.append("    SELECT p.product_id ");
+        sql.append("    FROM products p ");
+        sql.append("    WHERE ").append(buildPublicVisibilityClause("p")).append(" ");
+        sql.append("      AND ").append(buildActiveStockExistsClause("p")).append(" ");
         
         List<Object> params = new ArrayList<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("    AND (name LIKE ? OR description LIKE ?) ");
+            sql.append("    AND (p.name LIKE ? OR p.description LIKE ?) ");
             String k = "%" + keyword.trim() + "%";
             params.add(k);
             params.add(k);
         }
         if (categoryId != null) {
-            sql.append("    AND category_id = ? ");
+            sql.append("    AND p.category_id = ? ");
             params.add(categoryId);
         }
-        
-        sql.append("    ORDER BY product_id DESC ");
+
+        sql.append("    ORDER BY p.product_id DESC ");
         sql.append("    OFFSET ? ROWS FETCH NEXT ? ROWS ONLY ");
         sql.append(") temp ON p.product_id = temp.product_id ");
         sql.append("LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 ");
