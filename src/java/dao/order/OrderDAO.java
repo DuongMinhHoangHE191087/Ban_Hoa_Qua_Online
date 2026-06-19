@@ -90,19 +90,6 @@ public class OrderDAO extends BaseDAO {
     /**
      * Tìm đơn hàng theo ID và trả về 1 object duy nhất.
      */
-    public Order findOneById(int id) throws SQLException {
-        String sql = "SELECT * FROM orders WHERE order_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-            }
-        }
-        return null;
-    }
 
     /**
      * Tìm đơn hàng theo ID khách hàng có phân trang.

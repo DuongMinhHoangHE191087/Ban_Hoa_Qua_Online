@@ -49,3 +49,4 @@ tomcat_config.ini
 .docker-build/
 docker-compose.override.yml
 *.log
+.obsidian/

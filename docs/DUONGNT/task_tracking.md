@@ -42,16 +42,7 @@ Danh sách toàn bộ các task được giao cho Duong (cập nhật theo file 
 - [x] **Global Shop Management** (Admin) - *Đã hoàn thành (`AdminShopManageServlet` & khóa/mở khóa cửa hàng)*
 - [x] **Admin Profile** (Admin) - *Đã hoàn thành (`AdminProfileServlet` & `admin-profile.jsp`)*
 
-## Priority Next
 
-Thứ tự ưu tiên đề xuất cho các màn còn `To Do`:
-
-1. **Detailed Order & Refund Status** - chốt trạng thái đơn/đổi trả để không lệch nghiệp vụ.
-2. **Refund Approval** - đi cùng dữ liệu đối soát, giảm rủi ro tài chính.
-3. **Global Shop Management** - quản trị shop là lõi admin, ảnh hưởng nhiều màn khác.
-4. **Category Management** - nền tảng cho tạo/sửa sản phẩm và điều hướng UI.
-5. **Admin Profile** - tác vụ cá nhân, mức ảnh hưởng thấp hơn.
-6. **Chat with Customer** - có giá trị vận hành nhưng không chặn luồng core.
 
 ## Requested Feature Audit
 

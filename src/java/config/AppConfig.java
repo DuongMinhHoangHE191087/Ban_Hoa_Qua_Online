@@ -35,7 +35,7 @@ public final class AppConfig {
         public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "duongminhhoanginwork@gmail.com");
         public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", "jkhg przg aohf pwla");
         public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", "fruitmkt-super-secret-key-2026-secure-sha256");
-        public static final long ACCESS_TOKEN_EXPIRY_MS   = getLongEnvOrDefault("ACCESS_TOKEN_EXPIRY_MS",   15L * 60 * 1000);
+        public static final long ACCESS_TOKEN_EXPIRY_MS   = getLongEnvOrDefault("ACCESS_TOKEN_EXPIRY_MS",   1L * 60 * 1000); // Tạm chỉnh 1 phút để test
         public static final int  REFRESH_TOKEN_EXPIRY_SECS = getIntEnvOrDefault("REFRESH_TOKEN_EXPIRY_SECS",  7 * 24 * 60 * 60);
         public static final String APP_NAME = "MetaFruit";
         public static final String APP_SUPPORT_EMAIL = EMAIL_FROM;

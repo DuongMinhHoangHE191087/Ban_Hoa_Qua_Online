@@ -49,32 +49,28 @@ public class SessionRestoreFilter implements Filter {
             return;
         }
 
-        // 1. Nếu đã có session đăng nhập hợp lệ -> Cho đi tiếp luôn
-        if (SessionUtil.isLoggedIn(session)) {
+        // 1. Kiểm tra Access Token trước (Rất nhanh, không cần gọi DB)
+        String accessToken = TokenUtil.getCookieValue(req, "accessToken");
+        Integer userIdFromAccess = TokenUtil.verifyAccessToken(accessToken);
+
+        if (userIdFromAccess != null) {
+            // Access Token còn hiệu lực
+            if (!SessionUtil.isLoggedIn(session)) {
+                // Khôi phục session nếu bị mất (ví dụ: Tomcat restart)
+                try {
+                    User user = userDAO.findUserById(userIdFromAccess);
+                    if (user != null && "ACTIVE".equals(user.getStatus())) {
+                        SessionUtil.setCurrentUser(req.getSession(true), user);
+                    }
+                } catch (SQLException e) {
+                    LoggerUtil.warn(log, "SessionRestoreFilter: Lỗi DB khi khôi phục qua Access Token", e);
+                }
+            }
             chain.doFilter(request, response);
             return;
         }
 
-        // 2. Chưa có session -> Thử phục hồi bằng Access Token Cookie
-        String accessToken = TokenUtil.getCookieValue(req, "accessToken");
-        if (accessToken != null) {
-            Integer userId = TokenUtil.verifyAccessToken(accessToken);
-            if (userId != null) {
-                try {
-                    User user = userDAO.findUserById(userId);
-                    if (user != null && "ACTIVE".equals(user.getStatus())) {
-                        // Khôi phục session và tiếp tục
-                        SessionUtil.setCurrentUser(req.getSession(true), user);
-                        chain.doFilter(request, response);
-                        return;
-                    }
-                } catch (SQLException e) {
-                    LoggerUtil.warn(log, "SessionRestoreFilter: Lỗi khôi phục session bằng Access Token", e);
-                }
-            }
-        }
-
-        // 3. Access Token hết hạn/không có -> Thử phục hồi bằng Refresh Token Cookie
+        // 2. Access Token hết hạn hoặc không có -> Kiểm tra Refresh Token (Cần gọi DB)
         String refreshToken = TokenUtil.getCookieValue(req, "refreshToken");
         if (refreshToken != null) {
             try {
@@ -82,19 +78,32 @@ public class SessionRestoreFilter implements Filter {
                 if (userId != null) {
                     User user = userDAO.findUserById(userId);
                     if (user != null && "ACTIVE".equals(user.getStatus())) {
-                        // Tái cấp phát Access Token Cookie mới
+                        // Tái cấp phát Access Token mới
                         String newAccessToken = TokenUtil.generateAccessToken(userId);
                         TokenUtil.addAccessTokenCookie(req, resp, newAccessToken);
                         
-                        // Khôi phục session đăng nhập
-                        SessionUtil.setCurrentUser(req.getSession(true), user);
+                        // Đảm bảo session vẫn tồn tại
+                        if (!SessionUtil.isLoggedIn(session)) {
+                            SessionUtil.setCurrentUser(req.getSession(true), user);
+                        }
+                        chain.doFilter(request, response);
+                        return;
                     }
-                } else {
-                    // Token trong DB đã hết hạn hoặc không hợp lệ -> Xóa cookies khỏi client
-                    TokenUtil.clearTokens(req, resp);
+                }
+                // Nhánh else: Refresh Token không hợp lệ hoặc đã bị Thu hồi (Revoke) từ DB!
+                // Phải bắt buộc đăng xuất người dùng (xóa sạch session & cookie)
+                TokenUtil.clearTokens(req, resp);
+                if (session != null) {
+                    session.invalidate();
                 }
             } catch (SQLException e) {
-                LoggerUtil.warn(log, "SessionRestoreFilter: Lỗi khôi phục session bằng Refresh Token", e);
+                LoggerUtil.warn(log, "SessionRestoreFilter: Lỗi DB khi kiểm tra Refresh Token", e);
+            }
+        } else {
+            // Không có cả Access Token và Refresh Token, nhưng có thể có session cũ rác
+            if (SessionUtil.isLoggedIn(session)) {
+                TokenUtil.clearTokens(req, resp);
+                session.invalidate();
             }
         }
 

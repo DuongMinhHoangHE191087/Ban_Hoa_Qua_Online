@@ -45,6 +45,9 @@ public class LoginServlet extends HttpServlet {
         }
         
         // Forward trực tiếp đến trang JSP đăng nhập an toàn
+        if ("success".equals(req.getParameter("logout"))) {
+            req.setAttribute("successMsg", "Đăng xuất tài khoản thành công!");
+        }
         req.getRequestDispatcher("/WEB-INF/jsp/auth/login.jsp").forward(req, resp);
     }
 
