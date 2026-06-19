@@ -8,6 +8,7 @@ import model.entity.auth.User;
 import service.order.OrderService;
 import service.order.ReturnService;
 import util.SessionUtil;
+import util.ErrorMessageUtil;
 
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -115,8 +116,8 @@ public class ReturnRequestServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/customer/return-request.jsp").forward(req, resp);
 
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi tải trang yêu cầu hoàn trả", e);
-            SessionUtil.flashError(session, "Lỗi: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to show return request form", e);
+            SessionUtil.flashError(session, userMsg);
             resp.sendRedirect(req.getContextPath() + "/home");
         }
     }
@@ -159,7 +160,8 @@ public class ReturnRequestServlet extends HttpServlet {
                 returnService.decide(requestId, status, reason, user.getUserId());
                 SessionUtil.flashSuccess(session, "Đã cập nhật phán quyết cho yêu cầu #" + requestId);
             } catch (Exception e) {
-                SessionUtil.flashError(session, "Lỗi xử lý: " + e.getMessage());
+                String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to decide return request", e);
+                SessionUtil.flashError(session, userMsg);
             }
             resp.sendRedirect(req.getContextPath() + "/returns?action=list");
             return;
@@ -202,10 +204,10 @@ public class ReturnRequestServlet extends HttpServlet {
                 SessionUtil.flashError(session, "Tạo yêu cầu thất bại.");
             }
         } catch (IllegalArgumentException e) {
-            SessionUtil.flashError(session, "Lỗi nghiệp vụ: " + e.getMessage());
+            SessionUtil.flashError(session, e.getMessage());
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý yêu cầu hoàn trả", e);
-            SessionUtil.flashError(session, "Lỗi hệ thống: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to create return request for orderId=" + orderIdStr, e);
+            SessionUtil.flashError(session, userMsg);
         }
         resp.sendRedirect(req.getContextPath() + "/returns?orderId=" + orderIdStr);
     }

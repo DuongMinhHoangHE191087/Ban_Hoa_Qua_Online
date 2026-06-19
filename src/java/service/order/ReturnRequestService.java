@@ -6,12 +6,7 @@ import model.entity.order.ReturnRequest;
 import java.sql.SQLException;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 public class ReturnRequestService {
-
-    private static final Logger log = LoggerUtil.getLogger(ReturnRequestService.class);
 
     private final ReturnRequestDAO returnRequestDAO = new ReturnRequestDAO();
     private final OrderDAO orderDAO = new OrderDAO();

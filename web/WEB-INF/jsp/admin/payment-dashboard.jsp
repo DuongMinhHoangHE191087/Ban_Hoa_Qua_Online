@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -194,7 +195,7 @@
                     <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
                     <div class="flex gap-1.5 flex-wrap">
                         <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="?page=${i}&status=${statusFilter}&paymentMethod=${paymentMethod}&keyword=${param.keyword}"
+                            <a href="?page=${i}&status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&keyword=${fn:escapeXml(param.keyword)}"
                                class="inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-semibold ${i == currentPage ? 'bg-primary text-white border-primary' : 'bg-white text-txt-2 border-border hover:bg-slate-100'}">
                                 ${i}
                             </a>

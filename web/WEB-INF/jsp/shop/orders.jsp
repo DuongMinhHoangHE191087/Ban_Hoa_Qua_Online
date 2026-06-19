@@ -154,9 +154,18 @@
                                             </span>
                                         </c:when>
                                         <c:when test="${order.status == 'CONFIRMED'}">
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                <i class="fa-solid fa-bell text-[8px]"></i>Chờ Duyệt
-                                            </span>
+                                            <div class="flex flex-col gap-1">
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                    <i class="fa-solid fa-bell text-[8px]"></i>Chờ Duyệt
+                                                </span>
+                                                <c:if test="${not empty order.shopAcceptanceDeadline}">
+                                                    <span class="countdown-timer inline-flex items-center gap-1 text-[10px] font-bold text-orange-500"
+                                                          data-deadline="${order.shopAcceptanceDeadline}">
+                                                        <i class="fa-solid fa-hourglass-half text-[8px]"></i>
+                                                        <span class="countdown-display">--:--</span>
+                                                    </span>
+                                                </c:if>
+                                            </div>
                                         </c:when>
                                         <c:when test="${order.status == 'PREPARING'}">
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
@@ -354,6 +363,42 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Đang xử lý...';
     });
+
+    // Countdown timers for CONFIRMED orders with acceptance deadline
+    (function initCountdowns() {
+        document.querySelectorAll('.countdown-timer').forEach(function(el) {
+            var raw = el.dataset.deadline;
+            if (!raw) return;
+            // Parse LocalDateTime.toString() as local time (format: "yyyy-MM-ddTHH:mm:ss...")
+            var parts = raw.split(/[-T:.]/);
+            var deadline = new Date(
+                parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]),
+                parseInt(parts[3] || 0), parseInt(parts[4] || 0), parseInt(parts[5] || 0)
+            );
+            if (isNaN(deadline.getTime())) return;
+            var display = el.querySelector('.countdown-display');
+
+            function tick() {
+                var remaining = deadline.getTime() - Date.now();
+                if (remaining <= 0) {
+                    display.textContent = 'QUÁ HẠN';
+                    el.className = 'countdown-timer inline-flex items-center gap-1 text-[10px] font-bold text-red-600 animate-pulse';
+                    return;
+                }
+                var h = Math.floor(remaining / 3600000);
+                var m = Math.floor((remaining % 3600000) / 60000);
+                var s = Math.floor((remaining % 60000) / 1000);
+                display.textContent = h > 0
+                    ? h + 'g ' + String(m).padStart(2, '0') + 'p'
+                    : String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                if (remaining < 10 * 60 * 1000) {
+                    el.className = 'countdown-timer inline-flex items-center gap-1 text-[10px] font-bold text-red-600 animate-pulse';
+                }
+                setTimeout(tick, 1000);
+            }
+            tick();
+        });
+    })();
 </script>
 </body>
 </html>

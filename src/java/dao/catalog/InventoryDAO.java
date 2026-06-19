@@ -2,7 +2,6 @@ package dao.catalog;
 
 import dao.system.BaseDAO;
 import model.entity.catalog.InventoryLog;
-import util.LoggerUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,7 +12,6 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * InventoryDAO — DAO cho entity InventoryLog.
@@ -27,8 +25,6 @@ import java.util.logging.Logger;
  * @author fruitmkt-team
  */
 public class InventoryDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(InventoryDAO.class.getName());
 
     /**
      * Exposes connection for starting standard JDBC transactions in Service.

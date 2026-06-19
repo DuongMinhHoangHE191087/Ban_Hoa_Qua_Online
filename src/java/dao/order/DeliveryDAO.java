@@ -16,9 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * DeliveryDAO — DAO cho entity Delivery.
  *
@@ -31,8 +28,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class DeliveryDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(DeliveryDAO.class.getName());
 
     public Delivery findById(int deliveryId) throws SQLException {
         String sql = "SELECT * FROM deliveries WHERE delivery_id = ?";

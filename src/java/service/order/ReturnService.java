@@ -16,15 +16,10 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * ReturnService — Quản lý vòng đời yêu cầu Đổi/Trả/Hoàn tiền.
  */
 public class ReturnService {
-
-    private static final Logger log = LoggerUtil.getLogger(ReturnService.class);
 
     private final ReturnRequestDAO returnDAO = new ReturnRequestDAO();
     private final OrderDAO orderDAO = new OrderDAO();

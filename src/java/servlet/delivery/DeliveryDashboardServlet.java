@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  *
  * @author fruitmkt-team
  */
-@WebServlet("/delivery/dashboard")
+@WebServlet({"/delivery/dashboard", "/delivery/list"})
 public class DeliveryDashboardServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(DeliveryDashboardServlet.class.getName());
@@ -76,7 +76,12 @@ public class DeliveryDashboardServlet extends HttpServlet {
 
             req.setAttribute("deliveryList", enrichedList);
             req.setAttribute("filterStatus", filterStatus);
-            req.getRequestDispatcher("/WEB-INF/jsp/delivery/dashboard.jsp").forward(req, resp);
+
+            String path = req.getServletPath();
+            String jspTarget = "/delivery/list".equals(path)
+                    ? "/WEB-INF/jsp/delivery/delivery-list.jsp"
+                    : "/WEB-INF/jsp/delivery/dashboard.jsp";
+            req.getRequestDispatcher(jspTarget).forward(req, resp);
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi tải danh sách đơn hàng cần giao", e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải danh sách đơn hàng cần giao.");

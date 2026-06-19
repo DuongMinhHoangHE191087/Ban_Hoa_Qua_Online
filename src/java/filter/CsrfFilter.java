@@ -1,7 +1,6 @@
 package filter;
 
 import config.AppConfig;
-import util.LoggerUtil;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,7 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.logging.Logger;
 import java.util.UUID;
 
 /**
@@ -27,8 +25,6 @@ import java.util.UUID;
  * @author fruitmkt-team
  */
 public class CsrfFilter implements Filter {
-
-    private static final Logger log = Logger.getLogger(CsrfFilter.class.getName());
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)

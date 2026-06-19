@@ -65,6 +65,10 @@
     ================================================================
     -->
     <filter>
+        <filter-name>RateLimitFilter</filter-name>
+        <filter-class>filter.RateLimitFilter</filter-class>
+    </filter>
+    <filter>
         <filter-name>EncodingFilter</filter-name>
         <filter-class>filter.EncodingFilter</filter-class>
     </filter>
@@ -90,6 +94,18 @@
     </filter>
 
     <!-- MAPPING FILTERS THEO THỨ TỰ THỰC THI (Rất quan trọng) -->
+    <filter-mapping>
+        <filter-name>RateLimitFilter</filter-name>
+        <url-pattern>/auth/login</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RateLimitFilter</filter-name>
+        <url-pattern>/auth/register</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RateLimitFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
     <filter-mapping>
         <filter-name>EncodingFilter</filter-name>
         <url-pattern>/*</url-pattern>

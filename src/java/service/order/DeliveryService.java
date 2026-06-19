@@ -111,6 +111,8 @@ public class DeliveryService {
                 int tripId = deliveryTripDAO.save(conn, parentOrderId, staffId > 0 ? staffId : null,
                         tripStatus, null, estimatedTime);
                 deliveryDAO.assignShipper(conn, orderId, tripId, 1, staffId, estimatedTime);
+                // Cập nhật trạng thái đơn sang DISPATCHED sau khi chỉ định shipper thành công
+                orderDAO.updateStatus(conn, orderId, AppConfig.ORDER_DISPATCHED);
                 conn.commit();
             } catch (SQLException | RuntimeException ex) {
                 conn.rollback();

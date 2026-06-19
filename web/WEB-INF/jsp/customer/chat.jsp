@@ -72,7 +72,7 @@
                     <c:forEach var="session" items="${chatSessions}">
                         <a href="${pageContext.request.contextPath}/chat?sessionId=${session.sessionId}"
                            class="session-item flex items-center gap-3 p-3 rounded-xl hover:bg-white/40 border border-transparent transition-all ${session.sessionId == activeSessionId ? 'active shadow-sm' : 'bg-white/20'}"
-                           data-name="${session.partnerName}" data-session-id="${session.sessionId}">
+                           data-name="${fn:escapeXml(session.partnerName)}" data-session-id="${session.sessionId}">
                             <div class="relative shrink-0">
                                 <c:choose>
                                     <c:when test="${not empty session.partnerAvatar}">
@@ -92,7 +92,7 @@
                                 <div class="flex justify-between items-center mb-0.5">
                                     <span class="text-sm font-semibold text-slate-800 truncate">
                                         <c:choose>
-                                            <c:when test="${not empty session.partnerName}">${session.partnerName}</c:when>
+                                            <c:when test="${not empty session.partnerName}"><c:out value="${session.partnerName}"/></c:when>
                                             <c:when test="${session.sessionType == 'ADMIN'}">Hỗ trợ Admin</c:when>
                                             <c:otherwise>Cửa hàng #${session.ownerId}</c:otherwise>
                                         </c:choose>
@@ -148,7 +148,7 @@
                         <div>
                             <h2 class="text-sm font-bold text-slate-800">
                                 <c:choose>
-                                    <c:when test="${not empty activeSession.partnerName}">${activeSession.partnerName}</c:when>
+                                    <c:when test="${not empty activeSession.partnerName}"><c:out value="${activeSession.partnerName}"/></c:when>
                                     <c:when test="${activeSession.sessionType == 'ADMIN'}">Hỗ trợ Admin</c:when>
                                     <c:otherwise>Cửa hàng #${activeSession.ownerId}</c:otherwise>
                                 </c:choose>
@@ -252,7 +252,7 @@
             </c:choose>
             <p class="text-sm font-bold text-slate-800">
                 <c:choose>
-                    <c:when test="${not empty activeSession.partnerName}">${activeSession.partnerName}</c:when>
+                    <c:when test="${not empty activeSession.partnerName}"><c:out value="${activeSession.partnerName}"/></c:when>
                     <c:when test="${activeSession.sessionType == 'ADMIN'}">Hỗ trợ Admin</c:when>
                     <c:otherwise>Cửa hàng #${activeSession.ownerId}</c:otherwise>
                 </c:choose>
@@ -410,8 +410,8 @@
     function linkify(text) {
         if (!text) return '';
         return text
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" class="msg-link">$1</a>');
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+            .replace(/(https?:\/\/[^\s<>"]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" class="msg-link">$1</a>');
     }
 
     function createStatusEl(initial) {

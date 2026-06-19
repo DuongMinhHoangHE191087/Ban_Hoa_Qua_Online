@@ -20,9 +20,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * ProductDAO — DAO cho entity Product.
  *
@@ -35,8 +32,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  *///khang
 public class ProductDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(ProductDAO.class.getName());
 
 //khang
     /**

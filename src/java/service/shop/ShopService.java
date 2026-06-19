@@ -5,12 +5,7 @@ import model.entity.shop.ShopProfile;
 import java.sql.SQLException;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 public class ShopService {
-
-    private static final Logger log = LoggerUtil.getLogger(ShopService.class);
 
     private final ShopProfileDAO shopProfileDAO;
 

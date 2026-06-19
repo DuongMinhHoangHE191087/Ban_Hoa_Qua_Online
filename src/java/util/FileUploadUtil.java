@@ -4,9 +4,11 @@ import config.AppConfig;
 import jakarta.servlet.http.Part;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -18,6 +20,37 @@ import java.util.logging.Logger;
 public final class FileUploadUtil {
 
     private static final Logger log = Logger.getLogger(FileUploadUtil.class.getName());
+
+    // Magic bytes (file signatures) cho từng loại file được phép
+    private static final Map<String, byte[]> MAGIC_BYTES = Map.of(
+        "jpg",  new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
+        "jpeg", new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
+        "png",  new byte[]{(byte)0x89, 0x50, 0x4E, 0x47},
+        "gif",  new byte[]{0x47, 0x49, 0x46},
+        "webp", new byte[]{0x52, 0x49, 0x46, 0x46},  // RIFF header
+        "pdf",  new byte[]{0x25, 0x50, 0x44, 0x46}   // %PDF
+    );
+
+    /**
+     * Kiểm tra magic bytes của file có khớp với extension không.
+     * Phòng chống tấn công đổi tên file nguy hiểm (ví dụ: .exe → .jpg).
+     */
+    private static boolean hasMagicBytesMatchingExtension(Part part, String ext) {
+        byte[] expected = MAGIC_BYTES.get(ext.toLowerCase());
+        if (expected == null) return true; // DOCX không có magic bytes đơn giản — bỏ qua
+
+        try (InputStream is = part.getInputStream()) {
+            byte[] header = new byte[expected.length];
+            int read = is.read(header);
+            if (read < expected.length) return false;
+            for (int i = 0; i < expected.length; i++) {
+                if (header[i] != expected[i]) return false;
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
 
     /**
      * Lưu Part từ multipart request, trả về đường dẫn tương đối.
@@ -41,6 +74,12 @@ public final class FileUploadUtil {
             throw new IOException("Định dạng file không được phép. Chỉ chấp nhận: " + String.join(", ", AppConfig.ALLOWED_IMAGE_EXTS));
         }
 
+        // 2b. Validate magic bytes (chống giả mạo đuôi file)
+        String extension = getExtension(originalFilename);
+        if (!hasMagicBytesMatchingExtension(part, extension)) {
+            throw new IOException("Nội dung file không khớp với định dạng khai báo. Vui lòng upload file hình ảnh hợp lệ.");
+        }
+
         // 3. Đảm bảo thư mục upload đã tồn tại
         File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR);
         if (!dir.exists()) {
@@ -48,7 +87,6 @@ public final class FileUploadUtil {
         }
 
         // 4. Đổi tên file thành UUID để chống ghi đè và tránh lỗi ký tự đặc biệt
-        String extension = getExtension(originalFilename);
         String newFilename = UUID.randomUUID().toString() + "." + extension;
 
         // 5. Ghi file trực tiếp xuống đĩa cứng
@@ -107,6 +145,13 @@ public final class FileUploadUtil {
                     + "' không được phép. Chỉ chấp nhận: PDF, JPG, PNG, DOCX.");
         }
 
+        // Validate magic bytes (chống giả mạo đuôi file)
+        String docExt = getExtension(originalFilename);
+        if (!hasMagicBytesMatchingExtension(part, docExt)) {
+            throw new IOException("Nội dung file '" + sanitizeFilename(originalFilename)
+                    + "' không khớp với định dạng khai báo.");
+        }
+
         // Tạo thư mục uploads/shop-docs/{userId}/ nếu chưa tồn tại trong thư mục bền vững
         File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR, "shop-docs" + File.separator + userId);
         if (!dir.exists()) {
@@ -114,8 +159,7 @@ public final class FileUploadUtil {
         }
 
         // Đổi tên file thành UUID để chống ghi đè và path traversal
-        String extension = getExtension(originalFilename);
-        String newFilename = UUID.randomUUID().toString() + "." + extension;
+        String newFilename = UUID.randomUUID().toString() + "." + docExt;
 
         Path filePath = Paths.get(dir.getAbsolutePath(), newFilename);
         Files.copy(part.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);

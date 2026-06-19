@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -32,6 +33,31 @@ import java.util.Set;
  * @author fruitmkt-team
  */
 public class OrderDAO extends BaseDAO {
+
+    @FunctionalInterface
+    private interface SqlAction<T> {
+        T run() throws SQLException;
+    }
+
+    private <T> T executeWithTransientRetry(SqlAction<T> action) throws SQLException {
+        SQLException last = null;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                return action.run();
+            } catch (SQLException e) {
+                last = e;
+                String sqlState = e.getSQLState();
+                String message = e.getMessage();
+                boolean transientConnectionError = (sqlState != null && sqlState.startsWith("08"))
+                        || (message != null && message.toLowerCase(Locale.ROOT).contains("socket closed"));
+                if (attempt == 1 && transientConnectionError) {
+                    continue;
+                }
+                throw e;
+            }
+        }
+        throw last;
+    }
 
     /**
      * Tìm đơn hàng theo ID.
@@ -132,6 +158,10 @@ public class OrderDAO extends BaseDAO {
      * Tìm đơn hàng thuộc về chủ shop theo trạng thái có phân trang.
      */
     public List<Order> findByOwner(int ownerId, String status, int page, int pageSize) throws SQLException {
+        return executeWithTransientRetry(() -> findByOwnerInternal(ownerId, status, page, pageSize));
+    }
+
+    private List<Order> findByOwnerInternal(int ownerId, String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE owner_id = ? ");
         List<Object> params = new ArrayList<>();
@@ -588,6 +618,10 @@ public class OrderDAO extends BaseDAO {
 
     /** Đếm tổng đơn hàng của shop owner (phân trang). */
     public int countByOwner(int ownerId, String status) throws SQLException {
+        return executeWithTransientRetry(() -> countByOwnerInternal(ownerId, status));
+    }
+
+    private int countByOwnerInternal(int ownerId, String status) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE owner_id = ?");
         if (status != null && !status.trim().isEmpty()) sql.append(" AND status = ?");
         try (Connection conn = getConnection();
@@ -670,7 +704,13 @@ public class OrderDAO extends BaseDAO {
         o.setPaymentMethod(rs.getString("payment_method"));
         o.setRefundStatus(rs.getString("refund_status"));
         o.setReceivedStatus(rs.getString("received_status"));
-        
+
+        Timestamp deadlineVal = rs.getTimestamp("shop_acceptance_deadline");
+        if (deadlineVal != null) o.setShopAcceptanceDeadline(deadlineVal.toLocalDateTime());
+
+        Timestamp acceptedAtVal = rs.getTimestamp("shop_accepted_at");
+        if (acceptedAtVal != null) o.setShopAcceptedAt(acceptedAtVal.toLocalDateTime());
+
         Timestamp createdAtVal = rs.getTimestamp("created_at");
         if (createdAtVal != null) {
             o.setCreatedAt(createdAtVal.toLocalDateTime());
