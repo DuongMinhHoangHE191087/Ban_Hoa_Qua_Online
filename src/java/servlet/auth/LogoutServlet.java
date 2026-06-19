@@ -49,12 +49,8 @@ public class LogoutServlet extends HttpServlet {
             session.invalidate();
         }
         
-        // 4. Tạo session mới chỉ để lưu thông báo flash thành công gửi tới người dùng
-        HttpSession newSession = req.getSession(true);
-        SessionUtil.flashSuccess(newSession, "Đăng xuất tài khoản thành công!");
-        
-        // 5. Chuyển hướng về trang Đăng nhập
-        resp.sendRedirect(req.getContextPath() + "/auth/login");
+        // 4. Chuyển hướng về trang Đăng nhập với tham số logout=success
+        resp.sendRedirect(req.getContextPath() + "/auth/login?logout=success");
     }
 
 }

@@ -122,7 +122,11 @@ public class OrderDAO extends BaseDAO {
 
 
     /**
-     * TÃ¬m Ä‘Æ¡n hÃ ng theo ID khÃ¡ch hÃ ng cÃ³ phÃ¢n trang.
+     * Tìm đơn hàng theo ID và trả về 1 object duy nhất.
+     */
+
+    /**
+     * Tìm đơn hàng theo ID khách hàng có phân trang.
      */
     public List<Order> findByCustomer(int customerId, int page, int pageSize) throws SQLException {
         return findByCustomer(customerId, null, page, pageSize);
