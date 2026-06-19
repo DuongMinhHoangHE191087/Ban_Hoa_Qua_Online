@@ -3,6 +3,7 @@ import service.shop.ShopService;
 
 import config.AppConfig;
 import util.SessionUtil;
+import util.ErrorMessageUtil;
 import service.auth.AuthService;
 
 import jakarta.servlet.ServletException;
@@ -31,6 +32,8 @@ import java.io.IOException;
 @WebServlet("/shop/profile")
 public class ShopProfileServlet extends HttpServlet {
 
+    private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger(ShopProfileServlet.class.getName());
+
     private final service.shop.ShopService shopService = new service.shop.ShopService();
     private final service.catalog.CategoryService categoryService = new service.catalog.CategoryService();
 
@@ -49,8 +52,8 @@ public class ShopProfileServlet extends HttpServlet {
             req.setAttribute("categories", categoryService.getActiveCategories());
             req.getRequestDispatcher("/WEB-INF/jsp/shop/profile.jsp").forward(req, resp);
         } catch (Exception e) {
-            getServletContext().log("Lỗi tải thông tin shop: " + e.getMessage(), e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải thông tin shop");
+            ErrorMessageUtil.logException(log, "Failed to load shop profile for shopId=" + user.getUserId(), e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ErrorMessageUtil.MSG_DB_ERROR);
         }
     }
 
@@ -127,8 +130,8 @@ public class ShopProfileServlet extends HttpServlet {
                 SessionUtil.flashError(req.getSession(), "Không tìm thấy hồ sơ cửa hàng!");
             }
         } catch (Exception e) {
-            getServletContext().log("Lỗi cập nhật shop: " + e.getMessage(), e);
-            SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to update shop profile for userId=" + user.getUserId(), e);
+            SessionUtil.flashError(req.getSession(), userMsg);
         }
 
         resp.sendRedirect(req.getContextPath() + "/shop/profile");

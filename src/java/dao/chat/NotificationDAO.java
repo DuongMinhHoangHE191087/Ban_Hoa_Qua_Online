@@ -11,15 +11,10 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * NotificationDAO — DAO cho entity Notification.
  */
 public class NotificationDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(NotificationDAO.class.getName());
 
     public List<Notification> findByUser(int userId, boolean unreadOnly) throws SQLException {
         List<Notification> list = new ArrayList<>();

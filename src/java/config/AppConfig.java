@@ -20,7 +20,7 @@ public final class AppConfig {
         public static final String DB_DRIVER_CLASS = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
         public static final String DB_JDBC_URL = "jdbc:sqlserver://" + DB_HOST + ":" + DB_PORT
                         + ";databaseName=" + DB_NAME
-                        + ";encrypt=false;trustServerCertificate=true;keepAlive=true";
+                        + ";encrypt=true;trustServerCertificate=true;keepAlive=true";
 
         public static final String GOOGLE_CLIENT_ID = getEnvOrDefault("GOOGLE_CLIENT_ID", "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com");
         public static final String GOOGLE_CLIENT_SECRET = getEnvOrDefault("GOOGLE_CLIENT_SECRET", "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");
@@ -209,8 +209,8 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         /** Số lần đăng nhập sai tối đa trước khi khóa tài khoản */
         public static final int MAX_FAILED_LOGIN = 5;
-        /** Thời gian khóa tài khoản (phút) */
-        public static final int LOCK_DURATION_MINUTES = 30;
+        /** Thời gian khóa tài khoản (phút) — SEC-01 / UC-02 */
+        public static final int LOCK_DURATION_MINUTES = 15;
 
         // ------------------------------------------------------------------
         // Platform Fee & Settlement (default values — override via system_config DB)
@@ -219,6 +219,8 @@ public final class AppConfig {
         public static final double PLATFORM_FEE_RATE_DEFAULT = 5.0;      // 5%
         /** Số ngày đóng băng tiền shop sau khi giao hàng thành công mặc định. */
         public static final int    FREEZE_DAYS_DEFAULT        = 15;       // 15 ngày
+        /** Số giờ đóng băng mặc định (PAY-03) — dùng khi cần độ phân giải giờ thay vì ngày. */
+        public static final int    FREEZE_HOURS_DEFAULT       = 12;
         /** Thời gian giải quyết khi settlement period (ngày). */
         public static final int    SETTLEMENT_CYCLE_DAYS      = 30;
 
@@ -231,8 +233,8 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         // Return Request
         // ------------------------------------------------------------------
-        /** Khách có tối đa bao nhiêu giờ sau khi DELIVERED để gửi return request. */
-        public static final int    RETURN_REQUEST_MAX_HOURS   = 24;       // 24 giờ
+        /** Khách có tối đa bao nhiêu giờ sau khi DELIVERED để gửi return request. REF-01 */
+        public static final int    RETURN_REQUEST_MAX_HOURS   = 6;        // 6 giờ
 
         // ------------------------------------------------------------------
         // SePay / VietQR (thêm domain deploy ở đây khi lên production)
@@ -241,8 +243,8 @@ public final class AppConfig {
         public static final String SEPAY_ACCOUNT_NO   = getEnvOrDefault("SEPAY_ACCOUNT_NO",   "SBSEPAY3NHWA061W5V2");
         public static final String SEPAY_ACCOUNT_NAME = getEnvOrDefault("SEPAY_ACCOUNT_NAME", "Duong Minh Hoang");
         public static final String PAYMENT_REF_PREFIX  = "MF";
-        /** Thời hạn hiệu lực của mã QR (phút). */
-        public static final int    QR_EXPIRE_MINUTES   = 15;
+        /** Thời hạn hiệu lực của mã QR (phút). PAY-02 */
+        public static final int    QR_EXPIRE_MINUTES   = 10;
         /**
          * Domain đầy đủ của ứng dụng khi deploy lên server.
          * Dùng cho SePay Webhook URL và link email.

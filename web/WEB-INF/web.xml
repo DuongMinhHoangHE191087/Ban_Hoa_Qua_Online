@@ -28,12 +28,22 @@
          SESSION CONFIG
          ================================================================ -->
     <session-config>
-        <!-- Thời gian session tính bằng phút -->
-        <session-timeout>60</session-timeout>
+        <!-- UC-02: session hết hạn sau 30 phút không hoạt động -->
+        <session-timeout>30</session-timeout>
         <cookie-config>
             <http-only>true</http-only>
-            <!-- Đổi sang true khi deploy trên HTTPS -->
+            <!-- Đặt thành true khi deploy trên HTTPS production -->
             <secure>false</secure>
+            <!--
+                SameSite=Lax: Servlet 6 / Tomcat 10.1 hỗ trợ thuộc tính SameSite
+                qua <attribute> trong <cookie-config>.
+                Nếu schema XSD không chấp nhận <attribute>, hãy cấu hình trong
+                context.xml: <CookieProcessor sameSiteCookies="lax" />
+            -->
+            <attribute>
+                <attribute-name>SameSite</attribute-name>
+                <attribute-value>Lax</attribute-value>
+            </attribute>
         </cookie-config>
     </session-config>
 
@@ -65,6 +75,14 @@
     ================================================================
     -->
     <filter>
+        <filter-name>SecurityHeadersFilter</filter-name>
+        <filter-class>filter.SecurityHeadersFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>RateLimitFilter</filter-name>
+        <filter-class>filter.RateLimitFilter</filter-class>
+    </filter>
+    <filter>
         <filter-name>EncodingFilter</filter-name>
         <filter-class>filter.EncodingFilter</filter-class>
     </filter>
@@ -90,6 +108,22 @@
     </filter>
 
     <!-- MAPPING FILTERS THEO THỨ TỰ THỰC THI (Rất quan trọng) -->
+    <filter-mapping>
+        <filter-name>SecurityHeadersFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RateLimitFilter</filter-name>
+        <url-pattern>/auth/login</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RateLimitFilter</filter-name>
+        <url-pattern>/auth/register</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>RateLimitFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
     <filter-mapping>
         <filter-name>EncodingFilter</filter-name>
         <url-pattern>/*</url-pattern>

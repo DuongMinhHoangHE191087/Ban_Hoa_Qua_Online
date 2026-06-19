@@ -18,23 +18,49 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 
 /**
- * OrderDAO — DAO cho entity Order.
+ * OrderDAO â€” DAO cho entity Order.
  *
- * QUY TẮC:
- *   - Chỉ chứa SQL, không chứa business logic
- *   - Dùng PreparedStatement, KHÔNG nối chuỗi SQL
- *   - Mỗi method ném SQLException để Service xử lý
- *   - Dùng try-with-resources cho Connection + PreparedStatement
+ * QUY Táº®C:
+ *   - Chá»‰ chá»©a SQL, khÃ´ng chá»©a business logic
+ *   - DÃ¹ng PreparedStatement, KHÃ”NG ná»‘i chuá»—i SQL
+ *   - Má»—i method nÃ©m SQLException Ä‘á»ƒ Service xá»­ lÃ½
+ *   - DÃ¹ng try-with-resources cho Connection + PreparedStatement
  *
  * @author fruitmkt-team
  */
 public class OrderDAO extends BaseDAO {
 
+    @FunctionalInterface
+    private interface SqlAction<T> {
+        T run() throws SQLException;
+    }
+
+    private <T> T executeWithTransientRetry(SqlAction<T> action) throws SQLException {
+        SQLException last = null;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                return action.run();
+            } catch (SQLException e) {
+                last = e;
+                String sqlState = e.getSQLState();
+                String message = e.getMessage();
+                boolean transientConnectionError = (sqlState != null && sqlState.startsWith("08"))
+                        || (message != null && message.toLowerCase(Locale.ROOT).contains("socket closed"));
+                if (attempt == 1 && transientConnectionError) {
+                    continue;
+                }
+                throw e;
+            }
+        }
+        throw last;
+    }
+
     /**
-     * Tìm đơn hàng theo ID.
+     * TÃ¬m Ä‘Æ¡n hÃ ng theo ID.
      */
     public List<Order> findById(int id) throws SQLException {
         List<Order> list = new ArrayList<>();
@@ -52,12 +78,20 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Tìm đơn hàng theo ID và trả về 1 object duy nhất.
+     * TÃ¬m Ä‘Æ¡n hÃ ng theo ID vÃ  tráº£ vá» 1 object duy nháº¥t.
      */
     public Order findOneById(int id) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return findOneById(conn, id);
+        }
+    }
+
+    /**
+     * TÃ¬m Ä‘Æ¡n hÃ ng theo ID trÃªn connection hiá»‡n táº¡i.
+     */
+    public Order findOneById(Connection conn, int id) throws SQLException {
         String sql = "SELECT * FROM orders WHERE order_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -68,8 +102,8 @@ public class OrderDAO extends BaseDAO {
         return null;
     }
 
-    /**
-     * Tìm tất cả đơn hàng (bao gồm cả Parent và Child) của khách hàng.
+        /**
+     * TÃ¬m táº¥t cáº£ Ä‘Æ¡n hÃ ng (bao gá»“m cáº£ Parent vÃ  Child) cá»§a khÃ¡ch hÃ ng.
      */
     public List<Order> findByCustomerId(int customerId) throws SQLException {
         List<Order> list = new ArrayList<>();
@@ -88,14 +122,14 @@ public class OrderDAO extends BaseDAO {
 
 
     /**
-     * Tìm đơn hàng theo ID khách hàng có phân trang.
+     * TÃ¬m Ä‘Æ¡n hÃ ng theo ID khÃ¡ch hÃ ng cÃ³ phÃ¢n trang.
      */
     public List<Order> findByCustomer(int customerId, int page, int pageSize) throws SQLException {
         return findByCustomer(customerId, null, page, pageSize);
     }
 
     /**
-     * Tìm đơn hàng theo ID khách hàng, lọc theo trạng thái có phân trang.
+     * TÃ¬m Ä‘Æ¡n hÃ ng theo ID khÃ¡ch hÃ ng, lá»c theo tráº¡ng thÃ¡i cÃ³ phÃ¢n trang.
      */
     public List<Order> findByCustomer(int customerId, String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
@@ -129,9 +163,13 @@ public class OrderDAO extends BaseDAO {
 
 
     /**
-     * Tìm đơn hàng thuộc về chủ shop theo trạng thái có phân trang.
+     * TÃ¬m Ä‘Æ¡n hÃ ng thuá»™c vá» chá»§ shop theo tráº¡ng thÃ¡i cÃ³ phÃ¢n trang.
      */
     public List<Order> findByOwner(int ownerId, String status, int page, int pageSize) throws SQLException {
+        return executeWithTransientRetry(() -> findByOwnerInternal(ownerId, status, page, pageSize));
+    }
+
+    private List<Order> findByOwnerInternal(int ownerId, String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT * FROM orders WHERE owner_id = ? ");
         List<Object> params = new ArrayList<>();
@@ -148,6 +186,24 @@ public class OrderDAO extends BaseDAO {
                 ps.setObject(paramIndex++, param);
             }
             PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /** Láº¥y toÃ n bá»™ Ä‘Æ¡n hÃ ng cá»§a shop cÃ²n Ä‘ang má»Ÿ Ä‘á»ƒ phá»¥c vá»¥ cascade khi shop bá»‹ Ä‘Ã¬nh chá»‰. */
+    public List<Order> findOpenByOwner(int ownerId) throws SQLException {
+        List<Order> list = new ArrayList<>();
+        String sql = "SELECT * FROM orders WHERE owner_id = ? "
+                + "AND status NOT IN ('CANCELLED', 'DELIVERED') "
+                + "ORDER BY order_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));
@@ -177,7 +233,7 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Lấy toàn bộ danh sách đơn hàng có phân trang, có thể lọc theo trạng thái.
+     * Láº¥y toÃ n bá»™ danh sÃ¡ch Ä‘Æ¡n hÃ ng cÃ³ phÃ¢n trang, cÃ³ thá»ƒ lá»c theo tráº¡ng thÃ¡i.
      */
     public List<Order> findAll(String status, int page, int pageSize) throws SQLException {
         List<Order> list = new ArrayList<>();
@@ -283,7 +339,7 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Lưu đơn hàng mới vào DB và trả về ID đơn hàng tự sinh.
+     * LÆ°u Ä‘Æ¡n hÃ ng má»›i vÃ o DB vÃ  tráº£ vá» ID Ä‘Æ¡n hÃ ng tá»± sinh.
      */
     public int save(Order order) throws SQLException {
         String sql = "INSERT INTO orders (customer_id, owner_id, parent_order_id, order_type, delivery_address, delivery_time_slot, notes, cancelled_at, cancelled_by, cancellation_reason, status, total_amount, delivery_fee, discount_amount, system_discount_amount, shop_discount_amount, platform_fee, final_amount, payment_method, refund_status, created_at, updated_at) "
@@ -337,11 +393,11 @@ public class OrderDAO extends BaseDAO {
                 }
             }
         }
-        throw new SQLException("Lưu đơn hàng thất bại, không lấy được mã khóa tự tăng.");
+        throw new SQLException("LÆ°u Ä‘Æ¡n hÃ ng tháº¥t báº¡i, khÃ´ng láº¥y Ä‘Æ°á»£c mÃ£ khÃ³a tá»± tÄƒng.");
     }
 
     /**
-     * Cập nhật trạng thái đơn hàng.
+     * Cáº­p nháº­t tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng.
      */
     public int save(Connection conn, Order order) throws SQLException {
         String sql = "INSERT INTO orders (customer_id, owner_id, parent_order_id, order_type, delivery_address, "
@@ -440,12 +496,17 @@ public class OrderDAO extends BaseDAO {
 
 
     /**
-     * Hủy đơn hàng.
+     * Há»§y Ä‘Æ¡n hÃ ng.
      */
     public void cancel(int orderId, int cancelledBy, String reason) throws SQLException {
+        try (Connection conn = getConnection()) {
+            cancel(conn, orderId, cancelledBy, reason);
+        }
+    }
+
+    public void cancel(Connection conn, int orderId, int cancelledBy, String reason) throws SQLException {
         String sql = "UPDATE orders SET status = 'CANCELLED', cancelled_at = GETDATE(), cancelled_by = ?, cancellation_reason = ?, updated_at = GETDATE() WHERE order_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, cancelledBy);
             ps.setString(2, reason);
             ps.setInt(3, orderId);
@@ -454,7 +515,7 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Hoàn trả lại số lượng tồn kho cho các sản phẩm trong đơn hàng.
+     * HoÃ n tráº£ láº¡i sá»‘ lÆ°á»£ng tá»“n kho cho cÃ¡c sáº£n pháº©m trong Ä‘Æ¡n hÃ ng.
      */
     public void restoreInventoryStock(int orderId) throws SQLException {
         String sql = "UPDATE pv "
@@ -470,7 +531,7 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Hoàn trả lại số lượng tồn kho cho một sản phẩm cụ thể dựa trên order_item_id.
+     * HoÃ n tráº£ láº¡i sá»‘ lÆ°á»£ng tá»“n kho cho má»™t sáº£n pháº©m cá»¥ thá»ƒ dá»±a trÃªn order_item_id.
      */
     public void restoreItemInventoryStock(int orderItemId, int quantity) throws SQLException {
         String sql = "UPDATE pv "
@@ -487,11 +548,11 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Lấy owner_id của sản phẩm chứa variant được chỉ định.
-     * Dùng khi tạo đơn hàng để xác định chủ shop.
+     * Láº¥y owner_id cá»§a sáº£n pháº©m chá»©a variant Ä‘Æ°á»£c chá»‰ Ä‘á»‹nh.
+     * DÃ¹ng khi táº¡o Ä‘Æ¡n hÃ ng Ä‘á»ƒ xÃ¡c Ä‘á»‹nh chá»§ shop.
      *
-     * @param productId ID sản phẩm (đã được lấy từ ProductVariant)
-     * @return owner_id, hoặc -1 nếu không tìm thấy
+     * @param productId ID sáº£n pháº©m (Ä‘Ã£ Ä‘Æ°á»£c láº¥y tá»« ProductVariant)
+     * @return owner_id, hoáº·c -1 náº¿u khÃ´ng tÃ¬m tháº¥y
      */
     public int getOwnerIdByProductId(int productId) throws SQLException {
         String sql = "SELECT owner_id FROM products WHERE product_id = ?";
@@ -508,8 +569,8 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Mở kết nối DB để dùng trong transaction ngoài DAO (ví dụ: CheckoutServlet).
-     * Caller phải tự đóng connection trong try-finally.
+     * Má»Ÿ káº¿t ná»‘i DB Ä‘á»ƒ dÃ¹ng trong transaction ngoÃ i DAO (vÃ­ dá»¥: CheckoutServlet).
+     * Caller pháº£i tá»± Ä‘Ã³ng connection trong try-finally.
      */
     public Connection openConnection() throws SQLException {
         return getConnection();
@@ -526,7 +587,7 @@ public class OrderDAO extends BaseDAO {
 
 
     /**
-     * [RBAC-safe] Tìm đơn hàng theo ID CHỈ KHI thuộc về customerId đó.
+     * [RBAC-safe] TÃ¬m Ä‘Æ¡n hÃ ng theo ID CHá»ˆ KHI thuá»™c vá» customerId Ä‘Ã³.
      */
     public Order findByIdForCustomer(int orderId, int customerId) throws SQLException {
         String sql = "SELECT * FROM orders WHERE order_id = ? AND customer_id = ?";
@@ -542,7 +603,7 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * [RBAC-safe] Tìm đơn hàng theo ID CHỈ KHI thuộc về shop ownerId đó.
+     * [RBAC-safe] TÃ¬m Ä‘Æ¡n hÃ ng theo ID CHá»ˆ KHI thuá»™c vá» shop ownerId Ä‘Ã³.
      */
     public Order findByIdForOwner(int orderId, int ownerId) throws SQLException {
         String sql = "SELECT * FROM orders WHERE order_id = ? AND owner_id = ?";
@@ -557,12 +618,12 @@ public class OrderDAO extends BaseDAO {
         return null;
     }
 
-    /** Đếm tổng đơn hàng của customer (phân trang). */
+    /** Äáº¿m tá»•ng Ä‘Æ¡n hÃ ng cá»§a customer (phÃ¢n trang). */
     public int countByCustomer(int customerId) throws SQLException {
         return countByCustomer(customerId, null);
     }
 
-    /** Đếm tổng đơn hàng của customer với status filter (phân trang). */
+    /** Äáº¿m tá»•ng Ä‘Æ¡n hÃ ng cá»§a customer vá»›i status filter (phÃ¢n trang). */
     public int countByCustomer(int customerId, String status) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE customer_id = ? AND parent_order_id IS NULL");
         List<Object> params = new ArrayList<>();
@@ -586,8 +647,12 @@ public class OrderDAO extends BaseDAO {
     }
 
 
-    /** Đếm tổng đơn hàng của shop owner (phân trang). */
+    /** Äáº¿m tá»•ng Ä‘Æ¡n hÃ ng cá»§a shop owner (phÃ¢n trang). */
     public int countByOwner(int ownerId, String status) throws SQLException {
+        return executeWithTransientRetry(() -> countByOwnerInternal(ownerId, status));
+    }
+
+    private int countByOwnerInternal(int ownerId, String status) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders WHERE owner_id = ?");
         if (status != null && !status.trim().isEmpty()) sql.append(" AND status = ?");
         try (Connection conn = getConnection();
@@ -601,7 +666,7 @@ public class OrderDAO extends BaseDAO {
         return 0;
     }
 
-    /** Tính tổng doanh thu của shop owner (chỉ các đơn hàng DELIVERED). */
+    /** TÃ­nh tá»•ng doanh thu cá»§a shop owner (chá»‰ cÃ¡c Ä‘Æ¡n hÃ ng DELIVERED). */
     public java.math.BigDecimal getRevenueByOwner(int ownerId) throws SQLException {
         String sql = "SELECT SUM(final_amount) FROM orders WHERE owner_id = ? AND status = 'DELIVERED' AND order_type = 'CHILD'";
         try (Connection conn = getConnection();
@@ -634,7 +699,7 @@ public class OrderDAO extends BaseDAO {
     }
 
 
-    /** Ánh xạ ResultSet -> Order — gọi trong mọi query SELECT */
+    /** Ãnh xáº¡ ResultSet -> Order â€” gá»i trong má»i query SELECT */
     private Order mapRow(ResultSet rs) throws SQLException {
         Order o = new Order();
         o.setOrderId(rs.getInt("order_id"));
@@ -670,7 +735,13 @@ public class OrderDAO extends BaseDAO {
         o.setPaymentMethod(rs.getString("payment_method"));
         o.setRefundStatus(rs.getString("refund_status"));
         o.setReceivedStatus(rs.getString("received_status"));
-        
+
+        Timestamp deadlineVal = rs.getTimestamp("shop_acceptance_deadline");
+        if (deadlineVal != null) o.setShopAcceptanceDeadline(deadlineVal.toLocalDateTime());
+
+        Timestamp acceptedAtVal = rs.getTimestamp("shop_accepted_at");
+        if (acceptedAtVal != null) o.setShopAcceptedAt(acceptedAtVal.toLocalDateTime());
+
         Timestamp createdAtVal = rs.getTimestamp("created_at");
         if (createdAtVal != null) {
             o.setCreatedAt(createdAtVal.toLocalDateTime());
@@ -684,10 +755,15 @@ public class OrderDAO extends BaseDAO {
     }
 
     public List<OrderItem> findItemsByOrderId(int orderId) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return findItemsByOrderId(conn, orderId);
+        }
+    }
+
+    public List<OrderItem> findItemsByOrderId(Connection conn, int orderId) throws SQLException {
         List<OrderItem> list = new ArrayList<>();
         String sql = "SELECT * FROM order_items WHERE order_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -711,7 +787,7 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Batch load order_items cho nhiều order_id để tránh N+1 khi render danh sách đơn.
+     * Batch load order_items cho nhiá»u order_id Ä‘á»ƒ trÃ¡nh N+1 khi render danh sÃ¡ch Ä‘Æ¡n.
      */
     public Map<Integer, List<OrderItem>> findItemsByOrderIds(Collection<Integer> orderIds) throws SQLException {
         Map<Integer, List<OrderItem>> map = new LinkedHashMap<>();
@@ -899,7 +975,7 @@ public class OrderDAO extends BaseDAO {
         
         if (categoryId != null) {
             sql.append(
-                "SELECT COALESCE(o.cancellation_reason, N'Không có lý do') AS reason, COUNT(DISTINCT o.order_id) AS cancel_count " +
+                "SELECT COALESCE(o.cancellation_reason, N'KhÃ´ng cÃ³ lÃ½ do') AS reason, COUNT(DISTINCT o.order_id) AS cancel_count " +
                 "FROM orders o " +
                 "JOIN order_items oi ON o.order_id = oi.order_id " +
                 "JOIN product_variants pv ON oi.variant_id = pv.variant_id " +
@@ -923,7 +999,7 @@ public class OrderDAO extends BaseDAO {
             sql.append("GROUP BY o.cancellation_reason ORDER BY cancel_count DESC");
         } else {
             sql.append(
-                "SELECT COALESCE(cancellation_reason, N'Không có lý do') AS reason, COUNT(*) AS cancel_count " +
+                "SELECT COALESCE(cancellation_reason, N'KhÃ´ng cÃ³ lÃ½ do') AS reason, COUNT(*) AS cancel_count " +
                 "FROM orders " +
                 "WHERE status = 'CANCELLED' AND order_type = 'CHILD' "
             );
@@ -1025,7 +1101,7 @@ public class OrderDAO extends BaseDAO {
                     map.put("totalAmount", rs.getBigDecimal("total_amount"));
                     map.put("orderCount", rs.getInt("order_count"));
                     if (ownerId == null) {
-                        map.put("shopName", rs.getString("shop_name") != null ? rs.getString("shop_name") : "Hệ thống");
+                        map.put("shopName", rs.getString("shop_name") != null ? rs.getString("shop_name") : "Há»‡ thá»‘ng");
                     }
                     list.add(map);
                 }
@@ -1050,8 +1126,8 @@ public class OrderDAO extends BaseDAO {
     }
 
     /**
-     * Batch load orders theo danh sách order_id để tránh N+1.
-     * Trả về Map<orderId, Order> — các id không tồn tại sẽ không có trong map.
+     * Batch load orders theo danh sÃ¡ch order_id Ä‘á»ƒ trÃ¡nh N+1.
+     * Tráº£ vá» Map<orderId, Order> â€” cÃ¡c id khÃ´ng tá»“n táº¡i sáº½ khÃ´ng cÃ³ trong map.
      */
     public Map<Integer, Order> findByIds(Collection<Integer> orderIds) throws SQLException {
         Map<Integer, Order> map = new LinkedHashMap<>();
@@ -1086,5 +1162,48 @@ public class OrderDAO extends BaseDAO {
             ps.setInt(2, orderId);
             ps.executeUpdate();
         }
+    }
+
+    /**
+     * SEC-01 â€” Count FAILED deliveries for a customer in the last {@code days} days.
+     * Used by OrderService.isCodEligible() to gate COD payment eligibility.
+     */
+    public int countRecentFailedDeliveries(int customerId, int days) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM deliveries d "
+                   + "JOIN orders o ON d.order_id = o.order_id "
+                   + "WHERE o.customer_id = ? "
+                   + "  AND d.status = 'FAILED' "
+                   + "  AND d.updated_at >= DATEADD(day, ?, GETDATE())";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, customerId);
+            ps.setInt(2, -days);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * INV-01 â€” Find orders in PENDING_PAYMENT whose created_at is older than
+     * {@code minutes} minutes. Used by AutoCancelUnpaidListener to release
+     * reserved stock and cancel unpaid orders.
+     */
+    public List<Order> findExpiredPendingPayment(int minutes) throws SQLException {
+        String sql = "SELECT * FROM orders "
+                   + "WHERE status = 'PENDING_PAYMENT' "
+                   + "  AND created_at < DATEADD(minute, ?, GETDATE())";
+        List<Order> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, -minutes);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
     }
 }

@@ -12,30 +12,65 @@ import java.util.List;
  * SRP: Validate dữ liệu đầu vào, áp dụng quy tắc nghiệp vụ (Business Rules)
  * và gọi tầng DAO để truy xuất dữ liệu.
  *
+ * Cache TTL 5 phút cho getAllCategories() và getActiveCategories() —
+ * danh mục ít thay đổi, tránh truy vấn DB mỗi request.
+ *
  * @author fruitmkt-team
  */
 public class CategoryService {
+
+    private static final long CACHE_TTL_MS = 5 * 60 * 1000L; // 5 phút
+
+    private static final Object CACHE_LOCK = new Object();
+
+    // Cache cho toàn bộ danh mục (kể cả inactive)
+    private static volatile List<Category> allCache = null;
+    private static volatile long allCacheExpiry = 0;
+
+    // Cache riêng cho danh mục đang active
+    private static volatile List<Category> activeCache = null;
+    private static volatile long activeCacheExpiry = 0;
 
     private final CategoryDAO categoryDAO = new CategoryDAO();
 
     /**
      * Lấy toàn bộ danh mục sản phẩm, sắp xếp theo thứ tự hiển thị.
-     *
-     * @return danh sách toàn bộ danh mục
-     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     * Kết quả được cache 5 phút — tránh truy vấn DB mỗi request trang catalog.
      */
     public List<Category> getAllCategories() throws SQLException {
-        return categoryDAO.findAll();
+        List<Category> cached = allCache;
+        if (cached != null && System.currentTimeMillis() <= allCacheExpiry) return cached;
+        synchronized (CACHE_LOCK) {
+            cached = allCache;
+            if (cached != null && System.currentTimeMillis() <= allCacheExpiry) return cached;
+            allCache = categoryDAO.findAll();
+            allCacheExpiry = System.currentTimeMillis() + CACHE_TTL_MS;
+            return allCache;
+        }
     }
 
     /**
      * Lấy danh sách các danh mục đang hoạt động (hiển thị công khai).
-     *
-     * @return danh sách danh mục đang hoạt động
-     * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
+     * Kết quả được cache 5 phút.
      */
     public List<Category> getActiveCategories() throws SQLException {
-        return categoryDAO.findAllActive();
+        List<Category> cached = activeCache;
+        if (cached != null && System.currentTimeMillis() <= activeCacheExpiry) return cached;
+        synchronized (CACHE_LOCK) {
+            cached = activeCache;
+            if (cached != null && System.currentTimeMillis() <= activeCacheExpiry) return cached;
+            activeCache = categoryDAO.findAllActive();
+            activeCacheExpiry = System.currentTimeMillis() + CACHE_TTL_MS;
+            return activeCache;
+        }
+    }
+
+    /** Xóa cache sau khi có thay đổi danh mục (tạo/sửa/xóa/toggle). */
+    private static void invalidateCache() {
+        synchronized (CACHE_LOCK) {
+            allCache = null;
+            activeCache = null;
+        }
     }
 
     /**
@@ -65,7 +100,9 @@ public class CategoryService {
      */
     public int createCategory(Category category) throws SQLException {
         validateCategory(category);
-        return categoryDAO.save(category);
+        int id = categoryDAO.save(category);
+        invalidateCache();
+        return id;
     }
 
     /**
@@ -80,6 +117,7 @@ public class CategoryService {
         }
         validateCategory(category);
         categoryDAO.update(category);
+        invalidateCache();
     }
 
     /**
@@ -98,6 +136,7 @@ public class CategoryService {
             throw new IllegalStateException("Không thể xóa danh mục đang có sản phẩm hoạt động!");
         }
         categoryDAO.delete(categoryId);
+        invalidateCache();
     }
 
     /**
@@ -113,6 +152,7 @@ public class CategoryService {
         }
         category.setIsActive(!category.getIsActive());
         categoryDAO.update(category);
+        invalidateCache();
     }
 
     /**

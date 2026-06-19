@@ -177,7 +177,7 @@
         <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold">${sessionScope.flashMsg}</span>
+                <span class="font-semibold"><c:out value="${sessionScope.flashMsg}"/></span>
             </div>
         </div>
         <c:remove var="flashMsg" scope="session"/>
@@ -198,8 +198,8 @@
                                 <span class="material-symbols-outlined">shopping_basket</span>
                             </div>
                             <div>
-                                <h4 class="font-bold text-inverse-surface text-base mb-1">${item.productNameSnapshot}</h4>
-                                <span class="text-on-surface-variant text-xs font-semibold bg-surface-container-high px-2.5 py-1 rounded-md">Phân loại: ${item.variantLabelSnapshot}</span>
+                                <h4 class="font-bold text-inverse-surface text-base mb-1"><c:out value="${item.productNameSnapshot}"/></h4>
+                                <span class="text-on-surface-variant text-xs font-semibold bg-surface-container-high px-2.5 py-1 rounded-md">Phân loại: <c:out value="${item.variantLabelSnapshot}"/></span>
                             </div>
                         </div>
                         <div class="text-end">
@@ -279,8 +279,8 @@
                             <span class="material-symbols-outlined">shopping_basket</span>
                         </div>
                         <div>
-                            <h4 class="font-semibold text-on-surface-variant text-base mb-1 line-through">${item.productNameSnapshot}</h4>
-                            <p class="text-on-surface-variant text-xs">Phân loại: ${item.variantLabelSnapshot}</p>
+                                <h4 class="font-semibold text-on-surface-variant text-base mb-1 line-through"><c:out value="${item.productNameSnapshot}"/></h4>
+                                <p class="text-on-surface-variant text-xs">Phân loại: <c:out value="${item.variantLabelSnapshot}"/></p>
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 text-primary bg-[#e6f7f0] px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm self-start sm:self-center">

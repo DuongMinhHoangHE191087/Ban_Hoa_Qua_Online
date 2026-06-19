@@ -4,6 +4,7 @@ import config.AppConfig;
 import dao.order.DeliveryDAO;
 import dao.order.DeliveryTripDAO;
 import dao.order.OrderDAO;
+import exception.BusinessException;
 import model.entity.order.Delivery;
 import model.entity.order.Order;
 import model.entity.auth.User;
@@ -14,7 +15,11 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import java.util.logging.Logger;
 import util.LoggerUtil;
@@ -33,6 +38,21 @@ import util.LoggerUtil;
 public class DeliveryService {
 
     private static final Logger log = LoggerUtil.getLogger(DeliveryService.class);
+
+    // DLV-04 — allowed forward transitions for the delivery state-machine.
+    // Any state may transition to FAILED (shipper reports delivery failure).
+    // Reversals and illegal jumps are rejected with a BusinessException.
+    private enum DeliveryStatus { ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, FAILED }
+
+    private static final Map<DeliveryStatus, Set<DeliveryStatus>> ALLOWED_TRANSITIONS;
+    static {
+        ALLOWED_TRANSITIONS = new EnumMap<>(DeliveryStatus.class);
+        ALLOWED_TRANSITIONS.put(DeliveryStatus.ASSIGNED,   EnumSet.of(DeliveryStatus.PICKED_UP, DeliveryStatus.FAILED));
+        ALLOWED_TRANSITIONS.put(DeliveryStatus.PICKED_UP,  EnumSet.of(DeliveryStatus.IN_TRANSIT, DeliveryStatus.FAILED));
+        ALLOWED_TRANSITIONS.put(DeliveryStatus.IN_TRANSIT, EnumSet.of(DeliveryStatus.DELIVERED, DeliveryStatus.FAILED));
+        ALLOWED_TRANSITIONS.put(DeliveryStatus.DELIVERED,  EnumSet.noneOf(DeliveryStatus.class));
+        ALLOWED_TRANSITIONS.put(DeliveryStatus.FAILED,     EnumSet.noneOf(DeliveryStatus.class));
+    }
 
     private final DeliveryDAO deliveryDAO = new DeliveryDAO();
     private final DeliveryTripDAO deliveryTripDAO = new DeliveryTripDAO();
@@ -60,19 +80,35 @@ public class DeliveryService {
         if (del == null) {
             throw new IllegalArgumentException("Không tìm thấy thông tin giao hàng.");
         }
-        // B1 Fix: use Objects.equals() to avoid Integer auto-unbox NPE
         if (del.getStaffId() == null || !del.getStaffId().equals(staffId)) {
             throw new IllegalArgumentException("Bạn không có quyền cập nhật trạng thái đơn giao hàng này.");
         }
 
-        // Validate
         if (status == null || status.trim().isEmpty()) {
             throw new IllegalArgumentException("Trạng thái là bắt buộc.");
         }
-        if ("DELIVERED".equals(status) && (proofImageUrl == null || proofImageUrl.trim().isEmpty())) {
+
+        // DLV-04 — enforce sequential delivery state-machine
+        DeliveryStatus current;
+        DeliveryStatus next;
+        try {
+            current = DeliveryStatus.valueOf(del.getStatus());
+            next    = DeliveryStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("INVALID_STATUS",
+                    "Trạng thái giao hàng không hợp lệ: " + status);
+        }
+        Set<DeliveryStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(current, EnumSet.noneOf(DeliveryStatus.class));
+        if (!allowed.contains(next)) {
+            throw new BusinessException("INVALID_TRANSITION",
+                    String.format("Không thể chuyển trạng thái từ %s sang %s.", current, next));
+        }
+
+        // Proof / reason validation for terminal states
+        if (next == DeliveryStatus.DELIVERED && (proofImageUrl == null || proofImageUrl.trim().isEmpty())) {
             throw new IllegalArgumentException("Vui lòng cung cấp ảnh bằng chứng giao hàng!");
         }
-        if ("FAILED".equals(status) && (failureReason == null || failureReason.trim().isEmpty())) {
+        if (next == DeliveryStatus.FAILED && (failureReason == null || failureReason.trim().isEmpty())) {
             throw new IllegalArgumentException("Vui lòng nhập lý do giao hàng thất bại!");
         }
 
@@ -111,6 +147,8 @@ public class DeliveryService {
                 int tripId = deliveryTripDAO.save(conn, parentOrderId, staffId > 0 ? staffId : null,
                         tripStatus, null, estimatedTime);
                 deliveryDAO.assignShipper(conn, orderId, tripId, 1, staffId, estimatedTime);
+                // Cập nhật trạng thái đơn sang DISPATCHED sau khi chỉ định shipper thành công
+                orderDAO.updateStatus(conn, orderId, AppConfig.ORDER_DISPATCHED);
                 conn.commit();
             } catch (SQLException | RuntimeException ex) {
                 conn.rollback();

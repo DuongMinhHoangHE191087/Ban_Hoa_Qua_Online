@@ -7,6 +7,7 @@ import model.entity.auth.User;
 import service.catalog.CategoryService;
 import service.catalog.ProductService;
 import util.SessionUtil;
+import util.ErrorMessageUtil;
 
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -77,8 +78,8 @@ public class AdminProductServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-products.jsp").forward(req, resp);
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi tải danh sách sản phẩm admin", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi cơ sở dữ liệu: " + e.getMessage());
+            ErrorMessageUtil.logException(log, "Failed to load admin products list", e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ErrorMessageUtil.MSG_DB_ERROR);
         }
     }
 
@@ -116,8 +117,8 @@ public class AdminProductServlet extends HttpServlet {
                     resp.sendRedirect(req.getContextPath() + "/admin/products");
             }
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý hành động sản phẩm: " + action, e);
-            SessionUtil.flashError(session, "Lỗi hệ thống: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to process product action: " + action, e);
+            SessionUtil.flashError(session, userMsg);
             resp.sendRedirect(req.getContextPath() + "/admin/products");
         }
     }

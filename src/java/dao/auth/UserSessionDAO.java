@@ -6,7 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.logging.Logger;
 
 /**
  * UserSessionDAO — DAO cho các tác vụ liên quan đến user_sessions.
@@ -20,8 +19,6 @@ import java.util.logging.Logger;
  * @author fruitmkt-team
  */
 public class UserSessionDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(UserSessionDAO.class.getName());
 
     /**
      * Lưu trữ Refresh Token (Session) mới vào bảng user_sessions

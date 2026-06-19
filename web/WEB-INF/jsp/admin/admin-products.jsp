@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -264,7 +265,8 @@
                                                     <c:otherwise>
                                                         <%-- Ban / Soft delete button if approved/rejected but violates rules later --%>
                                                         <form method="POST" action="${pageContext.request.contextPath}/admin/products" class="inline"
-                                                              onsubmit="return confirmBan(event, '${p.name}')">
+                                                              onsubmit="return confirmBan(event)"
+                                                              data-product-name="${fn:escapeXml(p.name)}">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                             <input type="hidden" name="action" value="ban">
                                                             <input type="hidden" name="productId" value="${p.productId}">
@@ -290,13 +292,13 @@
                 <span class="text-xs text-txt-2">Trang <b>${currentPage}</b></span>
                 <div class="flex items-center gap-1">
                     <c:if test="${currentPage > 1}">
-                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage - 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${paramApprovalStatus}" 
+                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage - 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" 
                            class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
                             Trước
                         </a>
                     </c:if>
                     <c:if test="${products.size() == 25}">
-                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage + 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${paramApprovalStatus}" 
+                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage + 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" 
                            class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
                             Sau
                         </a>
@@ -430,11 +432,14 @@
         openModal('rejectModal');
     }
 
-    function confirmBan(event, name) {
+    function confirmBan(event) {
         event.preventDefault();
+        var form = event.target.closest ? event.target.closest('form') : event.target;
+        var rawName = form ? (form.dataset.productName || '') : '';
+        var safeName = rawName.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         Swal.fire({
             title: 'Gỡ bỏ sản phẩm?',
-            html: 'Bạn có chắc chắn muốn gỡ bỏ sản phẩm <b>' + name + '</b> khỏi website?<br><small class="text-red-500 font-semibold">Lưu ý: Sản phẩm sẽ bị ẩn hoàn toàn và chuyển thành trạng thái xóa mềm để đảm bảo dữ liệu đơn hàng cũ.</small>',
+            html: 'Bạn có chắc chắn muốn gỡ bỏ sản phẩm <b>' + safeName + '</b> khỏi website?<br><small class="text-red-500 font-semibold">Lưu ý: Sản phẩm sẽ bị ẩn hoàn toàn và chuyển thành trạng thái xóa mềm để đảm bảo dữ liệu đơn hàng cũ.</small>',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',

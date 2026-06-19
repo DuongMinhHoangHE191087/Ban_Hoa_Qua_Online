@@ -17,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * PromotionDAO — DAO cho entity Promotion.
  *
@@ -32,8 +29,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class PromotionDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(PromotionDAO.class.getName());
 
     /**
      * Tìm khuyến mãi theo ID.

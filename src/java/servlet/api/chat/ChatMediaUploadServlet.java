@@ -4,6 +4,7 @@ import config.AppConfig;
 import model.entity.auth.User;
 import model.response.ApiResponse;
 import util.JsonUtil;
+import util.FileUploadUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -14,6 +15,7 @@ import jakarta.servlet.http.Part;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -100,11 +102,16 @@ public class ChatMediaUploadServlet extends HttpServlet {
             }
 
             String extLower = extension.toLowerCase();
-            if (mediaType.equals("IMAGE") && !extLower.matches("\\.(jpg|jpeg|png|gif|webp)")) {
+            String normalizedExt = extLower.startsWith(".") ? extLower.substring(1) : extLower;
+            if (mediaType.equals("IMAGE") && !FileUploadUtil.isAllowedImage(originalFileName)) {
                 JsonUtil.writeJson(resp, ApiResponse.error("Định dạng ảnh không hợp lệ (chỉ cho phép JPG, PNG, GIF, WEBP)."));
                 return;
             }
-            if (mediaType.equals("VIDEO") && !extLower.matches("\\.(mp4|webm|ogg)")) {
+            if (mediaType.equals("IMAGE") && !hasAllowedImageMagicBytes(filePart, normalizedExt)) {
+                JsonUtil.writeJson(resp, ApiResponse.error("Nội dung ảnh không khớp với định dạng khai báo."));
+                return;
+            }
+            if (mediaType.equals("VIDEO") && !normalizedExt.matches("(mp4|webm|ogg)")) {
                 JsonUtil.writeJson(resp, ApiResponse.error("Định dạng video không hợp lệ (chỉ cho phép MP4, WEBM, OGG)."));
                 return;
             }
@@ -139,5 +146,45 @@ public class ChatMediaUploadServlet extends HttpServlet {
             }
         }
         return "unknown";
+    }
+
+    private boolean hasAllowedImageMagicBytes(Part part, String extension) {
+        try (InputStream is = part.getInputStream()) {
+            byte[] header = is.readNBytes(12);
+            switch (extension) {
+                case "jpg":
+                case "jpeg":
+                    return header.length >= 3
+                            && header[0] == (byte) 0xFF
+                            && header[1] == (byte) 0xD8
+                            && header[2] == (byte) 0xFF;
+                case "png":
+                    return header.length >= 4
+                            && header[0] == (byte) 0x89
+                            && header[1] == 0x50
+                            && header[2] == 0x4E
+                            && header[3] == 0x47;
+                case "gif":
+                    return header.length >= 4
+                            && header[0] == 0x47
+                            && header[1] == 0x49
+                            && header[2] == 0x46
+                            && header[3] == 0x38;
+                case "webp":
+                    return header.length >= 12
+                            && header[0] == 0x52
+                            && header[1] == 0x49
+                            && header[2] == 0x46
+                            && header[3] == 0x46
+                            && header[8] == 0x57
+                            && header[9] == 0x45
+                            && header[10] == 0x42
+                            && header[11] == 0x50;
+                default:
+                    return false;
+            }
+        } catch (IOException e) {
+            return false;
+        }
     }
 }
