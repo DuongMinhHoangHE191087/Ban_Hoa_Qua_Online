@@ -276,9 +276,11 @@
 
             fetch('${pageContext.request.contextPath}/admin/users/status', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': '${sessionScope._csrfToken}'
                 },
                 body: 'userId=' + userId + '&status=' + newStatus + '&_csrf=${sessionScope._csrfToken}'
             })
@@ -335,11 +337,13 @@
                     const originalHtml = this.innerHTML;
                     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-0.5"></i>';
 
-                    fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
+            fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
                         method: 'POST',
+                        credentials: 'same-origin',
                         headers: { 
                             'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-Token': '${sessionScope._csrfToken}'
                         },
                         body: 'userId=' + userId + '&_csrf=${sessionScope._csrfToken}'
                     })

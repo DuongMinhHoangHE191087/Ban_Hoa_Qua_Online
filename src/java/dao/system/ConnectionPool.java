@@ -108,8 +108,8 @@ public final class ConnectionPool {
     // =========================================================
 
     private static void initPool() {
-        if (tryInitTomcatJdbcPool()) return;
         if (tryInitDbcp2Pool())      return;
+        if (tryInitTomcatJdbcPool()) return;
         LoggerUtil.warn(log,
             "[ConnectionPool] WARN: không có pool library — dùng DriverManager. " +
             "Không phù hợp cho production!");

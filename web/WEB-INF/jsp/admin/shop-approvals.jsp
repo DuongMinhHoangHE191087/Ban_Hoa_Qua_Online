@@ -151,6 +151,10 @@
                                         <%-- Action Buttons --%>
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex items-center justify-center gap-2" id="action-btns-${shop.profileId}">
+                                                <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer mr-1" 
+                                                        onclick="showDetailModal('${shop.profileId}')" title="Xem chi tiết">
+                                                    <i class="fa-solid fa-eye"></i>
+                                                </button>
                                                 <c:choose>
                                                     <c:when test="${shop.approvalStatus == 'PENDING'}">
                                                         <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer" 
@@ -179,6 +183,60 @@
 
     </main>
 </div>
+
+<%-- Detail Modal --%>
+<div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-border flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h3 class="font-black text-txt text-base flex items-center gap-2"><i class="fa-solid fa-store text-primary"></i> Chi tiết cửa hàng</h3>
+            <button class="text-txt-3 hover:text-txt text-xl focus:outline-none cursor-pointer" onclick="closeDetailModal()">&times;</button>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1 text-sm space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h4 class="font-bold text-primary mb-2 border-b border-border pb-1">Thông tin cơ bản</h4>
+                    <p><span class="font-semibold text-txt-2">Tên:</span> <span id="detailName" class="text-txt font-medium"></span></p>
+                    <p class="mt-1"><span class="font-semibold text-txt-2">Email liên hệ:</span> <span id="detailEmail" class="text-txt font-medium"></span></p>
+                    <p class="mt-1"><span class="font-semibold text-txt-2">Địa chỉ:</span> <span id="detailAddress" class="text-txt font-medium"></span></p>
+                    <p class="mt-1"><span class="font-semibold text-txt-2">Trạng thái:</span> <span id="detailStatus" class="font-bold"></span></p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h4 class="font-bold text-primary mb-2 border-b border-border pb-1">Mô tả</h4>
+                    <p id="detailDescription" class="text-txt-2 text-xs leading-relaxed italic"></p>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                <h4 class="font-bold text-primary mb-2 border-b border-border pb-1">Danh mục kinh doanh</h4>
+                <div id="detailCategories" class="flex flex-wrap gap-2">
+                    <!-- Categories go here -->
+                </div>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                <h4 class="font-bold text-primary mb-2 border-b border-border pb-1">Tệp đính kèm (Tài liệu xác minh)</h4>
+                <ul id="detailDocs" class="space-y-2">
+                    <!-- Docs go here -->
+                </ul>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-border flex justify-end">
+            <button class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer" 
+                    onclick="closeDetailModal()">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Map các danh mục từ DB thành object js để lookup dễ dàng -->
+<script>
+    const categoryMap = {
+        <c:forEach var="cat" items="${categories}">
+            "${cat.categoryId}": "${fn:escapeXml(cat.name)}",
+        </c:forEach>
+    };
+</script>
 
 <%-- Reject Modal --%>
 <div id="rejectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -303,8 +361,96 @@
         });
     }
 
+    function closeDetailModal() {
+        document.getElementById('detailModal').classList.add('hidden');
+    }
+
+    function showDetailModal(profileId) {
+        Swal.fire({ title: 'Đang tải...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+        fetch('${pageContext.request.contextPath}/api/admin/shops/detail?id=' + profileId)
+            .then(handleJSONResponse)
+            .then(data => {
+                Swal.close();
+                if(data.success && data.data) {
+                    const shop = data.data;
+                    document.getElementById('detailName').textContent = shop.shopName || '';
+                    document.getElementById('detailEmail').textContent = shop.businessEmail || '';
+                    document.getElementById('detailAddress').textContent = shop.deliveryAddress || '';
+                    document.getElementById('detailDescription').textContent = shop.shopDescription || 'Không có mô tả.';
+                    
+                    let statusHtml = '';
+                    if (shop.approvalStatus === 'PENDING') statusHtml = '<span class="text-amber-600">⏳ Đang chờ duyệt</span>';
+                    else if (shop.approvalStatus === 'APPROVED') statusHtml = '<span class="text-emerald-600">✅ Đã duyệt</span>';
+                    else if (shop.approvalStatus === 'REJECTED') statusHtml = '<span class="text-red-600">❌ Từ chối</span>';
+                    document.getElementById('detailStatus').innerHTML = statusHtml;
+
+                    // Categories
+                    const catContainer = document.getElementById('detailCategories');
+                    catContainer.innerHTML = '';
+                    if (shop.preferredCategories) {
+                        try {
+                            const catIds = JSON.parse(shop.preferredCategories);
+                            if (catIds && catIds.length > 0) {
+                                catIds.forEach(id => {
+                                    const catName = categoryMap[id] || ('Danh mục ' + id);
+                                    catContainer.innerHTML += `<span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">` + catName + `</span>`;
+                                });
+                            } else {
+                                catContainer.innerHTML = '<span class="text-xs text-txt-3">Không có</span>';
+                            }
+                        } catch (e) {
+                            catContainer.innerHTML = '<span class="text-xs text-txt-3">Lỗi dữ liệu</span>';
+                        }
+                    } else {
+                        catContainer.innerHTML = '<span class="text-xs text-txt-3">Không có</span>';
+                    }
+
+                    // Docs
+                    const docContainer = document.getElementById('detailDocs');
+                    docContainer.innerHTML = '';
+                    if (shop.docPaths) {
+                        try {
+                            const paths = JSON.parse(shop.docPaths);
+                            if (paths && paths.length > 0) {
+                                paths.forEach(path => {
+                                    const fileName = path.split('/').pop().split('\\').pop();
+                                    const fileUrl = '${pageContext.request.contextPath}/' + path;
+                                    docContainer.innerHTML += `<li class="flex items-center justify-between p-3 border border-border rounded-lg bg-white">
+                                        <div class="flex items-center gap-2 overflow-hidden">
+                                            <i class="fa-solid fa-file-alt text-primary text-lg"></i>
+                                            <span class="text-xs text-txt truncate">` + fileName + `</span>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <a href="` + fileUrl + `" target="_blank" class="text-blue-600 hover:text-blue-800" title="Xem trước"><i class="fa-solid fa-eye"></i></a>
+                                            <a href="` + fileUrl + `" download class="text-emerald-600 hover:text-emerald-800" title="Tải xuống"><i class="fa-solid fa-download"></i></a>
+                                        </div>
+                                    </li>`;
+                                });
+                            } else {
+                                docContainer.innerHTML = '<span class="text-xs text-txt-3">Không có tài liệu</span>';
+                            }
+                        } catch (e) {
+                            docContainer.innerHTML = '<span class="text-xs text-txt-3">Lỗi dữ liệu tài liệu</span>';
+                        }
+                    } else {
+                        docContainer.innerHTML = '<span class="text-xs text-txt-3">Không có tài liệu</span>';
+                    }
+
+                    document.getElementById('detailModal').classList.remove('hidden');
+                } else {
+                    Swal.fire('Lỗi', data.message || 'Không thể lấy thông tin.', 'error');
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                Swal.fire('Lỗi', error.message || 'Lỗi kết nối mạng.', 'error');
+            });
+    }
+
     window.onclick = e => {
         if (e.target === document.getElementById('rejectModal')) closeRejectModal();
+        if (e.target === document.getElementById('detailModal')) closeDetailModal();
     };
 </script>
 </body>
