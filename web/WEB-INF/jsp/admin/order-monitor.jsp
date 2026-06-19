@@ -1,6 +1,7 @@
 ﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -136,7 +137,7 @@
                     <c:if test="${pagedResult.totalPages > 1}">
                         <div style="display: flex; justify-content: center; margin-top: var(--space-4); gap: 5px;">
                             <c:forEach begin="1" end="${pagedResult.totalPages}" var="i">
-                                <a href="?page=${i}&status=${statusFilter}&paymentMethod=${paymentMethod}&paymentStatus=${paymentStatus}"
+                                <a href="?page=${i}&status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}"
                                    class="btn btn-sm ${i == pagedResult.currentPage ? 'btn-primary' : 'btn-secondary'}">${i}</a>
                             </c:forEach>
                         </div>

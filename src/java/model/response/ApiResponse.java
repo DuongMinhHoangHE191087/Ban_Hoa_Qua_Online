@@ -1,6 +1,8 @@
 package model.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * ApiResponse<T> — Phong bì JSON chuẩn cho mọi API endpoint.
@@ -49,6 +51,18 @@ public record ApiResponse<T>(boolean success, T data, String error, Object meta)
      * resp.setStatus(statusCode) riêng. Đây chỉ là dữ liệu mang theo.
      */
     public static <T> ApiResponse<T> fail(int statusCode, String message) {
-        return new ApiResponse<>(false, null, message, java.util.Map.of("statusCode", statusCode));
+        return fail(statusCode, message, null);
+    }
+
+    /**
+     * Thất bại với thông điệp lỗi và metadata bổ sung.
+     */
+    public static <T> ApiResponse<T> fail(int statusCode, String message, Map<String, Object> meta) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("statusCode", statusCode);
+        if (meta != null && !meta.isEmpty()) {
+            payload.putAll(meta);
+        }
+        return new ApiResponse<>(false, null, message, payload);
     }
 }

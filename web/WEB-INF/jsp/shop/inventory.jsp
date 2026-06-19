@@ -66,7 +66,7 @@
         <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Nhập hàng &amp; Tồn kho</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Nhập thêm hàng vào kho, xem lịch sử và số lượng biến thể hiện tại.</p>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Nhập thêm hàng vào kho, xem lịch sử và số lượng phân loại hiện tại.</p>
             </div>
             <div class="hidden md:flex items-center gap-2 bg-white/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
                 <i class="fa-solid fa-warehouse text-primary"></i>
@@ -125,11 +125,11 @@
 
                             <div class="mb-4">
                                 <label class="block text-xs font-bold text-txt-2 mb-2" for="variantId">
-                                    Sản phẩm &amp; Biến thể <span class="text-red-500">*</span>
+                                    Sản phẩm &amp; Phân loại <span class="text-red-500">*</span>
                                 </label>
                                 <select name="variantId" id="variantId" required
                                         class="w-full px-4 py-2.5 border border-border rounded-xl text-sm bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
-                                    <option value="" disabled selected>-- Chọn biến thể sản phẩm --</option>
+                                    <option value="" disabled selected>-- Chọn phân loại sản phẩm --</option>
                                     <c:forEach var="v" items="${variants}">
                                         <option value="${v.variantId}">
                                             ${v.productName} - ${v.variantLabel} (Hiện tại: ${v.stockQuantity})
@@ -190,7 +190,7 @@
                                 <table id="stockTable" class="w-full border-collapse text-left">
                                     <thead class="bg-[#f8fcf9] text-xs font-bold uppercase tracking-wider text-txt-2 sticky top-0 z-10 border-b border-border">
                                         <tr>
-                                            <th class="px-5 py-3.5">Sản phẩm &amp; Biến thể</th>
+                                            <th class="px-5 py-3.5">Sản phẩm &amp; Phân loại</th>
                                             <th class="px-5 py-3.5">SKU</th>
                                             <th class="px-5 py-3.5">Tồn kho hiện tại</th>
                                         </tr>
@@ -253,7 +253,7 @@
                                     <thead class="bg-[#f8fcf9] text-xs font-bold uppercase tracking-wider text-txt-2 sticky top-0 z-10 border-b border-border">
                                         <tr>
                                             <th class="px-5 py-3.5">Mã</th>
-                                            <th class="px-5 py-3.5">Sản phẩm &amp; Biến thể</th>
+                                            <th class="px-5 py-3.5">Sản phẩm &amp; Phân loại</th>
                                             <th class="px-5 py-3.5">Thay đổi</th>
                                             <th class="px-5 py-3.5">Loại</th>
                                             <th class="px-5 py-3.5">Ghi chú</th>

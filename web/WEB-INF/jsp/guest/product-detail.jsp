@@ -7,7 +7,7 @@
 <%-- 
     product-detail.jsp — Giao diện xem chi tiết sản phẩm cao cấp (Premium Organic Glassmorphism).
     Cấu trúc trang:
-    [1] 2-column grid: Gallery | Thông tin sản phẩm + Giá + Biến thể + Nút mua
+    [1] 2-column grid: Gallery | Thông tin sản phẩm + Giá + Phân loại + Nút mua
     [2] Panel: Thông tin cửa hàng (tên, mô tả, rating) + Xem thêm từ shop + Vận chuyển + Voucher
     [3] Panel: Thông số kỹ thuật sản phẩm
     [4] Panel: Đánh giá (rating summary, filter tabs, phân trang)
@@ -1282,7 +1282,7 @@
                                            data-price="${v.price}"
                                            data-activeprice="${v.activePrice}"
                                            data-isdiscounted="${v.isDiscounted}"
-                                           data-label="${v.variantLabel}"
+                                           data-label="<c:out value='${v.variantLabel}'/>"
                                            data-stock="${v.stockQuantity}"
                                            ${status.index == 0 ? 'checked' : ''}
                                            onchange="onVariantChange(this)">
@@ -1311,7 +1311,7 @@
                         </c:if>
                     </c:when>
                     <c:otherwise>
-                        <div class="text-sm text-danger font-semibold my-4">Không có biến thể khả dụng cho sản phẩm này.</div>
+                        <div class="text-sm text-danger font-semibold my-4">Không có phân loại khả dụng cho sản phẩm này.</div>
                     </c:otherwise>
                 </c:choose>
 
@@ -1659,7 +1659,7 @@
                                 <div class="review-card-header">
                                     <div class="reviewer-meta">
                                         <div class="reviewer-avatar">
-                                            ${fn:substring(r.customerName, 0, 1)}
+                                            <c:out value="${fn:substring(r.customerName, 0, 1)}"/>
                                         </div>
                                         <div>
                                             <div class="reviewer-name"><c:out value="${r.customerName}"/></div>
@@ -1676,7 +1676,7 @@
                                 <c:if test="${not empty r.reviewImageUrl}">
                                     <div class="review-attachment-box">
                                         <div class="review-thumb-image" onclick="openPhotoModal(this)">
-                                            <img src="${r.reviewImageUrl}" alt="Ảnh review khách hàng">
+                                            <img src="<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
                                         </div>
                                     </div>
                                 </c:if>
@@ -2321,7 +2321,183 @@
                 });
             });
         }
+
+        // Lắng nghe sự kiện click các tab lọc rating
+        const filterButtons = document.querySelectorAll('.review-filters-row a');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                filterButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const url = new URL(btn.href);
+                const ratingVal = url.searchParams.get('rating');
+                currentRatingFilter = ratingVal ? parseInt(ratingVal) : null;
+                currentReviewPage = 1;
+                
+                loadReviewsRealtime();
+            });
+        });
     });
+
+    function escapeHtml(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    let currentReviewPage = 1;
+    let currentRatingFilter = null;
+
+    async function loadReviewsRealtime() {
+        const wrapper = document.querySelector('.reviews-list-wrapper');
+        if (!wrapper) return;
+        
+        wrapper.innerHTML = `
+            <div class="text-center py-12">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-[#4d661c] mb-3"></i>
+                <p class="text-sm text-muted">Đang tải đánh giá thực tế...</p>
+            </div>
+        `;
+        
+        try {
+            let url = `${pageContext.request.contextPath}/products/detail?id=${product.productId}&format=json&action=getReviews&page=` + currentReviewPage;
+            if (currentRatingFilter !== null) {
+                url += '&rating=' + currentRatingFilter;
+            }
+            
+            const response = await fetch(url);
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                renderReviewsList(result.data);
+            } else {
+                wrapper.innerHTML = `<div class="text-center text-red-500 py-8">Không thể tải dữ liệu đánh giá.</div>`;
+            }
+        } catch (err) {
+            console.error("Lỗi tải review realtime:", err);
+            wrapper.innerHTML = `<div class="text-center text-red-500 py-8">Lỗi kết nối khi tải đánh giá.</div>`;
+        }
+    }
+
+    function renderReviewsList(pagedResult) {
+        const wrapper = document.querySelector('.reviews-list-wrapper');
+        if (!wrapper) return;
+        
+        if (!pagedResult.items || pagedResult.items.length === 0) {
+            wrapper.innerHTML = `
+                <div class="text-center text-[#8E9285] py-8 italic font-semibold">
+                    Chưa có lượt đánh giá nào phù hợp với bộ lọc đã chọn.
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        pagedResult.items.forEach(r => {
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= r.rating) {
+                    starsHtml += '<i class="fa-solid fa-star text-amber-400 mr-0.5"></i>';
+                } else {
+                    starsHtml += '<i class="fa-solid fa-star text-gray-200 mr-0.5"></i>';
+                }
+            }
+            
+            let imgHtml = '';
+            if (r.reviewImageUrl) {
+                let src = r.reviewImageUrl;
+                if (!src.startsWith('http') && !src.startsWith('/')) {
+                    src = '${pageContext.request.contextPath}/' + src;
+                }
+                imgHtml = `
+                    <div class="review-attachment-box">
+                        <div class="review-thumb-image" onclick="openPhotoModal(this)">
+                            <img src="${escapeHtml(src)}" alt="Ảnh review khách hàng">
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const safeCustomerName = escapeHtml(r.customerName || 'Người dùng');
+            const safeReviewText = escapeHtml(r.reviewText || '').replace(/\r?\n/g, '<br>');
+            const safeCreatedAt = escapeHtml(r.createdAt || '');
+            const avatarChar = escapeHtml(r.customerName ? r.customerName.substring(0, 1).toUpperCase() : 'U');
+            
+            html += `
+                <div class="review-card-item">
+                    <div class="review-card-header">
+                        <div class="reviewer-meta">
+                            <div class="reviewer-avatar">
+                                ${avatarChar}
+                            </div>
+                            <div>
+                                <div class="reviewer-name">${safeCustomerName}</div>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex items-center text-xs">${starsHtml}</div>
+                                    <span class="review-date">${safeCreatedAt}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="review-body-text">
+                        ${safeReviewText}
+                    </div>
+                    ${imgHtml}
+                </div>
+            `;
+        });
+        
+        if (pagedResult.totalPages > 1) {
+            let paginationHtml = '<div class="flex items-center justify-center gap-2 mt-6">';
+            if (pagedResult.currentPage > 1) {
+                paginationHtml += `
+                    <button onclick="changeReviewPage(${pagedResult.currentPage - 1})" 
+                            class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-bold transition-all cursor-pointer bg-white">
+                        Trước
+                    </button>
+                `;
+            }
+            
+            for (let i = 1; i <= pagedResult.totalPages; i++) {
+                const isActive = i === pagedResult.currentPage;
+                paginationHtml += `
+                    <button onclick="changeReviewPage(${i})" 
+                            class="w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${isActive ? 'bg-primary text-white border-none' : 'border border-gray-200 hover:bg-gray-50 bg-white' }">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            if (pagedResult.currentPage < pagedResult.totalPages) {
+                paginationHtml += `
+                    <button onclick="changeReviewPage(${pagedResult.currentPage + 1})" 
+                            class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-bold transition-all cursor-pointer bg-white">
+                        Tiếp
+                    </button>
+                `;
+            }
+            paginationHtml += '</div>';
+            html += paginationHtml;
+        }
+        
+        wrapper.innerHTML = html;
+    }
+
+    window.changeReviewPage = function(page) {
+        currentReviewPage = page;
+        loadReviewsRealtime();
+        const reviewsEl = document.getElementById('reviews');
+        if (reviewsEl) {
+            reviewsEl.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
 </script>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp"/>

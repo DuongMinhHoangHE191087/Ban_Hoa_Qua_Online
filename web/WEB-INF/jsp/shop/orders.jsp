@@ -8,64 +8,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Đơn hàng | Kênh Người Bán</title>
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
-
-    <!-- Google Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-
-    <!-- Tailwind & SweetAlert -->
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary:          '#4d661c',
-                        'primary-hover':  '#364e03',
-                        'primary-lt':     '#f0f7e6',
-                        border:           '#e2ece7',
-                        'txt':            '#0f172a',
-                        'txt-2':          '#475569',
-                        'txt-3':          '#94a3b8',
+                        primary: '#4d661c', 'primary-hover': '#364e03',
+                        'primary-lt': '#f0f7e6', border: '#e2ece7',
+                        txt: '#0f172a', 'txt-2': '#475569', 'txt-3': '#94a3b8',
                     },
                     fontFamily: { sans: ['Lexend', 'sans-serif'] }
                 }
             }
         }
     </script>
-
     <style>
         body { background-color: #f4fbf7; font-family: 'Lexend', sans-serif; }
-        .glass-card {
-            background: #ffffff;
-            border: 1px solid #e2ece7;
-            box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        /* Modal */
-        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .glass-card { background: #ffffff; border: 1px solid #e2ece7; box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px -4px rgba(20,83,45,.06); }
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
     </style>
 </head>
 <body class="antialiased text-[#0f172a]">
 <div class="flex min-h-screen">
 
-    <!-- Shared Sidebar -->
     <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
         <jsp:param name="activePage" value="orders"/>
     </jsp:include>
 
-    <!-- Main Content -->
     <main class="flex-1 p-6 md:p-8 overflow-y-auto">
 
         <!-- Page Header -->
         <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản lý Đơn hàng</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Duyệt đơn, bàn giao giao vận, theo dõi trạng thái từng đơn hàng.</p>
+                <p class="text-[#475569] text-xs md:text-sm mt-1">Duyệt đơn, bàn giao vận chuyển, theo dõi trạng thái đơn hàng.</p>
             </div>
             <div class="hidden md:flex items-center gap-2 bg-white/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
                 <i class="fa-solid fa-clipboard-list text-primary"></i>
@@ -171,9 +154,18 @@
                                             </span>
                                         </c:when>
                                         <c:when test="${order.status == 'CONFIRMED'}">
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                <i class="fa-solid fa-bell text-[8px]"></i>Chờ Duyệt
-                                            </span>
+                                            <div class="flex flex-col gap-1">
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                    <i class="fa-solid fa-bell text-[8px]"></i>Chờ Duyệt
+                                                </span>
+                                                <c:if test="${not empty order.shopAcceptanceDeadline}">
+                                                    <span class="countdown-timer inline-flex items-center gap-1 text-[10px] font-bold text-orange-500"
+                                                          data-deadline="${order.shopAcceptanceDeadline}">
+                                                        <i class="fa-solid fa-hourglass-half text-[8px]"></i>
+                                                        <span class="countdown-display">--:--</span>
+                                                    </span>
+                                                </c:if>
+                                            </div>
                                         </c:when>
                                         <c:when test="${order.status == 'PREPARING'}">
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
@@ -207,22 +199,26 @@
                                 </td>
                                 <td class="py-3.5 px-5 text-right">
                                     <div class="inline-flex items-center gap-2">
+                                        <!-- Duyệt đơn: chỉ khi CONFIRMED -->
                                         <c:if test="${order.status == 'CONFIRMED'}">
                                             <form action="${pageContext.request.contextPath}/shop/orders" method="POST" class="inline">
                                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                 <input type="hidden" name="action" value="approve">
                                                 <input type="hidden" name="orderId" value="${order.orderId}">
+                                                <input type="hidden" name="currentStatus" value="${status}">
                                                 <button type="submit" class="px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-hover transition-colors shadow-sm">
                                                     <i class="fa-solid fa-check mr-1"></i>Duyệt
                                                 </button>
                                             </form>
                                         </c:if>
+                                        <!-- Bàn giao: khi APPROVED hoặc PREPARING -->
                                         <c:if test="${order.status == 'APPROVED' || order.status == 'PREPARING'}">
                                             <button type="button" onclick="openDispatchModal('${order.orderId}')"
                                                     class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition-colors shadow-sm">
                                                 <i class="fa-solid fa-truck mr-1"></i>Giao hàng
                                             </button>
                                         </c:if>
+                                        <!-- Hủy đơn: khi chưa DELIVERED/CANCELLED/DISPATCHED -->
                                         <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED' && order.status != 'DISPATCHED'}">
                                             <button type="button" onclick="openRejectModal('${order.orderId}')"
                                                     class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold hover:bg-red-600 hover:text-white transition-colors">
@@ -267,6 +263,7 @@
             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
             <input type="hidden" name="action" value="reject">
             <input type="hidden" name="orderId" id="rejectOrderId">
+            <input type="hidden" name="currentStatus" id="rejectCurrentStatus" value="${status}">
             <div class="mb-5">
                 <label class="block text-xs font-bold text-txt-2 mb-2">Vui lòng cho biết lý do hủy đơn này:</label>
                 <textarea name="reason" rows="4" required placeholder="Hết hàng, khách đổi ý..."
@@ -285,7 +282,7 @@
     </div>
 </div>
 
-<!-- Modal: Giao Hàng -->
+<!-- Modal: Bàn giao vận chuyển -->
 <div id="dispatchModal" class="modal-overlay">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div class="flex items-center justify-between mb-5">
@@ -303,17 +300,20 @@
             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
             <input type="hidden" name="action" value="dispatch">
             <input type="hidden" name="orderId" id="dispatchOrderId">
+            <input type="hidden" name="currentStatus" id="dispatchCurrentStatus" value="${status}">
             <div class="mb-5">
                 <label class="block text-xs font-bold text-txt-2 mb-2">Dự kiến thời gian giao đến khách <span class="font-normal text-txt-3">(Tùy chọn)</span></label>
-                <input type="datetime-local" name="estimatedDeliveryTime"
+                <input type="datetime-local" name="estimatedDeliveryTime" id="dispatchEstimatedDeliveryTime"
                        class="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+                <p class="text-[10px] text-txt-3 mt-1">Để trống nếu chưa xác định thời gian giao hàng cụ thể.</p>
             </div>
             <div class="flex gap-3 justify-end">
                 <button type="button" onclick="closeModal('dispatchModal')"
                         class="px-5 py-2.5 rounded-xl border border-border text-xs font-bold text-txt-2 hover:bg-gray-50 transition-colors">
                     Đóng
                 </button>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-colors shadow-sm">
+                <button type="submit" id="dispatchSubmitBtn"
+                        class="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-hover transition-colors shadow-sm">
                     <i class="fa-solid fa-truck mr-1"></i>Bàn giao
                 </button>
             </div>
@@ -322,23 +322,83 @@
 </div>
 
 <script>
+    function formatDateTimeLocal(date) {
+        const pad = (v) => String(v).padStart(2, '0');
+        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate())
+             + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+    }
+
     function openRejectModal(orderId) {
         document.getElementById('rejectOrderId').value = orderId;
         document.getElementById('rejectModal').classList.add('active');
     }
+
     function openDispatchModal(orderId) {
+        const estimatedInput = document.getElementById('dispatchEstimatedDeliveryTime');
+        if (estimatedInput) {
+            const now = new Date();
+            estimatedInput.min = formatDateTimeLocal(now);
+            // Gợi ý mặc định: 2 giờ sau
+            const suggested = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+            estimatedInput.value = formatDateTimeLocal(suggested);
+        }
         document.getElementById('dispatchOrderId').value = orderId;
         document.getElementById('dispatchModal').classList.add('active');
     }
+
     function closeModal(id) {
         document.getElementById(id).classList.remove('active');
     }
-    // Close modal on backdrop click
+
+    // Đóng modal khi click backdrop
     document.querySelectorAll('.modal-overlay').forEach(el => {
         el.addEventListener('click', function(e) {
             if (e.target === this) closeModal(this.id);
         });
     });
+
+    // Disable submit button sau khi click để tránh double-submit
+    document.getElementById('dispatchModal').querySelector('form').addEventListener('submit', function() {
+        const btn = document.getElementById('dispatchSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Đang xử lý...';
+    });
+
+    // Countdown timers for CONFIRMED orders with acceptance deadline
+    (function initCountdowns() {
+        document.querySelectorAll('.countdown-timer').forEach(function(el) {
+            var raw = el.dataset.deadline;
+            if (!raw) return;
+            // Parse LocalDateTime.toString() as local time (format: "yyyy-MM-ddTHH:mm:ss...")
+            var parts = raw.split(/[-T:.]/);
+            var deadline = new Date(
+                parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]),
+                parseInt(parts[3] || 0), parseInt(parts[4] || 0), parseInt(parts[5] || 0)
+            );
+            if (isNaN(deadline.getTime())) return;
+            var display = el.querySelector('.countdown-display');
+
+            function tick() {
+                var remaining = deadline.getTime() - Date.now();
+                if (remaining <= 0) {
+                    display.textContent = 'QUÁ HẠN';
+                    el.className = 'countdown-timer inline-flex items-center gap-1 text-[10px] font-bold text-red-600 animate-pulse';
+                    return;
+                }
+                var h = Math.floor(remaining / 3600000);
+                var m = Math.floor((remaining % 3600000) / 60000);
+                var s = Math.floor((remaining % 60000) / 1000);
+                display.textContent = h > 0
+                    ? h + 'g ' + String(m).padStart(2, '0') + 'p'
+                    : String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                if (remaining < 10 * 60 * 1000) {
+                    el.className = 'countdown-timer inline-flex items-center gap-1 text-[10px] font-bold text-red-600 animate-pulse';
+                }
+                setTimeout(tick, 1000);
+            }
+            tick();
+        });
+    })();
 </script>
 </body>
 </html>

@@ -4,9 +4,11 @@ import config.AppConfig;
 import dao.order.OrderDAO;
 import dao.shop.PaymentDAO;
 import dao.auth.UserDAO;
+import com.fasterxml.jackson.databind.JsonNode;
 import model.entity.order.Order;
 import model.entity.shop.PaymentTransaction;
 import model.entity.auth.User;
+import util.JsonUtil;
 import util.LoggerUtil;
 import service.chat.NotificationService;
 import service.system.EmailService;
@@ -209,116 +211,168 @@ public class PaymentService {
      *
      * @param jsonPayload raw JSON body từ SePay
      */
+    private static final class SepayWebhookPayload {
+        public JsonNode id;
+        public JsonNode code;
+        public JsonNode transferType;
+        public JsonNode transferAmount;
+    }
+
+    private static final class WebhookProcessingResult {
+        private final boolean duplicate;
+        private final boolean notifyCustomer;
+        private final int orderId;
+        private final int customerId;
+        private final String sepayTxId;
+
+        private WebhookProcessingResult(boolean duplicate, boolean notifyCustomer, int orderId,
+                                        int customerId, String sepayTxId) {
+            this.duplicate = duplicate;
+            this.notifyCustomer = notifyCustomer;
+            this.orderId = orderId;
+            this.customerId = customerId;
+            this.sepayTxId = sepayTxId;
+        }
+
+        static WebhookProcessingResult duplicate() {
+            return new WebhookProcessingResult(true, false, -1, -1, null);
+        }
+
+        static WebhookProcessingResult handled(int orderId, int customerId, String sepayTxId) {
+            return new WebhookProcessingResult(false, true, orderId, customerId, sepayTxId);
+        }
+
+        static WebhookProcessingResult skipped() {
+            return new WebhookProcessingResult(false, false, -1, -1, null);
+        }
+
+        boolean isDuplicate() {
+            return duplicate;
+        }
+
+        boolean shouldNotifyCustomer() {
+            return notifyCustomer;
+        }
+    }
+
     public void processWebhook(String jsonPayload) throws SQLException {
-        // Parse JSON thủ công (không dùng lib phụ để tránh dependency)
-        String sepayTxId    = extractJsonString(jsonPayload, "id");
-        String code         = extractJsonString(jsonPayload, "code");
-        String transferType = extractJsonString(jsonPayload, "transferType");
-        String amountStr    = extractJsonString(jsonPayload, "transferAmount");
+        SepayWebhookPayload payload;
+        try {
+            payload = JsonUtil.fromJson(jsonPayload, SepayWebhookPayload.class);
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "[Webhook] Payload JSON không hợp lệ: " + jsonPayload, e);
+            return;
+        }
+
+        String sepayTxId = normalizeNodeText(payload != null ? payload.id : null);
+        String code = normalizeNodeText(payload != null ? payload.code : null);
+        String transferType = normalizeNodeText(payload != null ? payload.transferType : null);
+        String amountStr = normalizeNodeText(payload != null ? payload.transferAmount : null);
 
         if (sepayTxId == null || code == null) {
             LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: %s", jsonPayload);
             return;
         }
 
-        // Dedup: nếu đã xử lý rồi thì bỏ qua
-        if (paymentDAO.isDuplicate(sepayTxId)) {
+        WebhookProcessingResult result;
+        try (Connection conn = paymentDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                result = processWebhook(conn, jsonPayload, sepayTxId, code, transferType, amountStr);
+                if (result.isDuplicate()) {
+                    conn.rollback();
+                    return;
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+
+        if (result.shouldNotifyCustomer()) {
+            notifyWebhookSuccess(result.orderId, result.customerId, result.sepayTxId);
+        }
+    }
+
+    private WebhookProcessingResult processWebhook(Connection conn, String jsonPayload, String sepayTxId,
+                                                   String code, String transferType, String amountStr) throws SQLException {
+        if (!paymentDAO.insertDedup(conn, sepayTxId, code, "processing")) {
             LoggerUtil.info(log, "[Webhook] Duplicate sepay_tx_id=%s — bỏ qua.", sepayTxId);
-            return;
+            return WebhookProcessingResult.duplicate();
         }
 
-        // Chỉ xử lý tiền vào
         if (!"in".equalsIgnoreCase(transferType)) {
-            paymentDAO.insertDedup(sepayTxId, code, "skipped_not_in");
-            return;
+            paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_not_in");
+            return WebhookProcessingResult.skipped();
         }
 
-        // Tìm payment_transaction theo reference
-        PaymentTransaction tx = paymentDAO.findByReference(code);
+        PaymentTransaction tx = paymentDAO.findByReference(conn, code);
         if (tx == null) {
             LoggerUtil.warn(log, "[Webhook] Không tìm thấy payment_transaction với reference=%s", code);
-            paymentDAO.insertDedup(sepayTxId, code, "not_found");
-            return;
+            paymentDAO.updateDedupResult(conn, sepayTxId, "not_found");
+            return WebhookProcessingResult.skipped();
         }
 
-        // Validate số tiền
+        Order order = orderDAO.findOneById(conn, tx.getOrderId());
+        if (order == null || !AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
+            String currentStatus = order != null ? order.getStatus() : "null";
+            LoggerUtil.warn(log, "[Webhook] orderId=%d không ở trạng thái PENDING_PAYMENT (hiện tại: %s) — bỏ qua.",
+                tx.getOrderId(), currentStatus);
+            paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_wrong_status");
+            return WebhookProcessingResult.skipped();
+        }
+
         BigDecimal received;
         try {
             received = amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO;
         } catch (NumberFormatException nfe) {
             LoggerUtil.warn(log, "[Webhook] Số tiền không hợp lệ: %s", amountStr);
-            paymentDAO.insertDedup(sepayTxId, code, "invalid_amount");
-            return;
+            paymentDAO.updateDedupResult(conn, sepayTxId, "invalid_amount");
+            return WebhookProcessingResult.skipped();
         }
 
         BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
         if (received.compareTo(expected) < 0) {
-            paymentDAO.updateStatus(tx.getTransactionId(), "failed",
-                                    sepayTxId, jsonPayload);
-            paymentDAO.updateStatusFailed(tx.getTransactionId(),
-                                          "AMOUNT_MISMATCH",
-                                          "Nhận " + received + " < yêu cầu " + expected);
-            paymentDAO.insertDedup(sepayTxId, code, "amount_mismatch");
+            paymentDAO.updateStatus(conn, tx.getTransactionId(), "failed", sepayTxId, jsonPayload);
+            paymentDAO.updateDedupResult(conn, sepayTxId, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
                 expected, received, tx.getOrderId());
-            return;
+            return WebhookProcessingResult.skipped();
         }
 
-        // Cập nhật payment → completed
-        paymentDAO.updateStatus(tx.getTransactionId(), "completed", sepayTxId, jsonPayload);
-        // [AUTOMATED] SePay automatically confirms the order upon successful payment match
-        orderDAO.updateStatus(tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
-        
-        // Gửi thông báo thanh toán thành công cho Customer
-        try {
-            Order order = orderDAO.findOneById(tx.getOrderId());
-            if (order != null) {
-                User customer = userDAO.findUserById(order.getCustomerId());
-                if (customer != null) {
-                    String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
-                    notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
-                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + order.getOrderId();
-                    emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(order.getOrderId()), "Xác nhận thanh toán thành công", orderDetailUrl);
-                }
-            }
-        } catch (Exception ex) {
-            LoggerUtil.warn(log, "Không gửi được thông báo thanh toán webhook cho orderId=" + tx.getOrderId(), ex);
-        }
-
-        // Ghi dedup
-        paymentDAO.insertDedup(sepayTxId, code, "processed");
+        paymentDAO.updateStatus(conn, tx.getTransactionId(), "completed", sepayTxId, jsonPayload);
+        orderDAO.updateStatus(conn, tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
+        paymentDAO.updateDedupResult(conn, sepayTxId, "processed");
         LoggerUtil.info(log, "[Webhook] Thanh toán thành công orderId=%d sepayTxId=%s", tx.getOrderId(), sepayTxId);
+        return WebhookProcessingResult.handled(order.getOrderId(), order.getCustomerId(), sepayTxId);
     }
 
-    // ─── Helper: parse giá trị từ JSON string đơn giản ─────────────────────
-    // Dùng regex-free manual parse để tránh phụ thuộc library
-    private String extractJsonString(String json, String key) {
-        if (json == null) return null;
-        // Tìm "key": value hoặc "key":"value"
-        String search = "\"" + key + "\"";
-        int idx = json.indexOf(search);
-        if (idx < 0) return null;
-        int colon = json.indexOf(':', idx + search.length());
-        if (colon < 0) return null;
-        // Bỏ qua khoảng trắng
-        int start = colon + 1;
-        while (start < json.length() && Character.isWhitespace(json.charAt(start))) start++;
-        if (start >= json.length()) return null;
-        if (json.charAt(start) == '"') {
-            // String value
-            int end = json.indexOf('"', start + 1);
-            if (end > start) {
-                String val = json.substring(start + 1, end).trim();
-                return val.isEmpty() ? null : val;
+    private void notifyWebhookSuccess(int orderId, int customerId, String sepayTxId) {
+        try {
+            LoggerUtil.info(log, "[Webhook] Gửi thông báo khách hàng cho orderId=%d sepayTxId=%s", orderId, sepayTxId);
+            User customer = userDAO.findUserById(customerId);
+            if (customer != null) {
+                String customerMsg = "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
+                notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
             }
-            return null;
-        } else {
-            // Number / boolean / null
-            int end = start;
-            while (end < json.length() && ",}]\n\r ".indexOf(json.charAt(end)) < 0) end++;
-            String val = json.substring(start, end).trim();
-            return val.isEmpty() || "null".equalsIgnoreCase(val) ? null : val;
+        } catch (Exception ex) {
+            LoggerUtil.warn(log, "Không gửi được thông báo thanh toán webhook cho orderId=" + orderId, ex);
         }
+    }
+
+    private String normalizeNodeText(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        String value = node.asText();
+        if (value == null) {
+            return null;
+        }
+        value = value.trim();
+        return value.isEmpty() ? null : value;
     }
 
     /** Tạo reference SePay theo format MF + mã đơn hàng, padded tối thiểu 3 chữ số. */

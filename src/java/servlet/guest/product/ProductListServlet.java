@@ -128,6 +128,19 @@ public class ProductListServlet extends HttpServlet {
         req.setAttribute("minPrice",     minPrice);
         req.setAttribute("maxPrice",     maxPrice);
 
+        // Support AJAX/JSON requests for real-time search, filters & pagination
+        String format = req.getParameter("format");
+        boolean isJson = "json".equals(format) || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+        if (isJson) {
+            Map<String, Object> data = new java.util.HashMap<>();
+            data.put("products", pagedResult != null ? pagedResult.getItems() : Collections.emptyList());
+            data.put("currentPage", pagedResult != null ? pagedResult.getCurrentPage() : 1);
+            data.put("totalPages", pagedResult != null ? pagedResult.getTotalPages() : 1);
+            data.put("totalItems", pagedResult != null ? pagedResult.getTotalItems() : 0);
+            util.JsonUtil.writeJson(resp, model.response.ApiResponse.ok(data));
+            return;
+        }
+
         req.getRequestDispatcher("/WEB-INF/jsp/guest/product-list.jsp").forward(req, resp);
     }
 

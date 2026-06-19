@@ -1,6 +1,7 @@
 ﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -304,7 +305,14 @@
                                             </td>
                                             <td class="p-3 text-text-muted text-xs">${order.createdAt}</td>
                                             <td class="p-3 text-center">
-                                                <div class="flex gap-2 justify-center">
+                                                <div class="flex gap-2 justify-center flex-wrap">
+                                                    <!-- Chỉ định shipper: chỉ khi APPROVED -->
+                                                    <c:if test="${order.status == 'APPROVED'}">
+                                                        <button class="bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer"
+                                                                onclick="openAssignModal('${order.orderId}')">
+                                                            <i class="fa-solid fa-motorcycle"></i> Chỉ định Shipper
+                                                        </button>
+                                                    </c:if>
                                                     <!-- Nút Hủy đơn cho các đơn chưa kết thúc -->
                                                     <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED'}">
                                                         <button class="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-100 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer" onclick="showCancelModal('${order.orderId}')">
@@ -329,12 +337,12 @@
                     <span class="text-xs text-text-secondary font-medium">Trang ${currentPage} / ${totalPages}</span>
                     <div class="flex gap-1.5">
                         <c:if test="${currentPage > 1}">
-                            <a href="?status=${statusFilter}&paymentMethod=${paymentMethod}&paymentStatus=${paymentStatus}&page=${currentPage - 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
+                            <a href="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}&page=${currentPage - 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
                                 <span class="material-symbols-outlined text-sm">chevron_left</span> Trước
                             </a>
                         </c:if>
                         <c:if test="${currentPage < totalPages}">
-                            <a href="?status=${statusFilter}&paymentMethod=${paymentMethod}&paymentStatus=${paymentStatus}&page=${currentPage + 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
+                            <a href="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}&page=${currentPage + 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
                                 Sau <span class="material-symbols-outlined text-sm">chevron_right</span>
                             </a>
                         </c:if>
@@ -406,11 +414,71 @@
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('cancelModal');
-            if (event.target === modal) {
-                closeCancelModal();
+            const cancelModal = document.getElementById('cancelModal');
+            const assignModal = document.getElementById('assignModal');
+            if (event.target === cancelModal) closeCancelModal();
+            if (event.target === assignModal) closeAssignModal();
+        }
+
+        // Delivery assignment modal
+        function openAssignModal(orderId) {
+            document.getElementById('assignOrderId').value = orderId;
+            document.getElementById('assignOrderLabel').textContent = '#' + orderId;
+            document.getElementById('assignShipperId').value = '';
+            document.getElementById('assignModal').classList.remove('hidden');
+        }
+
+        function closeAssignModal() {
+            document.getElementById('assignModal').classList.add('hidden');
+        }
+
+        function submitAssign(event) {
+            event.preventDefault();
+            const shipperId = document.getElementById('assignShipperId').value;
+            if (!shipperId) {
+                Swal.fire('Lỗi', 'Vui lòng chọn shipper để chỉ định', 'error');
+                return false;
             }
+            event.target.submit();
         }
     </script>
+
+    <!-- Modal Chỉ định Shipper -->
+    <div id="assignModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-border">
+            <h3 class="text-lg font-bold text-text-primary mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600">local_shipping</span>
+                Chỉ định Shipper — Đơn <span id="assignOrderLabel" class="text-primary"></span>
+            </h3>
+            <p class="text-text-secondary text-xs mb-4 leading-relaxed">Chọn nhân viên giao hàng để chỉ định cho đơn hàng này. Đơn sẽ chuyển sang trạng thái <strong>Đang giao</strong>.</p>
+            <form action="${pageContext.request.contextPath}/admin/orders" method="POST" onsubmit="return submitAssign(event)">
+                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                <input type="hidden" name="action" value="assignDelivery">
+                <input type="hidden" name="orderId" id="assignOrderId">
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-text-secondary mb-1.5">Shipper <span class="text-red-500">*</span></label>
+                    <select id="assignShipperId" name="shipperId" required
+                            class="w-full rounded-xl border border-border/80 p-2.5 bg-white text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                        <option value="">-- Chọn shipper --</option>
+                        <c:forEach var="staff" items="${deliveryStaff}">
+                            <option value="${staff.userId}">
+                                <c:out value="${staff.fullName}"/> (<c:out value="${staff.email}"/>)
+                            </option>
+                        </c:forEach>
+                        <c:if test="${empty deliveryStaff}">
+                            <option disabled>Chưa có shipper nào đăng ký</option>
+                        </c:if>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="bg-white border border-border text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
+                            onclick="closeAssignModal()">Hủy bỏ</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer">
+                        <i class="fa-solid fa-motorcycle mr-1"></i>Chỉ định Shipper
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

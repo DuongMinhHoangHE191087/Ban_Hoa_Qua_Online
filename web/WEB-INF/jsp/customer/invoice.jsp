@@ -134,7 +134,7 @@
                 <thead>
                     <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
                         <th class="py-4 px-6 text-center w-16">STT</th>
-                        <th class="py-4 px-6">Tên Sản Phẩm / Biến Thể</th>
+                        <th class="py-4 px-6">Tên Sản Phẩm / Phân Loại</th>
                         <th class="py-4 px-6 text-center w-28">Số Lượng</th>
                         <th class="py-4 px-6 text-right w-36">Đơn Giá</th>
                         <th class="py-4 px-6 text-right w-44">Thành Tiền</th>

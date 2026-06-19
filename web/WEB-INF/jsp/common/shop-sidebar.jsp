@@ -3,7 +3,7 @@
 <%--
   Shared Sidebar for Shop Owner pages.
   Usage: <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
-             <jsp:param name="activePage" value="dashboard|orders|products|inventory|profile|settlement|promotions"/>
+             <jsp:param name="activePage" value="dashboard|orders|products|inventory|profile|settlement|promotions|reports|settings"/>
          </jsp:include>
 --%>
 <aside class="w-64 bg-gradient-to-b from-white to-[#f4fbf7] border-r border-[#e2ece7] flex flex-col h-screen sticky top-0 overflow-y-auto z-40 shrink-0 shadow-sm">
@@ -67,6 +67,12 @@
                   ${param.activePage == 'profile' ? 'font-bold bg-[#edf7f2] text-[#4d661c] shadow-inner border-l-4 border-[#4d661c]' : 'font-medium text-[#475569] hover:bg-[#edf7f2] hover:text-[#4d661c]'}">
             <i class="fa-solid fa-store w-5 text-center ${param.activePage == 'profile' ? 'text-[#4d661c]' : 'text-gray-400'}"></i>
             <span>Hồ sơ Shop</span>
+        </a>
+        <a href="${pageContext.request.contextPath}/shop/settings"
+           class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200
+                  ${param.activePage == 'settings' ? 'font-bold bg-[#edf7f2] text-[#4d661c] shadow-inner border-l-4 border-[#4d661c]' : 'font-medium text-[#475569] hover:bg-[#edf7f2] hover:text-[#4d661c]'}">
+            <i class="fa-solid fa-sliders w-5 text-center ${param.activePage == 'settings' ? 'text-[#4d661c]' : 'text-gray-400'}"></i>
+            <span>Cài đặt</span>
         </a>
     </nav>
 

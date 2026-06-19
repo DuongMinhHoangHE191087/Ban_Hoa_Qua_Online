@@ -51,13 +51,18 @@
     
     <style>
         body { 
-            background-color: #f4fbf7; 
-            font-family: 'Segoe UI', 'Lexend', -apple-system, sans-serif; 
+            background-color: #f4faf6; 
+            font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif; 
         }
         .glass-card {
             background: #ffffff;
             border: 1px solid #e2ece7;
-            box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px -4px rgba(20,83,45,.06);
+            box-shadow: 0 4px 20px -2px rgba(77, 102, 28, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px -4px rgba(77, 102, 28, 0.08), 0 0 0 1px rgba(77, 102, 28, 0.05);
         }
         .table-container::-webkit-scrollbar {
             height: 6px;
@@ -76,15 +81,15 @@
         </jsp:include>
 
         <!-- Main Content Area -->
-        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+        <main class="flex-grow p-6 md:p-8 overflow-y-auto">
             <!-- Header Section -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#f0faf3] via-[#e6f4ea] to-[#dcfce7] border border-[#bbf7d0]/80 p-6 rounded-3xl shadow-sm mb-8">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Thống Kê & Báo Cáo Doanh Thu</h1>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight font-sans">Thống Kê & Báo Cáo Doanh Thu</h1>
                     <p class="text-[#475569] text-xs md:text-sm mt-1">Phân tích chuyên sâu về doanh thu cửa hàng, tình trạng đơn hàng và hành vi mua sắm.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="exportToCSV()" class="bg-primary hover:bg-[#3d5216] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer border-none">
+                    <button onclick="exportToCSV()" class="bg-[#4d661c] hover:bg-[#364e03] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer border-none">
                         <i class="fa-solid fa-file-csv text-sm"></i> Xuất dữ liệu (CSV)
                     </button>
                 </div>
@@ -97,19 +102,19 @@
                         <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Từ ngày</label>
                         <div class="relative">
                             <input type="date" name="startDate" value="${startDate}" required
-                                   class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-primary">
+                                   class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-[#4d661c]">
                         </div>
                     </div>
                     <div class="w-full">
                         <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Đến ngày</label>
                         <div class="relative">
                             <input type="date" name="endDate" value="${endDate}" required
-                                   class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-primary">
+                                   class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-[#4d661c]">
                         </div>
                     </div>
                     <div class="w-full">
                         <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Danh mục</label>
-                        <select name="categoryId" class="w-full bg-surface-2 border border-border px-3 py-2.5 rounded-xl text-txt text-sm focus:outline-none focus:border-primary">
+                        <select name="categoryId" class="w-full bg-surface-2 border border-border px-3 py-2.5 rounded-xl text-txt text-sm focus:outline-none focus:border-[#4d661c]">
                             <option value="">Tất cả danh mục</option>
                             <c:forEach var="cat" items="${categories}">
                                 <option value="${cat.categoryId}" ${selectedCategoryId == cat.categoryId ? 'selected' : ''}>
@@ -119,7 +124,7 @@
                         </select>
                     </div>
                     <div class="flex gap-2 w-full lg:col-span-1">
-                        <button type="submit" class="bg-primary hover:bg-primary-dk text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer flex-1 border-none text-center">
+                        <button type="submit" class="bg-[#4d661c] hover:bg-[#364e03] text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer flex-1 border-none text-center">
                             <i class="fa-solid fa-filter mr-1"></i> Lọc
                         </button>
                         <button type="button" onclick="setQuickDateRange(30)" class="bg-white border border-border hover:bg-surface-2 text-txt text-xs px-2 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer">
@@ -133,15 +138,26 @@
             </form>
 
             <%-- KPI Cards --%>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
                 <%-- Total Revenue --%>
-                <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all duration-200 rounded-2xl cursor-default">
-                    <div class="w-12 h-12 rounded-2xl bg-primary-lt text-primary flex items-center justify-center text-xl shadow-inner">
+                <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all duration-200 rounded-2xl cursor-default bg-gradient-to-br from-white to-[#f0fbf6]">
+                    <div class="w-12 h-12 rounded-2xl bg-[#E8F5E9] text-emerald-600 flex items-center justify-center text-xl shadow-inner">
                         <i class="fa-solid fa-money-bill-wave"></i>
                     </div>
                     <div>
                         <span class="text-xs font-bold text-txt-3 uppercase tracking-wider block">Doanh thu shop</span>
-                        <h3 class="text-lg font-black text-txt mt-0.5"><ft:currency value="${kpiTotalRevenue}" /></h3>
+                        <h3 class="text-base font-black text-[#364e03] mt-0.5"><ft:currency value="${kpiTotalRevenue}" /></h3>
+                    </div>
+                </div>
+
+                <%-- Estimated Revenue --%>
+                <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all duration-200 rounded-2xl cursor-default bg-gradient-to-br from-white to-[#fffbeb]">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-inner">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-txt-3 uppercase tracking-wider block">Doanh thu tạm tính</span>
+                        <h3 class="text-base font-black text-txt mt-0.5"><ft:currency value="${kpiEstimatedRevenue}" /></h3>
                     </div>
                 </div>
 
@@ -152,7 +168,7 @@
                     </div>
                     <div>
                         <span class="text-xs font-bold text-txt-3 uppercase tracking-wider block">Tổng đơn hàng</span>
-                        <h3 class="text-lg font-black text-txt mt-0.5">${kpiTotalOrders} đơn</h3>
+                        <h3 class="text-base font-black text-txt mt-0.5">${kpiTotalOrders} đơn</h3>
                     </div>
                 </div>
 
@@ -163,18 +179,18 @@
                     </div>
                     <div>
                         <span class="text-xs font-bold text-txt-3 uppercase tracking-wider block">Đơn thành công</span>
-                        <h3 class="text-lg font-black text-txt mt-0.5">${kpiSuccessfulOrders} đơn</h3>
+                        <h3 class="text-base font-black text-txt mt-0.5">${kpiSuccessfulOrders} đơn</h3>
                     </div>
                 </div>
 
                 <%-- Cancellation Rate --%>
-                <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all duration-200 rounded-2xl cursor-default">
+                <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-0.5 transition-all duration-200 rounded-2xl cursor-default bg-gradient-to-br from-white to-[#fef2f2]">
                     <div class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-xl shadow-inner">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                     </div>
                     <div>
                         <span class="text-xs font-bold text-txt-3 uppercase tracking-wider block">Tỷ lệ hủy đơn</span>
-                        <h3 class="text-lg font-black text-txt mt-0.5">${kpiCancellationRate}%</h3>
+                        <h3 class="text-base font-black text-txt mt-0.5">${kpiCancellationRate}%</h3>
                     </div>
                 </div>
 
@@ -185,7 +201,7 @@
                     </div>
                     <div>
                         <span class="text-xs font-bold text-txt-3 uppercase tracking-wider block">Sản lượng bán</span>
-                        <h3 class="text-lg font-black text-txt mt-0.5">${kpiTotalUnitsSold} đv</h3>
+                        <h3 class="text-base font-black text-txt mt-0.5">${kpiTotalUnitsSold} đv</h3>
                     </div>
                 </div>
             </div>
@@ -240,7 +256,7 @@
                         <thead>
                             <tr class="border-b border-border text-xs font-bold text-txt-3 uppercase tracking-wider">
                                 <th class="pb-3 pr-4">Tên Trái Cây / Sản Phẩm</th>
-                                <th class="pb-3 px-4">Phiên bản / Loại</th>
+                                <th class="pb-3 px-4">Phân loại</th>
                                 <th class="pb-3 px-4 text-center">Số lượng đã bán</th>
                                 <th class="pb-3 px-4 text-right">Tổng doanh số</th>
                                 <th class="pb-3 pl-4 text-center">Số đơn hàng</th>
@@ -268,12 +284,20 @@
         </main>
     </div>
 
+    <!-- Hidden element holding JSON data to avoid JS parsing issues in IDE -->
+    <div id="chart-data" class="hidden"
+         data-revenue-trend='<c:out value="${empty revenueTrendJson ? '[]' : revenueTrendJson}" escapeXml="true" />'
+         data-order-status='<c:out value="${empty orderStatusStatsJson ? '[]' : orderStatusStatsJson}" escapeXml="true" />'
+         data-cancellation='<c:out value="${empty cancellationReasonStatsJson ? '[]' : cancellationReasonStatsJson}" escapeXml="true" />'>
+    </div>
+
     <%-- Script vẽ biểu đồ và xuất báo cáo CSV --%>
     <script>
-        // 1. Khôi phục dữ liệu từ JSP (JSON Strings được chuẩn bị ở Servlet)
-        const revenueData = ${empty revenueTrendJson ? '[]' : revenueTrendJson};
-        const orderStatsData = ${empty orderStatusStatsJson ? '[]' : orderStatusStatsJson};
-        const cancellationData = ${empty cancellationReasonStatsJson ? '[]' : cancellationReasonStatsJson};
+        // 1. Khôi phục dữ liệu từ JSP (đọc gián tiếp qua data attributes)
+        const chartDataEl = document.getElementById('chart-data');
+        const revenueData = JSON.parse(chartDataEl.getAttribute('data-revenue-trend') || '[]');
+        const orderStatsData = JSON.parse(chartDataEl.getAttribute('data-order-status') || '[]');
+        const cancellationData = JSON.parse(chartDataEl.getAttribute('data-cancellation') || '[]');
 
         // Helper: Định dạng tiền tệ VND
         function formatCurrency(val) {

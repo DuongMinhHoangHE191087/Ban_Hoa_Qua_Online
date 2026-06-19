@@ -8,6 +8,7 @@ import dao.order.OrderDAO;
 import dao.shop.PaymentDAO;
 import dao.system.SystemConfigDAO;
 import dao.auth.UserDAO;
+import exception.BusinessException;
 import model.dto.checkout.CheckoutDTO;
 import model.dto.common.PagedResultDTO;
 import model.dto.order.ReorderResultDTO;
@@ -23,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Logger;
 import service.system.EmailService;
 
@@ -92,28 +94,28 @@ public class OrderService {
             throw new RuntimeException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm!");
         }
 
+        // IDOR fix: unknown caller ID must be rejected before any ownership check
         User user = userDAO.findUserById(cancelledBy);
-        if (user != null) {
-            if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
-                if (order.getCustomerId() != cancelledBy) {
-                    throw new RuntimeException("Bạn không có quyền hủy đơn hàng này!");
-                }
-                if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
-                        && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
-                    throw new RuntimeException("Cửa hàng đã duyệt hoặc đang giao đơn, không thể tự ý hủy!");
-                }
-            } else if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole()) && order.getOwnerId() != cancelledBy) {
-                throw new RuntimeException("Đơn hàng này không thuộc cửa hàng của bạn!");
+        if (user == null) {
+            throw new BusinessException("UNAUTHORIZED", "Người dùng không tồn tại hoặc không có quyền hủy đơn hàng này!");
+        }
+        if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+            // ORD-01: customers may only cancel in PENDING_PAYMENT or CONFIRMED
+            if (!Objects.equals(order.getCustomerId(), cancelledBy)) {
+                throw new BusinessException("FORBIDDEN", "Bạn không có quyền hủy đơn hàng này!");
+            }
+            if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
+                    && !AppConfig.ORDER_CONFIRMED.equals(order.getStatus())) {
+                throw new BusinessException("INVALID_STATUS", "Cửa hàng đã duyệt hoặc đang giao đơn, không thể tự ý hủy!");
+            }
+        } else if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
+            if (!Objects.equals(order.getOwnerIdObject(), cancelledBy)) {
+                throw new BusinessException("FORBIDDEN", "Đơn hàng này không thuộc cửa hàng của bạn!");
             }
         }
+        // ADMIN and other privileged roles may cancel any order without ownership restriction
 
-        orderDAO.cancel(orderId, cancelledBy, reason);
-        List<OrderItem> items = orderDAO.findItemsByOrderId(orderId);
-        for (OrderItem item : items) {
-            if (item.getVariantId() != null) {
-                inventoryService.release(item.getVariantId(), item.getQuantity(), orderId);
-            }
-        }
+        cancelOrderAndReleaseStock(orderId, cancelledBy, reason, false);
     }
 
     public PagedResultDTO shopOrders(int ownerId, String status, int page) throws SQLException {
@@ -139,8 +141,18 @@ public class OrderService {
                 && !"PREPARING".equals(order.getStatus())) {
             throw new RuntimeException("Chỉ có thể giao đơn đang được chuẩn bị hoặc đã duyệt!");
         }
-        orderDAO.updateStatus(orderId, AppConfig.ORDER_DISPATCHED);
-        deliveryService.assignShipper(orderId, 0, estimatedTime);
+        deliveryService.validateEstimatedTime(estimatedTime);
+        try (Connection conn = orderDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                orderDAO.updateStatus(conn, orderId, AppConfig.ORDER_DISPATCHED);
+                deliveryService.assignShipper(conn, orderId, 0, estimatedTime);
+                conn.commit();
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
 
         try {
             User customer = userDAO.findUserById(order.getCustomerId());
@@ -308,6 +320,10 @@ public class OrderService {
         return orderDAO.getRevenueByOwner(ownerId);
     }
 
+    public BigDecimal getEstimatedRevenueByOwner(int ownerId) throws SQLException {
+        return orderDAO.getEstimatedRevenueByOwner(ownerId);
+    }
+
     public int getOrderCountByOwner(int ownerId) throws SQLException {
         return orderDAO.countByOwner(ownerId, null);
     }
@@ -318,5 +334,116 @@ public class OrderService {
 
     public List<OrderItem> getOrderItems(int orderId) throws SQLException {
         return orderDAO.findItemsByOrderId(orderId);
+    }
+
+    public int cancelOpenOrdersByOwner(int ownerId, String reason) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("Owner ID không hợp lệ.");
+        }
+        int cancelledCount = 0;
+        List<Order> orders = orderDAO.findOpenByOwner(ownerId);
+        for (Order order : orders) {
+            if (isSystemCancelableOrder(order)) {
+                cancelOrderBySystem(order.getOrderId(), reason);
+                cancelledCount++;
+            }
+        }
+        return cancelledCount;
+    }
+
+    /**
+     * INV-01 — Returns orders in PENDING_PAYMENT whose created_at is older than
+     * {@code minutes} minutes. Called by AutoCancelUnpaidListener.
+     */
+    public List<Order> findExpiredPendingPaymentOrders(int minutes) throws SQLException {
+        return orderDAO.findExpiredPendingPayment(minutes);
+    }
+
+    /**
+     * INV-01 — System-initiated cancel that bypasses ownership checks.
+     * Only used by trusted background jobs (AutoCancelUnpaidListener).
+     * Marks the order CANCELLED and releases reserved stock through the same path as manual cancel.
+     */
+    public void cancelOrderBySystem(int orderId, String reason) throws SQLException {
+        Order order = getOrderDetail(orderId);
+        if (order == null) {
+            LoggerUtil.warn(log, "cancelOrderBySystem: orderId=%d not found, skipping.", orderId);
+            return;
+        }
+        if (!isSystemCancelableOrder(order)) {
+            return;
+        }
+        cancelOrderAndReleaseStock(orderId, 1, reason, true);
+    }
+
+    private void cancelOrderAndReleaseStock(int orderId, int cancelledBy, String reason, boolean skipMissingOrTerminal)
+            throws SQLException {
+        try (Connection conn = orderDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                Order currentOrder = orderDAO.findOneById(conn, orderId);
+                if (currentOrder == null) {
+                    conn.rollback();
+                    if (skipMissingOrTerminal) {
+                        LoggerUtil.warn(log, "cancelOrderAndReleaseStock: orderId=%d not found, skipping.", orderId);
+                        return;
+                    }
+                    throw new IllegalArgumentException("ÄÆ¡n hÃ ng khÃ´ng tá»“n táº¡i!");
+                }
+                if (AppConfig.ORDER_CANCELLED.equals(currentOrder.getStatus())
+                        || AppConfig.ORDER_DELIVERED.equals(currentOrder.getStatus())) {
+                    conn.rollback();
+                    if (skipMissingOrTerminal) {
+                        return;
+                    }
+                    throw new RuntimeException("ÄÆ¡n hÃ ng Ä‘Ã£ giao hoáº·c Ä‘Ã£ há»§y, khÃ´ng thá»ƒ há»§y thÃªm!");
+                }
+
+                orderDAO.cancel(conn, orderId, cancelledBy, reason);
+                List<OrderItem> items = orderDAO.findItemsByOrderId(conn, orderId);
+                for (OrderItem item : items) {
+                    if (item.getVariantId() != null) {
+                        inventoryService.release(conn, item.getVariantId(), item.getQuantity(), orderId, cancelledBy);
+                    }
+                }
+                conn.commit();
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
+        }
+    }
+
+    private boolean isSystemCancelableOrder(Order order) {
+        if (order == null) {
+            return false;
+        }
+        String status = order.getStatus();
+        if (AppConfig.ORDER_CANCELLED.equals(status)
+                || AppConfig.ORDER_DELIVERED.equals(status)
+                || AppConfig.ORDER_DISPATCHED.equals(status)) {
+            return false;
+        }
+        if (AppConfig.ORDER_PENDING_PAYMENT.equals(status)) {
+            return true;
+        }
+        if (!AppConfig.PAYMENT_COD.equalsIgnoreCase(order.getPaymentMethod())) {
+            return false;
+        }
+        return AppConfig.ORDER_CONFIRMED.equals(status)
+                || AppConfig.ORDER_APPROVED.equals(status)
+                || "PREPARING".equals(status);
+    }
+
+    /**
+     * SEC-01 — COD eligibility check.
+     * Returns false if the customer has more than 3 FAILED deliveries in the last 30 days.
+     * A FAILED delivery is recorded when the shipper marks the delivery as FAILED.
+     *
+     * CONTRACT: exact signature required by downstream callers.
+     */
+    public boolean isCodEligible(int customerId) throws SQLException {
+        int failedCount = orderDAO.countRecentFailedDeliveries(customerId, 30);
+        return failedCount <= 3;
     }
 }

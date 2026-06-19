@@ -73,8 +73,13 @@ public class ShopProfileUploadAPI extends HttpServlet {
             String relativePath = FileUploadUtil.save(part, uploadDir);
 
             if (relativePath == null) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Không thể lưu file!"));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        java.util.logging.Logger.getLogger(ShopProfileUploadAPI.class.getName()),
+                        "ShopProfileUploadAPI#doPost",
+                        "Không thể lưu file!",
+                        new IllegalStateException("Không thể lưu file!"));
                 return;
             }
 
@@ -101,9 +106,13 @@ public class ShopProfileUploadAPI extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("url", fullUrl, "relativePath", relativePath)));
 
         } catch (Exception e) {
-            getServletContext().log("Lỗi upload ảnh shop: " + e.getMessage(), e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(ShopProfileUploadAPI.class.getName()),
+                    "ShopProfileUploadAPI#doPost",
+                    "Lỗi hệ thống: " + e.getMessage(),
+                    e);
         }
     }
 }

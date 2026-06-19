@@ -11,6 +11,7 @@ import service.order.OrderService;
 import service.order.ReviewService;
 import util.FileUploadUtil;
 import util.SessionUtil;
+import util.ErrorMessageUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -185,8 +186,8 @@ public class ReviewServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, e.getMessage());
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi lưu đánh giá", e);
-            SessionUtil.flashError(session, "Lỗi lưu đánh giá: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to submit review for orderId=" + orderId, e);
+            SessionUtil.flashError(session, userMsg);
         }
 
         resp.sendRedirect(req.getContextPath() + "/orders?action=detail&orderId=" + orderId);
@@ -232,8 +233,8 @@ public class ReviewServlet extends HttpServlet {
             req.setAttribute("reviewedItems", reviewedItems);
             req.getRequestDispatcher("/WEB-INF/jsp/customer/review.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi hiển thị form tạo đánh giá", e);
-            SessionUtil.flashError(session, "Đã xảy ra lỗi: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to show review form for orderId=" + orderIdStr, e);
+            SessionUtil.flashError(session, userMsg);
             resp.sendRedirect(req.getContextPath() + "/orders");
         }
     }

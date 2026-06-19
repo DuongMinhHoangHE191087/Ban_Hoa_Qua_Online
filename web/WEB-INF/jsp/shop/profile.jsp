@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -221,6 +222,7 @@
                     </div>
 
                     <form action="${pageContext.request.contextPath}/shop/profile" method="post" class="space-y-4" id="shop-info-form">
+                        <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                         <!-- Shop name -->
                         <div>
                             <label class="block text-xs font-bold text-on-surface-variant mb-1.5" for="shopName">Tên Gian Hàng <span class="text-error">*</span></label>
@@ -244,9 +246,24 @@
 
                         <!-- Category -->
                         <div>
-                            <label class="block text-xs font-bold text-on-surface-variant mb-1.5" for="preferredCategories">Danh mục kinh doanh chính</label>
-                            <input type="text" id="preferredCategories" name="preferredCategories" class="form-input font-medium" 
-                                   value="<c:out value='${shopProfile.preferredCategories}'/>" placeholder="VD: Trái cây organic, Trái cây sấy khô" oninput="markDirty()">
+                            <label class="block text-xs font-bold text-on-surface-variant mb-2">Danh mục kinh doanh chính</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white/70 p-4 rounded-xl border border-outline-variant/40">
+                                <c:forEach var="cat" items="${categories}">
+                                    <c:set var="prefJson" value="${shopProfile.preferredCategories}" />
+                                    <c:set var="searchToken1" value="[${cat.categoryId}]" />
+                                    <c:set var="searchToken2" value="[${cat.categoryId}," />
+                                    <c:set var="searchToken3" value=",${cat.categoryId}]" />
+                                    <c:set var="searchToken4" value=",${cat.categoryId}," />
+                                    <c:set var="isChecked" value="${fn:contains(prefJson, searchToken1) || fn:contains(prefJson, searchToken2) || fn:contains(prefJson, searchToken3) || fn:contains(prefJson, searchToken4)}" />
+                                    
+                                    <label class="flex items-center gap-2 text-xs font-medium text-on-surface-variant cursor-pointer select-none">
+                                        <input type="checkbox" name="categoryIds" value="${cat.categoryId}" 
+                                               class="rounded border-[#c5c8b7] text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                                               ${isChecked ? 'checked' : ''} onchange="markDirty()">
+                                        <span><c:out value="${cat.name}"/></span>
+                                    </label>
+                                </c:forEach>
+                            </div>
                         </div>
 
                         <!-- Delivery Address -->
@@ -254,6 +271,19 @@
                             <label class="block text-xs font-bold text-on-surface-variant mb-1.5" for="deliveryAddress">Địa chỉ nhà kho (lấy hàng) <span class="text-error">*</span></label>
                             <textarea id="deliveryAddress" name="deliveryAddress" rows="3" class="form-input font-medium" required
                                       placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..." oninput="markDirty()"><c:out value="${shopProfile.deliveryAddress}"/></textarea>
+                        </div>
+
+                        <!-- Settings shortcut -->
+                        <div class="flex items-center gap-3 p-3.5 bg-[#f0faf3] rounded-xl border border-[#b7f7c3]/60">
+                            <i class="fa-solid fa-sliders text-primary text-base"></i>
+                            <div class="flex-1">
+                                <p class="text-xs font-bold text-primary">Cài đặt cảnh báo tồn kho &amp; hết hạn lô</p>
+                                <p class="text-[10px] text-on-surface-variant">Ngưỡng tồn kho thấp &amp; số ngày cảnh báo trước hết hạn đã được chuyển sang trang Cài đặt riêng.</p>
+                            </div>
+                            <a href="${pageContext.request.contextPath}/shop/settings"
+                               class="text-xs font-bold text-primary hover:underline whitespace-nowrap flex items-center gap-1">
+                                Đến Cài đặt <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </a>
                         </div>
 
                         <!-- Submit Buttons -->
@@ -312,6 +342,8 @@
                                     <span class="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 font-semibold">15.2k Theo dõi</span>
                                     <span class="bg-[#d5f5e0] text-[#486554] rounded-full px-2.5 py-0.5 font-semibold">128 Sản phẩm</span>
                                 </div>
+                                <!-- Category tags mockup -->
+                                <div class="flex flex-wrap gap-1.5 mt-3" id="mockup-categories-container"></div>
 
                                 <div class="flex gap-2 mt-4">
                                     <button class="flex-1 bg-primary text-white text-xs font-bold py-2 rounded-lg shadow-sm">Theo dõi</button>
@@ -371,7 +403,27 @@
         // Live updates for mockup text
         document.getElementById('mockup-name').innerText = document.getElementById('shopName').value || "Tên Gian Hàng";
         document.getElementById('mockup-desc').innerText = document.getElementById('shopDescription').value || "Chưa có mô tả gian hàng.";
+        updateMockupCategories();
         calculateScore();
+    }
+
+    function updateMockupCategories() {
+        const container = document.getElementById('mockup-categories-container');
+        if (!container) return;
+        container.innerHTML = '';
+        const checkedBoxes = document.querySelectorAll('input[name="categoryIds"]:checked');
+        checkedBoxes.forEach(cb => {
+            const label = cb.closest('label');
+            if (label) {
+                const span = label.querySelector('span');
+                if (span) {
+                    const tag = document.createElement('span');
+                    tag.className = 'bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[9px] font-bold border border-primary/20';
+                    tag.textContent = span.textContent;
+                    container.appendChild(tag);
+                }
+            }
+        });
     }
 
     function clearDirty() {
@@ -546,8 +598,11 @@
         document.getElementById('completeness-bar').style.width = pct + '%';
     }
 
-    // Run score calculations on page load
-    window.addEventListener('DOMContentLoaded', calculateScore);
+    // Run score and mockup updates on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        calculateScore();
+        updateMockupCategories();
+    });
 </script>
 </body>
 </html>

@@ -15,9 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.Set;
-import util.LoggerUtil;
 
 /**
  * ProductVariantDAO — DAO cho entity ProductVariant.
@@ -31,8 +29,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class ProductVariantDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(ProductVariantDAO.class.getName());
 
     /**
      * Tìm biến thể sản phẩm theo ID.

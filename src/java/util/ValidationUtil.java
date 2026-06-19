@@ -38,6 +38,9 @@ public final class ValidationUtil {
     public static final int ADDRESS_MAX_LEN = 500;
     public static final int REJECTION_REASON_MAX_LEN = 500;
     public static final int SHOP_DESC_MAX_LEN = 2000;
+    public static final int REVIEW_TEXT_MAX_LEN = 1000;
+    public static final int REVIEW_MIN_RATING = 1;
+    public static final int REVIEW_MAX_RATING = 5;
 
     // ── Boolean validators (không throw) ──────────────────────────────────
 
@@ -162,6 +165,31 @@ public final class ValidationUtil {
         return bd != null && bd.compareTo(BigDecimal.ZERO) > 0;
     }
 
+    /** Kiểm tra đánh giá hợp lệ (1-5) */
+    public static boolean isValidRating(int rating) {
+        return rating >= REVIEW_MIN_RATING && rating <= REVIEW_MAX_RATING;
+    }
+
+    /** Kiểm tra text đánh giá hợp lệ (không rỗng, ≤1000 ký tự) */
+    public static boolean isValidReviewText(String text) {
+        if (text == null) return false;
+        String trimmed = text.trim();
+        return !trimmed.isEmpty() && trimmed.length() <= REVIEW_TEXT_MAX_LEN;
+    }
+
+    /** Kiểm tra loại yêu cầu hoàn trả hợp lệ (RETURN, EXCHANGE, REFUND) */
+    public static boolean isValidReturnType(String type) {
+        if (type == null) return false;
+        return type.equals("RETURN") || type.equals("EXCHANGE") || type.equals("REFUND");
+    }
+
+    /** Kiểm tra trạng thái yêu cầu hoàn trả hợp lệ */
+    public static boolean isValidReturnStatus(String status) {
+        if (status == null) return false;
+        return status.equals("PENDING") || status.equals("APPROVED") ||
+               status.equals("REJECTED") || status.equals("COMPLETED");
+    }
+
     // ── Require methods (throw Exception nếu invalid) ──────────────────────
 
     /**
@@ -228,6 +256,41 @@ public final class ValidationUtil {
         String v = requireNotBlank(reason, fieldLabel);
         if (!isValidRejectionReason(v)) {
             throw new Exception(fieldLabel + " không được vượt quá " + REJECTION_REASON_MAX_LEN + " ký tự!");
+        }
+        return v;
+    }
+
+    /** Yêu cầu đánh giá hợp lệ */
+    public static int requireValidRating(int rating, String fieldLabel) throws Exception {
+        if (!isValidRating(rating)) {
+            throw new Exception(fieldLabel + " phải từ " + REVIEW_MIN_RATING + " đến " + REVIEW_MAX_RATING + " sao!");
+        }
+        return rating;
+    }
+
+    /** Yêu cầu text đánh giá hợp lệ */
+    public static String requireValidReviewText(String text, String fieldLabel) throws Exception {
+        String v = requireNotBlank(text, fieldLabel);
+        if (!isValidReviewText(v)) {
+            throw new Exception(fieldLabel + " không được vượt quá " + REVIEW_TEXT_MAX_LEN + " ký tự!");
+        }
+        return v;
+    }
+
+    /** Yêu cầu loại yêu cầu hoàn trả hợp lệ */
+    public static String requireValidReturnType(String type, String fieldLabel) throws Exception {
+        String v = requireNotBlank(type, fieldLabel);
+        if (!isValidReturnType(v)) {
+            throw new Exception(fieldLabel + " phải là: RETURN, EXCHANGE, hoặc REFUND!");
+        }
+        return v;
+    }
+
+    /** Yêu cầu trạng thái yêu cầu hoàn trả hợp lệ */
+    public static String requireValidReturnStatus(String status, String fieldLabel) throws Exception {
+        String v = requireNotBlank(status, fieldLabel);
+        if (!isValidReturnStatus(v)) {
+            throw new Exception(fieldLabel + " không hợp lệ!");
         }
         return v;
     }

@@ -163,18 +163,26 @@ public abstract class BaseHttpServlet extends HttpServlet {
      * Handle exceptions with consistent logging and error response.
      */
     protected void handleException(HttpServletRequest req, HttpServletResponse resp, Exception ex) throws IOException {
-        String requestId = req.getAttribute("requestId") != null ?
-            (String) req.getAttribute("requestId") : "unknown";
-
-        LoggerUtil.error(log, "Error processing request [%s] %s %s",
-            requestId, req.getMethod(), req.getRequestURI(), ex);
-
         if (isJsonRequest(req)) {
-            sendJsonError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "Internal server error (ref: " + requestId + ")");
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "BaseHttpServlet#handleException",
+                    "Internal server error",
+                    ex);
         } else {
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "An error occurred. Reference ID: " + requestId);
+            try {
+                util.ServletUtil.sendPageInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "BaseHttpServlet#handleException",
+                        "An error occurred.",
+                        ex);
+            } catch (ServletException e) {
+                throw new IOException(e);
+            }
         }
     }
 

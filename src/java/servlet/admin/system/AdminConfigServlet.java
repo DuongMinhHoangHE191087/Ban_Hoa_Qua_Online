@@ -40,8 +40,13 @@ public class AdminConfigServlet extends HttpServlet {
             request.setAttribute("configs", configs);
             request.getRequestDispatcher("/WEB-INF/jsp/admin/admin-config.jsp").forward(request, response);
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi khi tải cấu hình hệ thống", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải cấu hình hệ thống.");
+            util.ServletUtil.sendPageInternalServerError(
+                    request,
+                    response,
+                    java.util.logging.Logger.getLogger(AdminConfigServlet.class.getName()),
+                    "AdminConfigServlet#doGet",
+                    "Lỗi khi tải cấu hình hệ thống.",
+                    e);
         }
     }
 
@@ -75,8 +80,8 @@ public class AdminConfigServlet extends HttpServlet {
             }
         } else if ("clearAllSessions".equals(action)) {
             try {
-                dao.auth.UserDAO udao = new dao.auth.UserDAO();
-                udao.deleteAllSessions();
+                dao.auth.UserSessionDAO usdao = new dao.auth.UserSessionDAO();
+                usdao.deleteAllSessions();
                 SessionUtil.flashSuccess(session, "Đã xóa toàn bộ phiên đăng nhập của người dùng. Họ sẽ phải đăng nhập lại khi phiên hiện tại hết hạn.");
             } catch (SQLException e) {
                 LoggerUtil.error(log, "Lỗi khi xóa phiên đăng nhập", e);

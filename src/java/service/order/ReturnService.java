@@ -6,6 +6,7 @@ import dao.order.OrderDAO;
 import dao.order.ReturnRequestDAO;
 import dao.system.SystemConfigDAO;
 import dao.auth.UserDAO;
+import exception.BusinessException;
 import model.entity.order.Delivery;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
@@ -16,15 +17,10 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * ReturnService — Quản lý vòng đời yêu cầu Đổi/Trả/Hoàn tiền.
  */
 public class ReturnService {
-
-    private static final Logger log = LoggerUtil.getLogger(ReturnService.class);
 
     private final ReturnRequestDAO returnDAO = new ReturnRequestDAO();
     private final OrderDAO orderDAO = new OrderDAO();
@@ -43,23 +39,23 @@ public class ReturnService {
         // 1. Kiểm tra đơn hàng có tồn tại không
         List<Order> orders = orderDAO.findById(req.getOrderId());
         if (orders.isEmpty()) {
-            throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + req.getOrderId());
+            throw new BusinessException("ORDER_NOT_FOUND", "Không tìm thấy đơn hàng #" + req.getOrderId());
         }
         Order order = orders.get(0);
 
-        // Kiểm tra quyền sở hữu
+        // REF-01: Kiểm tra quyền sở hữu — khách hàng phải là chủ đơn hàng
         if (order.getCustomerId() != req.getCustomerId()) {
-            throw new IllegalArgumentException("Đơn hàng không thuộc về khách hàng này.");
+            throw new BusinessException("ACCESS_DENIED", "Đơn hàng không thuộc về khách hàng này.");
         }
 
-        // 2. Kiểm tra trạng thái đơn hàng
-        if (!"DELIVERED".equals(order.getStatus())) {
-            throw new IllegalArgumentException("Chỉ có thể đổi trả đơn hàng đã giao thành công.");
+        // REF-01: Kiểm tra trạng thái đơn hàng — chỉ DELIVERED mới được khiếu nại
+        if (!AppConfig.ORDER_DELIVERED.equals(order.getStatus())) {
+            throw new BusinessException("INVALID_STATUS", "Chỉ có thể đổi trả đơn hàng đã giao thành công.");
         }
 
         // 3. Kiểm tra sản phẩm trong đơn hàng và số lượng
         if (req.getOrderItemId() == null) {
-            throw new IllegalArgumentException("Vui lòng chọn sản phẩm cần đổi trả.");
+            throw new BusinessException("MISSING_ITEM", "Vui lòng chọn sản phẩm cần đổi trả.");
         }
         OrderItem targetItem = null;
         List<OrderItem> orderItems = orderDAO.findItemsByOrderId(req.getOrderId());
@@ -70,23 +66,23 @@ public class ReturnService {
             }
         }
         if (targetItem == null) {
-            throw new IllegalArgumentException("Sản phẩm không thuộc đơn hàng này.");
+            throw new BusinessException("ITEM_NOT_IN_ORDER", "Sản phẩm không thuộc đơn hàng này.");
         }
         if (req.getRequestedQuantity() <= 0 || req.getRequestedQuantity() > targetItem.getQuantity()) {
-            throw new IllegalArgumentException("Số lượng đổi trả không hợp lệ (tối đa " + targetItem.getQuantity() + ").");
+            throw new BusinessException("INVALID_QUANTITY", "Số lượng đổi trả không hợp lệ (tối đa " + targetItem.getQuantity() + ").");
         }
 
         // 4. Kiểm tra xem đã có yêu cầu đổi trả nào chưa cho sản phẩm này
         List<ReturnRequest> existing = returnDAO.findByOrder(req.getOrderId());
         for (ReturnRequest r : existing) {
-            if (!"CANCELLED".equals(r.getStatus()) && r.getOrderItemId() != null && r.getOrderItemId().equals(req.getOrderItemId())) {
-                throw new IllegalArgumentException("Sản phẩm này đã có yêu cầu đổi/trả đang được xử lý.");
+            if (!AppConfig.RETURN_CANCELLED.equals(r.getStatus()) && r.getOrderItemId() != null && r.getOrderItemId().equals(req.getOrderItemId())) {
+                throw new BusinessException("DUPLICATE_REQUEST", "Sản phẩm này đã có yêu cầu đổi/trả đang được xử lý.");
             }
         }
 
-        // 5. Kiểm tra thời hạn đổi trả (mặc định 24 giờ sau khi giao hàng)
+        // REF-01: Kiểm tra thời hạn đổi trả — đọc từ AppConfig (không hardcode)
         Delivery del = deliveryDAO.findByOrderId(req.getOrderId());
-        LocalDateTime deliveredAt = null;
+        LocalDateTime deliveredAt;
         if (del != null && del.getDeliveredAt() != null) {
             deliveredAt = del.getDeliveredAt();
         } else {
@@ -94,9 +90,10 @@ public class ReturnService {
             deliveredAt = order.getUpdatedAt();
         }
 
-        int returnWindowHours = configDAO.getInt("return_window_hours", 24);
+        // Đọc cấu hình từ DB với fallback về hằng số AppConfig (không hardcode giá trị)
+        int returnWindowHours = configDAO.getInt(AppConfig.CONFIG_RETURN_MAX_HOURS, AppConfig.RETURN_REQUEST_MAX_HOURS);
         if (LocalDateTime.now().isAfter(deliveredAt.plusHours(returnWindowHours))) {
-            throw new IllegalArgumentException("Đã quá thời hạn đổi trả cho phép (" + returnWindowHours + " giờ sau khi nhận hàng).");
+            throw new BusinessException("RETURN_WINDOW_EXPIRED", "Quá thời hạn " + returnWindowHours + " giờ khiếu nại.");
         }
 
         // 6. Tính số tiền hoàn thực tế cho sản phẩm này
@@ -142,22 +139,23 @@ public class ReturnService {
      * Xử lý duyệt hoặc từ chối yêu cầu đổi trả.
      */
     public void decide(int requestId, String status, String reason, int decidedBy) throws SQLException {
+        // REF-04: Chỉ ADMIN mới có quyền phê duyệt — xác minh server-side qua DB
         User adminUser = userDAO.findUserById(decidedBy);
         if (adminUser == null || !AppConfig.ROLE_ADMIN.equals(adminUser.getRole())) {
-            throw new SecurityException("Chỉ Admin mới có quyền phê duyệt yêu cầu đổi trả.");
+            throw new BusinessException("ACCESS_DENIED", "Chỉ Admin mới có quyền phê duyệt yêu cầu đổi trả.");
         }
 
         ReturnRequest req = returnDAO.findById(requestId);
         if (req == null) {
-            throw new IllegalArgumentException("Không tìm thấy yêu cầu đổi trả #" + requestId);
+            throw new BusinessException("NOT_FOUND", "Không tìm thấy yêu cầu đổi trả #" + requestId);
         }
 
-        if (!"REQUESTED".equals(req.getStatus())) {
-            throw new IllegalArgumentException("Yêu cầu này đã được xử lý từ trước.");
+        if (!AppConfig.RETURN_REQUESTED.equals(req.getStatus())) {
+            throw new BusinessException("INVALID_STATUS", "Yêu cầu này đã được xử lý từ trước.");
         }
 
-        if (!"APPROVED".equals(status) && !"REJECTED".equals(status)) {
-            throw new IllegalArgumentException("Trạng thái phê duyệt không hợp lệ.");
+        if (!AppConfig.RETURN_APPROVED.equals(status) && !AppConfig.RETURN_REJECTED.equals(status)) {
+            throw new BusinessException("INVALID_STATUS", "Trạng thái phê duyệt không hợp lệ.");
         }
 
         // Cập nhật trạng thái yêu cầu
@@ -165,7 +163,7 @@ public class ReturnService {
 
         // Cập nhật đơn hàng tương ứng
         if ("RETURN".equalsIgnoreCase(req.getRequestType())) {
-            if ("APPROVED".equals(status)) {
+            if (AppConfig.RETURN_APPROVED.equals(status)) {
                 // Đổi trạng thái hoàn tiền thành REFUNDED (hoặc APPROVED tùy luồng tài chính)
                 orderDAO.updateRefundStatus(req.getOrderId(), "REFUNDED");
                 // Hoàn trả lại tồn kho của đúng sản phẩm và số lượng yêu cầu
@@ -175,7 +173,7 @@ public class ReturnService {
                     orderDAO.restoreInventoryStock(req.getOrderId());
                 }
             } else {
-                orderDAO.updateRefundStatus(req.getOrderId(), "REJECTED");
+                orderDAO.updateRefundStatus(req.getOrderId(), AppConfig.RETURN_REJECTED);
             }
         }
     }

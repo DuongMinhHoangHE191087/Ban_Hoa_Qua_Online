@@ -10,17 +10,12 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * CategoryDAO — DAO cho entity Category.
  *
  * @author fruitmkt-team
  */
 public class CategoryDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(CategoryDAO.class.getName());
 
     /**
      * Tìm danh mục theo ID.

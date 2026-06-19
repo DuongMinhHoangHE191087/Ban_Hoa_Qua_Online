@@ -13,6 +13,7 @@ import service.cart.CheckoutService;
 import service.shop.PaymentService;
 import util.JsonUtil;
 import util.SessionUtil;
+import util.ErrorMessageUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -89,7 +90,8 @@ public class CheckoutServlet extends HttpServlet {
             }
             req.getRequestDispatcher("/WEB-INF/jsp/customer/checkout.jsp").forward(req, resp);
         } catch (Exception e) {
-            SessionUtil.flashError(session, "Lỗi khi tải trang thanh toán: " + e.getMessage() + ". Vui lòng thử lại.");
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to build checkout view", e);
+            SessionUtil.flashError(session, userMsg);
             resp.sendRedirect(req.getContextPath() + "/cart");
         }
     }
@@ -133,9 +135,11 @@ public class CheckoutServlet extends HttpServlet {
                 resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + result.getOrderId());
             }
         } catch (SecurityException e) {
+            ErrorMessageUtil.logException(log, "Security violation in placeOrder", e);
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
         } catch (Exception e) {
-            SessionUtil.flashError(session, "Đã xảy ra lỗi trong quá trình đặt hàng: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to place order for customer=" + user.getUserId(), e);
+            SessionUtil.flashError(session, userMsg);
             resp.sendRedirect(req.getContextPath() + buildCheckoutRedirect(checkoutRequest.getVariantIds()));
         }
     }
@@ -200,10 +204,12 @@ public class CheckoutServlet extends HttpServlet {
                 SessionUtil.flashError(session, "Mã QR đã hết hạn. Vui lòng làm mới mã QR và thanh toán lại.");
             }
         } catch (SecurityException e) {
+            ErrorMessageUtil.logException(log, "Security violation in confirmPayment", e);
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         } catch (Exception e) {
-            SessionUtil.flashError(session, "Lỗi: " + e.getMessage());
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to confirm payment for orderId=" + orderId, e);
+            SessionUtil.flashError(session, userMsg);
         }
         resp.sendRedirect(req.getContextPath() + "/checkout?action=payment&orderId=" + orderId);
     }

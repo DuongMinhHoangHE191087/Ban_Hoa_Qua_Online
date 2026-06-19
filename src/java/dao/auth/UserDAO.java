@@ -17,9 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.Set;
-import util.LoggerUtil;
 
 /**
  * UserDAO — DAO cho entity User.
@@ -33,8 +31,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class UserDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(UserDAO.class.getName());
 
     public List<User> findById(int id) throws SQLException {
         List<User> list = new ArrayList<>();
@@ -51,25 +47,19 @@ public class UserDAO extends BaseDAO {
         return list;
     }
 
-    /**
-     * TODO: Implement — findByEmail(String email)
-     */
     public User findByEmail(String email) throws SQLException {
-       // TODO: Viết SQL và xử lý ResultSet ở đây
         String sql = "SELECT * FROM users WHERE email = ?";
-        try(Connection conn = getConnection();
-        PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, email);
-
-            try(ResultSet rs = stmt.executeQuery()) {
-                if(rs.next()) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
                     return mapRow(rs);
-                } else {
-                    return null; // Không tìm thấy user nào với email này
                 }
+                return null;
             }
         }
-   }
+    }
 
    public User findByPhone(String phone) throws SQLException {
         String sql = "SELECT * FROM users WHERE phone = ?";
@@ -197,9 +187,6 @@ public class UserDAO extends BaseDAO {
         return list;
     }
 
-    /**
-     * TODO: Implement — save(User user)
-     */
     public int saveNewCustomer(String fullName, String email, String passwordHash, String phone, String role) throws SQLException {
         return saveNewCustomer(fullName, email, passwordHash, phone, role, AppConfig.ACCOUNT_STATUS_INACTIVE, false, "assets/images/default-avatar.svg");
     }
@@ -278,9 +265,6 @@ public class UserDAO extends BaseDAO {
         }
     }
 
-    /**
-     * TODO: Implement — updatePassword(int userId, String newHash)
-     */
     public void updatePassword(int userId, String newHash) throws SQLException {
         String sql = "UPDATE users SET password_hash = ?, updated_at = GETDATE() WHERE user_id = ?";
         try (Connection conn = getConnection();
@@ -495,74 +479,6 @@ public class UserDAO extends BaseDAO {
             }
         }
         return map;
-    }
-
-
-    public void saveUserSession(int userId, String token, java.sql.Timestamp expiresAt) throws SQLException {
-        String sql = "INSERT INTO user_sessions (user_id, token, expires_at) VALUES (?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, userId);
-            stmt.setString(2, token);
-            stmt.setTimestamp(3, expiresAt);
-            stmt.executeUpdate();
-        }
-    }
-
-    /**
-     * Tìm user_id dựa trên Refresh Token hợp lệ (chưa hết hạn)
-     */
-    public Integer findUserIdBySessionToken(String token) throws SQLException {
-        String sql = "SELECT user_id FROM user_sessions WHERE token = ? AND expires_at > GETDATE()";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, token);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("user_id");
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Xóa Refresh Token khi logout hoặc thu hồi
-     */
-    public void deleteSessionToken(String token) throws SQLException {
-        String sql = "DELETE FROM user_sessions WHERE token = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, token);
-            stmt.executeUpdate();
-        }
-    }
-
-    public void deleteUserSession(String token) throws SQLException {
-        deleteSessionToken(token);
-    }
-
-    /**
-     * Xóa toàn bộ phiên đăng nhập của TẤT CẢ người dùng (Dùng khi bảo trì hệ thống)
-     */
-    public void deleteAllSessions() throws SQLException {
-        String sql = "DELETE FROM user_sessions";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.executeUpdate();
-        }
-    }
-
-    /**
-     * Xóa toàn bộ phiên đăng nhập (Refresh Tokens) của một người dùng cụ thể
-     */
-    public void deleteSessionsByUserId(int userId) throws SQLException {
-        String sql = "DELETE FROM user_sessions WHERE user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, userId);
-            stmt.executeUpdate();
-        }
     }
 
     /**

@@ -1,6 +1,7 @@
 package filter;
 
 import dao.auth.UserDAO;
+import dao.auth.UserSessionDAO;
 import model.entity.auth.User;
 import util.SessionUtil;
 import util.TokenUtil;
@@ -32,6 +33,7 @@ public class AuthFilter implements Filter {
 
     private static final Logger log = Logger.getLogger(AuthFilter.class.getName());
     private final UserDAO userDAO = new UserDAO();
+    private final UserSessionDAO userSessionDAO = new UserSessionDAO();
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -69,7 +71,7 @@ public class AuthFilter implements Filter {
         String refreshToken = TokenUtil.getCookieValue(req, "refreshToken");
         if (refreshToken != null) {
             try {
-                Integer userId = userDAO.findUserIdBySessionToken(refreshToken);
+                Integer userId = userSessionDAO.findUserIdBySessionToken(refreshToken);
                 if (userId != null) {
                     User user = userDAO.findUserById(userId);
                     if (user != null && "ACTIVE".equals(user.getStatus())) {

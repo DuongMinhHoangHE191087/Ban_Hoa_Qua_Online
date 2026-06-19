@@ -12,12 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 public class OrderItemDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(OrderItemDAO.class.getName());
 
     public List<OrderItem> findByOrderId(int orderId) throws SQLException {
         List<OrderItem> list = new ArrayList<>();

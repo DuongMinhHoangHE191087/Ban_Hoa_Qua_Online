@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -82,13 +83,13 @@
                             <c:otherwise>
                                 <c:forEach var="c" items="${configs}">
                                     <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="px-6 py-4 font-mono font-bold text-primary text-xs">${c.config_key}</td>
+                                        <td class="px-6 py-4 font-mono font-bold text-primary text-xs"><c:out value="${c.config_key}" /></td>
                                         <td class="px-6 py-4 font-bold text-txt">
                                             <c:choose>
                                                 <c:when test="${c.config_key == 'WEBSITE_LOGO_URL' && not empty c.config_value}">
                                                     <div class="flex items-center gap-2">
-                                                        <img src="${c.config_value}" alt="Logo" class="h-8 rounded shadow-sm border border-slate-200 bg-white p-1">
-                                                        <span class="truncate max-w-[150px] text-xs text-txt-3">${c.config_value}</span>
+                                                        <img src="<c:out value='${c.config_value}' />" alt="Logo" class="h-8 rounded shadow-sm border border-slate-200 bg-white p-1">
+                                                        <span class="truncate max-w-[150px] text-xs text-txt-3"><c:out value="${c.config_value}" /></span>
                                                     </div>
                                                 </c:when>
                                                 <c:when test="${c.config_key == 'gemini_api_key' && not empty c.config_value}">
@@ -100,20 +101,25 @@
                                                     </span>
                                                 </c:when>
                                                 <c:otherwise>
-                                                    ${c.config_value}
+                                                    <c:out value="${c.config_value}" />
                                                 </c:otherwise>
                                             </c:choose>
                                         </td>
-                                        <td class="px-6 py-4 text-txt-2 text-xs">${c.description}</td>
+                                        <td class="px-6 py-4 text-txt-2 text-xs"><c:out value="${c.description}" /></td>
                                         <td class="px-6 py-4">
-                                            <span class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono text-slate-500">${c.data_type}</span>
+                                            <span class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono text-slate-500"><c:out value="${c.data_type}" /></span>
                                         </td>
                                         <td class="px-6 py-4 text-xs text-txt-3">
                                             <fmt:formatDate value="${c.updated_at}" pattern="dd/MM/yyyy HH:mm" /><br/>
-                                            <span class="text-[10px] text-primary">bởi ${not empty c.admin_name ? c.admin_name : 'Hệ thống'}</span>
+                                            <span class="text-[10px] text-primary">bởi <c:out value="${not empty c.admin_name ? c.admin_name : 'Hệ thống'}" /></span>
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            <button onclick="openEditModal('${c.config_key}', '${c.config_value}', '${c.description}', '${c.data_type}')"
+                                            <button
+                                                    data-key="${fn:escapeXml(c.config_key)}"
+                                                    data-value="${fn:escapeXml(c.config_value)}"
+                                                    data-desc="${fn:escapeXml(c.description)}"
+                                                    data-type="${fn:escapeXml(c.data_type)}"
+                                                    onclick="openEditModal(this)"
                                                     class="bg-white hover:bg-slate-50 border border-slate-200 text-txt-2 hover:text-primary font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-sm">
                                                 <i class="fa-solid fa-pen mr-1"></i> Sửa
                                             </button>
@@ -204,7 +210,11 @@
         document.getElementById(id).classList.add('hidden');
     }
     
-    function openEditModal(key, val, desc, type) {
+    function openEditModal(btn) {
+        const key = btn.dataset.key || '';
+        const val = btn.dataset.value || '';
+        const desc = btn.dataset.desc || '';
+        const type = btn.dataset.type || '';
         document.getElementById('editKey').value = key;
         document.getElementById('editValue').value = val;
         document.getElementById('editDesc').innerText = desc || 'Không có mô tả.';

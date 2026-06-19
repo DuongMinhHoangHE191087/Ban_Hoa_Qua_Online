@@ -18,10 +18,24 @@
         .review-container {
             max-width: 600px;
             margin: 40px auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 40px 30px;
+            border-radius: var(--radius-xl);
+            border: 1.5px solid rgba(134, 239, 172, 0.35);
+            box-shadow: 
+                0 20px 40px -15px rgba(34, 197, 94, 0.08),
+                0 1px 3px rgba(20, 83, 45, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .review-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 30px 60px -20px rgba(34, 197, 94, 0.15),
+                0 2px 8px rgba(20, 83, 45, 0.08);
+            border-color: rgba(134, 239, 172, 0.55);
         }
         
         .rating-stars {
@@ -35,39 +49,85 @@
             display: none;
         }
         .rating-stars label {
-            font-size: 2rem;
-            color: #d1d5db;
+            font-size: 2.5rem;
+            color: #e2e8f0;
             cursor: pointer;
-            transition: color 0.2s;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.03);
         }
         .rating-stars input:checked ~ label,
         .rating-stars label:hover,
         .rating-stars label:hover ~ label {
             color: #fbbf24;
+            transform: scale(1.15) rotate(3deg);
+            filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
+        }
+        .rating-stars label:active {
+            transform: scale(0.9) rotate(-3deg);
         }
         
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
-        .form-control { width: 100%; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: inherit; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--color-text-primary); }
+        .form-control { 
+            width: 100%; 
+            padding: 14px; 
+            border: 1px solid rgba(197, 200, 183, 0.6); 
+            border-radius: var(--radius-md); 
+            font-family: inherit; 
+            background: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .form-control:focus {
+            border-color: #4d661c;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(77, 102, 28, 0.12);
+            outline: none;
+        }
         textarea.form-control { resize: vertical; min-height: 120px; }
         
         .file-upload-wrapper {
-            border: 2px dashed var(--color-border);
-            padding: 20px;
+            border: 2px dashed rgba(197, 200, 183, 0.6);
+            background: rgba(255, 255, 255, 0.6);
+            padding: 24px;
             text-align: center;
             border-radius: var(--radius-md);
             cursor: pointer;
             margin-bottom: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .file-upload-wrapper:hover {
-            border-color: var(--color-primary);
+            border-color: #4d661c;
+            background: rgba(240, 253, 244, 0.6);
+            box-shadow: 0 0 15px rgba(77, 102, 28, 0.08);
         }
         #imagePreview {
             max-width: 100%;
             max-height: 200px;
-            margin-top: 10px;
+            margin-top: 15px;
             display: none;
             border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn-submit-premium {
+            background: linear-gradient(135deg, #4d661c 0%, #31694b 100%);
+            box-shadow: 0 4px 15px rgba(77, 102, 28, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            padding: 14px;
+            border-radius: var(--radius-md);
+        }
+        .btn-submit-premium:hover {
+            background: linear-gradient(135deg, #364e03 0%, #1e3f2d 100%);
+            box-shadow: 0 8px 25px rgba(77, 102, 28, 0.45);
+            transform: translateY(-1.5px);
+        }
+        .btn-submit-premium:active {
+            transform: translateY(0);
         }
     </style>
 </head>
@@ -127,11 +187,15 @@
                         <c:if test="${review != null && review.reviewImageUrl != null}">
                             <c:url value="/${review.reviewImageUrl}" var="reviewImagePreviewSrc" />
                         </c:if>
-                        <img id="imagePreview" src="${reviewImagePreviewSrc}" alt="Preview" style="${review != null && review.reviewImageUrl != null ? 'display:block;' : ''}">
+                        <img id="imagePreview" src="${reviewImagePreviewSrc}" alt="Preview" 
+                             <c:choose>
+                                 <c:when test="${review != null && review.reviewImageUrl != null}">style="display:block;"</c:when>
+                                 <c:otherwise>style="display:none;"</c:otherwise>
+                             </c:choose>>
                     </div>
                 </div>
                 
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Gửi đánh giá</button>
+                <button type="submit" class="btn-submit-premium">Gửi đánh giá</button>
             </form>
         </div>
     </main>

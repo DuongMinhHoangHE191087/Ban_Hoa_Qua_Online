@@ -10,17 +10,12 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * ProductPackagingOptionDAO — DAO xử lý thông tin bảng product_packaging_options.
  *
  * @author fruitmkt-team
  */
 public class ProductPackagingOptionDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(ProductPackagingOptionDAO.class.getName());
 
     public List<ProductPackagingOption> findByProduct(int productId) throws SQLException {
         List<ProductPackagingOption> list = new ArrayList<>();

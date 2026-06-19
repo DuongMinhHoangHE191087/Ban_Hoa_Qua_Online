@@ -50,4 +50,8 @@ public class NotificationService {
             notificationDAO.insertForRole(title, message, target);
         }
     }
+
+    public void delete(int notifId) throws SQLException {
+        notificationDAO.delete(notifId);
+    }
 }

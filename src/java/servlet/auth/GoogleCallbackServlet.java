@@ -40,11 +40,29 @@ public class GoogleCallbackServlet extends HttpServlet {
         
         String code = req.getParameter("code");
         String error = req.getParameter("error");
+        String returnedState = req.getParameter("state");
 
         // 1. Kiểm tra lỗi nếu người dùng từ chối cấp quyền
         if (error != null || code == null || code.trim().isEmpty()) {
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Đăng nhập bằng Google đã bị hủy hoặc thất bại.");
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "error");
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        // 1b. Xác minh OAuth state để chống login-CSRF
+        HttpSession preSession = req.getSession(false);
+        String expectedState = (preSession != null)
+                ? (String) preSession.getAttribute(GoogleLoginServlet.SESSION_OAUTH_STATE)
+                : null;
+        // Xóa state khỏi session ngay sau khi đọc (dùng một lần)
+        if (preSession != null) {
+            preSession.removeAttribute(GoogleLoginServlet.SESSION_OAUTH_STATE);
+        }
+        if (expectedState == null || !expectedState.equals(returnedState)) {
+            HttpSession s = req.getSession(true);
+            s.setAttribute(AppConfig.SESSION_FLASH_MSG, "Yêu cầu đăng nhập không hợp lệ (state mismatch). Vui lòng thử lại.");
+            s.setAttribute(AppConfig.SESSION_FLASH_TYPE, "error");
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -98,7 +116,11 @@ public class GoogleCallbackServlet extends HttpServlet {
         } catch (Exception e) {
             req.getServletContext().log("Lỗi tích hợp Google OAuth: " + e.getMessage(), e);
             HttpSession session = req.getSession(true);
-            SessionUtil.flashError(session, "Lỗi đăng nhập Google: " + e.getMessage());
+            // UC-21: nếu đây là lỗi chặn đặc quyền, hiển thị thông báo đó; còn lại dùng thông báo chung
+            String userMsg = (e.getMessage() != null && e.getMessage().startsWith("Vui lòng đăng nhập bằng mật khẩu"))
+                    ? e.getMessage()
+                    : "Đăng nhập bằng Google thất bại. Vui lòng thử lại.";
+            SessionUtil.flashError(session, userMsg);
             resp.sendRedirect(req.getContextPath() + "/auth/login");
         }
     }

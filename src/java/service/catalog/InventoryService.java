@@ -5,6 +5,8 @@ import dao.catalog.ProductVariantDAO;
 import dao.catalog.ProductDAO;
 import model.entity.catalog.InventoryLog;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -79,7 +81,7 @@ public class InventoryService {
                 productDAO.updateHarvestDateAndStatus(conn, productId, changedAt, "ACTIVE");
 
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -128,7 +130,7 @@ public class InventoryService {
             try {
                 reserve(conn, variantId, qty, orderId, 1);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -161,7 +163,7 @@ public class InventoryService {
             try {
                 release(conn, variantId, qty, orderId, 1);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -213,7 +215,7 @@ public class InventoryService {
                 productVariantDAO.updateStock(conn, variantId, delta);
                 checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -223,9 +225,20 @@ public class InventoryService {
     }
 
     private void checkAndSendLowStockAlert(Connection conn, int variantId, int stockAfter) {
-        if (stockAfter < 5) {
-            try {
-                int ownerId = productVariantDAO.getProductOwnerId(conn, variantId);
+        try {
+            int ownerId = productVariantDAO.getProductOwnerId(conn, variantId);
+            int threshold = 5; // default
+            String thresholdSql = "SELECT low_stock_threshold FROM shop_owner_profiles WHERE user_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(thresholdSql)) {
+                ps.setInt(1, ownerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        threshold = rs.getInt("low_stock_threshold");
+                    }
+                }
+            }
+
+            if (stockAfter <= threshold) {
                 java.util.Map<String, Object> info = productVariantDAO.getVariantAndProductName(conn, variantId);
                 String sku = (String) info.get("sku");
                 String productName = (String) info.get("name");
@@ -234,9 +247,9 @@ public class InventoryService {
                 String title = "Cảnh báo tồn kho thấp";
                 String message = "Sản phẩm \"" + productName + "\" (SKU: " + sku + ") sắp hết hàng. Chỉ còn " + stockAfter + " sản phẩm trong kho.";
                 notificationService.send(ownerId, config.AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/products");
-            } catch (Exception ex) {
-                LoggerUtil.warn(log, "Không thể gửi cảnh báo tồn kho thấp cho variantId=" + variantId, ex);
             }
+        } catch (Exception ex) {
+            LoggerUtil.warn(log, "Không thể gửi cảnh báo tồn kho thấp cho variantId=" + variantId, ex);
         }
     }
 
@@ -270,7 +283,7 @@ public class InventoryService {
                 productVariantDAO.updateStock(conn, variantId, -qty);
                 checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -309,7 +322,7 @@ public class InventoryService {
                 productVariantDAO.updateStock(conn, variantId, -qty);
                 checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -368,7 +381,7 @@ public class InventoryService {
                     checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 }
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -383,5 +396,48 @@ public class InventoryService {
             throw new IllegalArgumentException("Variant ID không hợp lệ.");
         }
         return inventoryDAO.findByVariant(variantId);
+    }
+
+    /**
+     * Tự động quét các lô hàng sắp hết hạn dựa trên cấu hình warning threshold của từng Shop Owner
+     * và tiến hành gửi cảnh báo thông báo (INVENTORY_ALERT) nếu chưa gửi.
+     */
+    public int processNearExpiryAlerts() throws SQLException {
+        int alertCount = 0;
+        String sql = "SELECT il.log_id, il.variant_id, il.expires_at, p.name AS product_name, p.owner_id, pv.variant_label, "
+                   + "       ISNULL(sop.expiry_warning_days, 3) AS expiry_warning_days "
+                   + "FROM inventory_logs il "
+                   + "JOIN product_variants pv ON il.variant_id = pv.variant_id "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "LEFT JOIN shop_owner_profiles sop ON p.owner_id = sop.user_id "
+                   + "WHERE il.change_type = 'MANUAL_ADJUST' AND il.quantity_delta > 0 AND il.is_expired = 0 "
+                   + "  AND il.expires_at IS NOT NULL AND il.expires_at > CAST(GETDATE() AS DATE) "
+                   + "  AND il.expires_at <= DATEADD(day, ISNULL(sop.expiry_warning_days, 3), CAST(GETDATE() AS DATE))";
+
+        dao.chat.NotificationDAO notificationDAO = new dao.chat.NotificationDAO();
+        service.chat.NotificationService notificationService = new service.chat.NotificationService();
+
+        try (Connection conn = inventoryDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int logId = rs.getInt("log_id");
+                int ownerId = rs.getInt("owner_id");
+                java.sql.Date expiresAt = rs.getDate("expires_at");
+                String productName = rs.getString("product_name");
+                String variantLabel = rs.getString("variant_label");
+
+                String title = "Cảnh báo lô hàng sắp hết hạn";
+                String message = "Lô hàng #" + logId + " của sản phẩm \"" + productName + "\" (Phân loại: " + variantLabel + ") sắp hết hạn vào ngày " + expiresAt + ". Vui lòng kiểm tra tồn kho.";
+
+                // Check if already notified to avoid spamming the seller daily
+                if (!notificationDAO.isNotificationSent(ownerId, config.AppConfig.NOTIF_INVENTORY_ALERT, "%Lô hàng #" + logId + "%")) {
+                    notificationService.send(ownerId, config.AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/inventory");
+                    alertCount++;
+                }
+            }
+        }
+        return alertCount;
     }
 }

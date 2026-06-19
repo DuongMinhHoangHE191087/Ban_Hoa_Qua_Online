@@ -20,9 +20,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * ProductDAO — DAO cho entity Product.
  *
@@ -35,8 +32,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  *///khang
 public class ProductDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(ProductDAO.class.getName());
 
 //khang
     /**
@@ -1011,7 +1006,8 @@ public class ProductDAO extends BaseDAO {
         item.put("description", rs.getString("description"));
         BigDecimal rating = rs.getBigDecimal("rating");
         item.put("rating", rating != null ? rating : new BigDecimal("4.8"));
-        item.put("soldQuantity", rs.getInt("sold_quantity"));
+        int soldQuantity = rs.getInt("sold_quantity");
+        item.put("soldQuantity", soldQuantity);
 
         String imagePath = rs.getString("primary_image_path");
         if (imagePath != null && !imagePath.trim().isEmpty()) {
@@ -1073,13 +1069,13 @@ public class ProductDAO extends BaseDAO {
             item.put("originalPrice", basePrice);
             item.put("discountPercent", discountPercent);
             item.put("stockRemaining", stockRemaining);
-            item.put("stockTotal", stockRemaining + 40);
+            item.put("stockTotal", Math.max(stockRemaining + soldQuantity, stockRemaining));
         } else {
             item.put("price", basePrice);
             item.put("originalPrice", basePrice);
             item.put("discountPercent", 0);
             item.put("stockRemaining", stockRemaining);
-            item.put("stockTotal", stockRemaining + 40);
+            item.put("stockTotal", Math.max(stockRemaining + soldQuantity, stockRemaining));
         }
         return item;
     }

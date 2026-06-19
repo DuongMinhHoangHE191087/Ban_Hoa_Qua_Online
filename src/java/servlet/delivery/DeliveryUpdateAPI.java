@@ -68,8 +68,13 @@ public class DeliveryUpdateAPI extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi máy chủ khi cập nhật trạng thái giao hàng", e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi máy chủ"));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "DeliveryUpdateAPI#doPost",
+                    "Lỗi máy chủ",
+                    e);
         }
     }
 }

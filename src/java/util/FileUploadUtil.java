@@ -4,9 +4,11 @@ import config.AppConfig;
 import jakarta.servlet.http.Part;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -18,6 +20,61 @@ import java.util.logging.Logger;
 public final class FileUploadUtil {
 
     private static final Logger log = Logger.getLogger(FileUploadUtil.class.getName());
+
+    // Magic bytes (file signatures) cho từng loại file được phép
+    private static final Map<String, byte[]> MAGIC_BYTES = Map.of(
+        "jpg",  new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
+        "jpeg", new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
+        "png",  new byte[]{(byte)0x89, 0x50, 0x4E, 0x47},
+        "gif",  new byte[]{0x47, 0x49, 0x46},
+        "webp", new byte[]{0x52, 0x49, 0x46, 0x46},  // RIFF header (full WEBP validated in helper)
+        "pdf",  new byte[]{0x25, 0x50, 0x44, 0x46},  // %PDF
+        // DOCX/XLSX là ZIP — magic bytes: PK\x03\x04
+        "docx", new byte[]{0x50, 0x4B, 0x03, 0x04},
+        "xlsx", new byte[]{0x50, 0x4B, 0x03, 0x04}
+    );
+
+    /**
+     * Kiểm tra magic bytes của file có khớp với extension không.
+     * Phòng chống tấn công đổi tên file nguy hiểm (ví dụ: .exe → .jpg).
+     *
+     * Quy tắc:
+     *   - Extension có trong MAGIC_BYTES → đọc header và so sánh byte-by-byte.
+     *   - Extension KHÔNG có trong MAGIC_BYTES và KHÔNG có trong allowlist → từ chối (false).
+     *   - DOCX/XLSX: kiểm tra chữ ký ZIP (PK\x03\x04).
+     */
+    private static boolean hasMagicBytesMatchingExtension(Part part, String ext) {
+        String lowerExt = ext.toLowerCase();
+        try (InputStream is = part.getInputStream()) {
+            if ("webp".equals(lowerExt)) {
+                byte[] header = is.readNBytes(12);
+                return header.length >= 12
+                        && header[0] == 0x52
+                        && header[1] == 0x49
+                        && header[2] == 0x46
+                        && header[3] == 0x46
+                        && header[8] == 0x57
+                        && header[9] == 0x45
+                        && header[10] == 0x42
+                        && header[11] == 0x50;
+            }
+
+            byte[] expected = MAGIC_BYTES.get(lowerExt);
+            if (expected == null) {
+                // Extension không có trong bảng magic bytes → từ chối thay vì bỏ qua
+                return false;
+            }
+
+            byte[] header = is.readNBytes(expected.length);
+            if (header.length < expected.length) return false;
+            for (int i = 0; i < expected.length; i++) {
+                if (header[i] != expected[i]) return false;
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
 
     /**
      * Lưu Part từ multipart request, trả về đường dẫn tương đối.
@@ -41,14 +98,19 @@ public final class FileUploadUtil {
             throw new IOException("Định dạng file không được phép. Chỉ chấp nhận: " + String.join(", ", AppConfig.ALLOWED_IMAGE_EXTS));
         }
 
+        // 2b. Validate magic bytes (chống giả mạo đuôi file)
+        String extension = getExtension(originalFilename);
+        if (!hasMagicBytesMatchingExtension(part, extension)) {
+            throw new IOException("Nội dung file không khớp với định dạng khai báo. Vui lòng upload file hình ảnh hợp lệ.");
+        }
+
         // 3. Đảm bảo thư mục upload đã tồn tại
-        File dir = new File(uploadDir, AppConfig.UPLOAD_DIR);
+        File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR);
         if (!dir.exists()) {
             dir.mkdirs();
         }
 
         // 4. Đổi tên file thành UUID để chống ghi đè và tránh lỗi ký tự đặc biệt
-        String extension = getExtension(originalFilename);
         String newFilename = UUID.randomUUID().toString() + "." + extension;
 
         // 5. Ghi file trực tiếp xuống đĩa cứng
@@ -63,6 +125,12 @@ public final class FileUploadUtil {
     public static void delete(String realPath) {
         if (realPath == null || realPath.trim().isEmpty()) return;
         try {
+            // Thử xóa từ thư mục bền vững trước
+            String fileName = Paths.get(realPath).getFileName().toString();
+            File persistentFile = new File(AppConfig.PERSISTENT_UPLOAD_DIR, fileName);
+            if (persistentFile.exists()) {
+                Files.deleteIfExists(persistentFile.toPath());
+            }
             Files.deleteIfExists(Paths.get(realPath));
         } catch (IOException e) {
             LoggerUtil.warn(log, "Không thể xóa file: " + realPath, e);
@@ -101,15 +169,21 @@ public final class FileUploadUtil {
                     + "' không được phép. Chỉ chấp nhận: PDF, JPG, PNG, DOCX.");
         }
 
-        // Tạo thư mục uploads/shop-docs/{userId}/ nếu chưa tồn tại
-        File dir = new File(uploadDir, AppConfig.UPLOAD_SHOP_DOCS_DIR + File.separator + userId);
+        // Validate magic bytes (chống giả mạo đuôi file)
+        String docExt = getExtension(originalFilename);
+        if (!hasMagicBytesMatchingExtension(part, docExt)) {
+            throw new IOException("Nội dung file '" + sanitizeFilename(originalFilename)
+                    + "' không khớp với định dạng khai báo.");
+        }
+
+        // Tạo thư mục uploads/shop-docs/{userId}/ nếu chưa tồn tại trong thư mục bền vững
+        File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR, "shop-docs" + File.separator + userId);
         if (!dir.exists()) {
             dir.mkdirs();
         }
 
         // Đổi tên file thành UUID để chống ghi đè và path traversal
-        String extension = getExtension(originalFilename);
-        String newFilename = UUID.randomUUID().toString() + "." + extension;
+        String newFilename = UUID.randomUUID().toString() + "." + docExt;
 
         Path filePath = Paths.get(dir.getAbsolutePath(), newFilename);
         Files.copy(part.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);

@@ -8,17 +8,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * ReportService — Xử lý logic và chuẩn bị dữ liệu báo cáo thống kê.
  *
  * @author fruitmkt-team
  */
 public class ReportService {
-
-    private static final Logger log = LoggerUtil.getLogger(ReportService.class);
 
     private final OrderDAO orderDAO = new OrderDAO();
     private final UserDAO userDAO = new UserDAO();

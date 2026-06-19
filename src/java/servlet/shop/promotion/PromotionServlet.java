@@ -18,7 +18,6 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 
 /**
  * PromotionServlet - controller cho trang quản lý khuyến mãi.
@@ -134,8 +133,13 @@ public class PromotionServlet extends HttpServlet {
     private void createPromotion(HttpServletRequest req, User currentUser, PromotionMode mode) throws SQLException {
         Promotion promo = buildPromotionFromRequest(req);
         if (mode == PromotionMode.SHOP) {
+            // Task 5: owner_id is forced to authenticated user inside service — not trusted from request
             promotionService.createShopPromotion(promo, currentUser.getUserId());
         } else {
+            // Task 6: re-check ADMIN role at service boundary before issuing a system-scope coupon
+            if (!AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
+                throw new SecurityException("Chỉ quản trị viên mới có thể tạo voucher sàn.");
+            }
             promotionService.createGlobalPromotion(promo, currentUser.getUserId());
         }
     }
@@ -151,6 +155,10 @@ public class PromotionServlet extends HttpServlet {
         if (mode == PromotionMode.SHOP) {
             promotionService.updateShopPromotion(promo, currentUser.getUserId());
         } else {
+            // Task 6: re-check ADMIN role before modifying a system-scope coupon
+            if (!AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
+                throw new SecurityException("Chỉ quản trị viên mới có thể sửa voucher sàn.");
+            }
             promotionService.updateGlobalPromotion(promo, currentUser.getUserId());
         }
     }

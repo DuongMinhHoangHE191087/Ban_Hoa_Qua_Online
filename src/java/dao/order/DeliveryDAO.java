@@ -16,9 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * DeliveryDAO — DAO cho entity Delivery.
  *
@@ -31,8 +28,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class DeliveryDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(DeliveryDAO.class.getName());
 
     public Delivery findById(int deliveryId) throws SQLException {
         String sql = "SELECT * FROM deliveries WHERE delivery_id = ?";
@@ -116,9 +111,34 @@ public class DeliveryDAO extends BaseDAO {
 
     public void assignShipper(Connection conn, int orderId, Integer deliveryTripId, Integer tripStopSeq,
                               int staffId, java.time.LocalDateTime estimatedTime) throws SQLException {
-        String sql = "INSERT INTO deliveries (order_id, delivery_trip_id, trip_stop_seq, staff_id, status, estimated_delivery_time, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, 'ASSIGNED', ?, GETDATE(), GETDATE())";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        String updateSql = "UPDATE deliveries SET delivery_trip_id = ?, trip_stop_seq = ?, staff_id = ?, status = 'ASSIGNED', estimated_delivery_time = ?, updated_at = GETDATE() "
+                         + "WHERE order_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            if (deliveryTripId != null && deliveryTripId > 0) {
+                ps.setInt(1, deliveryTripId);
+            } else {
+                ps.setNull(1, Types.INTEGER);
+            }
+            if (tripStopSeq != null) {
+                ps.setInt(2, tripStopSeq);
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
+            if (staffId > 0) {
+                ps.setInt(3, staffId);
+            } else {
+                ps.setNull(3, Types.INTEGER);
+            }
+            ps.setTimestamp(4, estimatedTime != null ? Timestamp.valueOf(estimatedTime) : null);
+            ps.setInt(5, orderId);
+            if (ps.executeUpdate() > 0) {
+                return;
+            }
+        }
+
+        String insertSql = "INSERT INTO deliveries (order_id, delivery_trip_id, trip_stop_seq, staff_id, status, estimated_delivery_time, created_at, updated_at) "
+                         + "VALUES (?, ?, ?, ?, 'ASSIGNED', ?, GETDATE(), GETDATE())";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
             ps.setInt(1, orderId);
             if (deliveryTripId != null && deliveryTripId > 0) {
                 ps.setInt(2, deliveryTripId);

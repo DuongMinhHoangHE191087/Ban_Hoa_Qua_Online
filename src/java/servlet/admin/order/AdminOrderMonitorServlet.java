@@ -71,8 +71,13 @@ public class AdminOrderMonitorServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/order-monitor.jsp").forward(req, resp);
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi truy vấn đơn hàng trong order-monitor", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage());
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminOrderMonitorServlet.class.getName()),
+                    "AdminOrderMonitorServlet#doGet",
+                    "Lỗi hệ thống: " + e.getMessage(),
+                    e);
         }
     }
 }

@@ -107,9 +107,9 @@
                                 <c:forEach var="c" items="${categories}">
                                     <tr>
                                         <td class="px-6 py-4 font-mono font-bold text-primary">#${c.categoryId}</td>
-                                        <td class="px-6 py-4 font-bold text-txt">${c.name}</td>
-                                        <td class="px-6 py-4 font-mono text-xs text-txt-2 bg-[#f8fafc]/40">${c.slug}</td>
-                                        <td class="px-6 py-4 text-center font-semibold text-txt-2">${c.displayOrder}</td>
+                                        <td class="px-6 py-4 font-bold text-txt"><c:out value="${c.name}"/></td>
+                                        <td class="px-6 py-4 font-mono text-xs text-txt-2 bg-[#f8fafc]/40"><c:out value="${c.slug}"/></td>
+                                        <td class="px-6 py-4 text-center font-semibold text-txt-2"><c:out value="${c.displayOrder}"/></td>
                                         <td class="px-6 py-4 text-center">
                                             <c:choose>
                                                 <c:when test="${c.getIsActive()}">
@@ -126,7 +126,13 @@
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center gap-2">
-                                                <button onclick="openEditModal('${c.categoryId}', '${c.name}', '${c.slug}', '${c.displayOrder}', '${c.getIsActive()}')"
+                                                <button type="button"
+                                                        data-category-id="${c.categoryId}"
+                                                        data-category-name="<c:out value='${c.name}'/>"
+                                                        data-category-slug="<c:out value='${c.slug}'/>"
+                                                        data-category-order="${c.displayOrder}"
+                                                        data-category-active="${c.getIsActive()}"
+                                                        onclick="openEditModal(this)"
                                                         class="bg-white hover:bg-slate-50 border border-slate-200 text-txt-2 hover:text-primary font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
                                                     <i class="fa-solid fa-pen mr-0.5"></i> Sửa
                                                 </button>
@@ -142,7 +148,8 @@
                                                 </form>
                                                 
                                                 <form method="POST" action="${pageContext.request.contextPath}/admin/categories" class="inline"
-                                                      onsubmit="return confirmDelete(event, '${c.name}')">
+                                                      data-category-name="<c:out value='${c.name}'/>"
+                                                      onsubmit="return confirmDelete(event, this)">
                                                     <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="categoryId" value="${c.categoryId}">
@@ -257,20 +264,21 @@
         document.getElementById(id).classList.add('hidden');
     }
     
-    function openEditModal(id, name, slug, order, isActive) {
-        document.getElementById('editCategoryId').value = id;
-        document.getElementById('editName').value = name;
-        document.getElementById('editSlug').value = slug;
-        document.getElementById('editOrder').value = order;
-        document.getElementById('editActive').checked = (isActive === 'true' || isActive === true);
+    function openEditModal(button) {
+        document.getElementById('editCategoryId').value = button.dataset.categoryId;
+        document.getElementById('editName').value = button.dataset.categoryName || '';
+        document.getElementById('editSlug').value = button.dataset.categorySlug || '';
+        document.getElementById('editOrder').value = button.dataset.categoryOrder || '';
+        document.getElementById('editActive').checked = (button.dataset.categoryActive === 'true');
         openModal('editModal');
     }
 
-    function confirmDelete(event, categoryName) {
+    function confirmDelete(event, form) {
         event.preventDefault();
+        const categoryName = form.dataset.categoryName || '';
         Swal.fire({
             title: 'Xóa danh mục?',
-            html: 'Bạn có chắc chắn muốn xóa danh mục <b>' + categoryName + '</b>?<br><small class="text-red-500 font-semibold">Lưu ý: Chỉ xóa được nếu không có sản phẩm nào thuộc danh mục này.</small>',
+            text: 'Bạn có chắc chắn muốn xóa danh mục "' + categoryName + '"? Lưu ý: Chỉ xóa được nếu không có sản phẩm nào thuộc danh mục này.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',

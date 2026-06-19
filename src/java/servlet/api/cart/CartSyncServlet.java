@@ -76,9 +76,13 @@ public class CartSyncServlet extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.ok(
                     new CartSyncResponse("Đồng bộ gộp giỏ hàng thành công.")));
         } catch (Exception e) {
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            LoggerUtil.error(log, "Error syncing cart for user", e);
-            JsonUtil.writeJson(resp, ApiResponse.fail("Lỗi máy chủ. Vui lòng thử lại."));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "CartSyncServlet#doPost",
+                    "Lỗi máy chủ. Vui lòng thử lại.",
+                    e);
         }
     }
 }

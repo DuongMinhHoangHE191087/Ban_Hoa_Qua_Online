@@ -375,6 +375,10 @@
                                                     </a>
                                                     <!-- Invoice PDF - DELIVERED only -->
                                                     <c:if test="${ord.status == 'DELIVERED'}">
+                                                        <a href="${pageContext.request.contextPath}/reviews?orderId=${ord.orderId}"
+                                                           class="px-3 py-1.5 bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary rounded-lg text-[9px] font-bold transition-all flex items-center gap-1 shadow-sm">
+                                                            <i class="fa-solid fa-star"></i> Viết đánh giá
+                                                        </a>
                                                         <a href="${pageContext.request.contextPath}/orders?action=invoice&orderId=${ord.orderId}"
                                                            target="_blank"
                                                            class="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[9px] font-bold transition-all flex items-center gap-1">
@@ -651,7 +655,7 @@
             if (!tabParam.endsWith('-tab')) {
                 tabParam = tabParam + '-tab';
             }
-            const targetBtn = document.querySelector(`#profile-tabs button[data-tab="${tabParam}"]`);
+            const targetBtn = document.querySelector(`#profile-tabs button[data-tab="\${tabParam}"]`);
             if (targetBtn) {
                 targetBtn.click();
             }

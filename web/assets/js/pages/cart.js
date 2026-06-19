@@ -380,13 +380,13 @@ const CartPage = {
                 const newVariant = variants.find(v => v.variantId === newVariantId);
 
                 if (!newVariant) {
-                    this.showToast('Không tìm thấy thông tin biến thể mới.', 'error');
+                    this.showToast('Không tìm thấy thông tin phân loại mới.', 'error');
                     target.value = oldVariantId;
                     return;
                 }
 
                 if (newVariant.stockQuantity <= 0) {
-                    this.showToast('Rất tiếc! Biến thể này hiện đã hết hàng.', 'warning');
+                    this.showToast('Rất tiếc! Phân loại này hiện đã hết hàng.', 'warning');
                     target.value = oldVariantId;
                     return;
                 }
@@ -416,10 +416,10 @@ const CartPage = {
                                 selectedVariantIds.push(newVariantId);
                             }
                             this.saveSelectedVariantIds(selectedVariantIds);
-                            this.showToast('Đã đổi biến thể thành công!', 'success');
+                            this.showToast('Đã đổi phân loại thành công!', 'success');
                             this.loadAndSyncFromServer();
                         } else {
-                            this.showToast(data.error || 'Lỗi đổi biến thể.', 'error');
+                            this.showToast(data.error || 'Lỗi đổi phân loại.', 'error');
                             target.value = oldVariantId;
                         }
                     } catch (err) {
@@ -452,7 +452,7 @@ const CartPage = {
                     }
                     this.saveSelectedVariantIds(selectedVariantIds);
                     GuestCart.save(localItems);
-                    this.showToast('Đã đổi biến thể thành công!', 'success');
+                    this.showToast('Đã đổi phân loại thành công!', 'success');
                     this.renderCart({ items: localItems });
                 }
             }
@@ -708,7 +708,7 @@ const CartPage = {
                             <div>
                                 <h3 class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark">${productName}</h3>
                                 <p class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">
-                                    Biến thể: 
+                                    Phân loại: 
                                     ${item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== '' ? `
                                     <span class="inline-block relative">
                                         <select class="cart-variant-select bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-xs border border-secondary/20 font-semibold cursor-pointer focus:ring-1 focus:ring-primary outline-none py-0 pr-8" data-item-id="${item.cartItemId || ''}" data-current-variant-id="${item.variantId}" data-product-id="${item.productId}">

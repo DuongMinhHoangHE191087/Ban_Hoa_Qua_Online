@@ -74,8 +74,13 @@ public class OrderReviewListServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/customer/order-reviews.jsp").forward(req, resp);
 
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi hệ thống khi tải danh sách đánh giá đơn hàng", e);
-            resp.sendError(500, "Lỗi hệ thống");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(OrderReviewListServlet.class.getName()),
+                    "OrderReviewListServlet#doGet",
+                    "Lỗi hệ thống",
+                    e);
         }
     }
 }

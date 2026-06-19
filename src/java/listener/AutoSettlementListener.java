@@ -34,7 +34,8 @@ public class AutoSettlementListener implements ServletContextListener {
             return t;
         });
 
-        // Chạy job quyết toán sau khi startup 10 giây, định kỳ mỗi 24 giờ
+        // PAY-03: run hourly so the 12-hour freeze window is honoured within the same day.
+        // Previously ran every 24 hours which was too coarse for sub-day release.
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 LoggerUtil.info(log, "[AutoSettlementListener] Bắt đầu tiến trình quyết toán đơn hàng tự động...");
@@ -43,7 +44,7 @@ public class AutoSettlementListener implements ServletContextListener {
             } catch (Exception e) {
                 LoggerUtil.error(log, "[AutoSettlementListener] Lỗi khi chạy job quyết toán tự động", e);
             }
-        }, 10, 24 * 60 * 60, TimeUnit.SECONDS);
+        }, 10, 60 * 60, TimeUnit.SECONDS);
     }
 
     @Override

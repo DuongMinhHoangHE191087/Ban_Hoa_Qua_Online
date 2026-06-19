@@ -11,12 +11,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 public class UserAddressDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(UserAddressDAO.class.getName());
 
     public List<UserAddress> findByUser(int userId) throws SQLException {
         List<UserAddress> list = new ArrayList<>();

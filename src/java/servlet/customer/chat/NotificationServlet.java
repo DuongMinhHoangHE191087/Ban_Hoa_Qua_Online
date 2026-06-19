@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 /**
  * NotificationServlet - danh sách thông báo của user và các API AJAX liên quan.
  */
-@WebServlet({"/notifications", "/api/notifications/unread", "/api/notifications/recent", "/api/notifications/markAllRead"})
+@WebServlet({"/notifications", "/api/notifications/unread", "/api/notifications/recent", "/api/notifications/markAllRead", "/api/notifications/markRead", "/api/notifications/delete"})
 public class NotificationServlet extends HttpServlet {
 
     private static final Logger LOG = Logger.getLogger(NotificationServlet.class.getName());
@@ -102,7 +102,21 @@ public class NotificationServlet extends HttpServlet {
         boolean isApi = servletPath.contains("/api/") || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
 
         try {
-            if ("markRead".equals(action) || servletPath.contains("/markRead")) {
+            if ("delete".equals(action) || servletPath.contains("/delete")) {
+                String notifIdStr = req.getParameter("notifId");
+                if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
+                    notifIdStr = req.getParameter("notificationId");
+                }
+                if (notifIdStr != null && !notifIdStr.trim().isEmpty()) {
+                    int notifId = Integer.parseInt(notifIdStr);
+                    notificationService.delete(notifId);
+                }
+                if (isApi) {
+                    resp.setContentType("application/json;charset=UTF-8");
+                    JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("message", "Đã xóa thông báo.")));
+                    return;
+                }
+            } else if ("markRead".equals(action) || servletPath.contains("/markRead")) {
                 String notifIdStr = req.getParameter("notifId");
                 if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
                     notifIdStr = req.getParameter("notificationId");
@@ -128,9 +142,13 @@ public class NotificationServlet extends HttpServlet {
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "Lỗi xử lý POST thông báo", e);
             if (isApi) {
-                resp.setContentType("application/json;charset=UTF-8");
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.error("Có lỗi xảy ra: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        java.util.logging.Logger.getLogger(NotificationServlet.class.getName()),
+                        "NotificationServlet#doGet",
+                        "Có lỗi xảy ra: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());

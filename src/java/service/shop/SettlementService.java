@@ -8,20 +8,18 @@ import model.entity.shop.ShopSettlement;
 import java.sql.SQLException;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 public class SettlementService {
-
-    private static final Logger log = LoggerUtil.getLogger(SettlementService.class);
 
     private final SettlementDAO settlementDAO = new SettlementDAO();
     private final SystemConfigDAO configDAO = new SystemConfigDAO();
 
     public int runAutoSettlement() throws SQLException {
         synchronized (SettlementService.class) {
-            int freezeDays = configDAO.getInt(AppConfig.CONFIG_FREEZE_DAYS, AppConfig.FREEZE_DAYS_DEFAULT);
-            return settlementDAO.runAutoSettlement(freezeDays);
+            // PAY-03: use hours for freeze window so sub-day release is possible.
+            // AppConfig.FREEZE_HOURS_DEFAULT = 12 will be added by another agent;
+            // fall back to literal 12 if the constant is not yet present. // TODO use AppConfig.FREEZE_HOURS_DEFAULT
+            int freezeHours = configDAO.getInt("settlement_freeze_hours", 12);
+            return settlementDAO.runAutoSettlementByHours(freezeHours);
         }
     }
 

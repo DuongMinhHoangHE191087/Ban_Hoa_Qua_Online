@@ -69,7 +69,7 @@
                     <c:forEach var="session" items="${chatSessions}">
                         <a href="${pageContext.request.contextPath}/shop/chat?sessionId=${session.sessionId}"
                            class="session-item flex items-center gap-3 p-3 rounded-xl hover:bg-white/40 border border-transparent transition-all ${session.sessionId == activeSessionId ? 'active shadow-sm' : 'bg-white/20'}"
-                           data-name="${session.partnerName}" data-session-id="${session.sessionId}">
+                           data-name="${fn:escapeXml(session.partnerName)}" data-session-id="${session.sessionId}">
                             <div class="relative shrink-0">
                                 <c:choose>
                                     <c:when test="${not empty session.partnerAvatar}">
@@ -87,7 +87,7 @@
                                 <div class="flex justify-between items-center mb-0.5">
                                     <span class="text-sm font-semibold text-slate-800 truncate">
                                         <c:choose>
-                                            <c:when test="${not empty session.partnerName}">${session.partnerName}</c:when>
+                                            <c:when test="${not empty session.partnerName}"><c:out value="${session.partnerName}"/></c:when>
                                             <c:otherwise>Khách hàng #${session.customerId}</c:otherwise>
                                         </c:choose>
                                     </span>
@@ -98,7 +98,7 @@
                                         <c:choose>
                                             <c:when test="${session.lastMessageType == 'IMAGE'}">📷 Hình ảnh</c:when>
                                             <c:when test="${session.lastMessageType == 'VIDEO'}">🎥 Video</c:when>
-                                            <c:when test="${not empty session.lastMessage}">${fn:length(session.lastMessage) > 35 ? fn:substring(session.lastMessage,0,35).concat('…') : session.lastMessage}</c:when>
+                                            <c:when test="${not empty session.lastMessage}"><c:out value="${fn:length(session.lastMessage) > 35 ? fn:substring(session.lastMessage,0,35).concat('…') : session.lastMessage}"/></c:when>
                                             <c:otherwise>Bấm để trả lời hỗ trợ</c:otherwise>
                                         </c:choose>
                                     </p>
@@ -142,7 +142,7 @@
                         <div>
                             <h2 class="text-sm font-bold text-slate-800">
                                 <c:choose>
-                                    <c:when test="${not empty activeSession.partnerName}">${activeSession.partnerName}</c:when>
+                                    <c:when test="${not empty activeSession.partnerName}"><c:out value="${activeSession.partnerName}"/></c:when>
                                     <c:otherwise>Khách hàng #${activeSession.customerId}</c:otherwise>
                                 </c:choose>
                             </h2>
@@ -250,7 +250,7 @@
             </c:choose>
             <p class="text-sm font-bold text-slate-800">
                 <c:choose>
-                    <c:when test="${not empty activeSession.partnerName}">${activeSession.partnerName}</c:when>
+                    <c:when test="${not empty activeSession.partnerName}"><c:out value="${activeSession.partnerName}"/></c:when>
                     <c:otherwise>Khách hàng #${activeSession.customerId}</c:otherwise>
                 </c:choose>
             </p>
@@ -416,11 +416,45 @@
         return d.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
     }
 
-    function linkify(text) {
-        if (!text) return '';
-        return text
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer" class="msg-link">$1</a>');
+    function createLinkifiedText(text) {
+        const frag = document.createDocumentFragment();
+        if (!text) return frag;
+
+        const urlRe = /(https?:\/\/[^\s<>"]+)/g;
+        let lastIndex = 0;
+        let match;
+        while ((match = urlRe.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+                frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+            }
+
+            const href = match[1];
+            const a = document.createElement('a');
+            a.href = href;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'msg-link';
+            a.textContent = href;
+            frag.appendChild(a);
+            lastIndex = urlRe.lastIndex;
+        }
+
+        if (lastIndex < text.length) {
+            frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+        }
+
+        return frag;
+    }
+
+    function isSafeMediaUrl(url) {
+        if (!url) return false;
+        try {
+            const parsed = new URL(url, window.location.origin);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:' || parsed.protocol === 'blob:'
+                || parsed.origin === window.location.origin;
+        } catch (err) {
+            return false;
+        }
     }
 
     // ── Message Status Ticks ──────────────────────────────────────────
@@ -470,18 +504,19 @@
             ? 'bg-[#4d661c] text-white p-3 rounded-2xl rounded-br-sm shadow-md text-sm max-w-xs'
             : 'glass-panel bg-white/90 p-3 rounded-2xl rounded-bl-sm shadow-sm text-slate-800 text-sm max-w-xs';
 
-        if (msg.mediaUrl) {
+        const safeMediaUrl = isSafeMediaUrl(msg.mediaUrl) ? msg.mediaUrl : null;
+        if (safeMediaUrl) {
             const mw = document.createElement('div'); mw.className = 'mb-1';
             if (msg.mediaType === 'IMAGE') {
                 const img = document.createElement('img');
-                img.src = msg.mediaUrl; img.alt = 'Hình ảnh';
+                img.src = safeMediaUrl; img.alt = 'Hình ảnh';
                 img.className = 'max-w-[200px] max-h-48 rounded-xl shadow-sm cursor-zoom-in block';
                 img.loading = 'lazy';
-                img.onclick = () => window.open(msg.mediaUrl, '_blank');
+                img.onclick = () => window.open(safeMediaUrl, '_blank', 'noopener,noreferrer');
                 mw.appendChild(img);
             } else if (msg.mediaType === 'VIDEO') {
                 const vid = document.createElement('video');
-                vid.src = msg.mediaUrl; vid.controls = true;
+                vid.src = safeMediaUrl; vid.controls = true;
                 vid.className = 'max-w-[200px] max-h-48 rounded-xl shadow-sm block';
                 vid.preload = 'metadata';
                 mw.appendChild(vid);
@@ -490,7 +525,7 @@
         }
         if (msg.content) {
             const p = document.createElement('p');
-            p.innerHTML = linkify(msg.content);
+            p.appendChild(createLinkifiedText(msg.content));
             bubble.appendChild(p);
         }
         col.appendChild(bubble);
@@ -675,15 +710,30 @@
     }
     function renderSharedMedia() {
         if (!sharedMediaGrid) return;
-        if (sharedMedia.length === 0) { sharedMediaGrid.innerHTML='<p class="col-span-3 text-xs text-slate-400 text-center py-4">Chưa có ảnh/video</p>'; return; }
+        const safeItems = sharedMedia.filter(m => isSafeMediaUrl(m.mediaUrl));
+        if (safeItems.length === 0) { sharedMediaGrid.innerHTML='<p class="col-span-3 text-xs text-slate-400 text-center py-4">Chưa có ảnh/video</p>'; return; }
         sharedMediaGrid.innerHTML='';
-        sharedMedia.slice(-9).reverse().forEach(m => {
+        safeItems.slice(-9).reverse().forEach(m => {
             const cell = document.createElement('div');
             cell.className = 'aspect-square rounded-lg overflow-hidden bg-slate-200 cursor-pointer hover:opacity-80 transition-opacity';
+            const safeMediaUrl = m.mediaUrl;
             if (m.mediaType === 'IMAGE') {
-                cell.innerHTML = '<img src="' + m.mediaUrl + '" class="w-full h-full object-cover" loading="lazy" onclick="window.open(\'' + m.mediaUrl + '\',\'_blank\')">';
+                const img = document.createElement('img');
+                img.src = safeMediaUrl;
+                img.className = 'w-full h-full object-cover';
+                img.loading = 'lazy';
+                img.alt = 'Ảnh chia sẻ';
+                img.addEventListener('click', () => window.open(safeMediaUrl, '_blank', 'noopener,noreferrer'));
+                cell.appendChild(img);
             } else {
-                cell.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-700 text-white" onclick="window.open(\'' + m.mediaUrl + '\',\'_blank\')"><span class="material-symbols-outlined text-2xl">play_circle</span></div>';
+                const videoWrap = document.createElement('div');
+                videoWrap.className = 'w-full h-full flex items-center justify-center bg-slate-700 text-white';
+                videoWrap.addEventListener('click', () => window.open(safeMediaUrl, '_blank', 'noopener,noreferrer'));
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined text-2xl';
+                icon.textContent = 'play_circle';
+                videoWrap.appendChild(icon);
+                cell.appendChild(videoWrap);
             }
             sharedMediaGrid.appendChild(cell);
         });

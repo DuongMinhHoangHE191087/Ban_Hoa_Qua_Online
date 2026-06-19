@@ -1,15 +1,16 @@
 package servlet.admin.order;
-import service.order.OrderService;
 
 import config.AppConfig;
+import dao.auth.UserDAO;
 import dao.order.OrderDAO;
-import model.entity.order.Order;
-import model.entity.shop.PaymentTransaction;
 import model.entity.auth.User;
+import model.entity.shop.PaymentTransaction;
+import model.entity.order.Order;
+import service.order.DeliveryService;
+import service.order.OrderService;
 import service.shop.PaymentService;
-import util.SessionUtil;
-
 import util.LoggerUtil;
+import util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -34,9 +35,11 @@ public class AdminOrderServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(AdminOrderServlet.class.getName());
 
-    private final OrderDAO       orderDAO       = new OrderDAO();
-    private final service.order.OrderService orderService = new service.order.OrderService();
-    private final PaymentService paymentService = new PaymentService();
+    private final OrderDAO        orderDAO        = new OrderDAO();
+    private final UserDAO         userDAO         = new UserDAO();
+    private final OrderService    orderService    = new OrderService();
+    private final DeliveryService deliveryService = new DeliveryService();
+    private final PaymentService  paymentService  = new PaymentService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -91,6 +94,10 @@ public class AdminOrderServlet extends HttpServlet {
             java.util.Map<Integer, PaymentTransaction> pendingTxMap = paymentService.getPaymentMapByOrderIds(pendingOrderIds);
             req.setAttribute("pendingTxMap", pendingTxMap);
 
+            // Danh sách nhân viên giao hàng cho modal chỉ định shipper
+            List<User> deliveryStaff = userDAO.searchUsers(AppConfig.ROLE_DELIVERY, null, 0, 100);
+            req.setAttribute("deliveryStaff", deliveryStaff);
+
             req.getRequestDispatcher("/WEB-INF/jsp/admin/orders.jsp").forward(req, resp);
         } catch (SQLException e) {
             throw new ServletException(e);
@@ -128,6 +135,20 @@ public class AdminOrderServlet extends HttpServlet {
                 orderService.cancelOrder(orderId, admin.getUserId(), reason);
                 SessionUtil.setFlashMessage(req.getSession(),
                     "Đã hủy đơn hàng #" + orderId + ".", "success");
+
+            } else if ("assignDelivery".equals(action)) {
+                String shipperIdStr = req.getParameter("shipperId");
+                int shipperId;
+                try { shipperId = Integer.parseInt(shipperIdStr); }
+                catch (Exception e) {
+                    SessionUtil.setFlashMessage(req.getSession(), "Shipper ID không hợp lệ.", "error");
+                    resp.sendRedirect(req.getContextPath() + "/admin/orders");
+                    return;
+                }
+                deliveryService.assignShipper(orderId, shipperId, null);
+                SessionUtil.setFlashMessage(req.getSession(),
+                    "Đã chỉ định shipper cho đơn hàng #" + orderId + ".", "success");
+
             } else {
                 SessionUtil.setFlashMessage(req.getSession(), "Hành động không hợp lệ.", "error");
             }
