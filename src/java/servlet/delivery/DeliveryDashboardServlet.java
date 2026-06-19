@@ -83,8 +83,13 @@ public class DeliveryDashboardServlet extends HttpServlet {
                     : "/WEB-INF/jsp/delivery/dashboard.jsp";
             req.getRequestDispatcher(jspTarget).forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải danh sách đơn hàng cần giao", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải danh sách đơn hàng cần giao.");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(DeliveryDashboardServlet.class.getName()),
+                    "DeliveryDashboardServlet#doGet",
+                    "Lỗi tải danh sách đơn hàng cần giao.",
+                    e);
         }
     }
 }

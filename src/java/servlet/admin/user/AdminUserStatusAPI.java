@@ -48,10 +48,13 @@ public class AdminUserStatusAPI extends HttpServlet {
                 JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy user"));
             }
         } catch (Exception e) {
-            // Log chi tiết server-side, trả về thông báo chung (không lộ e.getMessage())
-            LoggerUtil.error(log, "Lỗi khi cập nhật trạng thái người dùng userId=" + request.getParameter("userId"), e);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống."));
+            util.ServletUtil.sendJsonInternalServerError(
+                    request,
+                    response,
+                    log,
+                    "AdminUserStatusAPI#doPost",
+                    "Lỗi hệ thống.",
+                    e);
         }
     }
 }

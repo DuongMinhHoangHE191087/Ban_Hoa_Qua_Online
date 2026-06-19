@@ -369,10 +369,14 @@ public class ProductCreateServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi lưu sản phẩm mới", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                util.JsonUtil.writeJson(resp, ApiResponse.error("Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "ProductCreateServlet#doPost",
+                        "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage());

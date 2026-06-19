@@ -62,9 +62,13 @@ public class ShopApprovalAPI extends HttpServlet {
             JsonUtil.writeJson(response, ApiResponse.ok(message));
 
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi phê duyệt shop profileId=" + request.getParameter("profileId"), e);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    request,
+                    response,
+                    log,
+                    "ShopApprovalAPI#doPost",
+                    "Lỗi server: " + e.getMessage(),
+                    e);
         }
     }
 }

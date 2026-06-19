@@ -40,9 +40,13 @@ public class AdminReviewAPI extends HttpServlet {
             JsonUtil.writeJson(response, ApiResponse.ok(message));
 
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi kiểm duyệt review", e);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    request,
+                    response,
+                    log,
+                    "AdminReviewAPI#doPost",
+                    "Lỗi server: " + e.getMessage(),
+                    e);
         }
     }
 }

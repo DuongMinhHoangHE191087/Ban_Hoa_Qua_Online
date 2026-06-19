@@ -87,8 +87,13 @@ public class ReturnRequestServlet extends HttpServlet {
                     req.getRequestDispatcher("/WEB-INF/jsp/shop/return-requests.jsp").forward(req, resp);
                 }
             } catch (SQLException e) {
-                LoggerUtil.error(log, "Lỗi truy vấn dữ liệu yêu cầu hoàn trả", e);
-                resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi truy vấn dữ liệu.");
+                util.ServletUtil.sendPageInternalServerError(
+                        req,
+                        resp,
+                        java.util.logging.Logger.getLogger(ReturnRequestServlet.class.getName()),
+                        "ReturnRequestServlet#doGet",
+                        "Lỗi truy vấn dữ liệu.",
+                        e);
             }
             return;
         }

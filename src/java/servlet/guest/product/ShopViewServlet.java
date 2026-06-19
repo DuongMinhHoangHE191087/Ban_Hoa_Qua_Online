@@ -84,8 +84,13 @@ public class ShopViewServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "ID cửa hàng không đúng định dạng");
         } catch (SQLException e) {
-            getServletContext().log("Lỗi tải thông tin shop: " + e.getMessage(), e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi kết nối cơ sở dữ liệu");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(ShopViewServlet.class.getName()),
+                    "ShopViewServlet#doGet",
+                    "Lỗi kết nối cơ sở dữ liệu",
+                    e);
         }
     }
 

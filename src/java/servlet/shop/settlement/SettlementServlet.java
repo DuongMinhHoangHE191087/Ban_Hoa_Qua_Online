@@ -69,8 +69,13 @@ public class SettlementServlet extends HttpServlet {
                     resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Không tìm thấy hoặc không có quyền truy cập đối soát này.");
                 }
             } catch (Exception e) {
-                e.printStackTrace();
-                resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage());
+                util.ServletUtil.sendPageInternalServerError(
+                        req,
+                        resp,
+                        java.util.logging.Logger.getLogger(SettlementServlet.class.getName()),
+                        "SettlementServlet#doGet",
+                        "Lỗi hệ thống: " + e.getMessage(),
+                        e);
             }
             return;
         }

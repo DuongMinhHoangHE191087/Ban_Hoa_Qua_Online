@@ -96,8 +96,13 @@ public class DeliveryDetailServlet extends HttpServlet {
             req.setAttribute("pickupAddress", pickupAddress);
             req.getRequestDispatcher("/WEB-INF/jsp/delivery/delivery-detail.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải chi tiết đơn hàng", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải chi tiết đơn hàng.");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(DeliveryDetailServlet.class.getName()),
+                    "DeliveryDetailServlet#doGet",
+                    "Lỗi tải chi tiết đơn hàng.",
+                    e);
         }
     }
 }

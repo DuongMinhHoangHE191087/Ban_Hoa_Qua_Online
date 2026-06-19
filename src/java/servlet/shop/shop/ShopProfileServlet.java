@@ -52,8 +52,13 @@ public class ShopProfileServlet extends HttpServlet {
             req.setAttribute("categories", categoryService.getActiveCategories());
             req.getRequestDispatcher("/WEB-INF/jsp/shop/profile.jsp").forward(req, resp);
         } catch (Exception e) {
-            ErrorMessageUtil.logException(log, "Failed to load shop profile for shopId=" + user.getUserId(), e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ErrorMessageUtil.MSG_DB_ERROR);
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(ShopProfileServlet.class.getName()),
+                    "ShopProfileServlet#doGet",
+                    ErrorMessageUtil.MSG_DB_ERROR,
+                    e);
         }
     }
 

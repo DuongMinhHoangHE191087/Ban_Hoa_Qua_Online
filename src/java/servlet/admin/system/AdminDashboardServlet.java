@@ -40,8 +40,13 @@ public class AdminDashboardServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/dashboard.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải dashboard", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải dashboard");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminDashboardServlet.class.getName()),
+                    "AdminDashboardServlet#doGet",
+                    "Lỗi tải dashboard",
+                    e);
         }
     }
 }

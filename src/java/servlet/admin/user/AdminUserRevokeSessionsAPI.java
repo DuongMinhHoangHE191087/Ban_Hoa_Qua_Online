@@ -33,9 +33,13 @@ public class AdminUserRevokeSessionsAPI extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_OK);
             JsonUtil.writeJson(response, ApiResponse.ok("Đã thu hồi tất cả phiên đăng nhập (Refresh Tokens) của người dùng thành công."));
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi thu hồi phiên đăng nhập userId=" + request.getParameter("userId"), e);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    request,
+                    response,
+                    log,
+                    "AdminUserRevokeSessionsAPI#doPost",
+                    "Lỗi server: " + e.getMessage(),
+                    e);
         }
     }
 }

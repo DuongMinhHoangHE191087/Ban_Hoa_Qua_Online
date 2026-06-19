@@ -26,8 +26,13 @@ public class AdminNotificationServlet extends HttpServlet {
             req.setAttribute("notificationList", notifications);
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-notifications.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải trang thông báo", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải trang thông báo");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminNotificationServlet.class.getName()),
+                    "AdminNotificationServlet#doGet",
+                    "Lỗi tải trang thông báo",
+                    e);
         }
     }
 

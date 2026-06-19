@@ -209,9 +209,13 @@ public class AiSearchServlet extends HttpServlet {
 
             if (httpResponse == null || httpResponse.statusCode() != 200) {
                 int finalStatus = httpResponse != null ? httpResponse.statusCode() : HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Lỗi khi kết nối với dịch vụ AI: HTTP " + finalStatus));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "AiSearchServlet#doGet",
+                        "Lỗi khi kết nối với dịch vụ AI: HTTP " + finalStatus,
+                        new IllegalStateException("AI HTTP " + finalStatus));
                 return;
             }
 
@@ -219,34 +223,50 @@ public class AiSearchServlet extends HttpServlet {
             Map<String, Object> geminiResponse = mapper.readValue(httpResponse.body(), Map.class);
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) geminiResponse.get("candidates");
             if (candidates == null || candidates.isEmpty()) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Không nhận được phản hồi hợp lệ từ AI."));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "AiSearchServlet#doGet",
+                        "Không nhận được phản hồi hợp lệ từ AI.",
+                        new IllegalStateException("AI candidates missing"));
                 return;
             }
 
             Map<String, Object> candidate = candidates.get(0);
             Map<String, Object> contentMap = (Map<String, Object>) candidate.get("content");
             if (contentMap == null) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Phản hồi AI không đúng định dạng."));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "AiSearchServlet#doGet",
+                        "Phản hồi AI không đúng định dạng.",
+                        new IllegalStateException("AI content missing"));
                 return;
             }
 
             List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
             if (partsList == null || partsList.isEmpty()) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Phản hồi AI trống."));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "AiSearchServlet#doGet",
+                        "Phản hồi AI trống.",
+                        new IllegalStateException("AI parts missing"));
                 return;
             }
 
             String jsonText = normalizeText(partsList.get(0).get("text"));
             if (jsonText == null) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Phản hồi AI không có nội dung."));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "AiSearchServlet#doGet",
+                        "Phản hồi AI không có nội dung.",
+                        new IllegalStateException("AI text missing"));
                 return;
             }
             Map<String, Object> aiResult = mapper.readValue(jsonText, Map.class);
@@ -285,15 +305,21 @@ public class AiSearchServlet extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi kết nối cơ sở dữ liệu khi xử lý AI search", e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "AiSearchServlet#doGet",
+                    "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage(),
+                    e);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi hệ thống khi xử lý AI search", e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "Lỗi hệ thống khi xử lý AI: " + e.getMessage()));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "AiSearchServlet#doGet",
+                    "Lỗi hệ thống khi xử lý AI: " + e.getMessage(),
+                    e);
         }
     }
 

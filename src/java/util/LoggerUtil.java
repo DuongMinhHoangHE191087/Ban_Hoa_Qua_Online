@@ -87,6 +87,13 @@ public class LoggerUtil {
         return fileLoggingConfigured;
     }
 
+    /**
+     * Return the log file resolved during the last successful configuration.
+     */
+    public static Path getConfiguredLogFile() {
+        return configuredLogFile;
+    }
+
     private static Path resolveLogFilePath(String basePath) {
         String root = (basePath == null || basePath.trim().isEmpty())
                 ? System.getProperty("user.dir")

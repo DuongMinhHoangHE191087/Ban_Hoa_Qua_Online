@@ -188,6 +188,24 @@
             margin-right: auto;
         }
 
+        .error-meta {
+            display: grid;
+            gap: 10px;
+            margin: -12px auto 32px;
+            max-width: 440px;
+            padding: 16px 18px;
+            text-align: left;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #E2E8F0;
+            font-size: 0.95rem;
+        }
+
+        .error-meta strong {
+            color: #FFFFFF;
+        }
+
         /* Glow Button */
         .btn-home {
             display: inline-flex;
@@ -349,6 +367,23 @@
             <h1>500 — Lỗi máy chủ</h1>
             <p>Xin lỗi, đã có lỗi xảy ra. Vui lòng quay về trang chủ.</p>
 
+            <c:choose>
+                <c:when test="${not empty requestScope.logFilePath}">
+                    <c:set var="resolvedLogFilePath" value="${requestScope.logFilePath}" />
+                </c:when>
+                <c:otherwise>
+                    <c:set var="resolvedLogFilePath" value="${applicationScope.appLogFilePath}" />
+                </c:otherwise>
+            </c:choose>
+            <div class="error-meta">
+                <c:if test="${not empty requestScope.errorId}">
+                    <div><strong>Mã tham chiếu:</strong> ${requestScope.errorId}</div>
+                </c:if>
+                <c:if test="${not empty resolvedLogFilePath}">
+                    <div><strong>Log chi tiết:</strong> ${resolvedLogFilePath}</div>
+                </c:if>
+            </div>
+
             <a href="${pageContext.request.contextPath}/" class="btn-home">
                 <svg viewBox="0 0 24 24">
                     <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
@@ -357,7 +392,7 @@
             </a>
 
             <!-- Gỡ lỗi chi tiết (chỉ hiển thị khi có Exception) -->
-            <c:if test="${not empty pageContext.exception or not empty requestScope['jakarta.servlet.error.exception']}">
+            <c:if test="${not empty applicationScope.appEnv and applicationScope.appEnv ne 'production' and (not empty pageContext.exception or not empty requestScope['jakarta.servlet.error.exception'])}">
                 <div class="debug-panel">
                     <div class="debug-title" onclick="toggleDebug()">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -367,6 +402,8 @@
                     </div>
                     <div id="debug-content" class="debug-content">
                         <strong>Thông điệp:</strong> ${requestScope['jakarta.servlet.error.message']}<br>
+                        <strong>Mã tham chiếu:</strong> ${requestScope.errorId}<br>
+                        <strong>Log file:</strong> ${resolvedLogFilePath}<br>
                         <strong>Exception:</strong> ${requestScope['jakarta.servlet.error.exception']}<br>
                         <strong>URI yêu cầu:</strong> ${requestScope['jakarta.servlet.error.request_uri']}<br>
                     </div>
