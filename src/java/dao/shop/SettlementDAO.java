@@ -87,9 +87,24 @@ public class SettlementDAO extends BaseDAO {
         return list;
     }
 
+    /**
+     * PAY-03 — Auto-settlement using an hour-based freeze window.
+     * Moves eligible delivered orders to settlement after {@code freezeHours} hours
+     * have elapsed since delivery. Keeps 5% commission deduction (FIN-04) intact via
+     * the platform_fee already stored on the order row.
+     */
+    public int runAutoSettlementByHours(int freezeHours) throws SQLException {
+        return runAutoSettlementInternal(freezeHours, "hour");
+    }
+
+    /** Legacy day-based variant — retained for backward compatibility. */
     public int runAutoSettlement(int freezeDays) throws SQLException {
+        return runAutoSettlementInternal(freezeDays, "day");
+    }
+
+    private int runAutoSettlementInternal(int freezeValue, String datepart) throws SQLException {
         int settlementsCreated = 0;
-        
+
         List<Integer> owners = new ArrayList<>();
         String getOwnersSql = "SELECT DISTINCT o.owner_id "
                             + "FROM orders o "
@@ -97,24 +112,24 @@ public class SettlementDAO extends BaseDAO {
                             + "WHERE o.status = 'DELIVERED' "
                             + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
                             + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
-                            + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
+                            + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(" + datepart + ", ?, GETDATE())";
                             
         try (Connection conn = getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(getOwnersSql)) {
-                ps.setInt(1, -freezeDays);
+                ps.setInt(1, -freezeValue);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         owners.add(rs.getInt("owner_id"));
                     }
                 }
             }
-            
+
             if (owners.isEmpty()) {
                 return 0;
             }
-            
+
             conn.setAutoCommit(false);
-            
+
             try {
                 String getOrdersSql = "SELECT o.order_id, o.final_amount, o.platform_fee, o.discount_amount, o.created_at, "
                                     + "  COALESCE((SELECT SUM(r.refund_amount) FROM return_requests r WHERE r.order_id = o.order_id AND r.status = 'COMPLETED'), 0) AS refund_amount "
@@ -124,7 +139,7 @@ public class SettlementDAO extends BaseDAO {
                                     + "  AND o.status = 'DELIVERED' "
                                     + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
                                     + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
-                                    + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
+                                    + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(" + datepart + ", ?, GETDATE())";
                                     
                 String insertSettlementSql = "INSERT INTO shop_settlements (owner_id, period_start, period_end, gross_amount, platform_fee_amount, refund_amount, adjustment_amount, net_amount, status, calculated_at, created_by, note) "
                                            + "VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'PENDING', GETDATE(), 1, ?)";
@@ -138,7 +153,7 @@ public class SettlementDAO extends BaseDAO {
                      
                     for (int ownerId : owners) {
                         psOrders.setInt(1, ownerId);
-                        psOrders.setInt(2, -freezeDays);
+                        psOrders.setInt(2, -freezeValue);
                         
                         List<Map<String, Object>> ordersList = new ArrayList<>();
                         java.sql.Date periodStart = null;

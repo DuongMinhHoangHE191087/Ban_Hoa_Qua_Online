@@ -27,22 +27,46 @@ public final class FileUploadUtil {
         "jpeg", new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
         "png",  new byte[]{(byte)0x89, 0x50, 0x4E, 0x47},
         "gif",  new byte[]{0x47, 0x49, 0x46},
-        "webp", new byte[]{0x52, 0x49, 0x46, 0x46},  // RIFF header
-        "pdf",  new byte[]{0x25, 0x50, 0x44, 0x46}   // %PDF
+        "webp", new byte[]{0x52, 0x49, 0x46, 0x46},  // RIFF header (full WEBP validated in helper)
+        "pdf",  new byte[]{0x25, 0x50, 0x44, 0x46},  // %PDF
+        // DOCX/XLSX là ZIP — magic bytes: PK\x03\x04
+        "docx", new byte[]{0x50, 0x4B, 0x03, 0x04},
+        "xlsx", new byte[]{0x50, 0x4B, 0x03, 0x04}
     );
 
     /**
      * Kiểm tra magic bytes của file có khớp với extension không.
      * Phòng chống tấn công đổi tên file nguy hiểm (ví dụ: .exe → .jpg).
+     *
+     * Quy tắc:
+     *   - Extension có trong MAGIC_BYTES → đọc header và so sánh byte-by-byte.
+     *   - Extension KHÔNG có trong MAGIC_BYTES và KHÔNG có trong allowlist → từ chối (false).
+     *   - DOCX/XLSX: kiểm tra chữ ký ZIP (PK\x03\x04).
      */
     private static boolean hasMagicBytesMatchingExtension(Part part, String ext) {
-        byte[] expected = MAGIC_BYTES.get(ext.toLowerCase());
-        if (expected == null) return true; // DOCX không có magic bytes đơn giản — bỏ qua
-
+        String lowerExt = ext.toLowerCase();
         try (InputStream is = part.getInputStream()) {
-            byte[] header = new byte[expected.length];
-            int read = is.read(header);
-            if (read < expected.length) return false;
+            if ("webp".equals(lowerExt)) {
+                byte[] header = is.readNBytes(12);
+                return header.length >= 12
+                        && header[0] == 0x52
+                        && header[1] == 0x49
+                        && header[2] == 0x46
+                        && header[3] == 0x46
+                        && header[8] == 0x57
+                        && header[9] == 0x45
+                        && header[10] == 0x42
+                        && header[11] == 0x50;
+            }
+
+            byte[] expected = MAGIC_BYTES.get(lowerExt);
+            if (expected == null) {
+                // Extension không có trong bảng magic bytes → từ chối thay vì bỏ qua
+                return false;
+            }
+
+            byte[] header = is.readNBytes(expected.length);
+            if (header.length < expected.length) return false;
             for (int i = 0; i < expected.length; i++) {
                 if (header[i] != expected[i]) return false;
             }

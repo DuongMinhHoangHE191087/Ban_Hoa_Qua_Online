@@ -233,7 +233,7 @@ public class ReviewServlet extends HttpServlet {
             req.setAttribute("reviewedItems", reviewedItems);
             req.getRequestDispatcher("/WEB-INF/jsp/customer/review.jsp").forward(req, resp);
         } catch (Exception e) {
-            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to show review form for orderId=" + orderId, e);
+            String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to show review form for orderId=" + orderIdStr, e);
             SessionUtil.flashError(session, userMsg);
             resp.sendRedirect(req.getContextPath() + "/orders");
         }

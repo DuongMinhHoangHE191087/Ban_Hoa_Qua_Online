@@ -81,7 +81,7 @@ public class InventoryService {
                 productDAO.updateHarvestDateAndStatus(conn, productId, changedAt, "ACTIVE");
 
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -130,7 +130,7 @@ public class InventoryService {
             try {
                 reserve(conn, variantId, qty, orderId, 1);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -163,7 +163,7 @@ public class InventoryService {
             try {
                 release(conn, variantId, qty, orderId, 1);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -215,7 +215,7 @@ public class InventoryService {
                 productVariantDAO.updateStock(conn, variantId, delta);
                 checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -283,7 +283,7 @@ public class InventoryService {
                 productVariantDAO.updateStock(conn, variantId, -qty);
                 checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -322,7 +322,7 @@ public class InventoryService {
                 productVariantDAO.updateStock(conn, variantId, -qty);
                 checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {
@@ -381,7 +381,7 @@ public class InventoryService {
                     checkAndSendLowStockAlert(conn, variantId, stockAfter);
                 }
                 conn.commit();
-            } catch (Exception e) {
+            } catch (SQLException | RuntimeException e) {
                 conn.rollback();
                 throw e;
             } finally {

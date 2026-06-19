@@ -1,32 +1,46 @@
 package servlet.customer.order;
 
 import config.AppConfig;
+import exception.BusinessException;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
 import model.entity.order.ReturnRequest;
 import model.entity.auth.User;
 import service.order.OrderService;
 import service.order.ReturnService;
+import util.FileUploadUtil;
 import util.SessionUtil;
 import util.ErrorMessageUtil;
 
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
 
 /**
  * ReturnRequestServlet — Quản lý yêu cầu Hủy/Đổi/Trả của khách hàng và Phán quyết của Admin.
- * 
+ *
  * URL: /returns
+ *
+ * REF-02: Yêu cầu đổi trả bắt buộc đính kèm ít nhất 1 video HOẶC ít nhất 2 ảnh làm bằng chứng.
  */
+@MultipartConfig(
+    maxFileSize    = 50L * 1024 * 1024,   // 50 MB mỗi file (video có thể lớn)
+    maxRequestSize = 150L * 1024 * 1024,  // 150 MB toàn request
+    fileSizeThreshold = 1024 * 1024       // 1 MB — ghi xuống disk nếu vượt
+)
 @WebServlet("/returns")
 public class ReturnRequestServlet extends HttpServlet {
 
@@ -173,10 +187,10 @@ public class ReturnRequestServlet extends HttpServlet {
         String requestType = req.getParameter("requestType"); // RETURN hoặc EXCHANGE
         String reasonCode = req.getParameter("reasonCode");
         String description = req.getParameter("description");
-        String evidenceUrl = req.getParameter("evidenceUrl");
         String qtyStr = req.getParameter("requestedQuantity");
 
-        if (orderIdStr == null || orderItemIdStr == null || requestType == null || reasonCode == null || description == null || description.trim().isEmpty()) {
+        if (orderIdStr == null || orderItemIdStr == null || requestType == null || reasonCode == null
+                || description == null || description.trim().isEmpty()) {
             SessionUtil.flashError(session, "Vui lòng điền đầy đủ các thông tin bắt buộc.");
             resp.sendRedirect(req.getContextPath() + "/returns?orderId=" + orderIdStr);
             return;
@@ -187,6 +201,56 @@ public class ReturnRequestServlet extends HttpServlet {
             int orderItemId = Integer.parseInt(orderItemIdStr);
             int requestedQuantity = qtyStr != null ? Integer.parseInt(qtyStr) : 1;
 
+            // REF-02: Đếm và phân loại bằng chứng từ multipart (ảnh / video)
+            Collection<Part> evidenceParts = req.getParts();
+            int photoCount = 0;
+            int videoCount = 0;
+            String firstEvidenceUrl = null;
+
+            String uploadDir = getServletContext().getRealPath("");
+
+            for (Part part : evidenceParts) {
+                if (!"evidence".equals(part.getName())) {
+                    continue; // chỉ xử lý field có name="evidence"
+                }
+                if (part.getSize() == 0 || part.getSubmittedFileName() == null
+                        || part.getSubmittedFileName().trim().isEmpty()) {
+                    continue; // bỏ qua slot rỗng
+                }
+
+                String filename = part.getSubmittedFileName().toLowerCase();
+                if (isVideoExtension(filename)) {
+                    videoCount++;
+                    if (firstEvidenceUrl == null) {
+                        // Lưu video bằng FileUploadUtil nếu extension là ảnh được phép;
+                        // video thường không nằm trong ALLOWED_IMAGE_EXTS nên lưu tên file thôi
+                        // (multi-row storage bị DEFER — xem ghi chú bên dưới)
+                        firstEvidenceUrl = part.getSubmittedFileName();
+                    }
+                } else if (FileUploadUtil.isAllowedImage(filename)) {
+                    photoCount++;
+                    if (firstEvidenceUrl == null) {
+                        // Lưu ảnh đầu tiên qua FileUploadUtil (validate extension + magic bytes)
+                        String saved = FileUploadUtil.save(part, uploadDir);
+                        if (saved != null) {
+                            firstEvidenceUrl = saved;
+                        }
+                    }
+                }
+                // File không phải ảnh và không phải video — bỏ qua
+            }
+
+            // REF-02: Kiểm tra điều kiện bằng chứng bắt buộc
+            if (videoCount < 1 && photoCount < 2) {
+                SessionUtil.flashError(session,
+                    "Yêu cầu đổi trả cần đính kèm ít nhất 1 video hoặc ít nhất 2 ảnh làm bằng chứng.");
+                resp.sendRedirect(req.getContextPath() + "/returns?orderId=" + orderIdStr);
+                return;
+            }
+
+            // DEFER: schema hiện tại chỉ có 1 cột evidence_url (VARCHAR).
+            // Multi-row evidence storage cần migration (return_request_evidence table).
+            // Hiện tại lưu bằng chứng đầu tiên — count đã được kiểm tra ở trên.
             ReturnRequest rr = new ReturnRequest();
             rr.setOrderId(orderId);
             rr.setOrderItemId(orderItemId);
@@ -194,7 +258,7 @@ public class ReturnRequestServlet extends HttpServlet {
             rr.setRequestType(requestType);
             rr.setReasonCode(reasonCode);
             rr.setDescription(description);
-            rr.setEvidenceUrl(evidenceUrl);
+            rr.setEvidenceUrl(firstEvidenceUrl);
             rr.setRequestedQuantity(requestedQuantity);
 
             int reqId = returnService.createRequest(rr);
@@ -203,12 +267,23 @@ public class ReturnRequestServlet extends HttpServlet {
             } else {
                 SessionUtil.flashError(session, "Tạo yêu cầu thất bại.");
             }
-        } catch (IllegalArgumentException e) {
+        } catch (BusinessException e) {
             SessionUtil.flashError(session, e.getMessage());
+        } catch (NumberFormatException e) {
+            LoggerUtil.warn(log, "Tham số không hợp lệ khi tạo return request orderId=" + orderIdStr, e);
+            SessionUtil.flashError(session, "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.");
         } catch (Exception e) {
             String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to create return request for orderId=" + orderIdStr, e);
             SessionUtil.flashError(session, userMsg);
         }
         resp.sendRedirect(req.getContextPath() + "/returns?orderId=" + orderIdStr);
+    }
+
+    private boolean isVideoExtension(String filename) {
+        if (filename == null) {
+            return false;
+        }
+        String lower = filename.toLowerCase();
+        return lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".ogg");
     }
 }

@@ -1282,7 +1282,7 @@
                                            data-price="${v.price}"
                                            data-activeprice="${v.activePrice}"
                                            data-isdiscounted="${v.isDiscounted}"
-                                           data-label="${v.variantLabel}"
+                                           data-label="<c:out value='${v.variantLabel}'/>"
                                            data-stock="${v.stockQuantity}"
                                            ${status.index == 0 ? 'checked' : ''}
                                            onchange="onVariantChange(this)">
@@ -1659,7 +1659,7 @@
                                 <div class="review-card-header">
                                     <div class="reviewer-meta">
                                         <div class="reviewer-avatar">
-                                            ${fn:substring(r.customerName, 0, 1)}
+                                            <c:out value="${fn:substring(r.customerName, 0, 1)}"/>
                                         </div>
                                         <div>
                                             <div class="reviewer-name"><c:out value="${r.customerName}"/></div>
@@ -1676,7 +1676,7 @@
                                 <c:if test="${not empty r.reviewImageUrl}">
                                     <div class="review-attachment-box">
                                         <div class="review-thumb-image" onclick="openPhotoModal(this)">
-                                            <img src="${r.reviewImageUrl}" alt="Ảnh review khách hàng">
+                                            <img src="<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
                                         </div>
                                     </div>
                                 </c:if>
@@ -2340,6 +2340,18 @@
         });
     });
 
+    function escapeHtml(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     let currentReviewPage = 1;
     let currentRatingFilter = null;
 
@@ -2407,13 +2419,16 @@
                 imgHtml = `
                     <div class="review-attachment-box">
                         <div class="review-thumb-image" onclick="openPhotoModal(this)">
-                            <img src="${src}" alt="Ảnh review khách hàng">
+                            <img src="${escapeHtml(src)}" alt="Ảnh review khách hàng">
                         </div>
                     </div>
                 `;
             }
             
-            const avatarChar = r.customerName ? r.customerName.substring(0, 1).toUpperCase() : 'U';
+            const safeCustomerName = escapeHtml(r.customerName || 'Người dùng');
+            const safeReviewText = escapeHtml(r.reviewText || '').replace(/\r?\n/g, '<br>');
+            const safeCreatedAt = escapeHtml(r.createdAt || '');
+            const avatarChar = escapeHtml(r.customerName ? r.customerName.substring(0, 1).toUpperCase() : 'U');
             
             html += `
                 <div class="review-card-item">
@@ -2423,16 +2438,16 @@
                                 ${avatarChar}
                             </div>
                             <div>
-                                <div class="reviewer-name">${r.customerName}</div>
+                                <div class="reviewer-name">${safeCustomerName}</div>
                                 <div class="flex items-center gap-2">
                                     <div class="flex items-center text-xs">${starsHtml}</div>
-                                    <span class="review-date">${r.createdAt}</span>
+                                    <span class="review-date">${safeCreatedAt}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="review-body-text">
-                        ${r.reviewText}
+                        ${safeReviewText}
                     </div>
                     ${imgHtml}
                 </div>

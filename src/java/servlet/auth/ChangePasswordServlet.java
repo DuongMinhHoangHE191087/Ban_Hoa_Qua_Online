@@ -5,6 +5,7 @@ import model.entity.auth.User;
 import service.auth.AuthService;
 import util.SessionUtil;
 import util.ValidationUtil;
+import java.util.UUID;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -48,6 +49,15 @@ public class ChangePasswordServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
         if (!SessionUtil.isLoggedIn(session)) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
+        // Kiểm tra CSRF token (đường /auth/* bị loại khỏi CsrfFilter toàn cục — kiểm tra thủ công ở đây)
+        String sessionCsrf = (String) session.getAttribute(AppConfig.SESSION_CSRF_TOKEN);
+        String reqCsrf = req.getParameter("_csrf");
+        if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
+            req.setAttribute("errorMsg", "CSRF token không hợp lệ hoặc phiên làm việc đã hết hạn.");
+            req.getRequestDispatcher("/WEB-INF/jsp/auth/change-password.jsp").forward(req, resp);
             return;
         }
 

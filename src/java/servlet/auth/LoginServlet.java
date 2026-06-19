@@ -97,12 +97,14 @@ public class LoginServlet extends HttpServlet {
             SessionUtil.flashSuccess(newSession, "Chào mừng quay trở lại, " + user.getFullName() + "!");
             
             // 6. Xử lý chuyển hướng (Redirect)
-            // Ngăn chặn lỗ hổng Open Redirect bằng cách kiểm tra target path
+            // ALLOWLIST: chỉ chấp nhận đường dẫn nội bộ — phải bắt đầu bằng "/" nhưng
+            // không phải "//" (protocol-relative) và không chứa "://" (absolute URL).
             if (redirectTarget != null && !redirectTarget.trim().isEmpty()) {
                 String cleanTarget = redirectTarget.trim();
-                if ((cleanTarget.startsWith("/") && !cleanTarget.startsWith("//") && !cleanTarget.startsWith("/\\")) 
-                        || cleanTarget.equals(req.getContextPath()) 
-                        || cleanTarget.startsWith(req.getContextPath() + "/")) {
+                boolean isSafeInternal = cleanTarget.startsWith("/")
+                        && !cleanTarget.startsWith("//")
+                        && !cleanTarget.contains("://");
+                if (isSafeInternal) {
                     resp.sendRedirect(cleanTarget);
                 } else {
                     redirectToRoleDashboard(req, resp, user);

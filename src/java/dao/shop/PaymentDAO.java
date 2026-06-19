@@ -153,17 +153,21 @@ public class PaymentDAO extends BaseDAO {
      */
     public void updateStatus(int transactionId, String status,
                              String sepayTransactionId, String providerResponse) throws SQLException {
-        // payment_transactions không có updated_at theo schema — dùng completed_at để log
-        // Schema thực tế: (transaction_id, order_id, payment_method, sepay_transaction_id,
-        //                   sepay_reference, sepay_qr_code, amount, currency, status,
-        //                   initiated_at, completed_at, expires_at, provider_response,
-        //                   error_code, error_message, ip_address)
+        try (Connection conn = getConnection()) {
+            updateStatus(conn, transactionId, status, sepayTransactionId, providerResponse);
+        }
+    }
+
+    /**
+     * Cập nhật trạng thái transaction trên connection hiện tại.
+     */
+    public void updateStatus(Connection conn, int transactionId, String status,
+                             String sepayTransactionId, String providerResponse) throws SQLException {
         String sql2 = "UPDATE payment_transactions "
                      + "SET status = ?, sepay_transaction_id = ?, provider_response = ?, "
                      + "    completed_at = CASE WHEN ? = 'completed' THEN GETDATE() ELSE NULL END "
                      + "WHERE transaction_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql2)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql2)) {
             ps.setString(1, status);
             ps.setString(2, sepayTransactionId);
             ps.setString(3, providerResponse);
@@ -217,23 +221,45 @@ public class PaymentDAO extends BaseDAO {
      * UNIQUE constraint sẽ chặn INSERT thứ hai — bắt error 2627 và bỏ qua an toàn.
      */
     public void insertDedup(String sepayTxId, String orderCode, String processResult) throws SQLException {
+        try (Connection conn = getConnection()) {
+            insertDedup(conn, sepayTxId, orderCode, processResult);
+        }
+    }
+
+    /**
+     * Ghi vào bảng dedup trên connection hiện tại để đảm bảo idempotency.
+     * Trả về false nếu sepayTxId đã tồn tại.
+     */
+    public boolean insertDedup(Connection conn, String sepayTxId, String orderCode, String processResult) throws SQLException {
         String sql = "INSERT INTO sepay_webhook_dedup (sepay_transaction_id, order_code, process_result) "
                    + "VALUES (?, ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, sepayTxId);
             ps.setString(2, orderCode);
             ps.setString(3, processResult);
             ps.executeUpdate();
+            return true;
         } catch (SQLException e) {
             // SQL Server error 2627 = UNIQUE KEY constraint violation
             // Xảy ra khi hai webhook đồng thời pass isDuplicate() trước khi cái nào insert xong.
             // Coi như "đã xử lý" — bỏ qua an toàn, không throw.
             if (e.getErrorCode() == 2627) {
                 LoggerUtil.info(log, "[Dedup] Race condition caught: sepayTxId=%s đã tồn tại — bỏ qua.", sepayTxId);
-                return;
+                return false;
             }
             throw e;
+        }
+    }
+
+    /**
+     * Cập nhật kết quả xử lý dedup trên connection hiện tại.
+     */
+    public void updateDedupResult(Connection conn, String sepayTxId, String processResult) throws SQLException {
+        String sql = "UPDATE sepay_webhook_dedup SET process_result = ? WHERE sepay_transaction_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, processResult);
+            ps.setString(2, sepayTxId);
+            ps.executeUpdate();
         }
     }
 
@@ -248,9 +274,17 @@ public class PaymentDAO extends BaseDAO {
      * Lấy transaction theo orderId và sepay_reference (để match webhook).
      */
     public PaymentTransaction findByReference(String sepayReference) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return findByReference(conn, sepayReference);
+        }
+    }
+
+    /**
+     * Lấy transaction theo orderId và sepay_reference trên connection hiện tại.
+     */
+    public PaymentTransaction findByReference(Connection conn, String sepayReference) throws SQLException {
         String sql = "SELECT * FROM payment_transactions WHERE sepay_reference = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, sepayReference);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return mapRow(rs);
