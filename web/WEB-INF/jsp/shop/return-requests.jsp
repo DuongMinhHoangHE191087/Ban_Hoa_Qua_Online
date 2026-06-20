@@ -95,7 +95,7 @@
                                 <th>Sản phẩm & Phân loại</th>
                                 <th>Khách hàng</th>
                                 <th class="text-center">Loại YC</th>
-                                <th>Lý do & Mô tả</th>
+                                <th>Phân loại bán Lý do & Mô tả</th>
                                 <th class="text-center">Số lượng</th>
                                 <th class="text-right">Số tiền hoàn</th>
                                 <th class="text-center">Trạng thái</th>

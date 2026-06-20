@@ -263,7 +263,7 @@ public class ProductDetailServlet extends HttpServlet {
                 Map<String, Object> item = new java.util.HashMap<>();
                 item.put("productId", p.getProductId());
                 item.put("name", p.getName());
-                item.put("rating", p.getRating() != null ? p.getRating() : new java.math.BigDecimal("4.8"));
+                item.put("rating", p.getRating() != null ? p.getRating() : java.math.BigDecimal.ZERO);
                 item.put("originRegion", p.getOriginRegion());
 
                 // Lấy ảnh chính thực tế
@@ -297,7 +297,7 @@ public class ProductDetailServlet extends HttpServlet {
                 Map<String, Object> spItem = new java.util.HashMap<>();
                 spItem.put("productId", sp.getProductId());
                 spItem.put("name", sp.getName());
-                spItem.put("rating", sp.getRating() != null ? sp.getRating() : new java.math.BigDecimal("4.5"));
+                spItem.put("rating", sp.getRating() != null ? sp.getRating() : java.math.BigDecimal.ZERO);
                 spItem.put("image", resolveImagePath(req, shopImageMap.get(sp.getProductId())));
                 List<ProductVariant> spVars = shopVariantMap.get(sp.getProductId());
                 java.math.BigDecimal spPrice = new java.math.BigDecimal("45000");
@@ -353,6 +353,20 @@ public class ProductDetailServlet extends HttpServlet {
             for (int count : ratingDistribution.values()) {
                 totalReviewsCount += count;
             }
+            boolean hasReviews = totalReviewsCount > 0;
+            java.math.BigDecimal displayRating = java.math.BigDecimal.ZERO;
+            if (hasReviews) {
+                java.math.BigDecimal totalScore = java.math.BigDecimal.ZERO;
+                for (Map.Entry<Integer, Integer> entry : ratingDistribution.entrySet()) {
+                    int star = entry.getKey();
+                    int count = entry.getValue() != null ? entry.getValue() : 0;
+                    if (count > 0) {
+                        totalScore = totalScore.add(java.math.BigDecimal.valueOf((long) star * count));
+                    }
+                }
+                displayRating = totalScore.divide(java.math.BigDecimal.valueOf(totalReviewsCount), 2, java.math.RoundingMode.HALF_UP);
+            }
+            product.setRating(displayRating);
 
             // 14. Đổ dữ liệu vào Request Attributes
             req.setAttribute("product", product);
@@ -368,6 +382,7 @@ public class ProductDetailServlet extends HttpServlet {
             req.setAttribute("ratingDistribution", ratingDistribution);
             req.setAttribute("ratingFilter", ratingFilter);
             req.setAttribute("totalReviewsCount", totalReviewsCount);
+            req.setAttribute("hasReviews", hasReviews);
 
             // 15. Forward tới trang JSP hiển thị
             req.getRequestDispatcher("/WEB-INF/jsp/guest/product-detail.jsp").forward(req, resp);

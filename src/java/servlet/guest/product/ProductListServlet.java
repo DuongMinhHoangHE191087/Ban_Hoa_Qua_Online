@@ -185,7 +185,7 @@ public class ProductListServlet extends HttpServlet {
         item.put("productId", product.getProductId());
         item.put("name", product.getName());
         item.put("description", product.getDescription());
-        item.put("rating", product.getRating() != null ? product.getRating() : new BigDecimal("4.8"));
+        item.put("rating", product.getRating() != null ? product.getRating() : BigDecimal.ZERO);
         item.put("soldQuantity", product.getSoldQuantity());
         item.put("categoryId", product.getCategoryId());
         item.put("image", resolveImagePath(req, primaryImage));
