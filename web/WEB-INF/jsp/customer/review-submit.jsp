@@ -141,6 +141,7 @@
             <h1 style="font-size: 1.5rem; margin-bottom: 20px;">Đánh giá Sản phẩm</h1>
             
             <form action="${pageContext.request.contextPath}/reviews" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 <c:if test="${not empty order}">
                     <input type="hidden" name="orderId" value="${order.orderId}">
                 </c:if>
