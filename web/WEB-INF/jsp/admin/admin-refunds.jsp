@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -182,9 +183,12 @@
                                             </c:choose>
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            <c:choose>
-                                                <c:when test="${r.status == 'PENDING' || r.status == 'REQUESTED'}">
-                                                    <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                            <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                                <button type="button" onclick="viewDetails('${r.returnRequestId}', '${fn:escapeXml(r.reasonCode)}', '${fn:escapeXml(r.description)}')" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-1.5 rounded-lg text-xs transition-all shadow-sm flex items-center justify-center gap-1">
+                                                    <i class="fa-solid fa-eye"></i> Chi tiết
+                                                </button>
+                                                <c:choose>
+                                                    <c:when test="${r.status == 'PENDING' || r.status == 'REQUESTED'}">
                                                         <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" class="w-full">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                             <input type="hidden" name="action" value="process">
@@ -205,10 +209,8 @@
                                                                 Từ chối
                                                             </button>
                                                         </form>
-                                                    </div>
-                                                </c:when>
-                                                <c:when test="${r.status == 'PROCESSING'}">
-                                                    <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                                    </c:when>
+                                                    <c:when test="${r.status == 'PROCESSING'}">
                                                         <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" onsubmit="return confirmApprove(event, '${r.returnRequestId}')" class="w-full">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                             <input type="hidden" name="action" value="approve">
@@ -219,10 +221,8 @@
                                                                 Duyệt hoàn
                                                             </button>
                                                         </form>
-                                                    </div>
-                                                </c:when>
-                                                <c:when test="${r.status == 'APPROVED'}">
-                                                    <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                                    </c:when>
+                                                    <c:when test="${r.status == 'APPROVED'}">
                                                         <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" class="w-full" onsubmit="return confirm('Xác nhận đã chuyển khoản / hoàn tiền thành công?');">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                             <input type="hidden" name="action" value="complete">
@@ -233,12 +233,12 @@
                                                                 Đã hoàn tiền
                                                             </button>
                                                         </form>
-                                                    </div>
-                                                </c:when>
-                                                <c:otherwise>
-                                                    <span class="text-txt-3 text-xs italic block">Đã xử lý: ${r.decisionReason}</span>
-                                                </c:otherwise>
-                                            </c:choose>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="text-txt-3 text-xs italic block mt-1">Đã xử lý: ${r.decisionReason}</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </div>
                                         </td>
                                     </tr>
                                 </c:forEach>
@@ -266,6 +266,18 @@
 </div>
 
 <script>
+    function viewDetails(requestId, reasonCode, description) {
+        Swal.fire({
+            title: 'Chi tiết Yêu cầu #' + requestId,
+            html: '<div class="text-left mt-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200">' +
+                  '<div class="mb-3"><span class="font-bold text-txt-2">Phân loại lỗi:</span> <span class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">' + reasonCode + '</span></div>' +
+                  '<div class="text-txt-2"><span class="font-bold block mb-1">Mô tả của khách hàng:</span><div class="italic">' + description + '</div></div>' +
+                  '</div>',
+            confirmButtonColor: '#4d661c',
+            confirmButtonText: 'Đóng'
+        });
+    }
+
     function confirmApprove(event, requestId) {
         event.preventDefault();
         Swal.fire({
