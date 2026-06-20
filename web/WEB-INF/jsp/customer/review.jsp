@@ -283,8 +283,24 @@
                                 <p class="text-on-surface-variant text-xs">Phân loại: <c:out value="${item.variantLabelSnapshot}"/></p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1.5 text-primary bg-[#e6f7f0] px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm self-start sm:self-center">
-                        <span class="material-symbols-outlined text-base">check_circle</span> Đã hoàn thành đánh giá
+                    <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                        <div class="flex items-center gap-1.5 text-primary bg-[#e6f7f0] px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                            <span class="material-symbols-outlined text-base">check_circle</span> Đã hoàn thành đánh giá
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="${pageContext.request.contextPath}/reviews?action=edit&orderId=${order.orderId}&orderItemId=${item.orderItemId}" class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shadow-sm" title="Sửa đánh giá">
+                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                            </a>
+                            <form action="${pageContext.request.contextPath}/reviews" method="POST" class="m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?');">
+                                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="orderId" value="${order.orderId}">
+                                <input type="hidden" name="orderItemId" value="${item.orderItemId}">
+                                <button type="submit" class="flex items-center justify-center w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm" title="Xóa đánh giá">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </c:forEach>

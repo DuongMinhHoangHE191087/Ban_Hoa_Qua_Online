@@ -170,7 +170,15 @@ public class AuthService {
             throw new Exception("Email hoặc mật khẩu không chính xác.");
         }
 
-        if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus()) || !user.isEmailVerified()) {
+        if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus())) {
+            if (AppConfig.ACCOUNT_STATUS_INACTIVE.equals(user.getStatus())) {
+                throw new VerificationRequiredException(user.getEmail(), "Tài khoản chưa được xác minh. Vui lòng nhập mã code để kích hoạt tài khoản.");
+            } else {
+                throw new Exception("Tài khoản của bạn đã bị khóa bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.");
+            }
+        }
+
+        if (!user.isEmailVerified()) {
             throw new VerificationRequiredException(user.getEmail(), "Tài khoản chưa được xác minh. Vui lòng nhập mã code để kích hoạt tài khoản.");
         }
 
