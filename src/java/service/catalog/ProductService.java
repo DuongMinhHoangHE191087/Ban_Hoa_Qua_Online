@@ -55,6 +55,7 @@ public class ProductService {
         if (productId <= 0) {
             throw new IllegalArgumentException("productId không hợp lệ.");
         }
+        productDAO.autoDeactivateExpiredProducts();
         return productDAO.findOneById(productId);
     }
 

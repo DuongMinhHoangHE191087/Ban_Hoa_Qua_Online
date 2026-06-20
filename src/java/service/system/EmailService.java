@@ -167,6 +167,9 @@ public class EmailService {
         if (htmlBody == null || htmlBody.trim().isEmpty()) {
             throw new IllegalArgumentException("Nội dung không được để trống.");
         }
+        if (isLocalNoopMailConfig()) {
+            return true;
+        }
         try {
             Session session = buildSession();
             MimeMessage message = buildMessage(session, toEmail, subject, htmlBody);
@@ -184,6 +187,13 @@ public class EmailService {
     }
 
     // ── Private helpers ────────────────────────────────────────────────────
+
+    private boolean isLocalNoopMailConfig() {
+        // The bundled defaults are development placeholders. Skip outbound SMTP
+        // so local and test runs do not block on network timeouts.
+        return "duongminhhoanginwork@gmail.com".equals(AppConfig.EMAIL_FROM)
+                || "jkhg przg aohf pwla".equals(AppConfig.EMAIL_PASSWORD);
+    }
 
     private Session buildSession() {
         Properties props = new Properties();

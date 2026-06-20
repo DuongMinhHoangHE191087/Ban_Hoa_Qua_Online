@@ -67,6 +67,9 @@ public class OrderService {
     }
 
     public Order getOrderDetail(int orderId) throws SQLException {
+        if (orderId <= 0) {
+            throw new IllegalArgumentException("Đơn hàng không tồn tại!");
+        }
         return orderDAO.findOneById(orderId);
     }
 
@@ -86,6 +89,9 @@ public class OrderService {
     }
 
     public void cancelOrder(int orderId, int cancelledBy, String reason) throws SQLException {
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Lý do hủy đơn hàng là bắt buộc.");
+        }
         Order order = getOrderDetail(orderId);
         if (order == null) {
             throw new IllegalArgumentException("Đơn hàng không tồn tại!");
@@ -115,7 +121,7 @@ public class OrderService {
         }
         // ADMIN and other privileged roles may cancel any order without ownership restriction
 
-        cancelOrderAndReleaseStock(orderId, cancelledBy, reason, false);
+        cancelOrderAndReleaseStock(order, cancelledBy, reason, false);
     }
 
     public PagedResultDTO shopOrders(int ownerId, String status, int page) throws SQLException {
@@ -373,30 +379,29 @@ public class OrderService {
         if (!isSystemCancelableOrder(order)) {
             return;
         }
-        cancelOrderAndReleaseStock(orderId, 1, reason, true);
+        cancelOrderAndReleaseStock(order, 1, reason, true);
     }
 
-    private void cancelOrderAndReleaseStock(int orderId, int cancelledBy, String reason, boolean skipMissingOrTerminal)
+    private void cancelOrderAndReleaseStock(Order currentOrder, int cancelledBy, String reason, boolean skipMissingOrTerminal)
             throws SQLException {
+        if (currentOrder == null) {
+            if (skipMissingOrTerminal) {
+                return;
+            }
+            throw new IllegalArgumentException("Đơn hàng không tồn tại!");
+        }
+
+        int orderId = currentOrder.getOrderId();
         try (Connection conn = orderDAO.openConnection()) {
             conn.setAutoCommit(false);
             try {
-                Order currentOrder = orderDAO.findOneById(conn, orderId);
-                if (currentOrder == null) {
-                    conn.rollback();
-                    if (skipMissingOrTerminal) {
-                        LoggerUtil.warn(log, "cancelOrderAndReleaseStock: orderId=%d not found, skipping.", orderId);
-                        return;
-                    }
-                    throw new IllegalArgumentException("ÄÆ¡n hÃ ng khÃ´ng tá»“n táº¡i!");
-                }
                 if (AppConfig.ORDER_CANCELLED.equals(currentOrder.getStatus())
                         || AppConfig.ORDER_DELIVERED.equals(currentOrder.getStatus())) {
                     conn.rollback();
                     if (skipMissingOrTerminal) {
                         return;
                     }
-                    throw new RuntimeException("ÄÆ¡n hÃ ng Ä‘Ã£ giao hoáº·c Ä‘Ã£ há»§y, khÃ´ng thá»ƒ há»§y thÃªm!");
+                    throw new RuntimeException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm!");
                 }
 
                 orderDAO.cancel(conn, orderId, cancelledBy, reason);

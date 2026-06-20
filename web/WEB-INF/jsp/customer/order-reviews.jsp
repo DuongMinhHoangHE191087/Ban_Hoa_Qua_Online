@@ -47,6 +47,7 @@
                                     <div class="d-flex gap-2">
                                         <a href="${pageContext.request.contextPath}/reviews?action=edit&orderId=${order.orderId}&orderItemId=${item.orderItemId}" class="btn btn-outline-primary btn-sm">Sửa đánh giá</a>
                                         <form action="${pageContext.request.contextPath}/reviews" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?');">
+                                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="orderId" value="${order.orderId}">
                                             <input type="hidden" name="orderItemId" value="${item.orderItemId}">

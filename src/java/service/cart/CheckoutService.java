@@ -80,6 +80,9 @@ public class CheckoutService {
         if (cartSummary.getItems().isEmpty()) {
             throw new IllegalStateException("Giỏ hàng của bạn đang trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
         }
+        if (requestedVariantIds == null) {
+            throw new IllegalArgumentException("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+        }
 
         List<CartItem> selectedItems = filterCheckoutItems(cartSummary.getItems(), requestedVariantIds, false);
         if (selectedItems != null) {
@@ -482,14 +485,14 @@ public class CheckoutService {
             }
             ProductVariant variant = variantMap.get(item.getVariantId());
             if (variant == null || !variant.getIsActive()) {
-                stockErrors.add(item.getProductName() + " da ngung kinh doanh.");
+                stockErrors.add(item.getProductName() + " đã ngừng kinh doanh hoặc hết hàng.");
             } else if (item.getQuantity() > variant.getStockQuantity()) {
-                stockErrors.add(item.getProductName() + " (" + item.getVariantLabel() + ") chi con "
-                        + variant.getStockQuantity() + " san pham.");
+                stockErrors.add(item.getProductName() + " (" + item.getVariantLabel() + ") vượt quá tồn kho, chỉ còn "
+                        + variant.getStockQuantity() + " sản phẩm.");
             }
         }
         if (!stockErrors.isEmpty()) {
-            throw new IllegalStateException("Mot so san pham khong du ton kho: " + String.join(". ", stockErrors));
+            throw new IllegalStateException("Một số sản phẩm không đủ tồn kho: " + String.join(". ", stockErrors));
         }
     }
 
