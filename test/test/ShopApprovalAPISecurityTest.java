@@ -343,7 +343,7 @@ public class ShopApprovalAPISecurityTest {
 
     private String buildPhone(int offset) {
         return "09" + String.format("%08d",
-                Math.abs((System.nanoTime() + offset) % 100_000_000L));
+                Math.abs((System.currentTimeMillis() + (offset * 97L)) % 100_000_000L));
     }
 
     // ---------------------------------------------------------------

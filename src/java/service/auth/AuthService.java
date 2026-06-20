@@ -86,10 +86,15 @@ public class AuthService {
         }
 
         // Băm mật khẩu để bảo mật trước khi đưa xuống DAO
+        String requestedRole = user.getRole();
+        boolean shopOwnerRegistration = AppConfig.ROLE_SHOP_OWNER.equals(requestedRole);
+        user.setRole(AppConfig.ROLE_CUSTOMER);
+
         String hashedPass = HashUtil.hashPassword(user.getPasswordHash());
 
         // Hàm save hoặc insert của DAO
         int insertedId = userDAO.saveNewCustomer(user.getFullName(), user.getEmail(), hashedPass, user.getPhone(), user.getRole(), AppConfig.ACCOUNT_STATUS_INACTIVE, false);
+        int createdShopProfileId = -1;
         if (insertedId > 0) {
             try {
                 User createdUser = userDAO.findByEmail(user.getEmail());
@@ -99,15 +104,20 @@ public class AuthService {
 
                 issueVerificationCode(createdUser);
 
-                // Tự động khởi tạo giỏ hàng hoặc profile cửa hàng dựa trên vai trò
-                if ("CUSTOMER".equals(user.getRole())) {
-                    CartDAO cartDAO = new CartDAO();
-                    cartDAO.createForCustomer(insertedId);
+                if (shopOwnerRegistration) {
+                    createdShopProfileId = createPendingShopProfile(createdUser, shopName, shopAddress,
+                            preferredCategoriesJson, docPathsJson);
                 }
+
+                CartDAO cartDAO = new CartDAO();
+                cartDAO.createForCustomer(insertedId);
 
                 return createdUser;
             } catch (Exception ex) {
                 try {
+                    if (createdShopProfileId > 0) {
+                        new dao.shop.ShopProfileDAO().deleteByUserId(insertedId);
+                    }
                     userDAO.deleteUser(insertedId);
                 } catch (SQLException sqle) {
                     // Bỏ qua lỗi xóa phụ để ném ra lỗi chính ban đầu
@@ -134,7 +144,7 @@ public class AuthService {
         User user = userDAO.findByLoginIdentifier(cleanIdentifier);
         if (user == null) {
             // Generic message — không tiết lộ sự tồn tại của tài khoản (anti-enumeration, SEC-03)
-            throw new Exception("Email hoặc mật khẩu không đúng.");
+            throw new Exception("Email hoặc mật khẩu không chính xác.");
         }
 
         // 1. Kiểm tra tài khoản có bị khóa hay không
@@ -157,7 +167,7 @@ public class AuthService {
                 throw new Exception("Tài khoản đã bị khóa tạm thời. Vui lòng thử lại sau: " + lockTime.format(dtf2));
             }
             // Generic message — không tiết lộ số lần còn lại (anti-enumeration, SEC-03)
-            throw new Exception("Email hoặc mật khẩu không đúng.");
+            throw new Exception("Email hoặc mật khẩu không chính xác.");
         }
 
         if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus())) {
@@ -219,7 +229,7 @@ public class AuthService {
      */
     public void resetPassword(String email, String newPassword) throws Exception {
         if (!ValidationUtil.notBlank(email) || !ValidationUtil.isValidEmail(email)) {
-            throw new Exception("Địa chỉ email không hợp lệ.");
+            throw new Exception("Email không hợp lệ.");
         }
         if (!ValidationUtil.isValidPassword(newPassword)) {
             throw new Exception("Mật khẩu mới phải từ 8 đến 64 ký tự.");
@@ -286,7 +296,7 @@ public class AuthService {
      */
     public boolean sendForgotPasswordCode(String email) throws Exception {
         if (!ValidationUtil.notBlank(email) || !ValidationUtil.isValidEmail(email)) {
-            throw new Exception("Địa chỉ email không hợp lệ.");
+            throw new Exception("Email không hợp lệ.");
         }
 
         User user = userDAO.findByEmail(email);
@@ -328,7 +338,7 @@ public class AuthService {
         }
 
         if (!HashUtil.verify(code.trim(), user.getEmailVerificationCodeHash())) {
-            throw new Exception("Mã xác minh không chính xác.");
+            throw new Exception("Mã xác minh không đúng.");
         }
 
         // Không activate — chỉ xác nhận OTP hợp lệ
@@ -420,7 +430,7 @@ public class AuthService {
         }
 
         if (!HashUtil.verify(code.trim(), user.getEmailVerificationCodeHash())) {
-            throw new Exception("Mã xác minh không chính xác.");
+            throw new Exception("Mã xác minh không đúng.");
         }
 
         userDAO.activateVerifiedEmail(user.getUserId());
@@ -461,6 +471,25 @@ public class AuthService {
         }
     }
 
+    private int createPendingShopProfile(User createdUser, String shopName, String shopAddress,
+                                         String preferredCategoriesJson, String docPathsJson) throws SQLException {
+        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
+        model.entity.shop.ShopProfile profile = new model.entity.shop.ShopProfile();
+        profile.setUserId(createdUser.getUserId());
+        profile.setShopName(shopName != null && !shopName.trim().isEmpty()
+                ? shopName.trim()
+                : "Cửa hàng của " + createdUser.getFullName());
+        profile.setShopDescription("Chào mừng tới cửa hàng của chúng tôi!");
+        profile.setApprovalStatus("PENDING");
+        profile.setDeliveryAddress(shopAddress != null && !shopAddress.trim().isEmpty()
+                ? shopAddress.trim()
+                : createdUser.getUserAddress());
+        profile.setRating(java.math.BigDecimal.ZERO);
+        profile.setPreferredCategories(preferredCategoriesJson);
+        profile.setDocPaths(docPathsJson);
+        profile.setBusinessEmail(null);
+        return shopProfileDAO.save(profile);
+    }
     private String generateVerificationCode() {
         int bound = (int) Math.pow(10, AppConfig.EMAIL_VERIFICATION_CODE_LENGTH);
         int min = bound / 10;

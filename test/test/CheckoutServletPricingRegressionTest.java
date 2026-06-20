@@ -18,10 +18,12 @@ import model.entity.shop.PaymentTransaction;
 import model.entity.catalog.Product;
 import model.entity.catalog.ProductVariant;
 import model.entity.auth.User;
+import model.entity.Promotion;
 import servlet.customer.cart.CheckoutServlet;
 import service.order.DeliveryService;
 import service.cart.CartService;
 import service.shop.PaymentService;
+import service.shop.PromotionService;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -67,6 +69,7 @@ public class CheckoutServletPricingRegressionTest {
     private final DeliveryService deliveryService = new DeliveryService();
     private final CartService cartService = new CartService();
     private final PaymentService paymentService = new PaymentService();
+    private final PromotionService promotionService = new PromotionService();
 
     private MockHttpEnvironment env;
 
@@ -81,6 +84,7 @@ public class CheckoutServletPricingRegressionTest {
     private int cartId = -1;
     private int createdOrderId = -1;
     private String customerPhone;
+    private String shopCouponCode;
 
     @Before
     public void setUp() throws SQLException {
@@ -102,6 +106,25 @@ public class CheckoutServletPricingRegressionTest {
         assertTrue(cartId > 0);
         cartDAO.addItem(cartId, variantAId, 1);
         cartDAO.addItem(cartId, variantBId, 1);
+
+        shopCouponCode = "SHOP10-" + System.currentTimeMillis();
+        Promotion shopPromo = new Promotion();
+        shopPromo.setCode(shopCouponCode);
+        shopPromo.setDiscountType("PERCENT");
+        shopPromo.setDiscountScope("SHOP");
+        shopPromo.setDiscountMax(new BigDecimal("50000"));
+        shopPromo.setDiscountValue(new BigDecimal("10"));
+        shopPromo.setMinOrderValue(new BigDecimal("50000"));
+        shopPromo.setScope("ORDER");
+        shopPromo.setProductId(null);
+        shopPromo.setMaxUses(1000);
+        shopPromo.setUsedCount(0);
+        shopPromo.setCanStack(true);
+        shopPromo.setValidFrom(LocalDateTime.now().minusDays(1));
+        shopPromo.setValidUntil(LocalDateTime.now().plusDays(30));
+        shopPromo.setCreatedBy(ownerAId);
+        shopPromo.setIsActive(true);
+        promotionService.createShopPromotion(shopPromo, ownerAId);
     }
 
     @After
@@ -121,6 +144,13 @@ public class CheckoutServletPricingRegressionTest {
             }
             if (categoryId > 0) {
                 categoryDAO.delete(categoryId);
+            }
+            if (shopCouponCode != null) {
+                try (Connection conn = orderDAO.openConnection();
+                     PreparedStatement ps = conn.prepareStatement("DELETE FROM promotions WHERE code = ?")) {
+                    ps.setString(1, shopCouponCode);
+                    ps.executeUpdate();
+                }
             }
             if (ownerAId > 0) {
                 userDAO.deleteUser(ownerAId);
@@ -145,6 +175,7 @@ public class CheckoutServletPricingRegressionTest {
             ownerBId = -1;
             customerId = -1;
             customerPhone = null;
+            shopCouponCode = null;
         }
     }
 
@@ -218,7 +249,7 @@ public class CheckoutServletPricingRegressionTest {
         env.putParam("deliveryTimeSlot", "08:00-12:00");
         env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
         env.putParam("variantIds", variantAId + "," + variantBId);
-        env.putParam("shopCouponCode", "SHOP10");
+        env.putParam("shopCouponCode", shopCouponCode);
 
         servlet.doPostPublic(env.request, env.response);
 
@@ -248,7 +279,7 @@ public class CheckoutServletPricingRegressionTest {
         env.putParam("deliveryTimeSlot", "08:00-12:00");
         env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
         env.putParam("variantIds", String.valueOf(variantAId));
-        env.putParam("shopCouponCode", "SHOP10");
+        env.putParam("shopCouponCode", shopCouponCode);
         env.putParam("systemCouponCode", "SAAN5");
 
         servlet.doPostPublic(env.request, env.response);

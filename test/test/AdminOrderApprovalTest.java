@@ -75,6 +75,7 @@ public class AdminOrderApprovalTest {
         productId = createProduct(shopOwnerId, categoryId, "AOA Product " + ts);
         variantId = createVariant(productId, "AOA-SKU-" + ts, new BigDecimal("500000"), 10);
         testOrderId = insertPendingBankTransferOrder(customerId, shopOwnerId, new BigDecimal("515000"));
+        paymentService.initPayment(testOrderId, AppConfig.PAYMENT_CK);
     }
 
     @After
@@ -174,9 +175,9 @@ public class AdminOrderApprovalTest {
     // =========================================================
 
     private int insertPendingBankTransferOrder(int cId, int oId, BigDecimal amount) throws SQLException {
-        String sql = "INSERT INTO orders (customer_id, owner_id, status, payment_method, subtotal_amount, " +
+        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, status, payment_method, total_amount, " +
                 "delivery_fee, final_amount, order_type, created_at, updated_at) " +
-                "VALUES (?, ?, '" + AppConfig.ORDER_PENDING_PAYMENT + "', '" + AppConfig.PAYMENT_CK + "', " +
+                "VALUES (?, ?, '123 Test Address', '" + AppConfig.ORDER_PENDING_PAYMENT + "', '" + AppConfig.PAYMENT_CK + "', " +
                 "?, 15000, ?, 'CHILD', GETDATE(), GETDATE())";
         try (Connection conn = orderDAO.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, new String[]{"order_id"})) {
@@ -222,7 +223,7 @@ public class AdminOrderApprovalTest {
     private int createCategory(String name) throws SQLException {
         try (Connection conn = categoryDAO.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO categories (name, slug, description, is_active) VALUES (?, ?, '', 1)",
+                     "INSERT INTO categories (name, slug, is_active) VALUES (?, ?, 1)",
                      new String[]{"category_id"})) {
             ps.setString(1, name);
             ps.setString(2, "aoa-" + System.currentTimeMillis());
@@ -235,11 +236,11 @@ public class AdminOrderApprovalTest {
     private int createProduct(int ownerId, int catId, String name) throws SQLException {
         try (Connection conn = productDAO.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO products (owner_id, category_id, name, slug, description, status, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, '', 'ACTIVE', GETDATE(), GETDATE())",
+                     "INSERT INTO products (owner_id, category_id, name, description, status, created_at, updated_at) " +
+                     "VALUES (?, ?, ?, '', 'ACTIVE', GETDATE(), GETDATE())",
                      new String[]{"product_id"})) {
             ps.setInt(1, ownerId); ps.setInt(2, catId);
-            ps.setString(3, name); ps.setString(4, "aoa-p-" + System.currentTimeMillis());
+            ps.setString(3, name);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) { if (rs.next()) return rs.getInt(1); }
         }
@@ -248,12 +249,12 @@ public class AdminOrderApprovalTest {
 
     private int createVariant(int productId, String sku, BigDecimal price, int stock) throws SQLException {
         try (Connection conn = variantDAO.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO product_variants (product_id, sku, price, stock_quantity, is_active, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, 1, GETDATE(), GETDATE())",
-                     new String[]{"variant_id"})) {
-            ps.setInt(1, productId); ps.setString(2, sku);
-            ps.setBigDecimal(3, price); ps.setInt(4, stock);
+            PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO product_variants (product_id, sku, variant_label, price, stock_quantity, is_active, created_at, updated_at) " +
+                    "VALUES (?, ?, ?, ?, ?, 1, GETDATE(), GETDATE())",
+                    new String[]{"variant_id"})) {
+            ps.setInt(1, productId); ps.setString(2, sku); ps.setString(3, "1kg");
+            ps.setBigDecimal(4, price); ps.setInt(5, stock);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) { if (rs.next()) return rs.getInt(1); }
         }

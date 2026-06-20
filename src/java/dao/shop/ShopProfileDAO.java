@@ -150,9 +150,31 @@ public class ShopProfileDAO extends BaseDAO {
     }
 
     /**
+     * Xóa shop profile theo user_id.
+     */
+    public void deleteByUserId(int userId) throws SQLException {
+        String sql = "DELETE FROM shop_owner_profiles WHERE user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
      * Lưu mới một shop profile và trả về ID tự sinh.
      */
     public int save(ShopProfile profile) throws SQLException {
+        ShopProfile existing = findOneByUserId(profile.getUserId());
+        if (existing != null) {
+            if ("REJECTED".equals(existing.getApprovalStatus())) {
+                deleteByUserId(profile.getUserId());
+            } else {
+                throw new SQLException("User " + profile.getUserId() + " đã có shop profile ở trạng thái "
+                        + existing.getApprovalStatus());
+            }
+        }
+
         String sql = "INSERT INTO shop_owner_profiles "
                    + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
                    + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, logo_url, cover_url, expiry_warning_days, low_stock_threshold, created_at, updated_at) "
@@ -233,7 +255,10 @@ public class ShopProfileDAO extends BaseDAO {
                     ps.setString(2, rejectionReason);
                     ps.setTimestamp(3, "APPROVED".equals(status) ? new Timestamp(System.currentTimeMillis()) : null);
                     ps.setInt(4, profileId);
-                    ps.executeUpdate();
+                    int profileRows = ps.executeUpdate();
+                    if (profileRows == 0) {
+                        throw new SQLException("Không tìm thấy shop profile #" + profileId);
+                    }
                 }
 
                 // Bước 2: Nếu APPROVED → đổi role user thành SHOP_OWNER
@@ -246,6 +271,8 @@ public class ShopProfileDAO extends BaseDAO {
                             throw new SQLException("[CRITICAL] Cập nhật role SHOP_OWNER thất bại cho user_id=" + userId);
                         }
                     }
+                } else if ("APPROVED".equals(status)) {
+                    throw new SQLException("userId không hợp lệ cho thao tác APPROVED.");
                 }
 
                 conn.commit();
