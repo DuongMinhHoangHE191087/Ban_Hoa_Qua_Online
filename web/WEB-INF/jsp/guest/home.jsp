@@ -1444,7 +1444,7 @@
                         /**
                          * Intercept and trigger dynamic quick-add flow.
                          */
-                        async function quickAddProduct(event, productId) {
+                        window.quickAddProduct = async function(event, productId) {
                             if (event) {
                                 event.preventDefault();
                                 event.stopPropagation();
@@ -2059,29 +2059,29 @@
                                 const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price);
                                 
                                 html += `
-                                    <article data-product-id="${item.productId}"
+                                    <article data-product-id="\${item.productId}"
                                         class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
-                                        <a href="${ctx}/products/detail?id=${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
+                                        <a href="\${ctx}/products/detail?id=\${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
                                             <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                                                <img src="${item.image}" alt="${fn:escapeXml(item.name)}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                                                <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-${item.productId}">Đã thêm 0</div>
+                                                <img src="\${item.image}" alt="\${escapeHtml(item.name)}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-\${item.productId}">Đã thêm 0</div>
                                                 <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">Nông sản sạch</div>
                                             </div>
                                             <div class="px-1 mb-3">
-                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">${fn:escapeXml(item.name)}</h3>
-                                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">${fn:escapeXml(item.description || '')}</p>
+                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">\${escapeHtml(item.name)}</h3>
+                                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">\${escapeHtml(item.description || '')}</p>
                                                 <div class="flex justify-between items-center">
-                                                    <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">${starsHtml}<span class="${ratingLabelClass}">${ratingLabel}</span></div>
-                                                    <span class="text-[10px] text-on-surface-variant font-medium">Đã bán ${item.soldQuantity || 0}</span>
+                                                    <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">\${starsHtml}<span class="\${ratingLabelClass}">\${ratingLabel}</span></div>
+                                                    <span class="text-[10px] text-on-surface-variant font-medium">Đã bán \${item.soldQuantity || 0}</span>
                                                 </div>
                                             </div>
                                         </a>
                                         <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
                                             <div class="flex flex-col">
-                                                <span class="text-base font-bold text-primary">${formattedPrice}</span>
-                                                <span class="text-[10px] text-on-surface-variant font-light">/ ${fn:escapeXml(item.unit || 'kg')}</span>
+                                                <span class="text-base font-bold text-primary">\${formattedPrice}</span>
+                                                <span class="text-[10px] text-on-surface-variant font-light">/ \${escapeHtml(item.unit || 'kg')}</span>
                                             </div>
-                                            <button type="button" onclick="quickAddProduct(event, '${item.productId}')" class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer" title="Thêm vào giỏ">
+                                            <button type="button" onclick="quickAddProduct(event, '\${item.productId}')" class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer" title="Thêm vào giỏ">
                                                 <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
                                             </button>
                                         </div>
@@ -2098,7 +2098,7 @@
                                 // Prev
                                 if (currentPage > 1) {
                                     html += `
-                                        <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, ${currentPage - 1})"
+                                        <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, \${currentPage - 1})"
                                             class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
                                             <span class="material-symbols-outlined text-[20px]">chevron_left</span>
                                         </button>
@@ -2115,12 +2115,12 @@
                                 for (let p = 1; p <= totalPages; p++) {
                                     if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
                                         if (currentPage === p) {
-                                            html += `<span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">${p}</span>`;
+                                            html += `<span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">\${p}</span>`;
                                         } else {
                                             html += `
-                                                <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, ${p})"
+                                                <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, \${p})"
                                                     class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                                    ${p}
+                                                    \${p}
                                                 </button>
                                             `;
                                         }
@@ -2132,7 +2132,7 @@
                                 // Next
                                 if (currentPage < totalPages) {
                                     html += `
-                                        <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, ${currentPage + 1})"
+                                        <button onclick="searchProductsAjax(currentKeyword, currentCategoryId, \${currentPage + 1})"
                                             class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
                                             <span class="material-symbols-outlined text-[20px]">chevron_right</span>
                                         </button>
@@ -2151,7 +2151,7 @@
                             // View All button
                             html += `
                                 <div class="flex justify-center mt-8">
-                                    <a href="${ctx}/products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer" style="text-decoration: none;">
+                                    <a href="\${ctx}/products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer" style="text-decoration: none;">
                                         <span class="material-symbols-outlined text-[18px]">grid_view</span>
                                         <span>Xem tất cả sản phẩm</span>
                                     </a>
