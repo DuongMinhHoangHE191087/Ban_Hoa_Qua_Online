@@ -55,8 +55,11 @@ public class PaymentService {
     }
 
     public PaymentTransaction initPayment(int orderId, String method, String ipAddress) throws SQLException {
+        if (orderId <= 0) {
+            throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
+        }
         Order order = orderDAO.findOneById(orderId);
-        if (order == null) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
+        if (order == null) throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
 
         String reference = buildSepayReference(orderId);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
@@ -109,6 +112,9 @@ public class PaymentService {
      * @return false nếu QR đã hết hạn
      */
     public boolean confirmManualPayment(int orderId, int customerId) throws SQLException {
+        if (orderId <= 0) {
+            throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
+        }
         // Guard: đơn phải thuộc customer này
         Order order = orderDAO.findByIdForCustomer(orderId, customerId);
         if (order == null) throw new SecurityException("Không có quyền truy cập đơn hàng #" + orderId);
@@ -134,13 +140,16 @@ public class PaymentService {
      * Admin xác nhận đã nhận tiền — chuyển payment → completed, order → CONFIRMED.
      */
     public void adminApprovePayment(int orderId, int adminId) throws SQLException {
+        if (orderId <= 0) {
+            throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
+        }
         User adminUser = userDAO.findUserById(adminId);
         if (adminUser == null || !AppConfig.ROLE_ADMIN.equals(adminUser.getRole())) {
             throw new SecurityException("Bạn không có quyền thực hiện phê duyệt thanh toán này.");
         }
 
         Order order = orderDAO.findOneById(orderId);
-        if (order == null) throw new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId);
+        if (order == null) throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
 
         if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
             throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
@@ -334,7 +343,8 @@ public class PaymentService {
 
         BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
         if (received.compareTo(expected) < 0) {
-            paymentDAO.updateStatus(conn, tx.getTransactionId(), "failed", sepayTxId, jsonPayload);
+            paymentDAO.updateStatusFailed(tx.getTransactionId(), "AMOUNT_MISMATCH",
+                    "Số tiền nhận được thấp hơn số tiền đơn hàng.");
             paymentDAO.updateDedupResult(conn, sepayTxId, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
                 expected, received, tx.getOrderId());

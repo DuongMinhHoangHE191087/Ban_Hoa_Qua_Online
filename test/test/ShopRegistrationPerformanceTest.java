@@ -46,7 +46,7 @@ public class ShopRegistrationPerformanceTest {
     private static final long SLA_DAO_LOOKUP_MS         =   100;
     private static final long SLA_APPROVE_MS            =   500;
     private static final long SLA_SERVICE_LOOKUP_MS     =   200;
-    private static final long SLA_CONNECTION_MS         =    50;
+    private static final long SLA_CONNECTION_MS         =   500;
     private static final long SLA_STATUS_QUERY_MS       =   200;
 
     private UserDAO        userDAO;

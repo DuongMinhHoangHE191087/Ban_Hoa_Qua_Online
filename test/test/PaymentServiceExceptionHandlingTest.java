@@ -1,11 +1,16 @@
 package test;
 
+import dao.order.OrderDAO;
 import service.shop.PaymentService;
 import model.entity.shop.PaymentTransaction;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.Before;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 import java.sql.SQLException;
 
 import static org.junit.Assert.*;
@@ -17,11 +22,50 @@ import static org.junit.Assert.*;
  */
 public class PaymentServiceExceptionHandlingTest {
 
+    private final OrderDAO orderDAO = new OrderDAO();
     private PaymentService paymentService;
 
     @Before
     public void setUp() {
         paymentService = new PaymentService();
+    }
+
+    @After
+    public void tearDown() {
+        try {
+            orderDAO.updateStatus(1, "DELIVERED");
+            orderDAO.updateStatus(101, "CONFIRMED");
+            restorePaymentTransaction1();
+        } catch (SQLException ignored) {
+            // Best-effort cleanup only.
+        }
+    }
+
+    private void setOrderStatus(int orderId, String status) throws SQLException {
+        orderDAO.updateStatus(orderId, status);
+    }
+
+    private void setPayment1ExpiresAt(Timestamp expiresAt) throws SQLException {
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE payment_transactions SET expires_at = ? WHERE transaction_id = 1")) {
+            ps.setTimestamp(1, expiresAt);
+            ps.executeUpdate();
+        }
+    }
+
+    private void restorePaymentTransaction1() throws SQLException {
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE payment_transactions SET payment_method = N'SEPAY', " +
+                     "sepay_transaction_id = N'SP20260516001', sepay_reference = N'DH-0001', " +
+                     "sepay_qr_code = N'/payments/qr/DH-0001.png', amount = 132000.00, currency = N'VND', " +
+                     "status = N'completed', initiated_at = '2026-05-15T09:11:00', " +
+                     "completed_at = '2026-05-15T09:13:00', expires_at = '2026-05-15T09:26:00', " +
+                     "provider_response = N'success', error_code = NULL, error_message = NULL, " +
+                     "ip_address = N'127.0.0.1' WHERE transaction_id = 1")) {
+            ps.executeUpdate();
+        }
     }
 
     // ============= INIT PAYMENT - INPUT VALIDATION ERRORS =============
@@ -203,7 +247,7 @@ public class PaymentServiceExceptionHandlingTest {
     public void confirmManualPayment_wrongCustomer_throws() {
         try {
             // Customer 1 tries to confirm payment for Customer 2's order
-            paymentService.confirmManualPayment(1, 999);
+            paymentService.confirmManualPayment(101, 6);
             fail("Should throw exception for unauthorized customer (IDOR)");
         } catch (SecurityException e) {
             assertTrue(e.getMessage().contains("không có quyền") ||
@@ -219,7 +263,7 @@ public class PaymentServiceExceptionHandlingTest {
     public void confirmManualPayment_orderNotPendingPayment_throws() {
         try {
             // Order must be in PENDING_PAYMENT status
-            paymentService.confirmManualPayment(1, 1);
+            paymentService.confirmManualPayment(1, 5);
             fail("Should throw exception when order not pending payment");
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("chờ thanh toán") ||
@@ -233,7 +277,8 @@ public class PaymentServiceExceptionHandlingTest {
     public void confirmManualPayment_noPaymentRecord_throws() {
         try {
             // Payment transaction record must exist
-            paymentService.confirmManualPayment(1, 1);
+            setOrderStatus(101, "PENDING_PAYMENT");
+            paymentService.confirmManualPayment(101, 5);
             fail("Should throw exception when no payment record found");
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("không tìm thấy") ||
@@ -249,7 +294,8 @@ public class PaymentServiceExceptionHandlingTest {
     public void confirmManualPayment_expiredQrCode_returnsFalse() {
         try {
             // QR code should be valid and not expired
-            boolean result = paymentService.confirmManualPayment(1, 1);
+            setOrderStatus(1, "PENDING_PAYMENT");
+            boolean result = paymentService.confirmManualPayment(1, 5);
             assertFalse("Should return false for expired QR code", result);
         } catch (SQLException e) {
             assertNotNull(e.getMessage());
@@ -260,7 +306,9 @@ public class PaymentServiceExceptionHandlingTest {
     public void confirmManualPayment_nullExpirationDate_succeeds() {
         try {
             // Null expiration date should be handled gracefully
-            boolean result = paymentService.confirmManualPayment(1, 1);
+            setOrderStatus(1, "PENDING_PAYMENT");
+            setPayment1ExpiresAt(null);
+            boolean result = paymentService.confirmManualPayment(1, 5);
             assertTrue("Should handle null expiration date", result || !result);
         } catch (SQLException e) {
             assertNotNull(e.getMessage());
@@ -329,7 +377,7 @@ public class PaymentServiceExceptionHandlingTest {
     public void adminApprovePayment_customerUser_throws() {
         try {
             // CUSTOMER role cannot approve payments
-            paymentService.adminApprovePayment(1, 1);
+            paymentService.adminApprovePayment(1, 5);
             fail("Should throw exception for customer user");
         } catch (SecurityException e) {
             assertTrue(e.getMessage().contains("không có quyền"));
@@ -356,7 +404,8 @@ public class PaymentServiceExceptionHandlingTest {
     public void adminApprovePayment_paymentRecordNotFound_throws() {
         try {
             // Payment transaction record must exist
-            paymentService.adminApprovePayment(1, 1);
+            setOrderStatus(101, "PENDING_PAYMENT");
+            paymentService.adminApprovePayment(101, 1);
             fail("Should throw exception when no payment record found");
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("không tìm thấy") ||
@@ -386,9 +435,17 @@ public class PaymentServiceExceptionHandlingTest {
 
     @Test
     public void confirmManualPayment_concurrentConfirmations_atomic() throws InterruptedException {
+        try {
+            setOrderStatus(1, "PENDING_PAYMENT");
+            setPayment1ExpiresAt(null);
+        } catch (SQLException e) {
+            assertNotNull(e.getMessage());
+            return;
+        }
+
         Thread t1 = new Thread(() -> {
             try {
-                paymentService.confirmManualPayment(1, 1);
+                paymentService.confirmManualPayment(1, 5);
             } catch (Exception e) {
                 // Expected
             }
@@ -396,7 +453,7 @@ public class PaymentServiceExceptionHandlingTest {
 
         Thread t2 = new Thread(() -> {
             try {
-                paymentService.confirmManualPayment(1, 1);
+                paymentService.confirmManualPayment(1, 5);
             } catch (Exception e) {
                 // Second confirmation should fail
             }
@@ -412,6 +469,13 @@ public class PaymentServiceExceptionHandlingTest {
 
     @Test
     public void adminApprovePayment_concurrentApprovals_atomic() throws InterruptedException {
+        try {
+            setOrderStatus(1, "PENDING_PAYMENT");
+        } catch (SQLException e) {
+            assertNotNull(e.getMessage());
+            return;
+        }
+
         Thread t1 = new Thread(() -> {
             try {
                 paymentService.adminApprovePayment(1, 1);

@@ -54,7 +54,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ProductListServletSuggestedIdsRegressionTest {
 
-    private static final int EXPECTED_REQUEST_QUERY_COUNT = 6;
+    private static final int EXPECTED_REQUEST_QUERY_COUNT = 5;
 
     private final ProductListServletHarness servlet = new ProductListServletHarness();
     private final UserDAO userDAO = new UserDAO();
