@@ -142,11 +142,19 @@
                             </c:when>
                             <c:otherwise>
                                 <c:forEach var="r" items="${requestList}">
+                                    <c:set var="reasonText" value="Lý do khác"/>
+                                    <c:choose>
+                                        <c:when test="${r.reasonCode == 'WRONG_ITEM'}"><c:set var="reasonText" value="Giao nhầm hàng"/></c:when>
+                                        <c:when test="${r.reasonCode == 'DAMAGED'}"><c:set var="reasonText" value="Hàng bị hỏng/dập nát"/></c:when>
+                                        <c:when test="${r.reasonCode == 'MISSING_ITEM'}"><c:set var="reasonText" value="Thiếu hàng"/></c:when>
+                                        <c:when test="${r.reasonCode == 'LATE_DELIVERY'}"><c:set var="reasonText" value="Giao hàng quá trễ"/></c:when>
+                                        <c:when test="${r.reasonCode == 'NOT_AS_DESCRIBED'}"><c:set var="reasonText" value="Không đúng mô tả"/></c:when>
+                                    </c:choose>
                                     <tr>
                                         <td class="px-6 py-4 font-mono font-bold text-primary">#${r.returnRequestId}</td>
                                         <td class="px-6 py-4 font-bold text-txt">Đơn #${r.orderId}</td>
                                         <td class="px-6 py-4 text-txt-2 text-xs">UID #${r.customerId}</td>
-                                        <td class="px-6 py-4 font-medium text-txt-2">${r.reasonCode}</td>
+                                        <td class="px-6 py-4 font-medium text-txt-2">${reasonText}</td>
                                         <td class="px-6 py-4 text-xs text-txt-2 max-w-[200px] truncate" title="${r.description}">
                                             ${r.description}
                                         </td>
@@ -184,7 +192,7 @@
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
-                                                <button type="button" onclick="viewDetails('${r.returnRequestId}', '${fn:escapeXml(r.reasonCode)}', '${fn:escapeXml(r.description)}')" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-1.5 rounded-lg text-xs transition-all shadow-sm flex items-center justify-center gap-1">
+                                                <button type="button" onclick="viewDetails('${r.returnRequestId}', '${fn:escapeXml(reasonText)}', '${fn:escapeXml(r.description)}')" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-1.5 rounded-lg text-xs transition-all shadow-sm flex items-center justify-center gap-1">
                                                     <i class="fa-solid fa-eye"></i> Chi tiết
                                                 </button>
                                                 <c:choose>
