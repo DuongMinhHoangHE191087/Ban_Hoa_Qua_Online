@@ -56,6 +56,7 @@ public class ProductEditServlet extends HttpServlet {
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final dao.system.SystemConfigDAO systemConfigDAO = new dao.system.SystemConfigDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -118,11 +119,14 @@ public class ProductEditServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi truy vấn cơ sở dữ liệu khi tải thông tin sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "ProductEditServlet#doGet",
+                        "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(session, "Lỗi truy vấn cơ sở dữ liệu.");
@@ -392,8 +396,14 @@ public class ProductEditServlet extends HttpServlet {
             p.setSeasonStartMonth(seasonStartMonth);
             p.setSeasonEndMonth(seasonEndMonth);
             
-            // Mỗi lần cập nhật thông tin sẽ chuyển về trạng thái chờ duyệt PENDING
-            p.setApprovalStatus("PENDING");
+            String autoApproveVal = null;
+            try {
+                autoApproveVal = systemConfigDAO.getValue("product_auto_approve");
+            } catch (Exception ex) {
+                LoggerUtil.warn(log, "Không thể đọc cấu hình product_auto_approve", ex);
+            }
+            boolean isAutoApprove = "true".equalsIgnoreCase(autoApproveVal);
+            p.setApprovalStatus(isAutoApprove ? "APPROVED" : "PENDING");
 
             // Gọi DAO cập nhật products
             productDAO.update(p);
@@ -605,11 +615,14 @@ public class ProductEditServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "ProductEditServlet#doPost",
+                        "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage());

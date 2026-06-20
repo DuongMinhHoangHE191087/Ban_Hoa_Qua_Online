@@ -104,6 +104,8 @@ BEGIN
         business_email NVARCHAR(255) NULL,
         logo_url NVARCHAR(500) NULL,
         cover_url NVARCHAR(500) NULL,
+        expiry_warning_days INT NOT NULL CONSTRAINT DF_shop_owner_profiles_expiry_warning_days DEFAULT 3,
+        low_stock_threshold INT NOT NULL CONSTRAINT DF_shop_owner_profiles_low_stock_threshold DEFAULT 5,
         created_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_created_at DEFAULT GETDATE(),
         updated_at DATETIME NOT NULL CONSTRAINT DF_shop_owner_profiles_updated_at DEFAULT GETDATE(),
         CONSTRAINT FK_shop_owner_profiles_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id)
@@ -128,6 +130,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'cover_url')
     BEGIN
         ALTER TABLE dbo.shop_owner_profiles ADD cover_url NVARCHAR(500) NULL;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'expiry_warning_days')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD expiry_warning_days INT NOT NULL CONSTRAINT DF_shop_owner_profiles_expiry_warning_days DEFAULT 3;
+    END
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.shop_owner_profiles') AND name = N'low_stock_threshold')
+    BEGIN
+        ALTER TABLE dbo.shop_owner_profiles ADD low_stock_threshold INT NOT NULL CONSTRAINT DF_shop_owner_profiles_low_stock_threshold DEFAULT 5;
     END
 END
 GO
@@ -400,6 +410,7 @@ BEGIN
         final_amount DECIMAL(14,2) NOT NULL,
         payment_method NVARCHAR(20) NOT NULL CONSTRAINT CK_orders_payment_method  CHECK (payment_method IN ('CK', 'COD')),
         refund_status NVARCHAR(20) NOT NULL CONSTRAINT DF_orders_refund_status DEFAULT 'NONE' CONSTRAINT CK_orders_refund_status CHECK (refund_status IN ('NONE', 'PENDING', 'APPROVED', 'REJECTED', 'PROCESSING', 'REFUNDED', 'FAILED')),
+        received_status NVARCHAR(20) NOT NULL CONSTRAINT DF_orders_received_status DEFAULT 'PENDING' CONSTRAINT CK_orders_received_status CHECK (received_status IN ('PENDING', 'RECEIVED', 'NOT_RECEIVED')),
         shop_acceptance_deadline DATETIME NULL,
         shop_accepted_at DATETIME NULL,
         created_at DATETIME NOT NULL CONSTRAINT DF_orders_created_at DEFAULT GETDATE(),
@@ -469,6 +480,27 @@ BEGIN
     END
     
     ALTER TABLE dbo.orders ADD CONSTRAINT CK_orders_status CHECK (status IN ('PENDING_PAYMENT', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED', 'DELIVERED', 'CANCELLED', 'PAYMENT_FAILED', 'EXPIRED'));
+END
+GO
+
+-- Migration: customer delivery acknowledgement state.
+IF OBJECT_ID(N'dbo.orders', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.orders') AND name = N'received_status')
+    BEGIN
+        ALTER TABLE dbo.orders ADD received_status NVARCHAR(20) NOT NULL CONSTRAINT DF_orders_received_status DEFAULT 'PENDING';
+        PRINT 'Added received_status to orders (migration guard).';
+    END
+
+    UPDATE dbo.orders
+    SET received_status = 'PENDING'
+    WHERE received_status IS NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM sys.default_constraints WHERE name = N'DF_orders_received_status')
+        ALTER TABLE dbo.orders ADD CONSTRAINT DF_orders_received_status DEFAULT 'PENDING' FOR received_status;
+
+    IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_orders_received_status')
+        ALTER TABLE dbo.orders ADD CONSTRAINT CK_orders_received_status CHECK (received_status IN ('PENDING', 'RECEIVED', 'NOT_RECEIVED'));
 END
 GO
 
@@ -1607,6 +1639,10 @@ BEGIN TRY
         -- Child order 2 for Shop 4
         (102, 5, 4, N'15 Pasteur, Quận 3, TP. Hồ Chí Minh', NULL, N'Child order part 2', NULL, NULL, NULL, N'CONFIRMED', 214000.00, 20000.00, 15000.00, 0.00, 15000.00, 10700.00, 219000.00, N'CK', N'NONE', '2026-05-24T09:00:00', '2026-05-24T09:10:00', 100, 'CHILD');
     SET IDENTITY_INSERT dbo.orders OFF;
+
+    UPDATE dbo.orders
+    SET received_status = 'RECEIVED'
+    WHERE status = 'DELIVERED';
 
     SET IDENTITY_INSERT dbo.order_items ON;
     INSERT INTO dbo.order_items (order_item_id, order_id, variant_id, product_name_snapshot, variant_label_snapshot, quantity, unit_price, subtotal)

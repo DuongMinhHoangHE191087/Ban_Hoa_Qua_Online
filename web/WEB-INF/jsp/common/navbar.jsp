@@ -205,22 +205,22 @@
             function updateBadges() {
                 fetch(window.contextPath + '/api/notifications/unread')
                     .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
+                    .then(res => {
+                        if (res.success && res.data) {
                             const chatBadge = document.getElementById('chat-badge');
                             const notifBadge = document.getElementById('notif-badge');
                             
                             if (chatBadge) {
-                                if (data.unreadChats > 0) {
-                                    chatBadge.textContent = data.unreadChats;
+                                if (res.data.unreadChats > 0) {
+                                    chatBadge.textContent = res.data.unreadChats;
                                     chatBadge.classList.remove('hidden');
                                 } else {
                                     chatBadge.classList.add('hidden');
                                 }
                             }
                             if (notifBadge) {
-                                if (data.unreadNotifications > 0) {
-                                    notifBadge.textContent = data.unreadNotifications;
+                                if (res.data.unreadNotifications > 0) {
+                                    notifBadge.textContent = res.data.unreadNotifications;
                                     notifBadge.classList.remove('hidden');
                                 } else {
                                     notifBadge.classList.add('hidden');
@@ -260,9 +260,10 @@
                 notifDropdownList.innerHTML = '<div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 13px;">Đang tải thông báo...</div>';
                 fetch(window.contextPath + '/api/notifications/recent')
                     .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            if (!data.notifications || data.notifications.length === 0) {
+                    .then(res => {
+                        if (res.success && res.data) {
+                            const notifications = res.data.notifications;
+                            if (!notifications || notifications.length === 0) {
                                 notifDropdownList.innerHTML = '<div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 13px;">Không có thông báo nào gần đây.</div>';
                                 return;
                             }
@@ -285,7 +286,7 @@
                                     .replace(/'/g, '&#39;');
                             }
 
-                            data.notifications.forEach(n => {
+                            notifications.forEach(n => {
                                 const bg = n.isRead ? 'transparent' : '#f8fafc';
                                 const dot = n.isRead ? '' : '<span style="display:inline-block; width:6px; height:6px; background:#4d661c; border-radius:50%; margin-right:4px;"></span>';
                                 const dateStr = formatNotifTime(n.createdAt);
@@ -294,16 +295,19 @@
                                 const message = escapeHtml(n.message);
                                 
                                 html += `
-                                    <div class="notif-dropdown-item" style="padding:12px 16px; background:\${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick='handleNotifClick(event, \${n.notificationId}, ${JSON.stringify(link)})'>
-                                        <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center;">
+                                    <div class="notif-dropdown-item" style="position:relative; padding:12px 16px; background:\${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick='handleNotifClick(event, \${n.notificationId}, ${JSON.stringify(link)})'>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center; padding-right:16px;">
                                             <span style="font-weight:600; font-size:13px; color:#334155; display:flex; align-items:center;">
                                                 \${dot}\${title}
                                             </span>
                                             <span style="font-size:10px; color:#94a3b8; white-space:nowrap; margin-left:8px;">\${dateStr}</span>
                                         </div>
-                                        <p style="margin:0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                                        <p style="margin:0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; padding-right:16px;">
                                             \${message}
                                         </p>
+                                        <button onclick="handleNotifDelete(event, \${n.notificationId})" style="position:absolute; right:12px; top:12px; border:none; background:none; color:#94a3b8; cursor:pointer; font-size:14px; padding:2px 6px; line-height:1; display:flex; align-items:center; justify-content:center; border-radius:4px;" onmouseover="this.style.color='#ef4444'; this.style.background='#f1f5f9';" onmouseout="this.style.color='#94a3b8'; this.style.background='none';">
+                                            &times;
+                                        </button>
                                     </div>
                                 `;
                             });
@@ -320,13 +324,27 @@
             window.handleNotifClick = function(e, notifId, link) {
                 e.preventDefault();
                 // Mark as read via AJAX, then redirect
-                fetch(window.contextPath + '/api/notifications/markAllRead?action=markRead&notifId=' + notifId, { method: 'POST' })
+                fetch(window.contextPath + '/api/notifications/markRead?action=markRead&notifId=' + notifId, { method: 'POST' })
                     .finally(() => {
                         if (link && link !== '#') {
                             window.location.href = link;
                         } else {
                             if (notifDropdown) notifDropdown.style.display = 'none';
                             updateBadges();
+                            loadRecentNotifications();
+                        }
+                    });
+            };
+
+            window.handleNotifDelete = function(e, notifId) {
+                e.preventDefault();
+                e.stopPropagation();
+                fetch(window.contextPath + '/api/notifications/delete?action=delete&notifId=' + notifId, { method: 'POST' })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            updateBadges();
+                            loadRecentNotifications();
                         }
                     });
             };

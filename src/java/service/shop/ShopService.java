@@ -1,21 +1,25 @@
 package service.shop;
 
+import config.AppConfig;
 import dao.shop.ShopProfileDAO;
+import model.entity.catalog.Product;
 import model.entity.shop.ShopProfile;
+import service.catalog.ProductService;
+import service.order.OrderService;
 import java.sql.SQLException;
 import java.util.List;
-
-import java.util.logging.Logger;
-import util.LoggerUtil;
+import java.util.Locale;
 
 public class ShopService {
 
-    private static final Logger log = LoggerUtil.getLogger(ShopService.class);
-
     private final ShopProfileDAO shopProfileDAO;
+    private final ProductService productService;
+    private final OrderService orderService;
 
     public ShopService() {
         this.shopProfileDAO = new ShopProfileDAO();
+        this.productService = new ProductService();
+        this.orderService = new OrderService();
     }
 
     public List<ShopProfile> getAllShops() throws SQLException {
@@ -36,12 +40,35 @@ public class ShopService {
         if (status == null || status.trim().isEmpty()) {
             throw new IllegalArgumentException("Trạng thái không được để trống.");
         }
-        if ("REJECTED".equalsIgnoreCase(status) && (rejectionReason == null || rejectionReason.trim().isEmpty())) {
+        String normalizedStatus = status.trim().toUpperCase(Locale.ROOT);
+        if (AppConfig.SHOP_REJECTED.equals(normalizedStatus)
+                && (rejectionReason == null || rejectionReason.trim().isEmpty())) {
             throw new IllegalArgumentException("Lý do từ chối không được để trống.");
         }
         ShopProfile shop = shopProfileDAO.findById(profileId);
         if (shop != null) {
-            shopProfileDAO.updateApprovalStatus(profileId, shop.getUserId(), status, rejectionReason);
+            shopProfileDAO.updateApprovalStatus(profileId, shop.getUserId(), normalizedStatus, rejectionReason);
+            if (AppConfig.SHOP_SUSPENDED.equals(normalizedStatus) || AppConfig.SHOP_REJECTED.equals(normalizedStatus)) {
+                SQLException cascadeFailure = null;
+                try {
+                    hideProductsForOwner(shop.getUserId());
+                } catch (SQLException ex) {
+                    cascadeFailure = ex;
+                }
+                try {
+                    orderService.cancelOpenOrdersByOwner(shop.getUserId(),
+                            buildSystemCancellationReason(normalizedStatus, rejectionReason));
+                } catch (SQLException ex) {
+                    if (cascadeFailure == null) {
+                        cascadeFailure = ex;
+                    } else {
+                        cascadeFailure.addSuppressed(ex);
+                    }
+                }
+                if (cascadeFailure != null) {
+                    throw cascadeFailure;
+                }
+            }
         }
     }
 
@@ -68,5 +95,24 @@ public class ShopService {
             throw new IllegalArgumentException("Profile ID không hợp lệ.");
         }
         return shopProfileDAO.findById(profileId);
+    }
+
+    private void hideProductsForOwner(int ownerId) throws SQLException {
+        List<Product> products = productService.getProductsByOwner(ownerId);
+        for (Product product : products) {
+            if (product.getProductId() > 0) {
+                productService.toggleStatus(product.getProductId(), "INACTIVE");
+            }
+        }
+    }
+
+    private String buildSystemCancellationReason(String status, String rejectionReason) {
+        if (AppConfig.SHOP_REJECTED.equals(status) && rejectionReason != null && !rejectionReason.trim().isEmpty()) {
+            return "Shop bị từ chối: " + rejectionReason.trim();
+        }
+        if (AppConfig.SHOP_SUSPENDED.equals(status)) {
+            return "Shop bị đình chỉ bởi quản trị viên.";
+        }
+        return "Shop không còn hoạt động.";
     }
 }

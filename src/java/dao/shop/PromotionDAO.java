@@ -17,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * PromotionDAO — DAO cho entity Promotion.
  *
@@ -32,8 +29,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class PromotionDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(PromotionDAO.class.getName());
 
     /**
      * Tìm khuyến mãi theo ID.
@@ -278,6 +273,24 @@ public class PromotionDAO extends BaseDAO {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, promoId);
             ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Atomic claim: tăng used_count CHỈ KHI còn dưới max_uses.
+     * Dùng trong transaction để tránh race condition khi nhiều đơn hàng dùng cùng mã giảm giá.
+     * SQL Server row-level lock đảm bảo tính nhất quán dù có nhiều thread đồng thời.
+     *
+     * @return true nếu claim thành công (còn slot), false nếu đã hết lượt (used_count >= max_uses)
+     */
+    public boolean claimUsage(Connection conn, int promoId) throws SQLException {
+        String sql = "UPDATE promotions "
+                   + "SET used_count = used_count + 1, updated_at = GETDATE() "
+                   + "WHERE promo_id = ? "
+                   + "  AND (max_uses IS NULL OR used_count < max_uses)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, promoId);
+            return ps.executeUpdate() > 0;
         }
     }
 

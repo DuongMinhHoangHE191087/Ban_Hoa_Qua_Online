@@ -215,14 +215,27 @@
                                 Thông tin cửa hàng
                             </h3>
 
-                            <div>
-                                <label class="text-xs font-semibold text-primary" for="shopName">Tên cửa hàng / Doanh nghiệp *</label>
-                                <div class="relative mt-1">
-                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">storefront</span>
-                                    <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
-                                           id="shopName" name="shopName"
-                                           value="<c:out value="${not empty existingProfile ? existingProfile.shopName : param.shopName}"/>"
-                                           placeholder="VD: Nông trại hữu cơ Xanh Mát" type="text" required maxlength="150">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-primary" for="shopName">Tên cửa hàng / Doanh nghiệp *</label>
+                                    <div class="relative mt-1">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">storefront</span>
+                                        <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
+                                               id="shopName" name="shopName"
+                                               value="<c:out value="${not empty existingProfile ? existingProfile.shopName : param.shopName}"/>"
+                                               placeholder="VD: Nông trại hữu cơ xanh" type="text" required maxlength="150">
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="text-xs font-semibold text-primary" for="businessEmail">Email liên hệ kinh doanh *</label>
+                                    <div class="relative mt-1">
+                                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">mail</span>
+                                        <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
+                                               id="businessEmail" name="businessEmail"
+                                               value="<c:out value="${not empty existingProfile ? existingProfile.businessEmail : param.businessEmail}"/>"
+                                               placeholder="VD: email@doanhnghiep.com" type="email" required maxlength="150">
+                                    </div>
                                 </div>
                             </div>
 

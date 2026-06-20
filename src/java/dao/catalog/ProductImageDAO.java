@@ -2,7 +2,6 @@ package dao.catalog;
 
 import dao.system.BaseDAO;
 import model.entity.catalog.ProductImage;
-import util.LoggerUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,7 +14,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.Set;
 
 /**
@@ -30,8 +28,6 @@ import java.util.Set;
  * @author fruitmkt-team
  */
 public class ProductImageDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(ProductImageDAO.class.getName());
 
     /**
      * Lấy toàn bộ danh sách ảnh của một sản phẩm.

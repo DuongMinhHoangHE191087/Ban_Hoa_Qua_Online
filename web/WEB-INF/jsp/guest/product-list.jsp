@@ -232,6 +232,16 @@
                         <span class="text-xs bg-emerald-100 text-primary px-3 py-1 rounded-full font-semibold">Đang lọc</span>
                     </c:if>
                 </div>
+                <div id="products-catalog-container" class="relative min-h-[400px]" 
+                     data-current-page="${not empty pagedResult ? pagedResult.currentPage : 1}" 
+                     data-total-pages="${not empty pagedResult ? pagedResult.totalPages : 1}">
+                    <!-- Loading overlay inside container -->
+                    <div id="catalog-loading" class="hidden absolute inset-0 bg-white/60 backdrop-blur-sm z-30 flex items-center justify-center rounded-3xl transition-opacity duration-300">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <p class="text-xs font-semibold text-primary">Đang tải sản phẩm...</p>
+                        </div>
+                    </div>
 
                 <!-- AI Filter alert banner -->
                 <div id="aiFilterBanner" class="hidden flex items-center justify-between gap-3 mb-6 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 p-4 rounded-2xl shadow-sm">
@@ -417,6 +427,7 @@
                         </c:if>
                     </c:otherwise>
                 </c:choose>
+                </div>
             </main>
         </div>
     </div>
@@ -436,8 +447,49 @@
     </span>
 </div>
 
+<script id="initial-products-data" type="application/json">
+    [
+        <c:forEach var="p" items="${pagedResult.items}" varStatus="status">
+            {
+                "productId": ${p.productId},
+                "name": "${fn:escapeXml(p.name)}",
+                "description": "${fn:escapeXml(p.description)}",
+                "price": ${p.price},
+                "rating": ${p.rating},
+                "soldQuantity": ${p.soldQuantity},
+                "categoryId": ${p.categoryId},
+                "inStock": ${p.inStock},
+                "image": "${p.image}",
+                "unit": "${fn:escapeXml(p.unit)}",
+                "variantId": ${not empty p.variantId ? p.variantId : 0},
+                "stockQuantity": ${not empty p.stockQuantity ? p.stockQuantity : 0}
+            }${not status.last ? ',' : ''}
+        </c:forEach>
+    ]
+</script>
+
 <script>
     const PRODUCT_LIST_URL = '${pageContext.request.contextPath}/products';
+    
+    let loadedProducts = [];
+    try {
+        loadedProducts = JSON.parse(document.getElementById('initial-products-data')?.textContent || '[]');
+    } catch (e) {
+        console.error("Lỗi parse initial JSON:", e);
+    }
+    
+    const catalogContainerEl = document.getElementById('products-catalog-container');
+    let currentPage = catalogContainerEl ? parseInt(catalogContainerEl.getAttribute('data-current-page') || '1') : 1;
+    let totalPages = catalogContainerEl ? parseInt(catalogContainerEl.getAttribute('data-total-pages') || '1') : 1;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+                  .replace(/"/g, "&quot;")
+                  .replace(/'/g, "&#039;");
+    }
 
     // Helper to exit AI-filtered product mode and return to the canonical product list.
     function resetAiProductFilter(event) {
@@ -449,7 +501,56 @@
         return false;
     }
 
-    // Client-side Filter & Sort logic
+    async function fetchProductsAjax(pageNumber = 1) {
+        const loading = document.getElementById('catalog-loading');
+        const container = document.getElementById('products-catalog-container');
+        if (loading) loading.classList.remove('hidden');
+        if (container) {
+            container.style.opacity = '0.7';
+            container.style.pointerEvents = 'none';
+        }
+
+        const keyword = document.getElementById('searchKeyword')?.value || '';
+        const categoryId = document.getElementById('catSelector')?.value || '';
+        const minPrice = document.getElementById('minPriceInput')?.value || '';
+        const maxPrice = document.getElementById('maxPriceInput')?.value || '';
+
+        try {
+            let url = PRODUCT_LIST_URL + '?format=json&page=' + pageNumber;
+            if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+            if (categoryId) url += '&categoryId=' + categoryId;
+            if (minPrice) url += '&minPrice=' + minPrice;
+            if (maxPrice) url += '&maxPrice=' + maxPrice;
+
+            const response = await fetch(url);
+            const resObj = await response.json();
+
+            if (resObj.success && resObj.data) {
+                const data = resObj.data;
+                loadedProducts = data.products || [];
+                currentPage = data.currentPage || 1;
+                totalPages = data.totalPages || 1;
+
+                applyClientFilters();
+
+                // Smooth scroll to catalog section
+                const catalogContainer = document.getElementById('products-catalog-container');
+                if (catalogContainer) {
+                    catalogContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        } catch (err) {
+            console.error("Lỗi AJAX search:", err);
+        } finally {
+            if (loading) loading.classList.add('hidden');
+            if (container) {
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+            }
+        }
+    }
+
+    // Client-side Filter & Sort logic and rendering
     function applyClientFilters() {
         const minPriceInput = document.getElementById('minPriceInput');
         const maxPriceInput = document.getElementById('maxPriceInput');
@@ -473,75 +574,224 @@
             if (banner) banner.classList.add('hidden');
         }
 
-        const grid = document.getElementById('productsGrid');
-        if (!grid) return;
-        const items = Array.from(grid.querySelectorAll('article'));
+        let filtered = loadedProducts.filter(item => {
+            const price = parseFloat(item.price) || 0;
+            const rating = parseFloat(item.rating) || 0;
+            const inStock = item.inStock;
+            const productId = parseInt(item.productId) || 0;
 
-        let visibleCount = 0;
-        items.forEach(item => {
-            const price = parseFloat(item.getAttribute('data-price')) || 0;
-            const rating = parseFloat(item.getAttribute('data-rating')) || 0;
-            const inStock = item.getAttribute('data-in-stock') === 'true';
-            const productId = parseInt(item.getAttribute('data-product-id')) || 0;
+            if (price < minPrice || price > maxPrice) return false;
+            if (rating < minRating) return false;
+            if (inStockOnly && !inStock) return false;
+            if (aiFilteredIds && aiFilteredIds.length > 0 && !aiFilteredIds.includes(productId)) return false;
+            return true;
+        });
 
-            let show = true;
-            if (price < minPrice || price > maxPrice) show = false;
-            if (rating < minRating) show = false;
-            if (inStockOnly && !inStock) show = false;
-            if (aiFilteredIds && aiFilteredIds.length > 0 && !aiFilteredIds.includes(productId)) show = false;
-
-            if (show) {
-                item.style.setProperty('display', 'flex', 'important');
-                visibleCount++;
+        // Sorting
+        filtered.sort((a, b) => {
+            if (sortVal === 'price_asc') {
+                return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+            } else if (sortVal === 'price_desc') {
+                return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+            } else if (sortVal === 'best_seller') {
+                return (parseInt(b.soldQuantity) || 0) - (parseInt(a.soldQuantity) || 0);
             } else {
-                item.style.setProperty('display', 'none', 'important');
+                return (parseInt(b.productId) || 0) - (parseInt(a.productId) || 0);
             }
         });
+
+        renderCatalogHtml(filtered, currentPage, totalPages);
+    }
+
+    function renderCatalogHtml(products, page, total) {
+        const gridContainer = document.getElementById('products-catalog-container');
+        if (!gridContainer) return;
+
+        // Keep spinner and banner
+        const spinner = document.getElementById('catalog-loading');
+        const banner = document.getElementById('aiFilterBanner');
+        
+        let spinnerHtml = spinner ? spinner.outerHTML : '';
+        let bannerHtml = banner ? banner.outerHTML : '';
 
         // Dynamic results count text update
         const resultsCountEl = document.querySelector('strong.text-primary');
         if (resultsCountEl) {
-            resultsCountEl.textContent = visibleCount;
+            resultsCountEl.textContent = products.length;
         }
 
-        // Hide old fallback view if present
-        let noProductsEl = document.getElementById('noProductsFallback');
-        if (noProductsEl) {
-            noProductsEl.style.display = 'none';
+        if (products.length === 0) {
+            gridContainer.innerHTML = spinnerHtml + bannerHtml + `
+                <div class="glass-panel rounded-3xl p-16 text-center max-w-xl mx-auto ambient-shadow flex flex-col items-center gap-4 bg-white/60 mt-6">
+                    <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce">sentiment_dissatisfied</span>
+                    <div>
+                        <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
+                        <p class="text-xs text-on-surface-variant font-light mt-1.5 leading-relaxed">
+                            Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng thử lại với từ khóa khác hoặc xóa bớt tiêu chí lọc nhé.
+                        </p>
+                    </div>
+                    <a href="${PRODUCT_LIST_URL}" onclick="return resetAiProductFilter(event)"
+                       class="btn bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-2 shadow-md">
+                        Xem tất cả sản phẩm
+                    </a>
+                </div>
+            `;
+            return;
         }
 
-        // B4: Chỉ hiện SweetAlert khi AI filter đang hoạt động VÀ không tìm thấy sp
-        // Tránh toast lỗi xuất hiện ngay khi trang load bình thường không có sp
-        if (visibleCount === 0 && aiFilteredIds && aiFilteredIds.length > 0) {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'warning',
-                title: 'Không tìm thấy sản phẩm',
-                text: 'Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng đặt lại bộ lọc.',
-                showConfirmButton: false,
-                timer: 4500,
-                timerProgressBar: true
-            });
-        }
+        const ctx = '${pageContext.request.contextPath}';
+        let html = spinnerHtml + bannerHtml + '<div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">';
 
-        // Sorting visible items
-        const visibleItems = items.filter(item => item.style.display !== 'none');
-        visibleItems.sort((a, b) => {
-            if (sortVal === 'price_asc') {
-                return (parseFloat(a.getAttribute('data-price')) || 0) - (parseFloat(b.getAttribute('data-price')) || 0);
-            } else if (sortVal === 'price_desc') {
-                return (parseFloat(b.getAttribute('data-price')) || 0) - (parseFloat(a.getAttribute('data-price')) || 0);
-            } else if (sortVal === 'best_seller') {
-                return (parseInt(b.getAttribute('data-sold')) || 0) - (parseInt(a.getAttribute('data-sold')) || 0);
-            } else {
-                // newest - sort by product ID descending
-                return (parseInt(b.getAttribute('data-product-id')) || 0) - (parseInt(a.getAttribute('data-product-id')) || 0);
+        products.forEach(p => {
+            const detailUrl = `${ctx}/products/detail?id=${p.productId}`;
+            
+            let starsHtml = '';
+            const ratingVal = parseFloat(p.rating) || 0;
+            const ratingLabel = ratingVal > 0 ? ratingVal.toFixed(1) : 'Chưa có đánh giá';
+            const ratingLabelClass = ratingVal > 0 ? 'text-xs text-on-surface-variant ml-1 font-semibold' : 'text-xs text-slate-400 ml-1 font-semibold';
+            const fullStars = Math.floor(ratingVal);
+            const halfStar = (ratingVal - fullStars) >= 0.5 ? 1 : 0;
+            const emptyStars = 5 - fullStars - halfStar;
+            
+            for (let i = 0; i < fullStars; i++) {
+                starsHtml += '<span class="material-symbols-outlined text-[14px] text-amber-500">star</span>';
             }
+            if (halfStar) {
+                starsHtml += '<span class="material-symbols-outlined text-[14px] text-amber-500">star_half</span>';
+            }
+            for (let i = 0; i < emptyStars; i++) {
+                starsHtml += '<span class="material-symbols-outlined text-[14px] text-gray-300">star</span>';
+            }
+
+            const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price);
+
+            html += `
+                <article data-product-id="${p.productId}"
+                         data-price="${p.price}"
+                         data-rating="${p.rating}"
+                         data-sold="${p.soldQuantity}"
+                         data-category-id="${p.categoryId}"
+                         data-in-stock="${p.inStock}"
+                         class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
+                    
+                    <a href="${detailUrl}"
+                       class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
+                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                            <img src="${p.image}" alt="${fn:escapeXml(p.name)}"
+                                 onerror="handleImageError(this)"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            
+                            <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+                                Nông sản sạch
+                            </div>
+                        </div>
+
+                        <div class="px-1 mb-3">
+                            <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+                                ${fn:escapeXml(p.name)}
+                            </h3>
+                            <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
+                                ${fn:escapeXml(p.description || '')}
+                            </p>
+
+                            <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">
+                                    <div class="flex items-center gap-0.5">${starsHtml}</div>
+                                    <span class="${ratingLabelClass}">${ratingLabel}</span>
+                                </div>
+                                <span class="text-[10px] text-on-surface-variant font-medium">
+                                    Đã bán ${p.soldQuantity || 0}
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
+                        <div class="flex flex-col">
+                            <span class="text-base font-bold text-primary">
+                                ${formattedPrice}
+                            </span>
+                            <span class="text-[10px] text-on-surface-variant font-light">
+                                / ${fn:escapeXml(p.unit || 'kg')}
+                            </span>
+                        </div>
+
+                        <button type="button" onclick="quickAddProduct(event, '${p.productId}', '${p.variantId || 0}', '${fn:escapeXml(p.name)}', '${p.price || 0}', '${p.image}', '${p.stockQuantity || 0}')"
+                                class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
+                                title="Thêm vào giỏ hàng">
+                            <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+                        </button>
+                    </div>
+                </article>
+            `;
         });
 
-        // Re-append sorted items
-        visibleItems.forEach(item => grid.appendChild(item));
+        html += '</div>'; // close productsGrid
+
+        // Generate pagination
+        if (total > 1) {
+            html += '<div class="flex justify-center items-center mt-12 gap-2">';
+            
+            // Prev button
+            if (page > 1) {
+                html += `
+                    <button type="button" onclick="fetchProductsAjax(${page - 1})"
+                       class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
+                        <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                    </button>
+                `;
+            } else {
+                html += `
+                    <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                    </span>
+                `;
+            }
+
+            // Page numbers
+            for (let pageNum = 1; pageNum <= total; pageNum++) {
+                if (pageNum === 1 || pageNum === total || (pageNum >= page - 1 && pageNum <= page + 1)) {
+                    if (page === pageNum) {
+                        html += `
+                            <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
+                                ${pageNum}
+                            </span>
+                        `;
+                    } else {
+                        html += `
+                            <button type="button" onclick="fetchProductsAjax(${pageNum})"
+                               class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
+                                ${pageNum}
+                            </button>
+                        `;
+                    }
+                } else if (pageNum === 2 && page > 3) {
+                    html += `<span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>`;
+                } else if (pageNum === total - 1 && page < total - 2) {
+                    html += `<span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>`;
+                }
+            }
+
+            // Next button
+            if (page < total) {
+                html += `
+                    <button type="button" onclick="fetchProductsAjax(${page + 1})"
+                       class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
+                        <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                    </button>
+                `;
+            } else {
+                html += `
+                    <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                    </span>
+                `;
+            }
+
+            html += '</div>';
+        }
+
+        gridContainer.innerHTML = html;
     }
 
     // Recently Viewed loader
@@ -587,14 +837,47 @@
                 e.preventDefault();
                 // Clear AI filter when user manually submits the search/filter form
                 sessionStorage.removeItem('aiFilteredProductIds');
+                fetchProductsAjax(1);
+            });
+        }
+
+        // Automatic filter triggers for select fields, checkboxes and radio inputs
+        const sortSelector = document.getElementById('sortSelector');
+        if (sortSelector) {
+            sortSelector.addEventListener('change', () => {
                 applyClientFilters();
             });
         }
 
-        // Automatic sort on change
-        const sortSelector = document.getElementById('sortSelector');
-        if (sortSelector) {
-            sortSelector.addEventListener('change', () => {
+        const catSelector = document.getElementById('catSelector');
+        if (catSelector) {
+            catSelector.addEventListener('change', () => {
+                fetchProductsAjax(1);
+            });
+        }
+
+        const minPriceInput = document.getElementById('minPriceInput');
+        const maxPriceInput = document.getElementById('maxPriceInput');
+        let priceTimeout;
+        const priceDebounce = () => {
+            clearTimeout(priceTimeout);
+            priceTimeout = setTimeout(() => {
+                fetchProductsAjax(1);
+            }, 600);
+        };
+        if (minPriceInput) minPriceInput.addEventListener('input', priceDebounce);
+        if (maxPriceInput) maxPriceInput.addEventListener('input', priceDebounce);
+
+        const ratingRadios = document.querySelectorAll('input[name="ratingFilter"]');
+        ratingRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                applyClientFilters();
+            });
+        });
+
+        const inStockFilter = document.getElementById('inStockFilter');
+        if (inStockFilter) {
+            inStockFilter.addEventListener('change', () => {
                 applyClientFilters();
             });
         }

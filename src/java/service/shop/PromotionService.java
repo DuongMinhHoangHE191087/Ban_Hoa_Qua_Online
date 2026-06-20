@@ -3,6 +3,7 @@ import dao.shop.PromotionDAO;
 
 import dao.catalog.ProductDAO;
 
+import exception.BusinessException;
 import model.entity.catalog.Product;
 import model.entity.Promotion;
 import java.math.BigDecimal;
@@ -18,7 +19,7 @@ public class PromotionService {
     private final PromotionDAO promotionDAO = new PromotionDAO();
     private final ProductDAO productDAO = new ProductDAO();
 
-    private static final boolean ENABLE_MOCK_COUPONS = true;
+    private static final boolean ENABLE_MOCK_COUPONS = false;
 
     public Promotion validateShopCoupon(String code, int ownerId, BigDecimal subtotal) throws SQLException {
         if (code == null || code.trim().isEmpty()) {
@@ -93,6 +94,57 @@ public class PromotionService {
         BigDecimal totalDiscount = shopDiscount.add(systemDiscount);
         BigDecimal finalAmount = subtotal.subtract(totalDiscount).add(deliveryFee).max(BigDecimal.ZERO);
         return new BigDecimal[]{shopDiscount, systemDiscount, totalDiscount, finalAmount};
+    }
+
+    /**
+     * PRO-01: A customer may NOT use two discount-type coupons together.
+     * Allowed combo: 1 discount coupon + 1 free-shipping coupon (SHIPPING scope — currently
+     * free-shipping vouchers are not in this schema, so any two ORDER-discount coupons are rejected).
+     * Call this before saving the order to enforce server-side stacking rules.
+     *
+     * Determination: if both shopPromo and systemPromo are non-null and BOTH have discountScope
+     * that reduces the merchandise price (SHOP or ALL with scope=ORDER), that is a double-discount
+     * stack and is rejected.
+     *
+     * @throws BusinessException with code PRO-01 when illegal stack detected
+     */
+    public void validateCouponStack(Promotion shopPromo, Promotion systemPromo) {
+        if (shopPromo == null || systemPromo == null) {
+            return; // single coupon — always allowed
+        }
+        // Both coupons present: only allowed if one is a free-shipping type.
+        // Current schema has no SHIPPING scope, so any two ORDER-scope coupons are a double-discount.
+        boolean shopIsDiscount = "ORDER".equalsIgnoreCase(shopPromo.getScope())
+                && ("SHOP".equalsIgnoreCase(shopPromo.getDiscountScope())
+                    || "ALL".equalsIgnoreCase(shopPromo.getDiscountScope()));
+        boolean systemIsDiscount = "ORDER".equalsIgnoreCase(systemPromo.getScope())
+                && "ALL".equalsIgnoreCase(systemPromo.getDiscountScope());
+        if (shopIsDiscount && systemIsDiscount) {
+            throw new BusinessException("PRO-01",
+                    "Không thể dùng đồng thời hai mã giảm giá. Chỉ được kết hợp 1 mã giảm giá + 1 mã miễn phí vận chuyển.");
+        }
+    }
+
+    /**
+     * Re-resolves a shop coupon from DB by code and validates scope ownership.
+     * A SHOP coupon's createdBy must match the target shop's ownerId.
+     * Returns the DB record; never trusts a client-supplied discount value.
+     *
+     * @throws BusinessException with code COUPON-SCOPE when scope mismatch is detected
+     */
+    public Promotion resolveAndValidateShopCouponScope(String code, int expectedOwnerId,
+                                                       BigDecimal subtotal) throws SQLException {
+        if (code == null || code.trim().isEmpty()) return null;
+        code = code.trim().toUpperCase();
+        Promotion promo = promotionDAO.findValidShopCoupon(code, expectedOwnerId, subtotal);
+        if (promo == null) {
+            throw new BusinessException("COUPON-SCOPE",
+                    "Mã giảm giá shop không hợp lệ, không thuộc shop này, hoặc chưa đạt giá trị đơn tối thiểu.");
+        }
+        if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
+            throw new BusinessException("COUPON-SCOPE", "Mã giảm giá [" + code + "] đã hết lượt sử dụng.");
+        }
+        return promo;
     }
 
     public int createPromotion(Promotion promo) throws SQLException {
@@ -204,7 +256,17 @@ public class PromotionService {
             throw new IllegalArgumentException("Chủ shop không hợp lệ.");
         }
         validatePromotion(promo);
+        // Task 5: force coupon's owner_id to the authenticated shop owner — never trust client-supplied id
+        promo.setCreatedBy(ownerId);
         enforceDiscountScope(promo, "SHOP");
+        // Task 5: expiry must be in the future
+        if (promo.getValidUntil() != null && !promo.getValidUntil().isAfter(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("Ngày kết thúc phải ở tương lai.");
+        }
+        // Task 5: max-usages > 0 when set
+        if (promo.getMaxUses() != null && promo.getMaxUses() <= 0) {
+            throw new IllegalArgumentException("Số lượt sử dụng tối đa phải lớn hơn 0.");
+        }
         validatePromotionProductOwnership(promo, ownerId, false);
         ensureUniqueCode(promo);
     }
@@ -214,7 +276,16 @@ public class PromotionService {
             throw new IllegalArgumentException("Quản trị viên không hợp lệ.");
         }
         validatePromotion(promo);
+        // Task 6: system-scope coupons MUST be ALL; shops cannot self-issue system scope
         enforceDiscountScope(promo, "ALL");
+        promo.setCreatedBy(adminId);
+        // Task 5/6: expiry in future, maxUses > 0 when set
+        if (promo.getValidUntil() != null && !promo.getValidUntil().isAfter(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("Ngày kết thúc phải ở tương lai.");
+        }
+        if (promo.getMaxUses() != null && promo.getMaxUses() <= 0) {
+            throw new IllegalArgumentException("Số lượt sử dụng tối đa phải lớn hơn 0.");
+        }
         validatePromotionProductOwnership(promo, adminId, true);
         ensureUniqueCode(promo);
     }

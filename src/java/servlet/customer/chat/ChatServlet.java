@@ -103,8 +103,13 @@ public class ChatServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             resp.sendRedirect(req.getContextPath() + "/chat");
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi khi lấy dữ liệu chat", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi lấy dữ liệu chat");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(ChatServlet.class.getName()),
+                    "ChatServlet#doGet",
+                    "Lỗi khi lấy dữ liệu chat",
+                    e);
         }
     }
 

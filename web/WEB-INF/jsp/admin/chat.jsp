@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
     <jsp:param name="pageTitle" value="Quản lý Chat (Admin)" />
 </jsp:include>
@@ -63,7 +64,7 @@
                     <c:forEach var="session" items="${chatSessions}">
                         <a href="${pageContext.request.contextPath}/admin/chat?sessionId=${session.sessionId}"
                            class="session-item flex items-start gap-3 p-3.5 rounded-xl hover:bg-white/45 border border-transparent transition-all ${session.sessionId == activeSessionId ? 'active shadow-sm' : 'bg-white/20'}"
-                           data-name="${session.partnerName}">
+                           data-name="${fn:escapeXml(session.partnerName)}">
                             <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-600 border border-indigo-200 shadow-sm">
                                 <c:choose>
                                     <c:when test="${session.sessionType == 'ADMIN'}">
@@ -78,7 +79,7 @@
                                 <div class="flex justify-between items-start mb-1">
                                     <h3 class="font-semibold text-slate-800 text-sm truncate pr-2">
                                         <c:choose>
-                                            <c:when test="${not empty session.partnerName}">${session.partnerName}</c:when>
+                                            <c:when test="${not empty session.partnerName}"><c:out value="${session.partnerName}"/></c:when>
                                             <c:otherwise>Phiên #${session.sessionId}</c:otherwise>
                                         </c:choose>
                                     </h3>
@@ -255,6 +256,17 @@
         return d.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
     }
 
+    function isSafeMediaUrl(url) {
+        if (!url) return false;
+        try {
+            const parsed = new URL(url, window.location.origin);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:' || parsed.protocol === 'blob:'
+                || parsed.origin === window.location.origin;
+        } catch (err) {
+            return false;
+        }
+    }
+
     function renderMessage(msg, isMine) {
         const wrap = document.createElement('div');
         wrap.className = 'flex gap-3 max-w-[80%] ' + (isMine ? 'self-end flex-row-reverse' : 'items-start');
@@ -285,19 +297,20 @@
             contentBox.className = 'glass-panel bg-white/90 p-3 rounded-2xl rounded-bl-sm shadow-sm text-slate-800 text-sm border border-white/60';
         }
 
-        if (msg.mediaUrl) {
+        const safeMediaUrl = isSafeMediaUrl(msg.mediaUrl) ? msg.mediaUrl : null;
+        if (safeMediaUrl) {
             const mediaWrap = document.createElement('div');
             mediaWrap.className = 'mb-1';
             
             if (msg.mediaType === 'IMAGE') {
                 const img = document.createElement('img');
-                img.src = msg.mediaUrl;
+                img.src = safeMediaUrl;
                 img.className = 'max-w-xs max-h-48 rounded-lg shadow-sm cursor-zoom-in';
-                img.onclick = () => window.open(msg.mediaUrl, '_blank');
+                img.onclick = () => window.open(safeMediaUrl, '_blank', 'noopener,noreferrer');
                 mediaWrap.appendChild(img);
             } else if (msg.mediaType === 'VIDEO') {
                 const vid = document.createElement('video');
-                vid.src = msg.mediaUrl;
+                vid.src = safeMediaUrl;
                 vid.controls = true;
                 vid.className = 'max-w-xs max-h-48 rounded-lg shadow-sm';
                 mediaWrap.appendChild(vid);

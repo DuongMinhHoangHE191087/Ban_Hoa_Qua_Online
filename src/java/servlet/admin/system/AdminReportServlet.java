@@ -99,8 +99,13 @@ public class AdminReportServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/report.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải báo cáo admin", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải báo cáo: " + e.getMessage());
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminReportServlet.class.getName()),
+                    "AdminReportServlet#doGet",
+                    "Lỗi tải báo cáo: " + e.getMessage(),
+                    e);
         }
     }
 

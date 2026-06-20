@@ -60,7 +60,8 @@ public class RoleFilter implements Filter {
                     }
                 }
             } catch (Exception e) {
-                LoggerUtil.warn(log, "Lỗi đồng bộ session trong RoleFilter", e);
+                LoggerUtil.error(log, "Lỗi đồng bộ session trong RoleFilter", e);
+                throw new ServletException("Không thể đồng bộ phiên đăng nhập", e);
             }
         }
 
@@ -105,7 +106,8 @@ public class RoleFilter implements Filter {
                             return;
                         }
                     } catch (Exception e) {
-                        allowed = false;
+                        LoggerUtil.error(log, "Lỗi kiểm tra trạng thái shop profile", e);
+                        throw new ServletException("Không thể kiểm tra trạng thái shop", e);
                     }
                 }
             } else {

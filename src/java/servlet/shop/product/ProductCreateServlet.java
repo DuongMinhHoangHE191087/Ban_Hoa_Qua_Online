@@ -51,6 +51,7 @@ public class ProductCreateServlet extends HttpServlet {
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final dao.system.SystemConfigDAO systemConfigDAO = new dao.system.SystemConfigDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -230,7 +231,16 @@ public class ProductCreateServlet extends HttpServlet {
             p.setStatus("ACTIVE");
             p.setIsOrganic(isOrganic);
             p.setIsImported(isImported);
-            p.setApprovalStatus("PENDING");
+            
+            String autoApproveVal = null;
+            try {
+                autoApproveVal = systemConfigDAO.getValue("product_auto_approve");
+            } catch (Exception ex) {
+                LoggerUtil.warn(log, "Không thể đọc cấu hình product_auto_approve", ex);
+            }
+            boolean isAutoApprove = "true".equalsIgnoreCase(autoApproveVal);
+            p.setApprovalStatus(isAutoApprove ? "APPROVED" : "PENDING");
+            
             p.setVerificationDocPath(docPath);
             
             try {
@@ -359,10 +369,14 @@ public class ProductCreateServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/shop/products");
 
         } catch (SQLException e) {
-            LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi lưu sản phẩm mới", e);
             if ("XMLHttpRequest".equalsIgnoreCase(req.getHeader("X-Requested-With"))) {
-                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                util.JsonUtil.writeJson(resp, ApiResponse.error("Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage()));
+                util.ServletUtil.sendJsonInternalServerError(
+                        req,
+                        resp,
+                        log,
+                        "ProductCreateServlet#doPost",
+                        "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage(),
+                        e);
                 return;
             }
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage());

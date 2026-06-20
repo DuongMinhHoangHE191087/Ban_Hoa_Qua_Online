@@ -108,8 +108,13 @@ public class UserProfileServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/common/profile.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi tải thông tin cá nhân", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi tải thông tin cá nhân");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(UserProfileServlet.class.getName()),
+                    "UserProfileServlet#doGet",
+                    "Lỗi tải thông tin cá nhân",
+                    e);
         }
     }
 

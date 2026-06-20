@@ -95,24 +95,26 @@
                         <i class="fa-solid fa-user text-sm w-4 text-center"></i>
                         <span class="flex-1">Thông tin cá nhân</span>
                     </button>
-                    <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
-                            data-tab="address-tab">
-                        <i class="fa-solid fa-map-location-dot text-sm w-4 text-center"></i>
-                        <span class="flex-1">Sổ địa chỉ</span>
-                        <c:if test="${not empty addresses}"><span class="ml-auto px-1.5 py-0.5 bg-gray-200 text-txt-3 rounded text-[9px] font-bold">${fn:length(addresses)}</span></c:if>
-                    </button>
-                    <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
-                            data-tab="orders-tab">
-                        <i class="fa-solid fa-box text-sm w-4 text-center"></i>
-                        <span class="flex-1">Đơn hàng của tôi</span>
-                        <c:if test="${not empty orders}"><span class="ml-auto px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[9px] font-bold">${fn:length(orders)}</span></c:if>
-                    </button>
-                    <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
-                            data-tab="payments-tab">
-                        <i class="fa-solid fa-credit-card text-sm w-4 text-center"></i>
-                        <span class="flex-1">Lịch sử thanh toán</span>
-                        <c:if test="${not empty payments}"><span class="ml-auto px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">${fn:length(payments)}</span></c:if>
-                    </button>
+                    <c:if test="${user.role != 'ADMIN'}">
+                        <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
+                                data-tab="address-tab">
+                            <i class="fa-solid fa-map-location-dot text-sm w-4 text-center"></i>
+                            <span class="flex-1">Sổ địa chỉ</span>
+                            <c:if test="${not empty addresses}"><span class="ml-auto px-1.5 py-0.5 bg-gray-200 text-txt-3 rounded text-[9px] font-bold">${fn:length(addresses)}</span></c:if>
+                        </button>
+                        <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
+                                data-tab="orders-tab">
+                            <i class="fa-solid fa-box text-sm w-4 text-center"></i>
+                            <span class="flex-1">Đơn hàng của tôi</span>
+                            <c:if test="${not empty orders}"><span class="ml-auto px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[9px] font-bold">${fn:length(orders)}</span></c:if>
+                        </button>
+                        <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
+                                data-tab="payments-tab">
+                            <i class="fa-solid fa-credit-card text-sm w-4 text-center"></i>
+                            <span class="flex-1">Lịch sử thanh toán</span>
+                            <c:if test="${not empty payments}"><span class="ml-auto px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">${fn:length(payments)}</span></c:if>
+                        </button>
+                    </c:if>
                     <button class="tab-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 text-left text-txt-2 hover:bg-primary-lt hover:text-primary" 
                             data-tab="security-tab">
                         <i class="fa-solid fa-shield-halved text-sm w-4 text-center"></i>
@@ -188,6 +190,7 @@
                 </form>
             </div>
 
+            <c:if test="${user.role != 'ADMIN'}">
             <!-- 2. Address Book Tab -->
             <div id="address-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm hidden">
                 <div class="flex justify-between items-center mb-6 pb-3 border-b border-gray-100">
@@ -372,6 +375,10 @@
                                                     </a>
                                                     <!-- Invoice PDF - DELIVERED only -->
                                                     <c:if test="${ord.status == 'DELIVERED'}">
+                                                        <a href="${pageContext.request.contextPath}/reviews?orderId=${ord.orderId}"
+                                                           class="px-3 py-1.5 bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary rounded-lg text-[9px] font-bold transition-all flex items-center gap-1 shadow-sm">
+                                                            <i class="fa-solid fa-star"></i> Viết đánh giá
+                                                        </a>
                                                         <a href="${pageContext.request.contextPath}/orders?action=invoice&orderId=${ord.orderId}"
                                                            target="_blank"
                                                            class="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[9px] font-bold transition-all flex items-center gap-1">
@@ -464,6 +471,7 @@
                     </table>
                 </div>
             </div>
+            </c:if>
 
             <!-- 5. Password tab -->
             <div id="security-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm hidden">
@@ -647,7 +655,7 @@
             if (!tabParam.endsWith('-tab')) {
                 tabParam = tabParam + '-tab';
             }
-            const targetBtn = document.querySelector(`#profile-tabs button[data-tab="${tabParam}"]`);
+            const targetBtn = document.querySelector(`#profile-tabs button[data-tab="\${tabParam}"]`);
             if (targetBtn) {
                 targetBtn.click();
             }

@@ -17,9 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.Set;
-import util.LoggerUtil;
 
 /**
  * UserDAO — DAO cho entity User.
@@ -33,8 +31,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class UserDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(UserDAO.class.getName());
 
     public List<User> findById(int id) throws SQLException {
         List<User> list = new ArrayList<>();
@@ -51,25 +47,19 @@ public class UserDAO extends BaseDAO {
         return list;
     }
 
-    /**
-     * TODO: Implement — findByEmail(String email)
-     */
     public User findByEmail(String email) throws SQLException {
-       // TODO: Viết SQL và xử lý ResultSet ở đây
         String sql = "SELECT * FROM users WHERE email = ?";
-        try(Connection conn = getConnection();
-        PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, email);
-
-            try(ResultSet rs = stmt.executeQuery()) {
-                if(rs.next()) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
                     return mapRow(rs);
-                } else {
-                    return null; // Không tìm thấy user nào với email này
                 }
+                return null;
             }
         }
-   }
+    }
 
    public User findByPhone(String phone) throws SQLException {
         String sql = "SELECT * FROM users WHERE phone = ?";
@@ -197,9 +187,6 @@ public class UserDAO extends BaseDAO {
         return list;
     }
 
-    /**
-     * TODO: Implement — save(User user)
-     */
     public int saveNewCustomer(String fullName, String email, String passwordHash, String phone, String role) throws SQLException {
         return saveNewCustomer(fullName, email, passwordHash, phone, role, AppConfig.ACCOUNT_STATUS_INACTIVE, false, "assets/images/default-avatar.svg");
     }
@@ -278,9 +265,6 @@ public class UserDAO extends BaseDAO {
         }
     }
 
-    /**
-     * TODO: Implement — updatePassword(int userId, String newHash)
-     */
     public void updatePassword(int userId, String newHash) throws SQLException {
         String sql = "UPDATE users SET password_hash = ?, updated_at = GETDATE() WHERE user_id = ?";
         try (Connection conn = getConnection();
@@ -496,7 +480,6 @@ public class UserDAO extends BaseDAO {
         }
         return map;
     }
-
 
     /**
      * Xóa người dùng bằng ID (sử dụng khi đăng ký lỗi để đồng bộ).

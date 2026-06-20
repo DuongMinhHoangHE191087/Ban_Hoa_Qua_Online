@@ -60,8 +60,13 @@ public class AdminSettlementServlet extends HttpServlet {
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-settlements.jsp").forward(req, resp);
         } catch (Exception e) {
-            LoggerUtil.error(log, "Lỗi khi tải danh sách đối soát", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi tải danh sách đối soát");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AdminSettlementServlet.class.getName()),
+                    "AdminSettlementServlet#doGet",
+                    "Lỗi khi tải danh sách đối soát",
+                    e);
         }
     }
 

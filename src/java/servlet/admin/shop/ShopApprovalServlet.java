@@ -3,6 +3,7 @@ import config.AppConfig;
 import dao.shop.ShopProfileDAO;
 import dao.auth.UserDAO;
 import dao.cart.CartDAO;
+import dao.catalog.CategoryDAO;
 import model.entity.shop.ShopProfile;
 import model.entity.auth.User;
 import service.system.EmailService;
@@ -28,6 +29,7 @@ public class ShopApprovalServlet extends HttpServlet {
 
     private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final UserDAO userDAO = new UserDAO();
+    private final CategoryDAO categoryDAO = new CategoryDAO();
     private final CartDAO cartDAO = new CartDAO();
     private final EmailService emailService = new EmailService();
 
@@ -59,6 +61,7 @@ public class ShopApprovalServlet extends HttpServlet {
             }
             req.setAttribute("shopList", profiles);
             req.setAttribute("currentFilter", filter.toUpperCase());
+            req.setAttribute("categories", categoryDAO.findAllActive());
         } catch (SQLException e) {
             getServletContext().log("ShopApprovalServlet GET error", e);
             req.setAttribute("errorMsg", "Không thể tải danh sách. Vui lòng thử lại.");

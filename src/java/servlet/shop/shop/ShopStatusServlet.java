@@ -81,8 +81,13 @@ public class ShopStatusServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/shop/status.jsp").forward(req, resp);
 
         } catch (SQLException e) {
-            getServletContext().log("ShopStatusServlet doGet: Không tải được shop profile", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống khi tải thông tin cửa hàng.");
+            util.ServletUtil.sendPageInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(ShopStatusServlet.class.getName()),
+                    "ShopStatusServlet#doGet",
+                    "Lỗi hệ thống khi tải thông tin cửa hàng.",
+                    e);
         }
     }
 

@@ -134,7 +134,39 @@ public class ProductDetailServlet extends HttpServlet {
             // AJAX format=json support for quick-view and variant selector modals on Home page
             String format = req.getParameter("format");
             boolean isJson = "json".equals(format) || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+            
             if (isJson) {
+                String actionParam = req.getParameter("action");
+                if ("getReviews".equals(actionParam)) {
+                    // Xử lý bộ lọc đánh giá theo số sao
+                    String ratingParam = req.getParameter("rating");
+                    Integer ratingFilter = null;
+                    try {
+                        if (ratingParam != null && !ratingParam.trim().isEmpty()) {
+                            int ratingVal = Integer.parseInt(ratingParam.trim());
+                            if (ratingVal >= 1 && ratingVal <= 5) {
+                                ratingFilter = ratingVal;
+                            }
+                        }
+                    } catch (NumberFormatException e) {}
+
+                    // Xử lý phân trang
+                    String pageParam = req.getParameter("page");
+                    int reviewPage = 1;
+                    try {
+                        if (pageParam != null && !pageParam.trim().isEmpty()) {
+                            reviewPage = Integer.parseInt(pageParam.trim());
+                            if (reviewPage < 1) reviewPage = 1;
+                        }
+                    } catch (NumberFormatException e) {}
+
+                    int reviewPageSize = 5;
+                    PagedResultDTO reviewPagedResult = reviewService.getReviewsPaginated(productId, ratingFilter, reviewPage, reviewPageSize);
+
+                    util.JsonUtil.writeJson(resp, ApiResponse.ok(reviewPagedResult));
+                    return;
+                }
+
                 // ── Kiểm tra điều kiện tồn tại trước khi trả JSON ──
                 // Sản phẩm hết mùa — khách không thể mua
                 if (isExpiredProduct) {
@@ -231,7 +263,7 @@ public class ProductDetailServlet extends HttpServlet {
                 Map<String, Object> item = new java.util.HashMap<>();
                 item.put("productId", p.getProductId());
                 item.put("name", p.getName());
-                item.put("rating", p.getRating() != null ? p.getRating() : new java.math.BigDecimal("4.8"));
+                item.put("rating", p.getRating() != null ? p.getRating() : java.math.BigDecimal.ZERO);
                 item.put("originRegion", p.getOriginRegion());
 
                 // Lấy ảnh chính thực tế
@@ -265,7 +297,7 @@ public class ProductDetailServlet extends HttpServlet {
                 Map<String, Object> spItem = new java.util.HashMap<>();
                 spItem.put("productId", sp.getProductId());
                 spItem.put("name", sp.getName());
-                spItem.put("rating", sp.getRating() != null ? sp.getRating() : new java.math.BigDecimal("4.5"));
+                spItem.put("rating", sp.getRating() != null ? sp.getRating() : java.math.BigDecimal.ZERO);
                 spItem.put("image", resolveImagePath(req, shopImageMap.get(sp.getProductId())));
                 List<ProductVariant> spVars = shopVariantMap.get(sp.getProductId());
                 java.math.BigDecimal spPrice = new java.math.BigDecimal("45000");
@@ -321,6 +353,20 @@ public class ProductDetailServlet extends HttpServlet {
             for (int count : ratingDistribution.values()) {
                 totalReviewsCount += count;
             }
+            boolean hasReviews = totalReviewsCount > 0;
+            java.math.BigDecimal displayRating = java.math.BigDecimal.ZERO;
+            if (hasReviews) {
+                java.math.BigDecimal totalScore = java.math.BigDecimal.ZERO;
+                for (Map.Entry<Integer, Integer> entry : ratingDistribution.entrySet()) {
+                    int star = entry.getKey();
+                    int count = entry.getValue() != null ? entry.getValue() : 0;
+                    if (count > 0) {
+                        totalScore = totalScore.add(java.math.BigDecimal.valueOf((long) star * count));
+                    }
+                }
+                displayRating = totalScore.divide(java.math.BigDecimal.valueOf(totalReviewsCount), 2, java.math.RoundingMode.HALF_UP);
+            }
+            product.setRating(displayRating);
 
             // 14. Đổ dữ liệu vào Request Attributes
             req.setAttribute("product", product);
@@ -336,6 +382,7 @@ public class ProductDetailServlet extends HttpServlet {
             req.setAttribute("ratingDistribution", ratingDistribution);
             req.setAttribute("ratingFilter", ratingFilter);
             req.setAttribute("totalReviewsCount", totalReviewsCount);
+            req.setAttribute("hasReviews", hasReviews);
 
             // 15. Forward tới trang JSP hiển thị
             req.getRequestDispatcher("/WEB-INF/jsp/guest/product-detail.jsp").forward(req, resp);

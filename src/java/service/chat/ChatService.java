@@ -96,4 +96,14 @@ public class ChatService {
         chatDAO.markRead(sessionId, readerId);
     }
 
+    /**
+     * Đếm tổng số tin nhắn chưa đọc của một người dùng trong tất cả các session.
+     */
+    public int countTotalUnread(int userId) throws SQLException {
+        if (userId <= 0) {
+            return 0;
+        }
+        return chatDAO.countTotalUnread(userId);
+    }
+
 }

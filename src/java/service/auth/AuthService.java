@@ -133,7 +133,8 @@ public class AuthService {
 
         User user = userDAO.findByLoginIdentifier(cleanIdentifier);
         if (user == null) {
-            throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
+            // Generic message — không tiết lộ sự tồn tại của tài khoản (anti-enumeration, SEC-03)
+            throw new Exception("Email hoặc mật khẩu không đúng.");
         }
 
         // 1. Kiểm tra tài khoản có bị khóa hay không
@@ -152,11 +153,11 @@ public class AuthService {
             if (newFailedCount >= AppConfig.MAX_FAILED_LOGIN) {
                 LocalDateTime lockTime = LocalDateTime.now().plusMinutes(AppConfig.LOCK_DURATION_MINUTES);
                 userDAO.lockAccount(user.getUserId(), lockTime);
-                throw new Exception("Tài khoản đã bị khóa tạm thời trong 30 phút do nhập sai mật khẩu quá " + AppConfig.MAX_FAILED_LOGIN + " lần.");
+                DateTimeFormatter dtf2 = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
+                throw new Exception("Tài khoản đã bị khóa tạm thời. Vui lòng thử lại sau: " + lockTime.format(dtf2));
             }
-            
-            int remaining = AppConfig.MAX_FAILED_LOGIN - newFailedCount;
-            throw new Exception("Mật khẩu không chính xác. Bạn còn " + remaining + " lần thử trước khi tài khoản bị khóa.");
+            // Generic message — không tiết lộ số lần còn lại (anti-enumeration, SEC-03)
+            throw new Exception("Email hoặc mật khẩu không đúng.");
         }
 
         if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus()) || !user.isEmailVerified()) {
@@ -352,6 +353,11 @@ public class AuthService {
         }
         User existingUser = userDAO.findByEmail(email);
         if (existingUser != null) {
+            // UC-21: Chặn privilege-escalation — tài khoản ADMIN/SHOP_OWNER phải đăng nhập bằng mật khẩu
+            String role = existingUser.getRole();
+            if (AppConfig.ROLE_ADMIN.equals(role) || AppConfig.ROLE_SHOP_OWNER.equals(role)) {
+                throw new Exception("Vui lòng đăng nhập bằng mật khẩu của bạn.");
+            }
             if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(existingUser.getStatus()) || !existingUser.isEmailVerified()) {
                 userDAO.activateVerifiedEmail(existingUser.getUserId());
                 existingUser = userDAO.findByEmail(email);

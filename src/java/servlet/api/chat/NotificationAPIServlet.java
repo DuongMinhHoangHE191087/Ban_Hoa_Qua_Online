@@ -68,9 +68,13 @@ public class NotificationAPIServlet extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.ok(
                     new NotificationListResponse(unreadCount, List.copyOf(allNotifs))));
         } catch (Exception e) {
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            LoggerUtil.error(log, "Error fetching notifications", e);
-            JsonUtil.writeJson(resp, ApiResponse.fail("Lỗi máy chủ. Vui lòng thử lại."));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "NotificationAPIServlet#doGet",
+                    "Lỗi máy chủ. Vui lòng thử lại.",
+                    e);
         }
     }
 
@@ -118,9 +122,13 @@ public class NotificationAPIServlet extends HttpServlet {
                 JsonUtil.writeJson(resp, ApiResponse.fail(400, "Hành động không hợp lệ."));
             }
         } catch (Exception e) {
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            LoggerUtil.error(log, "Error processing notification action", e);
-            JsonUtil.writeJson(resp, ApiResponse.fail("Lỗi máy chủ. Vui lòng thử lại."));
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    log,
+                    "NotificationAPIServlet#doPost",
+                    "Lỗi máy chủ. Vui lòng thử lại.",
+                    e);
         }
     }
 }

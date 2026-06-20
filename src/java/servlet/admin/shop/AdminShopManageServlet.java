@@ -1,9 +1,9 @@
 package servlet.admin.shop;
 
 import config.AppConfig;
-import dao.shop.ShopProfileDAO;
-import model.entity.shop.ShopProfile;
 import util.SessionUtil;
+import model.entity.shop.ShopProfile;
+import service.shop.ShopService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,7 +16,7 @@ import java.util.List;
 @WebServlet("/admin/shops/manage")
 public class AdminShopManageServlet extends HttpServlet {
 
-    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+    private final ShopService shopService = new ShopService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -28,7 +28,7 @@ public class AdminShopManageServlet extends HttpServlet {
         }
 
         try {
-            List<ShopProfile> profiles = shopProfileDAO.findAll();
+            List<ShopProfile> profiles = shopService.getAllShops();
             req.setAttribute("shopList", profiles);
         } catch (SQLException e) {
             getServletContext().log("AdminShopManageServlet GET error", e);
@@ -57,12 +57,14 @@ public class AdminShopManageServlet extends HttpServlet {
             int profileId = Integer.parseInt(profileIdStr);
 
             if ("suspend".equals(action)) {
-                // Suspends the shop
-                shopProfileDAO.updateApprovalStatus(profileId, 0, "SUSPENDED", "Đình chỉ bởi Admin");
+                shopService.updateShopStatus(profileId, AppConfig.SHOP_SUSPENDED, null);
                 SessionUtil.flashSuccess(req.getSession(), "Đã đình chỉ cửa hàng.");
+            } else if ("reject".equals(action)) {
+                String rejectionReason = req.getParameter("rejectionReason");
+                shopService.updateShopStatus(profileId, AppConfig.SHOP_REJECTED, rejectionReason);
+                SessionUtil.flashSuccess(req.getSession(), "Đã từ chối cửa hàng.");
             } else if ("activate".equals(action)) {
-                // Reactivates the shop
-                shopProfileDAO.updateApprovalStatus(profileId, 0, "APPROVED", "Khôi phục hoạt động");
+                shopService.updateShopStatus(profileId, AppConfig.SHOP_APPROVED, null);
                 SessionUtil.flashSuccess(req.getSession(), "Đã khôi phục hoạt động cửa hàng.");
             } else {
                 throw new Exception("Hành động không hợp lệ: " + action);

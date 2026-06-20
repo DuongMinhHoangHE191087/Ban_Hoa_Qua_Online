@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -151,9 +152,9 @@
                                 <c:forEach var="u" items="${userList}">
                                     <tr>
                                         <td class="px-6 py-4 font-mono font-bold text-primary">#${u.userId}</td>
-                                        <td class="px-6 py-4 font-bold text-txt">${u.fullName}</td>
-                                        <td class="px-6 py-4 text-txt-2 text-xs">${u.email}</td>
-                                        <td class="px-6 py-4 text-xs font-mono text-txt-2">${empty u.phone ? '—' : u.phone}</td>
+                                        <td class="px-6 py-4 font-bold text-txt"><c:out value="${u.fullName}"/></td>
+                                        <td class="px-6 py-4 text-txt-2 text-xs"><c:out value="${u.email}"/></td>
+                                        <td class="px-6 py-4 text-xs font-mono text-txt-2">${empty u.phone ? '—' : fn:escapeXml(u.phone)}</td>
                                         <td class="px-6 py-4 text-center">
                                             <span class="inline-block px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold uppercase tracking-wider">
                                                 ${u.role}
@@ -230,7 +231,7 @@
                     <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
                     <div class="flex gap-1.5">
                         <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="?page=${i}&role=${paramRole}&search=${paramSearch}" 
+                            <a href="?page=${i}&role=${fn:escapeXml(paramRole)}&search=${fn:escapeXml(paramSearch)}"
                                class="page-btn ${i == currentPage ? 'page-btn-active' : ''}">${i}</a>
                         </c:forEach>
                     </div>
@@ -275,9 +276,11 @@
 
             fetch('${pageContext.request.contextPath}/admin/users/status', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': '${sessionScope._csrfToken}'
                 },
                 body: 'userId=' + userId + '&status=' + newStatus + '&_csrf=${sessionScope._csrfToken}'
             })
@@ -334,11 +337,13 @@
                     const originalHtml = this.innerHTML;
                     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-0.5"></i>';
 
-                    fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
+            fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
                         method: 'POST',
+                        credentials: 'same-origin',
                         headers: { 
                             'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-Token': '${sessionScope._csrfToken}'
                         },
                         body: 'userId=' + userId + '&_csrf=${sessionScope._csrfToken}'
                     })

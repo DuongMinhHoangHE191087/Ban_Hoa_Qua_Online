@@ -31,6 +31,8 @@ public class Order {
     private String paymentMethod;
     private String refundStatus;
     private String receivedStatus; // PENDING, RECEIVED, NOT_RECEIVED
+    private java.time.LocalDateTime shopAcceptanceDeadline;
+    private java.time.LocalDateTime shopAcceptedAt;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
 
@@ -109,6 +111,12 @@ public class Order {
 
     public String getRefundStatus() { return refundStatus; }
     public void setRefundStatus(String refundStatus) { this.refundStatus = refundStatus; }
+
+    public java.time.LocalDateTime getShopAcceptanceDeadline() { return shopAcceptanceDeadline; }
+    public void setShopAcceptanceDeadline(java.time.LocalDateTime shopAcceptanceDeadline) { this.shopAcceptanceDeadline = shopAcceptanceDeadline; }
+
+    public java.time.LocalDateTime getShopAcceptedAt() { return shopAcceptedAt; }
+    public void setShopAcceptedAt(java.time.LocalDateTime shopAcceptedAt) { this.shopAcceptedAt = shopAcceptedAt; }
 
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -1,11 +1,13 @@
 package service.cart;
 import service.shop.PromotionService;
 import service.catalog.InventoryService;
+import service.order.OrderService;
 import dao.shop.PromotionDAO;
 import service.shop.PaymentService;
 import service.system.EmailService;
 import service.chat.NotificationService;
 import service.auth.UserService;
+import exception.BusinessException;
 
 import config.AppConfig;
 import dao.cart.CartDAO;
@@ -51,8 +53,13 @@ public class CheckoutService {
 
     private static final BigDecimal DELIVERY_FEE_PER_SHOP = new BigDecimal("15000");
     private static final String PHONE_REGEX = "^(0|\\+84)[35789][0-9]{8}$";
+    /** PAY-01: COD is blocked for orders >= 2,000,000 VND */
+    private static final BigDecimal COD_MAX_AMOUNT = new BigDecimal("2000000");
+    /** DEL-02: Maximum cart weight for express delivery in kg */
+    private static final BigDecimal MAX_CART_WEIGHT_KG = new BigDecimal("30");
 
     private final CartService cartService = new CartService();
+    private final OrderService orderService = new OrderService();
     private final CartDAO cartDAO = new CartDAO();
     private final OrderDAO orderDAO = new OrderDAO();
     private final OrderItemDAO orderItemDAO = new OrderItemDAO();
@@ -121,6 +128,31 @@ public class CheckoutService {
             validateStock(checkoutItems, variantMap);
 
             BigDecimal subtotal = calculateSubtotal(checkoutItems, variantMap);
+
+            // DEL-02: Block checkout if total cart weight > 30 kg
+            BigDecimal totalWeight = calculateTotalWeight(checkoutItems);
+            if (totalWeight.compareTo(MAX_CART_WEIGHT_KG) > 0) {
+                throw new BusinessException("DEL-02",
+                        "Đơn giao hỏa tốc tối đa 30kg. Tổng trọng lượng giỏ hàng của bạn là "
+                        + totalWeight.setScale(1, RoundingMode.HALF_UP) + " kg.");
+            }
+
+            // PAY-01: COD blocked for orders >= 2,000,000 VND (pre-discount subtotal + delivery)
+            if (AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
+                Map<Integer, List<CartItem>> ownerGroupForFee = groupItemsByOwnerId(checkoutItems, variantMap);
+                BigDecimal estimatedDeliveryFee = DELIVERY_FEE_PER_SHOP.multiply(new BigDecimal(ownerGroupForFee.size()));
+                BigDecimal estimatedTotal = subtotal.add(estimatedDeliveryFee);
+                if (estimatedTotal.compareTo(COD_MAX_AMOUNT) >= 0) {
+                    throw new BusinessException("PAY-01",
+                            "COD chỉ áp dụng cho đơn dưới 2.000.000đ. Vui lòng chọn chuyển khoản.");
+                }
+                // SEC-01: Block COD for customers with > 3 failed deliveries in 30 days
+                if (!orderService.isCodEligible(user.getUserId())) {
+                    throw new BusinessException("SEC-01",
+                            "Tài khoản của bạn tạm thời không được sử dụng COD do có quá nhiều đơn giao thất bại. Vui lòng chọn chuyển khoản.");
+                }
+            }
+
             Map<Integer, List<CartItem>> itemsByOwner = groupItemsByOwnerId(checkoutItems, variantMap);
 
             CheckoutResultDTO result;
@@ -158,10 +190,9 @@ public class CheckoutService {
         BigDecimal finalAmount = subtotal.add(deliveryFee);
 
         if (isNotBlank(request.getShopCouponCode())) {
-            shopPromo = promotionService.validateShopCoupon(request.getShopCouponCode(), ownerId, subtotal);
-            if (shopPromo == null) {
-                throw new IllegalArgumentException("Mã giảm giá của cửa hàng không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
-            }
+            // coupon-scope: re-resolve from DB, validate scope ownership — never trust client data
+            shopPromo = promotionService.resolveAndValidateShopCouponScope(
+                    request.getShopCouponCode(), ownerId, subtotal);
         }
         if (isNotBlank(request.getSystemCouponCode())) {
             systemPromo = promotionService.validateSystemCoupon(request.getSystemCouponCode(), subtotal);
@@ -169,6 +200,8 @@ public class CheckoutService {
                 throw new IllegalArgumentException("Mã giảm giá của sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
             }
         }
+        // PRO-01: reject double-discount stacking
+        promotionService.validateCouponStack(shopPromo, systemPromo);
         if (shopPromo != null || systemPromo != null) {
             BigDecimal[] calcs = promotionService.calculateAllDiscounts(shopPromo, systemPromo, subtotal, deliveryFee);
             shopDiscount = calcs[0];
@@ -199,7 +232,7 @@ public class CheckoutService {
                 savePromotionUsage(conn, orderId, user.getUserId(), systemPromo, systemDiscount);
                 cartDAO.deleteItemsByCustomer(conn, user.getUserId(), request.getVariantIds());
                 conn.commit();
-            } catch (Exception ex) {
+            } catch (SQLException | RuntimeException ex) {
                 conn.rollback();
                 throw ex;
             } finally {
@@ -259,6 +292,8 @@ public class CheckoutService {
         Promotion shopPromo = null;
         Integer shopPromoOwnerId = null;
         if (isNotBlank(request.getShopCouponCode())) {
+            // coupon-scope: find which owner in the cart owns this coupon by trying each with DB re-resolution.
+            // resolveAndValidateShopCouponScope already checks code+ownerId in DB so it's safe against spoofing.
             for (Integer ownerId : itemsByOwner.keySet()) {
                 Promotion candidate = promotionService.validateShopCoupon(
                         request.getShopCouponCode(), ownerId, subtotalByOwner.get(ownerId));
@@ -269,7 +304,9 @@ public class CheckoutService {
                 }
             }
             if (shopPromo == null) {
-                throw new IllegalArgumentException("Mã voucher shop không hợp lệ cho các shop trong giỏ hàng.");
+                // Explicit scope enforcement: re-resolve throws COUPON-SCOPE with first owner if all fail
+                throw new BusinessException("COUPON-SCOPE",
+                        "Mã voucher shop không hợp lệ hoặc không thuộc bất kỳ shop nào trong giỏ hàng.");
             }
             BigDecimal shopDiscount = promotionService.calculateDiscount(shopPromo, subtotalByOwner.get(shopPromoOwnerId));
             shopDiscountByOwner.put(shopPromoOwnerId, shopDiscount);
@@ -283,6 +320,8 @@ public class CheckoutService {
             if (systemPromo == null) {
                 throw new IllegalArgumentException("Mã voucher sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
             }
+            // PRO-01: reject double-discount stacking
+            promotionService.validateCouponStack(shopPromo, systemPromo);
             BigDecimal systemDiscount = promotionService.calculateDiscount(systemPromo, afterShopTotal);
             Map<Integer, BigDecimal> allocationBase = new LinkedHashMap<>();
             for (Integer ownerId : itemsByOwner.keySet()) {
@@ -343,7 +382,7 @@ public class CheckoutService {
                 orderDAO.updatePlatformFee(conn, parentOrderId, totalPlatformFee);
                 cartDAO.deleteItemsByCustomer(conn, user.getUserId(), request.getVariantIds());
                 conn.commit();
-            } catch (Exception ex) {
+            } catch (SQLException | RuntimeException ex) {
                 conn.rollback();
                 throw ex;
             } finally {
@@ -465,8 +504,14 @@ public class CheckoutService {
         if (promo == null || promo.getPromoId() <= 0 || discount == null || discount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
+        // Atomic claim: tăng used_count CHỈ KHI còn dưới max_uses — phòng race condition.
+        // Gọi trước saveOrderPromotion để rollback sạch nếu mã đã hết lượt.
+        boolean claimed = promotionDAO.claimUsage(conn, promo.getPromoId());
+        if (!claimed) {
+            throw new IllegalStateException(
+                "Mã giảm giá [" + promo.getCode() + "] đã hết lượt sử dụng. Đặt hàng bị hủy.");
+        }
         promotionDAO.saveOrderPromotion(conn, orderId, promo.getPromoId(), customerId, discount);
-        promotionDAO.incrementUsedCount(conn, promo.getPromoId());
     }
 
     private void initPaymentIfNeeded(int orderId, String paymentMethod, String remoteAddress) throws SQLException {

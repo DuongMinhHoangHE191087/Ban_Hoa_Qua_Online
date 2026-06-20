@@ -13,12 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 public class DeliveryTripDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(DeliveryTripDAO.class.getName());
 
     public int save(Connection conn, int parentOrderId, Integer shipperId,
                     String status, LocalDateTime estimatedStartTime,

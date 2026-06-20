@@ -14,9 +14,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.logging.Logger;
-import util.LoggerUtil;
-
 /**
  * CartDAO — DAO cho entity Cart.
  *
@@ -29,8 +26,6 @@ import util.LoggerUtil;
  * @author fruitmkt-team
  */
 public class CartDAO extends BaseDAO {
-
-    private static final Logger log = Logger.getLogger(CartDAO.class.getName());
 
     /**
      * Tìm giỏ hàng theo ID khách hàng.
