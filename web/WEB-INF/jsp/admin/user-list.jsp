@@ -288,7 +288,7 @@
             .then(data => {
                 this.disabled = false;
                 if (data.success) {
-                    Toast.fire({ icon: 'success', title: data.message });
+                    Toast.fire({ icon: 'success', title: data.data || data.message || 'Cập nhật thành công' });
                     this.setAttribute('data-current', newStatus);
                     const badge = document.getElementById('status-badge-' + userId);
                     
@@ -304,7 +304,7 @@
                         this.innerHTML = '<i class="fa-solid fa-unlock mr-0.5"></i> Mở';
                     }
                 } else {
-                    Toast.fire({ icon: 'error', title: data.message || 'Có lỗi xảy ra' });
+                    Toast.fire({ icon: 'error', title: data.error || data.message || 'Có lỗi xảy ra' });
                     this.innerHTML = originalHtml;
                 }
             })
@@ -354,11 +354,11 @@
                         if (data.success) {
                             Swal.fire(
                                 'Thành công!',
-                                data.message,
+                                data.data || data.message || 'Thao tác thành công',
                                 'success'
                             );
                         } else {
-                            Toast.fire({ icon: 'error', title: data.message || 'Có lỗi xảy ra' });
+                            Toast.fire({ icon: 'error', title: data.error || data.message || 'Có lỗi xảy ra' });
                         }
                     })
                     .catch(error => {
