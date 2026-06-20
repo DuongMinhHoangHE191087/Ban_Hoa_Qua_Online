@@ -332,9 +332,10 @@
     function loadHistory() {
         fetch(CTX + '/api/chat?action=getMessages&sessionId=' + sessionId)
             .then(r => r.json())
-            .then(data => {
-                if (!data.success) return;
-                data.messages.forEach(msg => {
+            .then(resp => {
+                if (!resp.success || !resp.data) return;
+                const messages = resp.data.messages;
+                messages.forEach(msg => {
                     if (!renderedIds.has(msg.messageId)) {
                         renderedIds.add(msg.messageId);
                         chatBox.appendChild(renderMessage(msg, msg.senderId === currentAdminId));
