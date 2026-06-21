@@ -1640,10 +1640,8 @@
                             const p = window.currentQuickAddData.product;
 
                             const imagePath = p.imagePath || 'assets/img/placeholder.png';
-                            const success = await window.addCartItem(v.variantId, qty, `\${p.name} - \${v.variantLabel}`, v.price, imagePath, v.stockQuantity, p.productId);
-                            if (success) {
-                                closeQuickAddModal();
-                            }
+                            await window.addCartItem(v.variantId, qty, `\${p.name} - \${v.variantLabel}`, v.price, imagePath, v.stockQuantity, p.productId);
+                            closeQuickAddModal();
                         }
 
                         // ============================================================
@@ -2069,17 +2067,21 @@
                                             </div>
                                             <div class="px-1 mb-3">
                                                 <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">${fn:escapeXml(item.name)}</h3>
-                                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">${fn:escapeXml(item.description || '')}</p>
+                                                <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
+                                                    <c:out value="${empty item.description ? '' : item.description}" />
+                                                </p>
                                                 <div class="flex justify-between items-center">
                                                     <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">${starsHtml}<span class="${ratingLabelClass}">${ratingLabel}</span></div>
-                                                    <span class="text-[10px] text-on-surface-variant font-medium">Đã bán ${item.soldQuantity || 0}</span>
+                                                    <span class="text-[10px] text-on-surface-variant font-medium">Đã bán ${empty item.soldQuantity ? 0 : item.soldQuantity}</span>
                                                 </div>
                                             </div>
                                         </a>
                                         <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
                                             <div class="flex flex-col">
                                                 <span class="text-base font-bold text-primary">${formattedPrice}</span>
-                                                <span class="text-[10px] text-on-surface-variant font-light">/ ${fn:escapeXml(item.unit || 'kg')}</span>
+                                                <span class="text-[10px] text-on-surface-variant font-light">/
+                                                    <c:out value="${empty item.unit ? 'kg' : item.unit}" />
+                                                </span>
                                             </div>
                                             <button type="button" onclick="quickAddProduct(event, '${item.productId}')" class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer" title="Thêm vào giỏ">
                                                 <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>

@@ -147,7 +147,18 @@ public class CheckoutServlet extends HttpServlet {
     private void handleSuccessView(HttpServletRequest req, HttpServletResponse resp, User user)
             throws IOException, ServletException {
         Order order = findCustomerOrder(req.getParameter("orderId"), user.getUserId());
+        PaymentTransaction paymentTx = null;
+        if (order != null) {
+            try {
+                paymentTx = paymentService.getPaymentByOrder(order.getOrderId());
+            } catch (Exception e) {
+                LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
+            }
+        }
         req.setAttribute("order", order);
+        if (paymentTx != null) {
+            req.setAttribute("paymentTx", paymentTx);
+        }
         req.getRequestDispatcher("/WEB-INF/jsp/customer/order-success.jsp").forward(req, resp);
     }
 
@@ -165,6 +176,11 @@ public class CheckoutServlet extends HttpServlet {
             paymentTx = paymentService.getPaymentByOrder(order.getOrderId());
         } catch (Exception e) {
             LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
+        }
+        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
+                || (paymentTx != null && !"pending".equalsIgnoreCase(paymentTx.getStatus()))) {
+            resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + order.getOrderId());
+            return;
         }
         String reference = paymentTx != null && paymentTx.getSepayReference() != null
                 ? paymentTx.getSepayReference()
@@ -188,7 +204,21 @@ public class CheckoutServlet extends HttpServlet {
         resp.setCharacterEncoding("UTF-8");
         Order order = findCustomerOrder(req.getParameter("orderId"), user.getUserId());
         Map<String, Object> responseData = new java.util.LinkedHashMap<>();
-        responseData.put("status", order != null && order.getStatus() != null ? order.getStatus() : "UNKNOWN");
+        String status = order != null && order.getStatus() != null ? order.getStatus() : "UNKNOWN";
+        if (order != null && AppConfig.ORDER_PENDING_PAYMENT.equals(status)) {
+            try {
+                PaymentTransaction paymentTx = paymentService.getPaymentByOrder(order.getOrderId());
+                if (paymentTx != null) {
+                    responseData.put("paymentStatus", paymentTx.getStatus());
+                    if ("completed".equalsIgnoreCase(paymentTx.getStatus())) {
+                        status = AppConfig.ORDER_CONFIRMED;
+                    }
+                }
+            } catch (Exception e) {
+                LoggerUtil.warn(log, "Không thể tải trạng thái thanh toán cho đơn hàng", e);
+            }
+        }
+        responseData.put("status", status);
         JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
     }
 
@@ -200,6 +230,8 @@ public class CheckoutServlet extends HttpServlet {
             if (ok) {
                 SessionUtil.flashSuccess(session,
                         "Chúng tôi đã nhận thông báo thanh toán. Admin sẽ xác minh và duyệt trong 1-24 giờ làm việc.");
+                resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + orderId);
+                return;
             } else {
                 SessionUtil.flashError(session, "Mã QR đã hết hạn. Vui lòng làm mới mã QR và thanh toán lại.");
             }
