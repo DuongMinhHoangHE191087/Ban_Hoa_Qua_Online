@@ -114,7 +114,7 @@ public class AppStartupListener implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         LoggerUtil.info(log, "[AppStartup] contextDestroyed: Closing ConnectionPool to prevent Timer leaks...");
-        ConnectionPool.shutdown();
+        ConnectionPool.closePool();
 
         LoggerUtil.info(log, "[AppStartup] contextDestroyed: Cleaning up JDBC drivers to prevent Timer already cancelled error...");
         java.util.Enumeration<java.sql.Driver> drivers = java.sql.DriverManager.getDrivers();

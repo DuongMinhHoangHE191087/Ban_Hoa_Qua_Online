@@ -456,9 +456,13 @@
             if (xhr.status === 200) {
                 try {
                     const resp = JSON.parse(xhr.responseText);
-                    if (resp.success) {
-                        pendingMediaUrl = resp.url;
-                        pendingMediaType = resp.type;
+                    if (resp.success && resp.data) {
+                        pendingMediaUrl = resp.data.url;
+                        pendingMediaType = resp.data.type;
+                        if (previewFileName.nextElementSibling) {
+                            previewFileName.nextElementSibling.textContent = 'Đã tải xong, sẵn sàng gửi';
+                            previewFileName.nextElementSibling.classList.replace('text-slate-400', 'text-green-600');
+                        }
                     } else {
                         alert('Lỗi tải tệp: ' + resp.message);
                         resetUpload();
@@ -492,6 +496,10 @@
         imagePreview.src = '';
         videoPreview.classList.add('hidden');
         videoPreview.src = '';
+        if (previewFileName.nextElementSibling) {
+            previewFileName.nextElementSibling.textContent = 'Đang chuẩn bị gửi...';
+            previewFileName.nextElementSibling.classList.replace('text-green-600', 'text-slate-400');
+        }
     }
 
     btnCancelUpload.addEventListener('click', resetUpload);

@@ -206,17 +206,17 @@
                                                 <td class="px-5 py-3.5 border-b border-border text-sm">
                                                     <c:choose>
                                                         <c:when test="${v.stockQuantity <= 0}">
-                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-sm">
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-sm whitespace-nowrap">
                                                                 <i class="fa-solid fa-circle-xmark mr-1 text-[10px]"></i> Hết hàng (0)
                                                             </span>
                                                         </c:when>
                                                         <c:when test="${v.stockQuantity < 10}">
-                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">
                                                                 <i class="fa-solid fa-triangle-exclamation mr-1 text-[10px]"></i> Sắp hết (${v.stockQuantity})
                                                             </span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm whitespace-nowrap">
                                                                 <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Còn hàng (${v.stockQuantity})
                                                             </span>
                                                         </c:otherwise>
@@ -277,25 +277,25 @@
                                                 <td class="px-5 py-3.5 border-b border-border text-sm">
                                                     <c:choose>
                                                         <c:when test="${log.changeType == 'ORDER_RESERVE'}">
-                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">📦 Giữ hàng</span>
+                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">📦 Giữ hàng</span>
                                                         </c:when>
                                                         <c:when test="${log.changeType == 'ORDER_CONFIRM'}">
-                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-200">✅ Đã bán</span>
+                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-violet-50 text-violet-700 border border-violet-200 whitespace-nowrap">✅ Đã bán</span>
                                                         </c:when>
                                                         <c:when test="${log.changeType == 'ORDER_RELEASE'}">
-                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">↩ Hoàn kho</span>
+                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">↩ Hoàn kho</span>
                                                         </c:when>
                                                         <c:when test="${log.changeType == 'EXPIRED'}">
-                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-orange-50 text-orange-700 border border-orange-200">⏰ Hết hạn</span>
+                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-orange-50 text-orange-700 border border-orange-200 whitespace-nowrap">⏰ Hết hạn</span>
                                                         </c:when>
                                                         <c:when test="${log.changeType == 'SPOILED'}">
-                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200">🗑 Thối hỏng</span>
+                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-50 text-red-700 border border-red-200 whitespace-nowrap">🗑 Thối hỏng</span>
                                                         </c:when>
                                                         <c:when test="${log.changeType == 'RETURN'}">
-                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200">↩ Trả hàng</span>
+                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 whitespace-nowrap">↩ Trả hàng</span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">⚙ Điều chỉnh</span>
+                                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200 whitespace-nowrap">⚙ Điều chỉnh</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
