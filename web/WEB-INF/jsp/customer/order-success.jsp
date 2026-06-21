@@ -148,16 +148,28 @@
                     
                     <div class="flex justify-between items-center py-1">
                         <span class="text-on-surface-variant font-medium">Trạng thái đơn hàng:</span>
-                        <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
-                            <c:choose>
-                                <c:when test="${order.status eq 'PENDING_PAYMENT'}">
+                        <c:choose>
+                            <c:when test="${order.paymentMethod eq 'CK' and (order.status ne 'PENDING_PAYMENT' or (not empty paymentTx and paymentTx.status eq 'completed'))}">
+                                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
+                                    Đã thanh toán
+                                </span>
+                            </c:when>
+                            <c:when test="${not empty paymentTx and paymentTx.status eq 'processing'}">
+                                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-bold text-xs">
+                                    Đã chuyển khoản, chờ duyệt
+                                </span>
+                            </c:when>
+                            <c:when test="${order.status eq 'PENDING_PAYMENT'}">
+                                <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-bold text-xs">
                                     Chờ thanh toán
-                                </c:when>
-                                <c:otherwise>
+                                </span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
                                     Đã xác nhận
-                                </c:otherwise>
-                            </c:choose>
-                            </span>
+                                </span>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
 
                     <!-- Destination Address -->
@@ -171,10 +183,23 @@
                 <div class="w-full bg-[#d1ffd8]/50 border border-[#bcfdc9] rounded-xl p-5 text-start">
                     <h4 class="text-sm font-bold text-[#14532D] flex items-center gap-1.5 mb-2">
                         <span class="material-symbols-outlined text-[18px]">info</span>
-                        Hướng dẫn chặng tiếp theo:
+                        <c:choose>
+                            <c:when test="${order.paymentMethod eq 'CK' and order.status eq 'PENDING_PAYMENT' and (empty paymentTx or paymentTx.status eq 'pending')}">
+                                Hướng dẫn chặng tiếp theo:
+                            </c:when>
+                            <c:when test="${order.paymentMethod eq 'CK' and not empty paymentTx and paymentTx.status eq 'processing'}">
+                                Đang chờ xác minh thanh toán:
+                            </c:when>
+                            <c:when test="${order.paymentMethod eq 'CK'}">
+                                Đơn hàng đã thanh toán:
+                            </c:when>
+                            <c:otherwise>
+                                Hướng dẫn giao hàng:
+                            </c:otherwise>
+                        </c:choose>
                     </h4>
                     <c:choose>
-                        <c:when test="${order.paymentMethod eq 'CK'}">
+                        <c:when test="${order.paymentMethod eq 'CK' and order.status eq 'PENDING_PAYMENT' and (empty paymentTx or paymentTx.status eq 'pending')}">
                             <p class="text-xs text-on-surface-variant leading-relaxed">
                                 Bạn đã chọn phương thức <strong>Chuyển khoản QR ngân hàng</strong>. Để đơn hàng được xác nhận ngay lập tức và giữ chỗ tồn kho nông sản, vui lòng hoàn tất giao dịch thanh toán.
                             </p>
@@ -184,6 +209,19 @@
                                     <span>Thanh toán ngay qua mã QR</span>
                                 </a>
                             </div>
+                        </c:when>
+                        <c:when test="${order.paymentMethod eq 'CK' and not empty paymentTx and paymentTx.status eq 'processing'}">
+                            <p class="text-xs text-on-surface-variant leading-relaxed">
+                                Bạn đã chuyển khoản thành công. Hệ thống đang chờ xác minh giao dịch, vì vậy không cần thanh toán lại.
+                            </p>
+                            <p class="text-xs text-on-surface-variant leading-relaxed mt-3">
+                                Vui lòng chờ cập nhật trạng thái đơn hàng hoặc mở <a class="font-bold text-[#14532D] underline" href="${pageContext.request.contextPath}/profile/order-detail?orderId=${order.orderId}">chi tiết đơn hàng</a> để theo dõi.
+                            </p>
+                        </c:when>
+                        <c:when test="${order.paymentMethod eq 'CK'}">
+                            <p class="text-xs text-on-surface-variant leading-relaxed">
+                                Đơn hàng đã thanh toán. Shop sẽ sớm gửi đơn đi cho bạn. Bạn có thể theo dõi đơn hàng theo đường dẫn dưới đây.
+                            </p>
                         </c:when>
                         <c:otherwise>
                             <p class="text-xs text-on-surface-variant leading-relaxed">

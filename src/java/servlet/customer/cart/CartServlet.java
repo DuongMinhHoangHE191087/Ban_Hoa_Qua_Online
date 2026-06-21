@@ -208,7 +208,10 @@ public class CartServlet extends HttpServlet {
                     if (errors.isEmpty()) {
                         JsonUtil.writeJson(resp, ApiResponse.ok(null));
                     } else {
-                        JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("errors", errors)));
+                        JsonUtil.writeJson(resp, ApiResponse.fail(
+                                200,
+                                "Một số sản phẩm trong giỏ không còn đủ tồn kho. Vui lòng kiểm tra lại.",
+                                buildStockErrorMeta(errors)));
                     }
                     break;
                 }
@@ -217,11 +220,36 @@ public class CartServlet extends HttpServlet {
                     break;
             }
         } catch (IllegalArgumentException e) {
-            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("error", e.getMessage(), "errorCode", "out_of_stock")));
+            JsonUtil.writeJson(resp, ApiResponse.fail(200, e.getMessage(), buildValidationErrorMeta(e.getMessage())));
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi hệ thống khi xử lý giỏ hàng", e);
             JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống khi xử lý giỏ hàng: " + e.getMessage()));
         }
+    }
+
+    private Map<String, Object> buildValidationErrorMeta(String message) {
+        Map<String, Object> meta = new HashMap<>();
+        if (isStockRelatedMessage(message)) {
+            meta.put("errorCode", "out_of_stock");
+        }
+        return meta.isEmpty() ? null : meta;
+    }
+
+    private Map<String, Object> buildStockErrorMeta(List<String> errors) {
+        Map<String, Object> meta = new HashMap<>();
+        meta.put("errorCode", "out_of_stock");
+        meta.put("errors", errors);
+        return meta;
+    }
+
+    private boolean isStockRelatedMessage(String message) {
+        if (message == null) {
+            return false;
+        }
+        return message.contains("vượt quá số lượng còn lại trong kho")
+                || message.contains("hết hàng")
+                || message.contains("trong kho chỉ còn")
+                || message.contains("không còn bán");
     }
 
     private List<Integer> parseVariantIds(String variantIdsParam) {
