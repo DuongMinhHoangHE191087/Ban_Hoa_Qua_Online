@@ -630,8 +630,8 @@
                             Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng thử lại với từ khóa khác hoặc xóa bớt tiêu chí lọc nhé.
                         </p>
                     </div>
-                    <a href="${PRODUCT_LIST_URL}" onclick="return resetAiProductFilter(event)"
-                       class="btn bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-2 shadow-md">
+                    <a href="\${PRODUCT_LIST_URL}" onclick="return resetAiProductFilter(event)"
+                        class="btn bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-2 shadow-md">
                         Xem tất cả sản phẩm
                     </a>
                 </div>
@@ -643,7 +643,7 @@
         let html = spinnerHtml + bannerHtml + '<div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">';
 
         products.forEach(p => {
-            const detailUrl = `${ctx}/products/detail?id=${p.productId}`;
+            const detailUrl = `\${ctx}/products/detail?id=\${p.productId}`;
             
             let starsHtml = '';
             const ratingVal = parseFloat(p.rating) || 0;
@@ -677,7 +677,7 @@
                     <a href="\${detailUrl}"
                        class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
                         <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                            <img src="\${p.image}" alt="\${escapeHtml(p.name)}"
+                             <img src="\${escapeHtml(p.image || '')}" alt="\${escapeHtml(p.name)}"
                                  onerror="handleImageError(this)"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             
@@ -700,7 +700,7 @@
                                     <span class="\${ratingLabelClass}">\${ratingLabel}</span>
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant font-medium">
-                                    Đã bán \${p.soldQuantity || 0}
+                                    Đã bán \${Number(p.soldQuantity || 0)}
                                 </span>
                             </div>
                         </div>
@@ -716,7 +716,7 @@
                             </span>
                         </div>
 
-                        <button type="button" onclick="quickAddProduct(event, '\${p.productId}', '\${p.variantId || 0}', '\${escapeHtml(p.name)}', '\${p.price || 0}', '\${p.image}', '\${p.stockQuantity || 0}')"
+                        <button type="button" onclick="quickAddProduct(event, '\${p.productId}', '\${p.variantId || 0}', '\${escapeHtml(p.name)}', '\${p.price || 0}', '\${escapeHtml(p.image || '')}', '\${p.stockQuantity || 0}')"
                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                 title="Thêm vào giỏ hàng">
                             <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
@@ -735,7 +735,7 @@
             // Prev button
             if (page > 1) {
                 html += `
-                    <button type="button" onclick="fetchProductsAjax(${page - 1})"
+                    <button type="button" onclick="fetchProductsAjax(\${page - 1})"
                        class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
                         <span class="material-symbols-outlined text-[20px]">chevron_left</span>
                     </button>
@@ -754,14 +754,14 @@
                     if (page === pageNum) {
                         html += `
                             <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                                ${pageNum}
+                                \${pageNum}
                             </span>
                         `;
                     } else {
                         html += `
-                            <button type="button" onclick="fetchProductsAjax(${pageNum})"
+                            <button type="button" onclick="fetchProductsAjax(\${pageNum})"
                                class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
-                                ${pageNum}
+                                \${pageNum}
                             </button>
                         `;
                     }
@@ -775,7 +775,7 @@
             // Next button
             if (page < total) {
                 html += `
-                    <button type="button" onclick="fetchProductsAjax(${page + 1})"
+                    <button type="button" onclick="fetchProductsAjax(\${page + 1})"
                        class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
                         <span class="material-symbols-outlined text-[20px]">chevron_right</span>
                     </button>
@@ -818,6 +818,9 @@
         html += '</div>';
         container.innerHTML = html;
     }
+
+    window.resetAiProductFilter = resetAiProductFilter;
+    window.fetchProductsAjax = fetchProductsAjax;
 
     document.addEventListener('DOMContentLoaded', () => {
         // Clear AI filter if page is reloaded or if the URL does not contain fromAi=true

@@ -2033,7 +2033,7 @@
                                             <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
                                             <p class="text-xs text-on-surface-variant font-light mt-1">Xin lỗi, hệ thống không tìm thấy trái cây khớp với bộ lọc tìm kiếm của bạn. Hãy thử đổi từ khóa khác nhé!</p>
                                         </div>
-                                        <a href="${ctx}/home" class="btn btn-primary btn-sm px-6 py-2.5 rounded-full mt-2">Quay lại Trang chủ</a>
+                                        <a href="\${ctx}/home" class="btn btn-primary btn-sm px-6 py-2.5 rounded-full mt-2">Quay lại Trang chủ</a>
                                     </div>
                                 `;
                                 return;
@@ -2061,16 +2061,16 @@
                                         class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                                         <a href="\${ctx}/products/detail?id=\${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
                                             <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                                                <img src="\${item.image}" alt="\${escapeHtml(item.name)}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                <img src="\${escapeHtml(item.image || '')}" alt="\${escapeHtml(item.name || '')}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                                 <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-\${item.productId}">Đã thêm 0</div>
                                                 <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">Nông sản sạch</div>
                                             </div>
                                             <div class="px-1 mb-3">
-                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">\${escapeHtml(item.name)}</h3>
+                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">\${escapeHtml(item.name || '')}</h3>
                                                 <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">\${escapeHtml(item.description || '')}</p>
                                                 <div class="flex justify-between items-center">
                                                     <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">\${starsHtml}<span class="\${ratingLabelClass}">\${ratingLabel}</span></div>
-                                                    <span class="text-[10px] text-on-surface-variant font-medium">Đã bán \${item.soldQuantity || 0}</span>
+                                                    <span class="text-[10px] text-on-surface-variant font-medium">Đã bán \${Number(item.soldQuantity || 0)}</span>
                                                 </div>
                                             </div>
                                         </a>
@@ -2163,6 +2163,12 @@
                             if (!str) return '';
                             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
                         }
+
+                        window.applyAiPrompt = applyAiPrompt;
+                        window.handleHeroSearch = handleHeroSearch;
+                        window.filterCategoryAjax = filterCategoryAjax;
+                        window.searchProductsAjax = searchProductsAjax;
+                        window.promptPageJump = promptPageJump;
 
                         document.addEventListener('DOMContentLoaded', () => {
                             // Initialize Hero Slideshow
