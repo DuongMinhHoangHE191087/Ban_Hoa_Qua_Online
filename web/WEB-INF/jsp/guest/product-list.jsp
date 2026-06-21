@@ -72,11 +72,9 @@
         }
     };
 
-    function quickAddProduct(event, productId, variantId, name, price, imagePath, stockQuantity) {
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
+    window.quickAddProduct = function(event, productId, variantId, name, price, imagePath, stockQuantity) {
+        event.preventDefault();
+        event.stopPropagation();
         if (variantId > 0 && typeof window.addCartItem === 'function') {
             window.addCartItem(variantId, 1, name + " - Mặc định", price, imagePath, stockQuantity, productId);
         } else if (window.quickAddProductGlobal) {
@@ -85,7 +83,7 @@
             // Fallback: Redirect to detail page
             window.location.href = "${pageContext.request.contextPath}/products/detail?id=" + productId;
         }
-    }
+    };
 </script>
 
 <div class="bg-gradient-to-br from-emerald-50/50 via-white to-emerald-100/40 min-h-screen pt-28 pb-20">
@@ -668,18 +666,18 @@
             const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price);
 
             html += `
-                <article data-product-id="${p.productId}"
-                         data-price="${p.price}"
-                         data-rating="${p.rating}"
-                         data-sold="${p.soldQuantity}"
-                         data-category-id="${p.categoryId}"
-                         data-in-stock="${p.inStock}"
+                <article data-product-id="\${p.productId}"
+                         data-price="\${p.price}"
+                         data-rating="\${p.rating}"
+                         data-sold="\${p.soldQuantity}"
+                         data-category-id="\${p.categoryId}"
+                         data-in-stock="\${p.inStock}"
                          class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                     
-                    <a href="${detailUrl}"
+                    <a href="\${detailUrl}"
                        class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
                         <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                            <img src="${p.image}" alt="${fn:escapeXml(p.name)}"
+                            <img src="\${p.image}" alt="\${escapeHtml(p.name)}"
                                  onerror="handleImageError(this)"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             
@@ -690,19 +688,19 @@
 
                         <div class="px-1 mb-3">
                             <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
-                                ${fn:escapeXml(p.name)}
+                                \${escapeHtml(p.name)}
                             </h3>
                             <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
-                                <c:out value="${empty p.description ? '' : p.description}" />
+                                \${escapeHtml(p.description || '')}
                             </p>
 
                             <div class="flex justify-between items-center">
                             <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">
-                                    <div class="flex items-center gap-0.5">${starsHtml}</div>
-                                    <span class="${ratingLabelClass}">${ratingLabel}</span>
+                                    <div class="flex items-center gap-0.5">\${starsHtml}</div>
+                                    <span class="\${ratingLabelClass}">\${ratingLabel}</span>
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant font-medium">
-                                    Đã bán ${empty p.soldQuantity ? 0 : p.soldQuantity}
+                                    Đã bán \${p.soldQuantity || 0}
                                 </span>
                             </div>
                         </div>
@@ -711,14 +709,14 @@
                     <div class="flex justify-between items-center gap-3 pt-3 border-t border-gray-100 mt-auto px-1">
                         <div class="flex flex-col">
                             <span class="text-base font-bold text-primary">
-                                ${formattedPrice}
+                                \${formattedPrice}
                             </span>
                             <span class="text-[10px] text-on-surface-variant font-light">
-                                / <c:out value="${empty p.unit ? 'kg' : p.unit}" />
+                                / \${escapeHtml(p.unit || 'kg')}
                             </span>
                         </div>
 
-                        <button type="button" onclick="quickAddProduct(event, '${p.productId}', '${empty p.variantId ? 0 : p.variantId}', '${fn:escapeXml(p.name)}', '${empty p.price ? 0 : p.price}', '${p.image}', '${empty p.stockQuantity ? 0 : p.stockQuantity}')"
+                        <button type="button" onclick="quickAddProduct(event, '\${p.productId}', '\${p.variantId || 0}', '\${escapeHtml(p.name)}', '\${p.price || 0}', '\${p.image}', '\${p.stockQuantity || 0}')"
                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                 title="Thêm vào giỏ hàng">
                             <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
