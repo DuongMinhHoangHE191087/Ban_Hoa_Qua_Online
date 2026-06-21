@@ -73,8 +73,10 @@
     };
 
     function quickAddProduct(event, productId, variantId, name, price, imagePath, stockQuantity) {
-        event.preventDefault();
-        event.stopPropagation();
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
         if (variantId > 0 && typeof window.addCartItem === 'function') {
             window.addCartItem(variantId, 1, name + " - Mặc định", price, imagePath, stockQuantity, productId);
         } else if (window.quickAddProductGlobal) {
@@ -691,7 +693,7 @@
                                 ${fn:escapeXml(p.name)}
                             </h3>
                             <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
-                                ${fn:escapeXml(p.description || '')}
+                                <c:out value="${empty p.description ? '' : p.description}" />
                             </p>
 
                             <div class="flex justify-between items-center">
@@ -700,7 +702,7 @@
                                     <span class="${ratingLabelClass}">${ratingLabel}</span>
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant font-medium">
-                                    Đã bán ${p.soldQuantity || 0}
+                                    Đã bán ${empty p.soldQuantity ? 0 : p.soldQuantity}
                                 </span>
                             </div>
                         </div>
@@ -712,11 +714,11 @@
                                 ${formattedPrice}
                             </span>
                             <span class="text-[10px] text-on-surface-variant font-light">
-                                / ${fn:escapeXml(p.unit || 'kg')}
+                                / <c:out value="${empty p.unit ? 'kg' : p.unit}" />
                             </span>
                         </div>
 
-                        <button type="button" onclick="quickAddProduct(event, '${p.productId}', '${p.variantId || 0}', '${fn:escapeXml(p.name)}', '${p.price || 0}', '${p.image}', '${p.stockQuantity || 0}')"
+                        <button type="button" onclick="quickAddProduct(event, '${p.productId}', '${empty p.variantId ? 0 : p.variantId}', '${fn:escapeXml(p.name)}', '${empty p.price ? 0 : p.price}', '${p.image}', '${empty p.stockQuantity ? 0 : p.stockQuantity}')"
                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                 title="Thêm vào giỏ hàng">
                             <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>

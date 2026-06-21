@@ -478,6 +478,22 @@ public class CheckoutServletPricingRegressionTest {
         PaymentTransaction updatedTransaction = paymentService.getPaymentByOrder(createdOrderId);
         assertNotNull(updatedTransaction);
         assertEquals("completed", updatedTransaction.getStatus());
+
+        env.clearRequestState();
+        env.putParam("action", "payment");
+        env.putParam("orderId", String.valueOf(createdOrderId));
+        servlet.doGetPublic(env.request, env.response);
+        assertEquals("/checkout?action=success&orderId=" + createdOrderId, env.redirectLocation);
+        assertNull(env.forwardedPath);
+
+        env.clearRequestState();
+        env.putParam("action", "success");
+        env.putParam("orderId", String.valueOf(createdOrderId));
+        servlet.doGetPublic(env.request, env.response);
+        assertNull(env.redirectLocation);
+        assertEquals("/WEB-INF/jsp/customer/order-success.jsp", env.forwardedPath);
+        assertNotNull(env.requestAttributes.get("paymentTx"));
+        assertEquals("completed", ((PaymentTransaction) env.requestAttributes.get("paymentTx")).getStatus());
     }
 
     @Test

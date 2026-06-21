@@ -498,8 +498,9 @@ const CartPage = {
                 });
                 const data = await this.safeParseJSON(response);
                 if (!data.success) {
-                    if (data.errorCode === 'out_of_stock') {
-                        this.showToast(data.error, 'error');
+                    const errorCode = data.errorCode || data.meta?.errorCode;
+                    if (errorCode === 'out_of_stock') {
+                        this.showToast(data.error || 'Sản phẩm đã thay đổi tồn kho.', 'error');
                         // Khôi phục lại số lượng chuẩn từ server
                         this.loadAndSyncFromServer();
                     } else {
@@ -829,15 +830,23 @@ const CartPage = {
                 console.log('[CartPage] Stock double-check success. Proceeding to checkout.');
                 window.location.href = `${this.contextPath}/checkout?variantIds=${encodeURIComponent(variantIds)}`;
             } else {
-                let errorHtml = '<ul class="mb-0 text-start text-danger">';
-                const errors = Array.isArray(data.errors) ? data.errors : [data.error || 'Không thể kiểm tra tồn kho lúc này.'];
-                errors.forEach(err => {
-                    errorHtml += `<li>${err}</li>`;
-                });
-                errorHtml += '</ul>';
+                const errors = Array.isArray(data.meta?.errors)
+                    ? data.meta.errors
+                    : Array.isArray(data.errors)
+                        ? data.errors
+                        : null;
+                if (errors && errors.length > 0) {
+                    let errorHtml = '<ul class="mb-0 text-start text-danger">';
+                    errors.forEach(err => {
+                        errorHtml += `<li>${err}</li>`;
+                    });
+                    errorHtml += '</ul>';
 
-                this.showStockErrorModal(errorHtml);
-                this.loadAndSyncFromServer();
+                    this.showStockErrorModal(errorHtml);
+                    this.loadAndSyncFromServer();
+                } else {
+                    this.showToast(data.error || 'Không thể kiểm tra tồn kho lúc này.', 'error');
+                }
             }
         } catch (err) {
             console.error('[CartPage] Lỗi mạng khi kiểm tra tồn kho:', err);
