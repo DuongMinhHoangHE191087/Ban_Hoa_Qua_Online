@@ -352,43 +352,43 @@
                                 <tr>
                     <td class="class-name">LoginServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Kiểm tra trạng thái khóa, đối chiếu thông tin đăng nhập và tạo session.</td>
+                    <td>Đọc email và mật khẩu từ form POST. Kiểm tra xem tài khoản có đang bị khóa (locked_until), đối chiếu thông tin đăng nhập và tạo session khi đăng nhập thành công.</td>
                 </tr>                <tr>
                     <td class="class-name">LogoutServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xóa thông tin session ở cả client (cookie) và server (database).</td>
+                    <td>Xóa thông tin session (currentUser) ở client (cookie) và server (xóa token tương ứng trong bảng user_sessions).</td>
                 </tr>                <tr>
                     <td class="class-name">AuthService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Xử lý logic xác thực, cấp token phiên làm việc.</td>
+                    <td>Xử lý logic xác thực mật khẩu qua HashUtil, cấp token và ghi nhận phiên đăng nhập vào bảng user_sessions.</td>
                 </tr>                <tr>
                     <td class="class-name">UserLockManager</td>
                     <td><span class="badge-type badge-utility">Utility</span></td>
-                    <td>Theo dõi số lần đăng nhập sai và quản lý thời gian khóa tài khoản.</td>
+                    <td>Quản lý số lần đăng nhập sai (tối đa 5 lần) và ghi nhận mốc thời gian khóa tài khoản tạm thời (15 phút) vào cột locked_until.</td>
                 </tr>                <tr>
                     <td class="class-name">TokenUtil</td>
                     <td><span class="badge-type badge-utility">Utility</span></td>
-                    <td>Sinh chuỗi token ngẫu nhiên, an toàn để định danh session.</td>
+                    <td>Sinh chuỗi token ngẫu nhiên, độ an toàn cao để định danh session lưu cookie.</td>
                 </tr>                <tr>
                     <td class="class-name">HashUtil</td>
                     <td><span class="badge-type badge-utility">Utility</span></td>
-                    <td>Hỗ trợ băm mật khẩu và kiểm tra mật khẩu bằng thuật toán an toàn.</td>
+                    <td>Hỗ trợ băm mật khẩu và đối chiếu mật khẩu an toàn sử dụng các thuật toán băm bảo mật.</td>
                 </tr>                <tr>
                     <td class="class-name">UserSessionDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Quản lý vòng đời lưu trữ của phiên đăng nhập trong DB.</td>
+                    <td>Thực hiện các câu lệnh SQL để truy vấn và xóa phiên (DELETE FROM user_sessions WHERE token = ?), hỗ trợ tự động dọn dẹp các phiên đã hết hạn.</td>
                 </tr>                <tr>
                     <td class="class-name">UserSession</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng đại diện cho một phiên làm việc của người dùng.</td>
+                    <td>Entity ánh xạ bảng user_sessions, liên kết khóa ngoại với bảng users để quản lý token.</td>
                 </tr>                <tr>
                     <td class="class-name">login.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện đăng nhập với thông báo lỗi động.</td>
+                    <td>Giao diện đăng nhập hiển thị thông báo lỗi động và tích hợp nút chọn đăng nhập Google.</td>
                 </tr>                <tr>
                     <td class="class-name">user_sessions</td>
                     <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng lưu vết các token đăng nhập còn hiệu lực.</td>
+                    <td>Bảng lưu vết các token đăng nhập còn hiệu lực, kiểm soát trạng thái đăng nhập đồng thời.</td>
                 </tr>
             </tbody>
         </table>
