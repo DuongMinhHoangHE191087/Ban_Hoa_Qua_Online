@@ -343,27 +343,31 @@
                                 <tr>
                     <td class="class-name">AuthFilter</td>
                     <td><span class="badge-type badge-filter">Filter</span></td>
-                    <td>Kiểm tra trạng thái đăng nhập của người dùng đối với các tài nguyên được bảo vệ.</td>
+                    <td>Đánh chặn mọi yêu cầu, kiểm tra session đăng nhập và tự động cookie login để phục hồi trạng thái người dùng.</td>
                 </tr>                <tr>
                     <td class="class-name">RoleFilter</td>
                     <td><span class="badge-type badge-filter">Filter</span></td>
-                    <td>Kiểm tra vai trò người dùng tương ứng với các phân vùng chức năng cụ thể.</td>
+                    <td>Kiểm tra vai trò người dùng (CUSTOMER, SHOP_OWNER, DELIVERY, ADMIN) khớp với đường dẫn phân vùng bảo vệ tương ứng.</td>
+                </tr>                <tr>
+                    <td class="class-name">CsrfFilter</td>
+                    <td><span class="badge-type badge-filter">Filter</span></td>
+                    <td>Xác thực token CSRF trên các phương thức POST/PUT để chống giả mạo yêu cầu từ trang web khác.</td>
+                </tr>                <tr>
+                    <td class="class-name">RateLimitFilter</td>
+                    <td><span class="badge-type badge-filter">Filter</span></td>
+                    <td>Hạn chế số lượng yêu cầu truy cập từ một IP trong một khoảng thời gian nhằm ngăn ngừa spam.</td>
                 </tr>                <tr>
                     <td class="class-name">PermissionTag</td>
                     <td><span class="badge-type badge-tag">Tag</span></td>
-                    <td>Thẻ tùy chỉnh trong JSP dùng để ẩn/hiện thành phần giao diện dựa trên vai trò.</td>
+                    <td>Thẻ tùy chỉnh trong JSP thực hiện ẩn/hiện giao diện (các nút Sửa, Xóa) dựa trên vai trò của người dùng trong session.</td>
                 </tr>                <tr>
                     <td class="class-name">BaseHttpServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Servlet cha cung cấp các helper method lấy thông tin user đăng nhập nhanh chóng.</td>
+                    <td>Servlet cơ sở hỗ trợ các Servlet con lấy nhanh đối tượng người dùng hiện tại từ session.</td>
                 </tr>                <tr>
                     <td class="class-name">403.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Trang hiển thị thông báo lỗi khi truy cập trái phép.</td>
-                </tr>                <tr>
-                    <td class="class-name">users</td>
-                    <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Lưu trữ vai trò của từng tài khoản phục vụ quá trình xác thực quyền.</td>
+                    <td>Giao diện hiển thị thông báo lỗi chặn quyền truy cập khi người dùng vào vùng cấm.</td>
                 </tr>
             </tbody>
         </table>
