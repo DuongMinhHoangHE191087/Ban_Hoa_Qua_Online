@@ -343,47 +343,47 @@
                                 <tr>
                     <td class="class-name">UserManageServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Quản lý hiển thị danh sách người dùng phân trang cho Admin.</td>
+                    <td>Hiển thị danh sách khách hàng, chủ shop phân trang cho Admin kèm theo bộ lọc trạng thái tài khoản.</td>
                 </tr>                <tr>
                     <td class="class-name">AdminUserStatusAPI</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API nhận yêu cầu khóa/mở khóa tài khoản người dùng.</td>
+                    <td>API tiếp nhận yêu cầu thay đổi trạng thái hoạt động (ACTIVE/LOCKED) của người dùng từ Admin.</td>
                 </tr>                <tr>
                     <td class="class-name">AdminUserRevokeSessionsAPI</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API thực hiện xóa toàn bộ token phiên đăng nhập của người dùng bị khóa.</td>
+                    <td>API thực hiện xóa bỏ toàn bộ token phiên đăng nhập trong DB để buộc tài khoản vi phạm đăng xuất ngay.</td>
                 </tr>                <tr>
                     <td class="class-name">ShopApprovalServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xem chi tiết tài liệu chứng minh và phê duyệt đơn mở cửa hàng.</td>
+                    <td>Xem hồ sơ mở cửa hàng bao gồm tài liệu chứng minh và đơn đăng ký chờ xét duyệt.</td>
                 </tr>                <tr>
                     <td class="class-name">ShopApprovalAPI</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API xử lý duyệt hoặc từ chối yêu cầu đăng ký mở shop.</td>
+                    <td>API tiếp nhận quyết định duyệt hoặc từ chối đơn đăng ký mở shop từ Admin.</td>
                 </tr>                <tr>
                     <td class="class-name">UserService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Cung cấp nghiệp vụ khóa tài khoản và đồng bộ đăng xuất.</td>
+                    <td>Cung cấp nghiệp vụ khóa tài khoản và thu hồi quyền đăng nhập đồng thời.</td>
                 </tr>                <tr>
                     <td class="class-name">ShopService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Xử lý nghiệp vụ duyệt shop và tự động nâng cấp vai trò người dùng.</td>
+                    <td>Cung cấp nghiệp vụ duyệt hồ sơ shop và tự động đổi vai trò của người dùng thành SHOP_OWNER.</td>
                 </tr>                <tr>
                     <td class="class-name">UserDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện truy vấn, lọc dữ liệu tài khoản và cập nhật cờ trạng thái.</td>
+                    <td>Truy vấn, lọc danh sách người dùng và cập nhật trạng thái tài khoản trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">ShopProfileDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật trạng thái phê duyệt của cửa hàng.</td>
+                    <td>Cập nhật trạng thái duyệt hồ sơ shop và lý do từ chối nếu có.</td>
                 </tr>                <tr>
                     <td class="class-name">user-list.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện quản lý người dùng của Admin.</td>
+                    <td>Giao diện danh sách tài khoản người dùng tích hợp nút khóa nhanh bằng AJAX.</td>
                 </tr>                <tr>
                     <td class="class-name">shop-approvals.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện hiển thị danh sách yêu cầu mở shop đang chờ phê duyệt.</td>
+                    <td>Giao diện quản lý hồ sơ đăng ký mở cửa hàng đang chờ phê duyệt.</td>
                 </tr>
             </tbody>
         </table>
