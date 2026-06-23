@@ -643,7 +643,7 @@
         let html = spinnerHtml + bannerHtml + '<div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">';
 
         products.forEach(p => {
-            const detailUrl = `${ctx}/products/detail?id=${p.productId}`;
+            const detailUrl = `\${ctx}/products/detail?id=\${p.productId}`;
             
             let starsHtml = '';
             const ratingVal = parseFloat(p.rating) || 0;
@@ -735,7 +735,7 @@
             // Prev button
             if (page > 1) {
                 html += `
-                    <button type="button" onclick="fetchProductsAjax(${page - 1})"
+                    <button type="button" onclick="fetchProductsAjax(\${page - 1})"
                        class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
                         <span class="material-symbols-outlined text-[20px]">chevron_left</span>
                     </button>
@@ -754,14 +754,14 @@
                     if (page === pageNum) {
                         html += `
                             <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                                ${pageNum}
+                                \${pageNum}
                             </span>
                         `;
                     } else {
                         html += `
-                            <button type="button" onclick="fetchProductsAjax(${pageNum})"
+                            <button type="button" onclick="fetchProductsAjax(\${pageNum})"
                                class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
-                                ${pageNum}
+                                \${pageNum}
                             </button>
                         `;
                     }
@@ -775,7 +775,7 @@
             // Next button
             if (page < total) {
                 html += `
-                    <button type="button" onclick="fetchProductsAjax(${page + 1})"
+                    <button type="button" onclick="fetchProductsAjax(\${page + 1})"
                        class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
                         <span class="material-symbols-outlined text-[20px]">chevron_right</span>
                     </button>

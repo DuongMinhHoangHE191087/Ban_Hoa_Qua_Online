@@ -1483,7 +1483,7 @@
                                     const msg = data.message || 'Sản phẩm hiện không khả dụng.';
                                     if (reason === 'OUT_OF_SEASON') {
                                         if (confirm(msg + '\n\nBạn có muốn gửi yêu cầu nhập kho vụ mới tới cửa hàng không?')) {
-                                            window.location.href = `${contextPath}/products/detail?id=${productId}`;
+                                            window.location.href = `\${contextPath}/products/detail?id=\${productId}`;
                                         }
                                     } else if (reason === 'OUT_OF_STOCK') {
                                         alert('Sản phẩm đã hết hàng. Vui lòng quay lại sau.');
