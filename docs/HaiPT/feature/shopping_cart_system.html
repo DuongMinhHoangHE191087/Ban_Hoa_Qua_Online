@@ -334,39 +334,31 @@
                                 <tr>
                     <td class="class-name">CartServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xử lý thay đổi số lượng, xóa sản phẩm và phụ thu đóng gói trong giỏ hàng DB.</td>
+                    <td>Xử lý thêm sản phẩm, sửa đổi số lượng và xóa các dòng sản phẩm trong giỏ hàng DB của khách hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">CartSyncServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tiếp nhận dữ liệu giỏ hàng tạm thời từ LocalStorage để đồng bộ vào cơ sở dữ liệu.</td>
+                    <td>Tiếp nhận dữ liệu giỏ hàng LocalStorage của khách vãng lai gửi lên để gộp vào giỏ hàng DB sau khi đăng nhập.</td>
                 </tr>                <tr>
                     <td class="class-name">GuestCartServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API lấy thông tin chi tiết của các sản phẩm trong giỏ hàng vãng lai.</td>
+                    <td>API lấy thông tin chi tiết (tên, hình ảnh, đơn giá) của các biến thể trong giỏ hàng LocalStorage.</td>
                 </tr>                <tr>
                     <td class="class-name">CartService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Thực hiện kiểm tra tồn kho trước khi cho phép lưu trữ sản phẩm vào giỏ.</td>
+                    <td>Xác minh số lượng tồn kho của biến thể sản phẩm trước khi cho phép cập nhật vào giỏ hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">CartDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Truy vấn, gộp bản ghi và thay đổi số lượng sản phẩm trong giỏ hàng.</td>
-                </tr>                <tr>
-                    <td class="class-name">Cart</td>
-                    <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng ánh xạ giỏ hàng chính của mỗi khách hàng.</td>
+                    <td>Thực hiện chèn mới, gộp sản phẩm và cập nhật giỏ hàng của người dùng trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">CartItem</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Dòng sản phẩm chi tiết trong giỏ hàng.</td>
+                    <td>Entity đại diện cho một mặt hàng chi tiết trong giỏ hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">cart.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện quản lý giỏ hàng tích hợp cập nhật AJAX số lượng và tùy chọn đóng gói.</td>
-                </tr>                <tr>
-                    <td class="class-name">cart_items</td>
-                    <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng lưu trữ thông tin sản phẩm và phân loại đóng gói trong giỏ hàng.</td>
+                    <td>Trang giỏ hàng hiển thị danh sách mặt hàng, số lượng và tổng tiền tạm tính.</td>
                 </tr>
             </tbody>
         </table>
