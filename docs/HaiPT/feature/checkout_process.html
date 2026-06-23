@@ -334,35 +334,31 @@
                                 <tr>
                     <td class="class-name">CheckoutServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Chuẩn bị danh sách địa chỉ giao hàng và thông tin giỏ hàng cho trang thanh toán.</td>
+                    <td>Chuẩn bị thông tin địa chỉ giao nhận của khách hàng và danh sách các sản phẩm được chọn mua để thanh toán.</td>
                 </tr>                <tr>
                     <td class="class-name">CouponValidateServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API kiểm tra tính hợp lệ của mã giảm giá và tính số tiền được khấu trừ.</td>
+                    <td>API tiếp nhận mã giảm giá, kiểm tra điều kiện (hạn dùng, mức chi tiêu tối thiểu) và trả về giá trị khấu trừ tương ứng.</td>
                 </tr>                <tr>
                     <td class="class-name">CheckoutService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Đảm bảo tính hợp lệ của các mặt hàng và tính toán tổng tiền thanh toán.</td>
+                    <td>Tổng hợp thông tin hóa đơn tạm tính và tính toán phí ship cùng phí nền tảng.</td>
                 </tr>                <tr>
                     <td class="class-name">PromotionService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Xác minh các điều kiện ràng buộc của mã giảm giá.</td>
+                    <td>Xác minh các điều kiện và tính toán mức chiết khấu của mã giảm giá.</td>
                 </tr>                <tr>
                     <td class="class-name">UserAddressDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Lấy thông tin danh sách địa chỉ nhận hàng của khách hàng.</td>
+                    <td>Lấy danh sách địa chỉ giao nhận hàng hóa của khách hàng trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">PromotionDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Truy vấn thông tin mã giảm giá từ database.</td>
-                </tr>                <tr>
-                    <td class="class-name">CheckoutDTO</td>
-                    <td><span class="badge-type">DTO</span></td>
-                    <td>Đối tượng chứa toàn bộ dữ liệu cấu thành hóa đơn thanh toán tạm tính.</td>
+                    <td>Truy vấn thông tin cấu hình của mã giảm giá từ DB.</td>
                 </tr>                <tr>
                     <td class="class-name">checkout.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện thanh toán tích hợp bản đồ chọn địa chỉ và ô nhập mã giảm giá.</td>
+                    <td>Giao diện trang thanh toán cho phép chọn địa chỉ và áp dụng mã giảm giá.</td>
                 </tr>
             </tbody>
         </table>
