@@ -352,39 +352,31 @@
                                 <tr>
                     <td class="class-name">PaymentWebhookServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Đón nhận dữ liệu chuyển khoản tự động do SePay Webhook đẩy về.</td>
+                    <td>Endpoint tiếp nhận thông tin chuyển khoản tự động do SePay Webhook đẩy về khi tài khoản báo có.</td>
                 </tr>                <tr>
                     <td class="class-name">UserProfileServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hỗ trợ endpoint kiểm tra trạng thái thanh toán đơn hàng (API Polling).</td>
+                    <td>Cung cấp API để client thăm dò (polling) trạng thái thanh toán đơn hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">PaymentService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Xác thực chữ ký webhook, kiểm tra trùng lặp và cập nhật trạng thái hóa đơn thanh toán.</td>
+                    <td>Xác thực chữ ký bảo mật webhook, kiểm tra chống trùng lặp giao dịch và cập nhật trạng thái hóa đơn.</td>
                 </tr>                <tr>
                     <td class="class-name">PaymentDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Ghi nhận thông tin giao dịch thanh toán và cập nhật kết quả xử lý.</td>
+                    <td>Ghi nhận thông tin giao dịch thanh toán trực tuyến và cập nhật kết quả xử lý webhook.</td>
                 </tr>                <tr>
                     <td class="class-name">OrderDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật trạng thái thanh toán và phê duyệt của đơn hàng tương ứng.</td>
+                    <td>Cập nhật trạng thái thanh toán và duyệt đơn hàng thành công.</td>
                 </tr>                <tr>
                     <td class="class-name">PaymentTransaction</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng chứa thông tin giao dịch thanh toán.</td>
+                    <td>Entity ánh xạ bảng payment_transactions chứa thông tin giao dịch thanh toán.</td>
                 </tr>                <tr>
                     <td class="class-name">order-payment.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
                     <td>Trang hiển thị VietQR động kèm đồng hồ đếm ngược thời gian thanh toán.</td>
-                </tr>                <tr>
-                    <td class="class-name">payment_transactions</td>
-                    <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng lưu trữ thông tin lịch sử giao dịch thanh toán trực tuyến.</td>
-                </tr>                <tr>
-                    <td class="class-name">sepay_webhook_dedup</td>
-                    <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng lưu trữ ID giao dịch ngân hàng để tránh xử lý webhook trùng lặp.</td>
                 </tr>
             </tbody>
         </table>
