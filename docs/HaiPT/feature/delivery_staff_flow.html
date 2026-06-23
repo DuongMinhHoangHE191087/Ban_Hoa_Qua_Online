@@ -334,15 +334,15 @@
                                 <tr>
                     <td class="class-name">DeliveryDashboardServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Trang quản trị hiển thị các chuyến đi và điểm dừng cần xử lý của shipper.</td>
+                    <td>Hiển thị danh sách chuyến đi và điểm dừng cần xử lý của shipper hiện tại.</td>
                 </tr>                <tr>
                     <td class="class-name">DeliveryDetailServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xem thông tin liên hệ của khách hàng và địa chỉ giao hàng của điểm dừng.</td>
+                    <td>Hiển thị thông tin liên hệ khách hàng và địa chỉ giao hàng của điểm dừng cụ thể.</td>
                 </tr>                <tr>
                     <td class="class-name">DeliveryUpdateAPI</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API tiếp nhận cập nhật trạng thái giao hàng kèm ảnh bằng chứng.</td>
+                    <td>API tiếp nhận cập nhật trạng thái giao hàng kèm ảnh bằng chứng giao hàng thành công.</td>
                 </tr>                <tr>
                     <td class="class-name">DeliveryService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
@@ -350,19 +350,19 @@
                 </tr>                <tr>
                     <td class="class-name">DeliveryDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật thông tin mốc thời gian giao nhận và lưu đường dẫn ảnh bằng chứng.</td>
+                    <td>Cập nhật mốc thời gian giao nhận và lưu đường dẫn ảnh bằng chứng giao hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">DeliveryTripDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật trạng thái hành trình của toàn bộ chuyến đi.</td>
+                    <td>Cập nhật trạng thái hành trình của toàn bộ chuyến đi của shipper.</td>
+                </tr>                <tr>
+                    <td class="class-name">FileUploadUtil</td>
+                    <td><span class="badge-type badge-utility">Utility</span></td>
+                    <td>Tiện ích kiểm tra định dạng và lưu file ảnh bằng chứng giao hàng lên máy chủ.</td>
                 </tr>                <tr>
                     <td class="class-name">dashboard.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện làm việc chính của shipper hiển thị danh sách nhiệm vụ.</td>
-                </tr>                <tr>
-                    <td class="class-name">delivery-detail.jsp</td>
-                    <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện cập nhật kết quả giao hàng có nút kích hoạt camera chụp bằng chứng.</td>
+                    <td>Giao diện làm việc chính của shipper hiển thị danh sách nhiệm vụ được giao.</td>
                 </tr>
             </tbody>
         </table>
