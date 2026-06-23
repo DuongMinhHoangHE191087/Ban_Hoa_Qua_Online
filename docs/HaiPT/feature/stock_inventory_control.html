@@ -325,31 +325,31 @@
                                 <tr>
                     <td class="class-name">InventoryServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hiển thị lịch sử kho và tiếp nhận lệnh nhập kho mới từ chủ shop.</td>
+                    <td>Tiếp nhận thông tin nhập kho mới từ chủ shop và hiển thị danh sách nhật ký biến động kho.</td>
                 </tr>                <tr>
                     <td class="class-name">InventoryService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Thực thi transaction cập nhật tồn kho và tạo nhật ký biến động.</td>
+                    <td>Thực thi transaction cập nhật số lượng tồn kho của biến thể, tạo nhật ký biến động kho và tự động kích hoạt lại sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">InventoryDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Ghi nhận nhật ký biến động kho và truy vấn lịch sử nhập/xuất kho.</td>
+                    <td>Ghi nhận log biến động kho và truy vấn lịch sử nhập xuất kho của cửa hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductVariantDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật trực tiếp số lượng tồn kho hiện tại của SKU biến thể.</td>
+                    <td>Cập nhật cộng/trừ số lượng tồn kho trực tiếp của biến thể sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật trạng thái hiển thị của sản phẩm khi được nhập hàng mới.</td>
+                    <td>Cập nhật trạng thái hiển thị của sản phẩm khi được nhập hàng mới trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">InventoryLog</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng ánh xạ lịch sử biến động kho.</td>
+                    <td>Đối tượng ánh xạ lịch sử biến động kho trong hệ thống.</td>
                 </tr>                <tr>
                     <td class="class-name">inventory.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện quản lý kho, nhập hàng và danh sách nhật ký biến động.</td>
+                    <td>Giao diện nhập kho và danh sách lịch sử nhập xuất kho của shop.</td>
                 </tr>
             </tbody>
         </table>
