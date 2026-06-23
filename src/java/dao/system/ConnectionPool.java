@@ -261,17 +261,5 @@ public final class ConnectionPool {
     /**
      * Shut down and close the connection pool to prevent classloader/timer memory leaks.
      */
-    public static void closePool() {
-        if (dataSource != null) {
-            try {
-                dataSource.getClass().getMethod("close").invoke(dataSource);
-                LoggerUtil.info(log, "[ConnectionPool] Connection pool closed successfully on context destroy.");
-            } catch (Exception e) {
-                LoggerUtil.warn(log, "[ConnectionPool] Error closing pool on context destroy", e);
-            } finally {
-                dataSource = null;
-                poolActive = false;
-            }
-        }
-    }
+    
 }

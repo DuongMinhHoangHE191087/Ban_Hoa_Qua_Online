@@ -37,13 +37,6 @@ public class CategoryServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        HttpSession session = req.getSession();
-        User currentUser = SessionUtil.getCurrentUser(session);
-        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
-            return;
-        }
-
         try {
             // Lấy danh sách danh mục thông qua Service
             List<Category> categories = categoryService.getAllCategories();
@@ -66,11 +59,6 @@ public class CategoryServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         HttpSession session = req.getSession();
-        User currentUser = SessionUtil.getCurrentUser(session);
-        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
-            return;
-        }
 
         String action = req.getParameter("action");
         if (action == null) {
