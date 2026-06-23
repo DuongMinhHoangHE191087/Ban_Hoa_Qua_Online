@@ -361,51 +361,51 @@
                                 <tr>
                     <td class="class-name">RegisterServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tiếp nhận thông tin đăng ký, gọi service xử lý và chuyển hướng người dùng.</td>
+                    <td>Tiếp nhận dữ liệu đăng ký (email, fullName, phone, password, role) từ form POST. Thực hiện xác thực định dạng đầu vào và gọi AuthService.register() để xử lý đăng ký.</td>
                 </tr>                <tr>
                     <td class="class-name">VerifyEmailServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xác nhận mã token gửi qua email và kích hoạt tài khoản.</td>
+                    <td>Xác minh token kích hoạt (code) truyền từ URL GET. Đối chiếu hạn sử dụng và kích hoạt trạng thái tài khoản thành ACTIVE.</td>
                 </tr>                <tr>
                     <td class="class-name">GoogleLoginServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Chuyển hướng người dùng sang trang xác thực Google OAuth.</td>
+                    <td>Khởi tạo tiến trình xác thực Google OAuth 2.0 bằng cách chuyển hướng trình duyệt sang Google Account Selector API.</td>
                 </tr>                <tr>
                     <td class="class-name">GoogleCallbackServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xử lý callback từ Google, tự động đăng ký tài khoản nếu chưa tồn tại.</td>
+                    <td>Tiếp nhận mã code từ callback Google. Gọi Google API lấy email và full name để thực hiện đăng nhập hoặc tự động tạo tài khoản mới nếu chưa tồn tại.</td>
                 </tr>                <tr>
                     <td class="class-name">AuthService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Chứa logic nghiệp vụ đăng ký tài khoản, sinh mã xác thực email.</td>
+                    <td>Chứa logic lõi của đăng ký, băm mật khẩu qua HashUtil, sinh mã kích hoạt email, thiết lập thời hạn mã (24 giờ), phối hợp giữa UserDAO và ShopProfileDAO trong cùng một phiên đăng ký.</td>
                 </tr>                <tr>
                     <td class="class-name">UserService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Kiểm tra trùng lặp email và quản lý trạng thái tài khoản.</td>
+                    <td>Cung cấp hàm kiểm tra trùng lặp email (isEmailExists()) và cập nhật cờ trạng thái tài khoản.</td>
                 </tr>                <tr>
                     <td class="class-name">EmailService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Gửi email xác thực tài khoản sử dụng cấu hình SMTP.</td>
+                    <td>Xây dựng nội dung email kích hoạt sử dụng mẫu HTML từ EmailTemplateService, kết nối máy chủ SMTP và thực hiện gửi email xác thực tài khoản.</td>
                 </tr>                <tr>
                     <td class="class-name">UserDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện INSERT tài khoản mới và cập nhật trạng thái kích hoạt.</td>
+                    <td>Thực hiện chèn thông tin tài khoản mới (status = 'INACTIVE') và cập nhật trạng thái ACTIVE sau khi xác minh email thành công.</td>
                 </tr>                <tr>
                     <td class="class-name">ShopProfileDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Tạo hồ sơ rỗng cho chủ cửa hàng chờ quản trị viên phê duyệt.</td>
+                    <td>Khởi tạo hồ sơ rỗng trong bảng shop_owner_profiles với trạng thái PENDING khi người đăng ký chọn vai trò chủ cửa hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">User</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng Java ánh xạ bảng <code>users</code>.</td>
+                    <td>Đối tượng Java ánh xạ bảng users lưu trữ trạng thái tài khoản đăng ký.</td>
                 </tr>                <tr>
                     <td class="class-name">register.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Trang giao diện đăng ký tài khoản với validator phía client.</td>
+                    <td>Trang giao diện đăng ký tài khoản với validator kiểm tra ràng buộc mật khẩu và định dạng phía client.</td>
                 </tr>                <tr>
                     <td class="class-name">users</td>
                     <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng chứa thông tin tài khoản, mật khẩu băm, vai trò và mã kích hoạt.</td>
+                    <td>Bảng cơ sở dữ liệu lưu giữ thông tin tài khoản đăng ký, khóa chính user_id, vai trò và thông tin xác thực email.</td>
                 </tr>
             </tbody>
         </table>
