@@ -334,43 +334,43 @@
                                 <tr>
                     <td class="class-name">HomeServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tải thông tin sản phẩm mới nhất, nổi bật để hiển thị lên trang chủ.</td>
+                    <td>Lấy dữ liệu danh mục, sản phẩm nổi bật và sản phẩm mới đăng tải để phục vụ giao diện trang chủ.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductListServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xử lý hiển thị danh sách sản phẩm, lọc theo danh mục và tìm kiếm từ khóa.</td>
+                    <td>Tiếp nhận tham số tìm kiếm tên trái cây, lọc theo danh mục và điều phối phân trang hiển thị.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductDetailServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hiển thị thông tin chi tiết một sản phẩm, cộng dồn lượt xem.</td>
+                    <td>Truy xuất chi tiết một sản phẩm, cộng dồn số lượt xem trong DB và chuyển hướng tới trang chi tiết.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Điều phối các hoạt động nghiệp vụ sản phẩm và kích hoạt tự động quét hết hạn.</td>
+                    <td>Điều phối các nghiệp vụ sản phẩm và kích hoạt tự động quét hết hạn trước khi query.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện tìm kiếm, lọc danh mục, cập nhật lượt xem và cập nhật trạng thái hết hạn.</td>
+                    <td>Thực hiện tìm kiếm sản phẩm theo tên, lọc theo danh mục, tăng view và quét đổi trạng thái hết hạn tự động.</td>
                 </tr>                <tr>
                     <td class="class-name">CategoryDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Lấy danh sách các danh mục sản phẩm đang hoạt động.</td>
+                    <td>Lấy danh sách các danh mục sản phẩm đang hoạt động được sắp xếp theo display_order.</td>
                 </tr>                <tr>
                     <td class="class-name">Product</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Entity đại diện cho thông tin một sản phẩm trái cây.</td>
+                    <td>Đối tượng Java ánh xạ bảng products chứa thông tin chi tiết của trái cây.</td>
                 </tr>                <tr>
                     <td class="class-name">home.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện trang chủ hiển thị banner và các khu vực sản phẩm nổi bật.</td>
+                    <td>Giao diện trang chủ hiển thị các nhóm sản phẩm theo mùa và danh mục.</td>
                 </tr>                <tr>
                     <td class="class-name">product-list.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Trang hiển thị lưới sản phẩm kèm công cụ tìm kiếm và lọc.</td>
+                    <td>Giao diện lưới sản phẩm tích hợp công cụ tìm kiếm và lọc danh mục.</td>
                 </tr>                <tr>
                     <td class="class-name">product-detail.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Trang hiển thị chi tiết hình ảnh, nguồn gốc và xuất xứ của sản phẩm.</td>
+                    <td>Giao diện hiển thị chi tiết hình ảnh, nguồn gốc, xuất xứ và thời hạn bảo quản của trái cây.</td>
                 </tr>
             </tbody>
         </table>
