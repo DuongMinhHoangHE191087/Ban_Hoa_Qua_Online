@@ -334,23 +334,23 @@
                                 <tr>
                     <td class="class-name">ProductEditServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tiếp nhận cài đặt giá gốc và giá khuyến mãi theo mốc thời gian từ form.</td>
+                    <td>Tiếp nhận cài đặt giá gốc và giá khuyến mãi kèm thời hạn áp dụng từ form của chủ shop.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductDetailServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Truy xuất thông tin giá bán để hiển thị ra trang chi tiết.</td>
+                    <td>Lấy thông tin giá bán gốc và giá khuyến mãi của biến thể hiện có để hiển thị.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductVariantDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Truy vấn và cập nhật giá bán, giá khuyến mãi cùng thời hạn áp dụng.</td>
+                    <td>Truy vấn giá gốc và kiểm tra thời hạn khuyến mãi của biến thể sản phẩm để tính toán giá bán thực tế.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductVariant</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Thành phần chứa thông tin giá trị gốc và giá trị khuyến mãi của SKU.</td>
+                    <td>Entity chứa thông tin giá bán gốc, giá khuyến mãi và thời hạn áp dụng.</td>
                 </tr>                <tr>
                     <td class="class-name">product-list.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện hiển thị sản phẩm kèm huy hiệu giảm giá nếu khuyến mãi đang kích hoạt.</td>
+                    <td>Hiển thị giá gốc bị gạch ngang và thẻ tag giảm giá động trên giao diện lưới.</td>
                 </tr>
             </tbody>
         </table>
