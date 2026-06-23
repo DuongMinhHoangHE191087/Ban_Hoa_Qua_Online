@@ -630,8 +630,8 @@
                             Rất tiếc! Hệ thống không tìm thấy nông sản nào khớp với yêu cầu bộ lọc hiện tại của bạn. Vui lòng thử lại với từ khóa khác hoặc xóa bớt tiêu chí lọc nhé.
                         </p>
                     </div>
-                    <a href="${PRODUCT_LIST_URL}" onclick="return resetAiProductFilter(event)"
-                       class="btn bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-2 shadow-md">
+                    <a href="\${PRODUCT_LIST_URL}" onclick="return resetAiProductFilter(event)"
+                        class="btn bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-2 shadow-md">
                         Xem tất cả sản phẩm
                     </a>
                 </div>
@@ -677,7 +677,7 @@
                     <a href="\${detailUrl}"
                        class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
                         <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
-                            <img src="\${p.image}" alt="\${escapeHtml(p.name)}"
+                             <img src="\${escapeHtml(p.image || '')}" alt="\${escapeHtml(p.name)}"
                                  onerror="handleImageError(this)"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             
@@ -700,7 +700,7 @@
                                     <span class="\${ratingLabelClass}">\${ratingLabel}</span>
                                 </div>
                                 <span class="text-[10px] text-on-surface-variant font-medium">
-                                    Đã bán \${p.soldQuantity || 0}
+                                    Đã bán \${Number(p.soldQuantity || 0)}
                                 </span>
                             </div>
                         </div>
@@ -716,7 +716,7 @@
                             </span>
                         </div>
 
-                        <button type="button" onclick="quickAddProduct(event, '\${p.productId}', '\${p.variantId || 0}', '\${escapeHtml(p.name)}', '\${p.price || 0}', '\${p.image}', '\${p.stockQuantity || 0}')"
+                        <button type="button" onclick="quickAddProduct(event, '\${p.productId}', '\${p.variantId || 0}', '\${escapeHtml(p.name)}', '\${p.price || 0}', '\${escapeHtml(p.image || '')}', '\${p.stockQuantity || 0}')"
                                 class="bg-primary hover:bg-primary-hover text-white p-2.5 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
                                 title="Thêm vào giỏ hàng">
                             <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
@@ -818,6 +818,9 @@
         html += '</div>';
         container.innerHTML = html;
     }
+
+    window.resetAiProductFilter = resetAiProductFilter;
+    window.fetchProductsAjax = fetchProductsAjax;
 
     document.addEventListener('DOMContentLoaded', () => {
         // Clear AI filter if page is reloaded or if the URL does not contain fromAi=true

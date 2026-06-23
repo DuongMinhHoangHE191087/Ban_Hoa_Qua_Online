@@ -2265,6 +2265,10 @@
         setTimeout(() => btn.textContent = origText, 2000);
     }
 
+    window.openPhotoModal = openPhotoModal;
+    window.slideCarousel = slideCarousel;
+    window.copyVoucher = copyVoucher;
+
     // 10. Auto-update similar product images from seeded Unsplash fallback map
     document.addEventListener('DOMContentLoaded', () => {
         // Initialize star rating progress bars style
@@ -2386,7 +2390,7 @@
         `;
         
         try {
-            let url = `${pageContext.request.contextPath}/products/detail?id=${product.productId}&format=json&action=getReviews&page=` + currentReviewPage;
+            let url = `${pageContext.request.contextPath}/products/detail?id=\${product.productId}&format=json&action=getReviews&page=` + currentReviewPage;
             if (currentRatingFilter !== null) {
                 url += '&rating=' + currentRatingFilter;
             }
@@ -2438,7 +2442,7 @@
                 imgHtml = `
                     <div class="review-attachment-box">
                         <div class="review-thumb-image" onclick="openPhotoModal(this)">
-                            <img src="${fn:escapeXml(src)}" alt="Ảnh review khách hàng">
+                            <img src="\${escapeHtml(src || '')}" alt="Ảnh review khách hàng">
                         </div>
                     </div>
                 `;
@@ -2454,21 +2458,21 @@
                     <div class="review-card-header">
                         <div class="reviewer-meta">
                             <div class="reviewer-avatar">
-                                ${avatarChar}
+                                \${avatarChar}
                             </div>
                             <div>
-                                <div class="reviewer-name">${safeCustomerName}</div>
+                                <div class="reviewer-name">\${safeCustomerName}</div>
                                 <div class="flex items-center gap-2">
-                                    <div class="flex items-center text-xs">${starsHtml}</div>
-                                    <span class="review-date">${safeCreatedAt}</span>
+                                    <div class="flex items-center text-xs">\${starsHtml}</div>
+                                    <span class="review-date">\${safeCreatedAt}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="review-body-text">
-                        ${safeReviewText}
+                        \${safeReviewText}
                     </div>
-                    ${imgHtml}
+                    \${imgHtml}
                 </div>
             `;
         });
@@ -2477,7 +2481,7 @@
             let paginationHtml = '<div class="flex items-center justify-center gap-2 mt-6">';
             if (pagedResult.currentPage > 1) {
                 paginationHtml += `
-                    <button onclick="changeReviewPage(${pagedResult.currentPage - 1})" 
+                    <button onclick="changeReviewPage(\${pagedResult.currentPage - 1})" 
                             class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-bold transition-all cursor-pointer bg-white">
                         Trước
                     </button>
@@ -2487,16 +2491,16 @@
             for (let i = 1; i <= pagedResult.totalPages; i++) {
                 const isActive = i === pagedResult.currentPage;
                 paginationHtml += `
-                    <button onclick="changeReviewPage(${i})" 
-                            class="w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${isActive ? 'bg-primary text-white border-none' : 'border border-gray-200 hover:bg-gray-50 bg-white' }">
-                        ${i}
+                    <button onclick="changeReviewPage(\${i})" 
+                            class="w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer \${isActive ? 'bg-primary text-white border-none' : 'border border-gray-200 hover:bg-gray-50 bg-white' }">
+                        \${i}
                     </button>
                 `;
             }
             
             if (pagedResult.currentPage < pagedResult.totalPages) {
                 paginationHtml += `
-                    <button onclick="changeReviewPage(${pagedResult.currentPage + 1})" 
+                    <button onclick="changeReviewPage(\${pagedResult.currentPage + 1})" 
                             class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-bold transition-all cursor-pointer bg-white">
                         Tiếp
                     </button>
