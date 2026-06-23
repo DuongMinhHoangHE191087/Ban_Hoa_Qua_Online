@@ -254,7 +254,7 @@ public final class ConnectionPool {
     /**
      * Shut down and close the connection pool to prevent classloader/timer memory leaks.
      */
-    public static void closePool() {
+    public static void shutdown() {
         if (dataSource != null) {
             try {
                 dataSource.getClass().getMethod("close").invoke(dataSource);

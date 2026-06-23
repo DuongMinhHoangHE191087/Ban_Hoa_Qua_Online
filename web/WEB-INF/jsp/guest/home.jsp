@@ -1640,10 +1640,8 @@
                             const p = window.currentQuickAddData.product;
 
                             const imagePath = p.imagePath || 'assets/img/placeholder.png';
-                            const success = await window.addCartItem(v.variantId, qty, `\${p.name} - \${v.variantLabel}`, v.price, imagePath, v.stockQuantity, p.productId);
-                            if (success) {
-                                closeQuickAddModal();
-                            }
+                            await window.addCartItem(v.variantId, qty, `\${p.name} - \${v.variantLabel}`, v.price, imagePath, v.stockQuantity, p.productId);
+                            closeQuickAddModal();
                         }
 
                         // ============================================================

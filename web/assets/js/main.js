@@ -334,7 +334,10 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
                 quantity: item.quantity,
                 imagePath: item.imagePath,
                 stockQuantity: item.stockQuantity,
-                productId: item.productId
+                productId: item.productId,
+                packagingId: item.packagingId ?? null,
+                packagingLabel: item.packagingLabel ?? null,
+                packagingPriceAdd: item.packagingPriceAdd ?? null
             }));
             localStorage.setItem('userCart', JSON.stringify(mappedItems));
             if (window.updateCardAddedQuantities) {
