@@ -343,43 +343,43 @@
                                 <tr>
                     <td class="class-name">ProductManageServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hiển thị danh sách sản phẩm thuộc quyền sở hữu của chủ cửa hàng.</td>
+                    <td>Hiển thị danh sách sản phẩm thuộc quyền sở hữu của chủ shop, tích hợp bộ lọc trạng thái và tìm kiếm.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductCreateServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tiếp nhận và xử lý thêm mới sản phẩm cùng ảnh đại diện.</td>
+                    <td>Nhận thông tin form và ảnh tải lên để tạo sản phẩm mới cùng các biến thể giá bán tương ứng.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductEditServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tiếp nhận và lưu trữ cập nhật thông tin sản phẩm hiện tại.</td>
+                    <td>Nhận thông tin cập nhật thông số sản phẩm và xử lý cập nhật dữ liệu.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductStatusServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API xử lý ẩn/hiện hoặc xóa mềm (cập nhật trạng thái DELETED) sản phẩm.</td>
+                    <td>API tiếp nhận yêu cầu ẩn sản phẩm hoặc xóa mềm (cập nhật trạng thái DELETED).</td>
                 </tr>                <tr>
                     <td class="class-name">ProductService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Quản lý transaction thêm/sửa/xóa sản phẩm và các biến thể liên quan.</td>
+                    <td>Quản lý transaction thêm/sửa sản phẩm đồng bộ các bảng biến thể và hình ảnh an toàn.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Truy vấn và thao tác dữ liệu trên bảng products.</td>
+                    <td>Thực hiện CRUD dữ liệu trên bảng products và kiểm tra quyền sở hữu sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductVariantDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện thêm mới, cập nhật giá và số lượng của các biến thể.</td>
+                    <td>Thực hiện thêm mới, cập nhật giá, tồn kho và trạng thái hoạt động của các biến thể sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductImageDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Quản lý thông tin đường dẫn các hình ảnh mô tả sản phẩm.</td>
+                    <td>Lưu trữ thông tin đường dẫn các hình ảnh mô tả sản phẩm và ảnh đại diện.</td>
                 </tr>                <tr>
                     <td class="class-name">FileUploadUtil</td>
                     <td><span class="badge-type badge-utility">Utility</span></td>
-                    <td>Hỗ trợ kiểm tra định dạng, kích thước file và ghi file ảnh lên ổ đĩa.</td>
+                    <td>Kiểm tra định dạng file ảnh và lưu trữ file ảnh lên ổ đĩa của máy chủ.</td>
                 </tr>                <tr>
                     <td class="class-name">product-list.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện quản lý danh sách sản phẩm của chủ cửa hàng.</td>
+                    <td>Giao diện làm việc của chủ shop để quản lý sản phẩm.</td>
                 </tr>
             </tbody>
         </table>
