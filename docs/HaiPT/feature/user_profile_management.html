@@ -334,31 +334,31 @@
                                 <tr>
                     <td class="class-name">UserProfileServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hiển thị và tiếp nhận thông tin cập nhật hồ sơ người dùng.</td>
+                    <td>Hiển thị thông tin cá nhân người dùng và tiếp nhận cập nhật (Họ tên, Số điện thoại, Ảnh đại diện thông qua multipart request).</td>
                 </tr>                <tr>
                     <td class="class-name">AddressAPIServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Cung cấp API CRUD (Create, Read, Update, Delete) cho các địa chỉ giao hàng.</td>
+                    <td>API endpoint đón nhận các cuộc gọi AJAX (POST/PUT/DELETE) của khách hàng để quản lý danh sách địa chỉ nhận hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">UserService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Quản lý nghiệp vụ liên quan đến chỉnh sửa thông tin cá nhân người dùng.</td>
+                    <td>Quản lý nghiệp vụ liên quan đến chỉnh sửa thông tin cá nhân người dùng và xác thực tính hợp lệ của số điện thoại.</td>
                 </tr>                <tr>
                     <td class="class-name">UserAddressDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Truy vấn và thay đổi dữ liệu địa chỉ nhận hàng của người dùng.</td>
+                    <td>Chứa các phương thức SQL thực hiện CRUD địa chỉ và điều hành logic đồng bộ cờ is_default (khi một địa chỉ được đặt mặc định, các địa chỉ khác của user đó phải bị hạ cờ mặc định).</td>
                 </tr>                <tr>
                     <td class="class-name">UserAddress</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng ánh xạ bảng <code>user_addresses</code>.</td>
+                    <td>Entity ánh xạ bảng user_addresses, chứa các thông tin liên kết địa chỉ nhận hàng của khách.</td>
                 </tr>                <tr>
                     <td class="class-name">profile.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện hồ sơ tích hợp danh sách địa chỉ và chức năng AJAX sửa đổi địa chỉ.</td>
+                    <td>Giao diện cập nhật hồ sơ cá nhân và quản lý danh sách địa chỉ nhận hàng sử dụng AJAX chỉnh sửa nhanh.</td>
                 </tr>                <tr>
                     <td class="class-name">user_addresses</td>
                     <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng lưu trữ thông tin các địa chỉ nhận hàng của người dùng.</td>
+                    <td>Bảng cơ sở dữ liệu lưu trữ nhiều địa chỉ giao hàng của mỗi người dùng, liên kết khóa ngoại đến bảng users.</td>
                 </tr>
             </tbody>
         </table>
