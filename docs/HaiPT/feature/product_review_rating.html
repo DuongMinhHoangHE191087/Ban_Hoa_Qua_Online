@@ -343,27 +343,27 @@
                                 <tr>
                     <td class="class-name">ReviewServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tiếp nhận thông tin đánh giá sao và hình ảnh phản hồi từ khách mua.</td>
+                    <td>Tiếp nhận bài đánh giá sao (1-5★) kèm nhận xét, ảnh thực tế từ khách sau khi nhận hàng thành công.</td>
                 </tr>                <tr>
                     <td class="class-name">AdminReviewServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Trang kiểm duyệt và quản lý các đánh giá sản phẩm của Admin.</td>
+                    <td>Trang quản trị và ẩn hiển thị đánh giá vi phạm chính sách của Admin.</td>
                 </tr>                <tr>
                     <td class="class-name">AdminReviewAPI</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API ẩn/hiện đánh giá của khách hàng.</td>
+                    <td>API cập nhật cờ ẩn/hiện đánh giá của khách hàng trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">ReviewService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Quản lý lưu đánh giá và cập nhật xếp hạng sao trung bình của sản phẩm.</td>
+                    <td>Lưu đánh giá mới và kích hoạt tự động tính toán lại điểm số sao trung bình của sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">ReviewDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện thêm đánh giá mới và tính toán số sao trung bình.</td>
+                    <td>Lưu đánh giá vào bảng reviews và tính toán điểm trung bình sao của sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">StarRatingTag</td>
                     <td><span class="badge-type badge-tag">Tag</span></td>
-                    <td>Thẻ tag vẽ các ngôi sao màu vàng/xám tự động dựa trên số điểm sao.</td>
+                    <td>Thẻ tag tự động vẽ số lượng sao vàng tương ứng với điểm đánh giá của sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">review-submit.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
