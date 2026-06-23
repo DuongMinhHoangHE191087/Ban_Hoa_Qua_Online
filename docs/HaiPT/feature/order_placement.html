@@ -361,39 +361,35 @@
                                 <tr>
                     <td class="class-name">CheckoutServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Tiếp nhận dữ liệu đặt hàng từ client và gọi service đặt đơn.</td>
+                    <td>Tiếp nhận yêu cầu đặt hàng từ POST request, chuyển hướng người dùng sang trang thành công hoặc báo lỗi.</td>
                 </tr>                <tr>
                     <td class="class-name">CheckoutService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Quản lý toàn bộ transaction đặt hàng, giữ kho và gộp/tách đơn.</td>
+                    <td>Thực hiện transaction đặt đơn: Tạo các đơn con phân tách theo shop, trừ tồn kho biến thể, ghi log ORDER_RESERVE và cập nhật khuyến mãi.</td>
                 </tr>                <tr>
                     <td class="class-name">OrderDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện thêm mới bản ghi đơn hàng vào cơ sở dữ liệu.</td>
+                    <td>Thực hiện thêm đơn hàng mới (orders) với trạng thái mặc định PENDING_PAYMENT.</td>
                 </tr>                <tr>
                     <td class="class-name">OrderItemDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thêm thông tin các dòng sản phẩm chi tiết trong đơn hàng.</td>
+                    <td>Lưu chi tiết các sản phẩm đặt mua vào bảng order_items (đóng băng giá tại thời điểm mua).</td>
                 </tr>                <tr>
                     <td class="class-name">ProductVariantDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Khấu trừ trực tiếp số lượng tồn kho của các biến thể sản phẩm.</td>
+                    <td>Khấu trừ trực tiếp số lượng hàng tồn kho của biến thể sản phẩm.</td>
                 </tr>                <tr>
                     <td class="class-name">InventoryDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Ghi log thay đổi số lượng kho với trạng thái ORDER_RESERVE.</td>
+                    <td>Ghi nhận nhật ký thay đổi kho của biến thể với trạng thái ORDER_RESERVE.</td>
                 </tr>                <tr>
                     <td class="class-name">PromotionDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật lượt sử dụng mã giảm giá của khách hàng.</td>
-                </tr>                <tr>
-                    <td class="class-name">Order</td>
-                    <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng đại diện cho thông tin đơn hàng đặt mua.</td>
+                    <td>Cập nhật tăng lượt sử dụng của mã giảm giá đã dùng.</td>
                 </tr>                <tr>
                     <td class="class-name">order-success.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Trang thông báo đặt hàng thành công hướng dẫn bước tiếp theo.</td>
+                    <td>Trang thông báo đặt hàng thành công tích hợp nút dẫn sang thanh toán.</td>
                 </tr>
             </tbody>
         </table>
