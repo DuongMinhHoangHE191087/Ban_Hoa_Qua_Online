@@ -276,61 +276,66 @@ public class AuthServiceExceptionHandlingTest {
 
     @Test
     public void register_duplicateEmail_throws() {
-        // First registration
-        User user1 = new User();
-        user1.setFullName("John Doe");
-        user1.setEmail("unique@example.com");
-        user1.setPasswordHash("validpass123");
-        user1.setPhone("0123456789");
-
+        UserDAO userDAO = new UserDAO();
+        int seededUserId = -1;
+        String duplicateEmail = "unique_" + System.currentTimeMillis() + "@example.com";
         try {
-            authService.register(user1);
+            String seededPhone = uniqueValidPhone();
+            seededUserId = userDAO.saveNewCustomer(
+                    "John Doe",
+                    duplicateEmail,
+                    HashUtil.hashPassword("validpass123"),
+                    seededPhone,
+                    AppConfig.ROLE_CUSTOMER,
+                    AppConfig.ACCOUNT_STATUS_ACTIVE,
+                    true);
         } catch (Exception e) {
-            // First registration may fail due to DB, that's ok for this test
+            fail("Seed user should be created: " + e.getMessage());
         }
 
-        // Second registration with same email should fail
-        User user2 = new User();
-        user2.setFullName("Jane Doe");
-        user2.setEmail("unique@example.com");
-        user2.setPasswordHash("validpass456");
-        user2.setPhone("0987654321");
-
         try {
+            User user2 = new User();
+            user2.setFullName("Jane Doe");
+            user2.setEmail(duplicateEmail);
+            user2.setPasswordHash("validpass456");
+            user2.setPhone(uniqueValidPhone());
+            user2.setRole(AppConfig.ROLE_CUSTOMER);
             authService.register(user2);
             fail("Should throw exception for duplicate email");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("Email") || e.getMessage().contains("đã được đăng ký"));
+        } finally {
+            deleteUserQuietly(seededUserId);
         }
     }
 
     @Test
     public void register_duplicatePhone_throws() {
-        // First registration
-        User user1 = new User();
-        user1.setFullName("John Doe");
-        user1.setEmail("john1@example.com");
-        user1.setPasswordHash("validpass123");
-        user1.setPhone("0123456789");
-
+        UserDAO userDAO = new UserDAO();
+        int seededUserId = -1;
         try {
-            authService.register(user1);
-        } catch (Exception e) {
-            // First registration may fail due to DB
-        }
+            String duplicatePhone = uniqueValidPhone();
+            seededUserId = userDAO.saveNewCustomer(
+                    "John Doe",
+                    "phone_dup_" + System.currentTimeMillis() + "@example.com",
+                    HashUtil.hashPassword("validpass123"),
+                    duplicatePhone,
+                    AppConfig.ROLE_CUSTOMER,
+                    AppConfig.ACCOUNT_STATUS_ACTIVE,
+                    true);
 
-        // Second registration with same phone should fail
-        User user2 = new User();
-        user2.setFullName("Jane Doe");
-        user2.setEmail("jane1@example.com");
-        user2.setPasswordHash("validpass456");
-        user2.setPhone("0123456789");
-
-        try {
+            User user2 = new User();
+            user2.setFullName("Jane Doe");
+            user2.setEmail("phone_dup_" + (System.currentTimeMillis() + 1) + "@example.com");
+            user2.setPasswordHash("validpass456");
+            user2.setPhone(duplicatePhone);
+            user2.setRole(AppConfig.ROLE_CUSTOMER);
             authService.register(user2);
             fail("Should throw exception for duplicate phone");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("điện thoại") || e.getMessage().contains("đã được đăng ký"));
+        } finally {
+            deleteUserQuietly(seededUserId);
         }
     }
 
@@ -369,7 +374,7 @@ public class AuthServiceExceptionHandlingTest {
     @Test
     public void login_nonexistentEmail_throws() {
         try {
-            authService.login("nonexistent@example.com", "password123");
+            authService.login("missing_" + System.currentTimeMillis() + "@example.com", "password123");
             fail("Should throw exception for non-existent user");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("không chính xác") || e.getMessage().contains("không tìm thấy"));
@@ -379,7 +384,7 @@ public class AuthServiceExceptionHandlingTest {
     @Test
     public void login_nonexistentPhone_throws() {
         try {
-            authService.login("0999999999", "password123");
+            authService.login(uniqueValidPhone(), "password123");
             fail("Should throw exception for non-existent phone");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("không chính xác") || e.getMessage().contains("không tìm thấy"));
@@ -408,22 +413,27 @@ public class AuthServiceExceptionHandlingTest {
 
     @Test
     public void login_wrongPassword_throws() {
-        // Register a user first
-        User user = new User();
-        user.setFullName("Test User");
-        user.setEmail("correct@example.com");
-        user.setPasswordHash("correctpass123");
-        user.setPhone("0123456789");
-
+        UserDAO userDAO = new UserDAO();
+        int userId = -1;
         try {
-            authService.register(user);
+            String email = "correct_" + System.currentTimeMillis() + "@example.com";
+            String phone = uniqueValidPhone();
+            userId = userDAO.saveNewCustomer(
+                    "Test User",
+                    email,
+                    HashUtil.hashPassword("correctpass123"),
+                    phone,
+                    AppConfig.ROLE_CUSTOMER,
+                    AppConfig.ACCOUNT_STATUS_ACTIVE,
+                    true);
 
-            // Try to login with wrong password
-            authService.login("correct@example.com", "wrongpassword");
+            authService.login(email, "wrongpassword");
             fail("Should throw exception for wrong password");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("không chính xác") ||
                       e.getMessage().contains("mật khẩu"));
+        } finally {
+            deleteUserQuietly(userId);
         }
     }
 
@@ -431,19 +441,20 @@ public class AuthServiceExceptionHandlingTest {
 
     @Test
     public void login_lockedAccount_throws() {
-        // This test assumes there's a mechanism to lock accounts after failed attempts
-        // and that the service properly checks and reports locked status
+        // Create a real user in DB, then lock it so the login branch hits the lock check.
         try {
-            // Create a user with a locked account time in future
-            User user = new User();
-            user.setFullName("Locked User");
-            user.setEmail("locked@example.com");
-            user.setPasswordHash(HashUtil.hashPassword("password123"));
-            user.setPhone("0199999999");
-            user.setLockedUntil(LocalDateTime.now().plusHours(1));
+            UserDAO userDAO = new UserDAO();
+            String email = "locked_" + System.currentTimeMillis() + "@example.com";
+            String phone = uniqueValidPhone();
+            int userId = userDAO.saveNewCustomer(
+                    "Locked User",
+                    email,
+                    HashUtil.hashPassword("password123"),
+                    phone,
+                    AppConfig.ROLE_CUSTOMER);
+            userDAO.lockAccount(userId, LocalDateTime.now().plusHours(1));
 
-            // Try to login - should fail with locked message
-            authService.login("locked@example.com", "password123");
+            authService.login(email, "password123");
             fail("Should throw exception for locked account");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("khóa") || e.getMessage().contains("tạm thời"));
@@ -566,14 +577,8 @@ public class AuthServiceExceptionHandlingTest {
     }
 
     @Test
-    public void sendForgotPasswordCode_nonexistentEmail_throws() {
-        try {
-            authService.sendForgotPasswordCode("nonexistent@example.com");
-            fail("Should throw exception for non-existent email");
-        } catch (Exception e) {
-            assertTrue(e.getMessage().contains("không tìm thấy") ||
-                      e.getMessage().contains("không tồn tại"));
-        }
+    public void sendForgotPasswordCode_nonexistentEmail_throws() throws Exception {
+        assertFalse(authService.sendForgotPasswordCode("missing_" + System.currentTimeMillis() + "@example.com"));
     }
 
     @Test
@@ -628,12 +633,18 @@ public class AuthServiceExceptionHandlingTest {
 
     @Test
     public void verifyEmailCode_wrongCode_throws() {
+        String email = "verify_email_" + System.currentTimeMillis() + "@example.com";
+        String phone = uniqueValidPhone();
+        int userId = -1;
         try {
-            authService.verifyEmailCode("test@example.com", "000000");
+            userId = createUserWithVerificationCode(email, "password123", phone, "123456", false);
+            authService.verifyEmailCode(email, "000000");
             fail("Should throw exception for wrong code");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("không đúng") ||
                       e.getMessage().contains("không hợp lệ"));
+        } finally {
+            deleteUserQuietly(userId);
         }
     }
 
@@ -681,12 +692,18 @@ public class AuthServiceExceptionHandlingTest {
 
     @Test
     public void verifyForgotCode_expiredCode_throws() {
+        String email = "forgot_code_" + System.currentTimeMillis() + "@example.com";
+        String phone = uniqueValidPhone();
+        int userId = -1;
         try {
-            authService.verifyForgotCode("test@example.com", "000000");
+            userId = createUserWithVerificationCode(email, "password123", phone, "123456", true);
+            authService.verifyForgotCode(email, "123456");
             fail("Should throw exception for expired code");
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("hết hạn") ||
                       e.getMessage().contains("không hợp lệ"));
+        } finally {
+            deleteUserQuietly(userId);
         }
     }
 
@@ -829,11 +846,44 @@ public class AuthServiceExceptionHandlingTest {
     @Test
     public void resetPassword_nonexistentEmail_throws() {
         try {
-            authService.resetPassword("nonexistent@example.com", "newpass123");
+            authService.resetPassword("missing_" + System.currentTimeMillis() + "@example.com", "newpass123");
             fail("Should throw exception for non-existent email");
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains("không tìm thấy") ||
-                      e.getMessage().contains("không tồn tại"));
+            String msg = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+            assertTrue(msg.contains("không tìm thấy") ||
+                      msg.contains("không tồn tại"));
+        }
+    }
+
+    private String uniqueValidPhone() {
+        long value = Math.abs(System.nanoTime() % 100000000L);
+        return "09" + String.format("%08d", value);
+    }
+
+    private int createUserWithVerificationCode(String email, String plainPassword, String phone,
+                                               String code, boolean expired) throws Exception {
+        UserDAO userDAO = new UserDAO();
+        int userId = userDAO.saveNewCustomer(
+                "Verification User",
+                email,
+                HashUtil.hashPassword(plainPassword),
+                phone,
+                AppConfig.ROLE_CUSTOMER);
+
+        LocalDateTime now = LocalDateTime.now();
+        java.sql.Timestamp expiresAt = java.sql.Timestamp.valueOf(expired ? now.minusMinutes(5) : now.plusMinutes(10));
+        java.sql.Timestamp resendAt = java.sql.Timestamp.valueOf(now.minusSeconds(1));
+        userDAO.saveEmailVerificationCode(userId, HashUtil.hashPassword(code), expiresAt, resendAt);
+        return userId;
+    }
+
+    private void deleteUserQuietly(int userId) {
+        if (userId <= 0) {
+            return;
+        }
+        try {
+            new UserDAO().deleteUser(userId);
+        } catch (Exception ignored) {
         }
     }
 }

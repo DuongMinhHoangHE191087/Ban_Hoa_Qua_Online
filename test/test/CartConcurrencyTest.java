@@ -210,7 +210,7 @@ public class CartConcurrencyTest {
     private int createCategory(String name) throws SQLException {
         try (Connection conn = categoryDAO.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO categories (name, slug, description, is_active) VALUES (?, ?, '', 1)",
+                     "INSERT INTO categories (name, slug, is_active) VALUES (?, ?, 1)",
                      new String[]{"category_id"})) {
             ps.setString(1, name);
             ps.setString(2, "cct-" + System.currentTimeMillis());
@@ -225,13 +225,12 @@ public class CartConcurrencyTest {
     private int createProduct(int ownerId, int categoryId, String name) throws SQLException {
         try (Connection conn = productDAO.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO products (owner_id, category_id, name, slug, description, status, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, '', 'ACTIVE', GETDATE(), GETDATE())",
+                     "INSERT INTO products (owner_id, category_id, name, description, status, created_at, updated_at) " +
+                     "VALUES (?, ?, ?, '', 'ACTIVE', GETDATE(), GETDATE())",
                      new String[]{"product_id"})) {
             ps.setInt(1, ownerId);
             ps.setInt(2, categoryId);
             ps.setString(3, name);
-            ps.setString(4, "cct-" + System.currentTimeMillis());
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) return rs.getInt(1);
@@ -243,13 +242,14 @@ public class CartConcurrencyTest {
     private int createVariant(int productId, String sku, BigDecimal price, int stock) throws SQLException {
         try (Connection conn = variantDAO.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO product_variants (product_id, sku, price, stock_quantity, is_active, created_at, updated_at) " +
-                     "VALUES (?, ?, ?, ?, 1, GETDATE(), GETDATE())",
+                     "INSERT INTO product_variants (product_id, sku, variant_label, price, stock_quantity, is_active, created_at, updated_at) " +
+                     "VALUES (?, ?, ?, ?, ?, 1, GETDATE(), GETDATE())",
                      new String[]{"variant_id"})) {
             ps.setInt(1, productId);
             ps.setString(2, sku);
-            ps.setBigDecimal(3, price);
-            ps.setInt(4, stock);
+            ps.setString(3, "1kg");
+            ps.setBigDecimal(4, price);
+            ps.setInt(5, stock);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) return rs.getInt(1);

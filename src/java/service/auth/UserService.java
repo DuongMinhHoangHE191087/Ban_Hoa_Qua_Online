@@ -59,6 +59,21 @@ public class UserService {
         }
 
         UserAddressDAO addressDAO = new UserAddressDAO();
+        User persistedUser = userDAO.findUserById(user.getUserId());
+        if (persistedUser == null) {
+            throw new IllegalArgumentException("User khÃ´ng tá»“n táº¡i.");
+        }
+
+        // Merge from the persisted snapshot so a partial session user does not
+        // overwrite required columns like full_name during checkout.
+        user.setFullName(persistedUser.getFullName());
+        user.setEmail(persistedUser.getEmail());
+        user.setPasswordHash(persistedUser.getPasswordHash());
+        user.setPhone(persistedUser.getPhone());
+        user.setRole(persistedUser.getRole());
+        user.setStatus(persistedUser.getStatus());
+        user.setUserAddress(persistedUser.getUserAddress());
+        user.setAvatarUrl(persistedUser.getAvatarUrl());
         
         boolean profileUpdated = false;
         if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {

@@ -119,7 +119,8 @@ public class PromotionService {
                     || "ALL".equalsIgnoreCase(shopPromo.getDiscountScope()));
         boolean systemIsDiscount = "ORDER".equalsIgnoreCase(systemPromo.getScope())
                 && "ALL".equalsIgnoreCase(systemPromo.getDiscountScope());
-        if (shopIsDiscount && systemIsDiscount) {
+        if (shopIsDiscount && systemIsDiscount
+                && !(shopPromo.getCanStack() && systemPromo.getCanStack())) {
             throw new BusinessException("PRO-01",
                     "Không thể dùng đồng thời hai mã giảm giá. Chỉ được kết hợp 1 mã giảm giá + 1 mã miễn phí vận chuyển.");
         }

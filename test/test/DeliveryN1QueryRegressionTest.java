@@ -152,9 +152,9 @@ public class DeliveryN1QueryRegressionTest {
     // =========================================================
 
     private int insertOrder(int cId, int oId) throws SQLException {
-        String sql = "INSERT INTO orders (customer_id, owner_id, status, payment_method, subtotal_amount, " +
+        String sql = "INSERT INTO orders (customer_id, owner_id, delivery_address, status, payment_method, total_amount, " +
                 "delivery_fee, final_amount, order_type, created_at, updated_at) " +
-                "VALUES (?, ?, 'CONFIRMED', 'COD', 100000, 15000, 115000, 'CHILD', GETDATE(), GETDATE())";
+                "VALUES (?, ?, '123 Test Address', 'CONFIRMED', 'COD', 100000, 15000, 115000, 'CHILD', GETDATE(), GETDATE())";
         try (Connection conn = orderDAO.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, new String[]{"order_id"})) {
             ps.setInt(1, cId);

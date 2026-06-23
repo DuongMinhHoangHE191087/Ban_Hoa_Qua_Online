@@ -50,7 +50,7 @@ public class ReturnService {
 
         // REF-01: Kiểm tra trạng thái đơn hàng — chỉ DELIVERED mới được khiếu nại
         if (!AppConfig.ORDER_DELIVERED.equals(order.getStatus())) {
-            throw new BusinessException("INVALID_STATUS", "Chỉ có thể đổi trả đơn hàng đã giao thành công.");
+            throw new IllegalArgumentException("Chỉ có thể đổi trả đơn hàng đã giao thành công.");
         }
 
         // 3. Kiểm tra sản phẩm trong đơn hàng và số lượng
