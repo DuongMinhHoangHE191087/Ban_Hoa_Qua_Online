@@ -352,35 +352,27 @@
                                 <tr>
                     <td class="class-name">SettlementServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Chủ shop theo dõi các kỳ quyết toán và xem chi tiết phiếu thu.</td>
+                    <td>Hiển thị danh sách phiếu quyết toán doanh thu bán hàng của shop qua các thời kỳ.</td>
                 </tr>                <tr>
                     <td class="class-name">AdminSettlementServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Giao diện quản lý danh sách đối soát và duyệt lệnh giải ngân.</td>
+                    <td>Giao diện quản lý danh sách đối soát và duyệt giải ngân tài chính cho shop của Admin.</td>
                 </tr>                <tr>
                     <td class="class-name">SettlementService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Đảm bảo tính toán chính xác tổng tiền thực nhận và quản lý các đợt đối soát tự động.</td>
+                    <td>Quản lý luồng đối soát tự động hàng ngày, tính tiền thực nhận (net) và cập nhật giải ngân.</td>
                 </tr>                <tr>
                     <td class="class-name">SettlementDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện tạo phiếu quyết toán mới và ghi nhận chi tiết đối chiếu hóa đơn.</td>
+                    <td>Tạo phiếu quyết toán mới và ghi nhận chi tiết đối chiếu các hóa đơn trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">ShopSettlement</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng Java đại diện cho phiếu quyết toán của shop.</td>
+                    <td>Entity ánh xạ bảng shop_settlements lưu trữ thông tin phiếu quyết toán của shop.</td>
                 </tr>                <tr>
                     <td class="class-name">settlement.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Trang hiển thị sổ cái quyết toán tài chính của shop.</td>
-                </tr>                <tr>
-                    <td class="class-name">shop_settlements</td>
-                    <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng lưu trữ thông tin kỳ quyết toán và số tiền thực trả.</td>
-                </tr>                <tr>
-                    <td class="class-name">shop_settlement_orders</td>
-                    <td><span class="badge-type badge-dbtable">DB Table</span></td>
-                    <td>Bảng trung gian liên kết các đơn hàng cấu thành nên phiếu đối soát.</td>
+                    <td>Trang hiển thị danh sách các đợt quyết toán tài chính và chi tiết đơn đối chiếu của shop.</td>
                 </tr>
             </tbody>
         </table>
