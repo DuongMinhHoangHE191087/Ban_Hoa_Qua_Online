@@ -343,35 +343,31 @@
                                 <tr>
                     <td class="class-name">ShopOrderServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Xử lý duyệt, hủy đơn hàng và cập nhật tiến trình chuẩn bị hàng của shop.</td>
+                    <td>Cung cấp giao diện quản lý đơn hàng bán của chủ shop, tích hợp duyệt đơn và giao hàng.</td>
                 </tr>                <tr>
                     <td class="class-name">AdminOrderServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hiển thị danh sách đơn hàng toàn hệ thống phục vụ tìm kiếm.</td>
+                    <td>Cho phép Admin tra cứu và xem danh sách đơn hàng toàn sàn giao dịch.</td>
                 </tr>                <tr>
                     <td class="class-name">AdminOrderMonitorServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Cung cấp bảng giám sát đơn hàng theo thời gian thực cho Admin.</td>
+                    <td>Bảng giám sát luồng đơn hàng trực quan thời gian thực cho Admin.</td>
                 </tr>                <tr>
                     <td class="class-name">OrderService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Quản lý các nghiệp vụ duyệt đơn, chuẩn bị hàng và xử lý hoàn kho khi hủy đơn.</td>
+                    <td>Cung cấp nghiệp vụ duyệt đơn, chuẩn bị hàng và xử lý hoàn trả kho khi hủy đơn.</td>
                 </tr>                <tr>
                     <td class="class-name">OrderDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Truy vấn danh sách đơn theo bộ lọc và cập nhật trạng thái đơn hàng.</td>
+                    <td>Truy vấn danh sách đơn theo bộ lọc và cập nhật trạng thái đơn hàng trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">InventoryDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện hoàn trả tồn kho khi shop hoặc admin hủy đơn hàng.</td>
+                    <td>Thực hiện hoàn trả số lượng tồn kho khi đơn hàng bị shop từ chối hoặc hủy đơn.</td>
                 </tr>                <tr>
                     <td class="class-name">orders.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Bảng điều khiển quản lý đơn hàng của chủ shop.</td>
-                </tr>                <tr>
-                    <td class="class-name">order-monitor.jsp</td>
-                    <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Bảng giám sát luồng đơn hàng trực quan của Admin.</td>
+                    <td>Giao diện quản lý đơn hàng bán của chủ cửa hàng.</td>
                 </tr>
             </tbody>
         </table>
