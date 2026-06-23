@@ -334,35 +334,31 @@
                                 <tr>
                     <td class="class-name">AdminProductServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hiển thị danh sách sản phẩm chờ kiểm duyệt và tiếp nhận lệnh phê duyệt.</td>
+                    <td>Trang hiển thị danh sách sản phẩm chờ kiểm duyệt và tiếp nhận quyết định phê duyệt.</td>
                 </tr>                <tr>
                     <td class="class-name">CategoryServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Quản lý thêm, sửa, xóa danh mục trái cây của Admin.</td>
+                    <td>CRUD các danh mục sản phẩm, sắp xếp display_order của Admin.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Cung cấp nghiệp vụ thay đổi cờ phê duyệt của sản phẩm.</td>
+                    <td>Thay đổi trạng thái phê duyệt của sản phẩm (PENDING/APPROVED/REJECTED).</td>
                 </tr>                <tr>
                     <td class="class-name">CategoryService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Quản lý nghiệp vụ liên quan đến danh mục sản phẩm.</td>
+                    <td>Quản lý thêm/sửa/xóa danh mục trái cây của Admin.</td>
                 </tr>                <tr>
                     <td class="class-name">ProductDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Cập nhật trạng thái phê duyệt và lý do từ chối sản phẩm.</td>
+                    <td>Cập nhật cờ phê duyệt sản phẩm và lưu lý do từ chối phê duyệt.</td>
                 </tr>                <tr>
                     <td class="class-name">CategoryDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện CRUD dữ liệu trên bảng categories.</td>
+                    <td>Thực thi các câu lệnh SQL CRUD danh mục trái cây trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">admin-products.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Giao diện duyệt sản phẩm của Admin.</td>
-                </tr>                <tr>
-                    <td class="class-name">admin-categories.jsp</td>
-                    <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Bảng quản lý danh sách danh mục hệ thống.</td>
+                    <td>Giao diện duyệt sản phẩm mới của Admin.</td>
                 </tr>
             </tbody>
         </table>
