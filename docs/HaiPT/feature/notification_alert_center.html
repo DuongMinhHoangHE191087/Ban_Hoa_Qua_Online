@@ -334,31 +334,31 @@
                                 <tr>
                     <td class="class-name">NotificationServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>Hiển thị danh sách thông báo cá nhân đầy đủ phân trang.</td>
+                    <td>Hiển thị danh sách thông báo in-app cá nhân đầy đủ phân trang cho người dùng.</td>
                 </tr>                <tr>
                     <td class="class-name">NotificationAPIServlet</td>
                     <td><span class="badge-type badge-servlet">Servlet</span></td>
-                    <td>API hỗ trợ lấy nhanh số lượng thông báo chưa đọc (để vẽ badge navbar).</td>
+                    <td>API hỗ trợ lấy nhanh số lượng thông báo chưa đọc của người dùng để vẽ badge đỏ ở navbar.</td>
                 </tr>                <tr>
                     <td class="class-name">NotificationService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Điều phối ghi nhận thông báo in-app và kích hoạt gửi thư điện tử.</td>
+                    <td>Tạo thông báo in-app mới trong DB và kích hoạt gửi email alert tương ứng.</td>
                 </tr>                <tr>
                     <td class="class-name">EmailService</td>
                     <td><span class="badge-type badge-service">Service</span></td>
-                    <td>Soạn thảo và gửi email dựa trên các mẫu email có sẵn.</td>
+                    <td>Thực hiện soạn thảo và gửi thư thông báo tới email người dùng.</td>
                 </tr>                <tr>
                     <td class="class-name">NotificationDAO</td>
                     <td><span class="badge-type badge-dao">DAO</span></td>
-                    <td>Thực hiện lưu trữ thông báo và cập nhật trạng thái đã đọc (is_read = 1).</td>
+                    <td>Lưu trữ thông báo và cập nhật trạng thái đã đọc (is_read = 1) trong DB.</td>
                 </tr>                <tr>
                     <td class="class-name">Notification</td>
                     <td><span class="badge-type badge-entity">Entity</span></td>
-                    <td>Đối tượng đại diện cho một thông báo hệ thống.</td>
+                    <td>Đối tượng Java đại diện cho một thông báo hệ thống.</td>
                 </tr>                <tr>
                     <td class="class-name">notification.jsp</td>
                     <td><span class="badge-type badge-jsp">JSP</span></td>
-                    <td>Trang hiển thị hộp thư thông báo của người dùng.</td>
+                    <td>Trang hiển thị hộp thư thông báo in-app của người dùng.</td>
                 </tr>
             </tbody>
         </table>
