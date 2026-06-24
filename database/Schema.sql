@@ -479,6 +479,17 @@ CREATE TABLE system_config (
     updated_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
+IF NOT EXISTS (SELECT 1 FROM system_config WHERE config_key = 'gemini_api_key')
+BEGIN
+    INSERT INTO system_config (config_key, config_value, description, data_type)
+    VALUES (
+        'gemini_api_key',
+        '',
+        N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.',
+        'STRING'
+    );
+END
+
 -- 18. audit_logs
 CREATE TABLE audit_logs (
     log_id INT IDENTITY(1,1) PRIMARY KEY,

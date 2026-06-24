@@ -61,6 +61,12 @@ public class ProductManageServlet extends HttpServlet {
             return;
         }
 
+        String keyword = req.getParameter("keyword");
+        String categoryIdStr = req.getParameter("categoryId");
+        String stockStatus = req.getParameter("stockStatus");
+        String filterApprovalStatus = req.getParameter("approvalStatus");
+        String sellStatus = req.getParameter("sellStatus");
+
         try {
             // 2. Lấy danh sách sản phẩm chưa bị xóa mềm của shop
             List<Product> rawProducts = productDAO.findByOwner(currentUser.getUserId());
@@ -86,12 +92,69 @@ public class ProductManageServlet extends HttpServlet {
             Map<Integer, List<ProductVariant>> variantsByProduct = productVariantDAO.findByProductIds(productIds);
 
             for (Product p : rawProducts) {
+                // a. Lọc theo keyword (chỉ lọc theo tên sản phẩm)
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    String kw = keyword.toLowerCase().trim();
+                    boolean matchName = p.getName() != null && p.getName().toLowerCase().contains(kw);
+                    if (!matchName) {
+                        continue;
+                    }
+                }
+
+                // b. Lọc theo categoryId
+                if (categoryIdStr != null && !categoryIdStr.trim().isEmpty()) {
+                    try {
+                        int catId = Integer.parseInt(categoryIdStr);
+                        if (p.getCategoryId() != catId) {
+                            continue;
+                        }
+                    } catch (NumberFormatException ignored) {}
+                }
+
+                // c. Lọc theo approvalStatus
+                if (filterApprovalStatus != null && !filterApprovalStatus.trim().isEmpty() && !"ALL".equals(filterApprovalStatus)) {
+                    if (!filterApprovalStatus.equals(p.getApprovalStatus())) {
+                        continue;
+                    }
+                }
+
+                // d. Lọc theo sellStatus
+                if (sellStatus != null && !sellStatus.trim().isEmpty() && !"ALL".equals(sellStatus)) {
+                    if (!sellStatus.equals(p.getStatus())) {
+                        continue;
+                    }
+                }
+
+                // Lấy thông tin variants & tính tổng tồn kho để lọc stockStatus
+                List<ProductVariant> variants = variantsByProduct.get(p.getProductId());
+                int totalStock = 0;
+                if (variants != null) {
+                    for (ProductVariant v : variants) {
+                        totalStock += v.getStockQuantity();
+                    }
+                }
+
+                // e. Lọc theo stockStatus
+                if (stockStatus != null && !stockStatus.trim().isEmpty() && !"ALL".equals(stockStatus)) {
+                    if ("IN_STOCK".equals(stockStatus) && totalStock <= 0) {
+                        continue;
+                    }
+                    if ("OUT_OF_STOCK".equals(stockStatus) && totalStock > 0) {
+                        continue;
+                    }
+                }
+
                 products.add(buildManageProductCard(req, p, categoryMap,
                         primaryImages.get(p.getProductId()),
-                        variantsByProduct.get(p.getProductId())));
+                        variants));
             }
 
             // 4. Gán thuộc tính vào request
+            req.setAttribute("keyword", keyword);
+            req.setAttribute("categoryId", categoryIdStr);
+            req.setAttribute("stockStatus", stockStatus);
+            req.setAttribute("approvalStatus", filterApprovalStatus);
+            req.setAttribute("sellStatus", sellStatus);
             req.setAttribute("products", products);
 
             // 5. Forward đến trang danh sách JSP

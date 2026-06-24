@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 /**
  * Controller cho lich su don hang, chi tiet va invoice.
  */
-@WebServlet("/orders")
+@WebServlet({"/orders", "/orders/detail"})
 public class OrderServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(OrderServlet.class.getName());
@@ -50,7 +50,8 @@ public class OrderServlet extends HttpServlet {
         resp.setContentType("text/html;charset=UTF-8");
 
         String action = req.getParameter("action");
-        if ("detail".equals(action)) {
+        String servletPath = req.getServletPath();
+        if ("detail".equals(action) || "/orders/detail".equals(servletPath)) {
             handleDetailView(req, resp, user);
             return;
         }

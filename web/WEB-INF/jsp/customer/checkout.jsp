@@ -202,19 +202,6 @@
 
         <%-- FORM THANH TOÁN chuẩn mẫu Check_Out_UI.html --%>
         <c:otherwise>
-            <!-- Dynamic Flash Message Alert -->
-            <c:if test="${not empty sessionScope.flashMsg}">
-                <div id="flash-alert-container" class="mb-6 p-4 rounded-2xl bg-red-50 flex items-center gap-3 border-l-4 border-red-500 text-red-700 shadow-md">
-                    <span class="material-symbols-outlined">error</span>
-                    <div class="flex-grow font-bold text-sm"><c:out value="${sessionScope.flashMsg}"/></div>
-                    <button type="button" onclick="document.getElementById('flash-alert-container').remove();" class="opacity-60 hover:opacity-100 focus:outline-none">
-                        <span class="material-symbols-outlined text-[18px]">close</span>
-                    </button>
-                </div>
-                <c:remove var="flashMsg" scope="session"/>
-                <c:remove var="flashType" scope="session"/>
-            </c:if>
-
             <div class="mb-8 flex items-baseline justify-between border-b border-[#b1f2be] pb-4">
                 <div>
                     <h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">Hoàn tất đơn hàng</h1>
