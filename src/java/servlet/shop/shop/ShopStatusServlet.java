@@ -57,22 +57,35 @@ public class ShopStatusServlet extends HttpServlet {
             return;
         }
 
-        if (!AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
-            resp.sendRedirect(req.getContextPath() + "/");
-            return;
-        }
-
         try {
             List<ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
             ShopProfile profile = profiles.isEmpty() ? null : profiles.get(0);
+            if (profile == null) {
+                resp.sendRedirect(req.getContextPath() + "/auth/register");
+                return;
+            }
             req.setAttribute("profile", profile);
 
-            if (profile != null && AppConfig.SHOP_REJECTED.equals(profile.getApprovalStatus())) {
-                try {
-                    req.setAttribute("categories", categoryDAO.findAllActive());
-                } catch (SQLException ex) {
-                    req.setAttribute("categories", new ArrayList<>());
+            List<Category> allCategories = new ArrayList<>();
+            try {
+                allCategories = categoryDAO.findAllActive();
+            } catch (SQLException ex) {
+                // ignore
+            }
+            req.setAttribute("categories", allCategories);
+
+            if (profile != null) {
+                req.setAttribute("profileDocPaths", parseJsonArray(profile.getDocPaths()));
+                
+                // Parse preferred categories to names
+                List<Integer> prefIds = parseJsonIntegerArray(profile.getPreferredCategories());
+                List<String> prefNames = new ArrayList<>();
+                for (Category cat : allCategories) {
+                    if (prefIds.contains(cat.getCategoryId())) {
+                        prefNames.add(cat.getName());
+                    }
                 }
+                req.setAttribute("preferredCategoryNames", prefNames);
             }
 
             ShopDocDraftUtil.exposeDraftDocs(session, req, ShopDocDraftUtil.STATUS_SCOPE, "shopStatusDraftDocPaths");
@@ -101,11 +114,6 @@ public class ShopStatusServlet extends HttpServlet {
             return;
         }
 
-        if (!AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
-            resp.sendRedirect(req.getContextPath() + "/");
-            return;
-        }
-
         String sessionCsrf = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
         String reqCsrf = req.getParameter("_csrf");
         if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
@@ -117,7 +125,7 @@ public class ShopStatusServlet extends HttpServlet {
         try {
             List<ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
             if (profiles.isEmpty()) {
-                resp.sendRedirect(req.getContextPath() + "/");
+                resp.sendRedirect(req.getContextPath() + "/auth/register");
                 return;
             }
 
@@ -229,6 +237,41 @@ public class ShopStatusServlet extends HttpServlet {
         return sb.toString();
     }
 
+    private List<String> parseJsonArray(String json) {
+        List<String> values = new ArrayList<>();
+        if (json == null) {
+            return values;
+        }
+
+        String trimmed = json.trim();
+        if (trimmed.isEmpty() || "[]".equals(trimmed)) {
+            return values;
+        }
+
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+
+        if (trimmed.isEmpty()) {
+            return values;
+        }
+
+        for (String token : trimmed.split(",")) {
+            String item = token.trim();
+            if (item.startsWith("\"") && item.endsWith("\"") && item.length() >= 2) {
+                item = item.substring(1, item.length() - 1);
+            }
+            if (item.startsWith("'") && item.endsWith("'") && item.length() >= 2) {
+                item = item.substring(1, item.length() - 1);
+            }
+            if (!item.isEmpty() && !"null".equalsIgnoreCase(item)) {
+                values.add(item);
+            }
+        }
+
+        return values;
+    }
+
     private String sanitizeInput(String input) {
         if (input == null) {
             return null;
@@ -250,7 +293,11 @@ public class ShopStatusServlet extends HttpServlet {
         try {
             if (currentUser != null) {
                 List<ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-                req.setAttribute("profile", profiles.isEmpty() ? null : profiles.get(0));
+                ShopProfile profile = profiles.isEmpty() ? null : profiles.get(0);
+                req.setAttribute("profile", profile);
+                if (profile != null) {
+                    req.setAttribute("profileDocPaths", parseJsonArray(profile.getDocPaths()));
+                }
             }
             req.setAttribute("categories", categoryDAO.findAllActive());
         } catch (SQLException ex) {
@@ -259,5 +306,35 @@ public class ShopStatusServlet extends HttpServlet {
         ShopDocDraftUtil.exposeDraftDocs(session, req, ShopDocDraftUtil.STATUS_SCOPE, "shopStatusDraftDocPaths");
         req.setAttribute("errorMsg", errorMsg);
         req.getRequestDispatcher("/WEB-INF/jsp/shop/status.jsp").forward(req, resp);
+    }
+
+    private List<Integer> parseJsonIntegerArray(String json) {
+        List<Integer> values = new ArrayList<>();
+        if (json == null) {
+            return values;
+        }
+
+        String trimmed = json.trim();
+        if (trimmed.isEmpty() || "[]".equals(trimmed)) {
+            return values;
+        }
+
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+
+        if (trimmed.isEmpty()) {
+            return values;
+        }
+
+        for (String token : trimmed.split(",")) {
+            try {
+                values.add(Integer.parseInt(token.trim()));
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+        }
+
+        return values;
     }
 }

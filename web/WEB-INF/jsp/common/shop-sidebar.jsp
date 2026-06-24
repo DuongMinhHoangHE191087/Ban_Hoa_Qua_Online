@@ -99,3 +99,42 @@
         </a>
     </div>
 </aside>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    if (window.innerWidth <= 1024) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'sidebarMobileToggle';
+        btn.className = 'sidebar-mobile-toggle';
+        btn.innerHTML = '<i class="fa-solid fa-angles-right"></i>';
+        
+        const sidebar = document.querySelector('aside.w-64');
+        if (sidebar) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('active');
+                const icon = btn.querySelector('i');
+                if (sidebar.classList.contains('active')) {
+                    icon.className = 'fa-solid fa-angles-left';
+                    btn.style.left = '270px';
+                } else {
+                    icon.className = 'fa-solid fa-angles-right';
+                    btn.style.left = '20px';
+                }
+            });
+            
+            document.addEventListener('click', function(ev) {
+                if (sidebar.classList.contains('active') && !sidebar.contains(ev.target) && ev.target !== btn) {
+                    sidebar.classList.remove('active');
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-angles-right';
+                    btn.style.left = '20px';
+                }
+            });
+            
+            document.body.appendChild(btn);
+        }
+    }
+});
+</script>

@@ -1,54 +1,66 @@
+<%@ page pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:choose>
     <c:when test="${shopStatusKey == 'PENDING'}">
-        <span class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700">
-            <span class="material-symbols-outlined text-[16px]">hourglass_empty</span>
-            Đang chờ duyệt
-        </span>
-        <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700">
+                <span class="material-symbols-outlined text-[16px]">hourglass_empty</span>
+                Đang chờ duyệt
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        </div>
         <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-on-surface">Hồ sơ đang được kiểm duyệt</h2>
         <p class="mt-3 text-sm md:text-base text-on-surface-variant leading-6">
             Hồ sơ shop của bạn đã được tiếp nhận. Hãy chờ Admin xác minh giấy tờ và thông tin kinh doanh trước khi gian hàng được kích hoạt.
         </p>
     </c:when>
     <c:when test="${shopStatusKey == 'REJECTED'}">
-        <span class="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-rose-700">
-            <span class="material-symbols-outlined text-[16px]">cancel</span>
-            Bị từ chối
-        </span>
-        <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-rose-700">
+                <span class="material-symbols-outlined text-[16px]">cancel</span>
+                Bị từ chối
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        </div>
         <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-on-surface">Hồ sơ cần chỉnh sửa và nộp lại</h2>
         <p class="mt-3 text-sm md:text-base text-on-surface-variant leading-6">
             Đơn đã bị từ chối, nhưng bạn vẫn có thể sửa lại thông tin, thay tài liệu và gửi lại ngay trên màn hình này mà không phải tạo hồ sơ mới.
         </p>
     </c:when>
     <c:when test="${shopStatusKey == 'SUSPENDED'}">
-        <span class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-red-700">
-            <span class="material-symbols-outlined text-[16px]">lock</span>
-            Bị đình chỉ
-        </span>
-        <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-red-700">
+                <span class="material-symbols-outlined text-[16px]">lock</span>
+                Bị đình chỉ
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        </div>
         <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-on-surface">Gian hàng đang bị đình chỉ</h2>
         <p class="mt-3 text-sm md:text-base text-on-surface-variant leading-6">
             Gian hàng hiện không thể hoạt động bình thường. Hãy xem lý do bên dưới và liên hệ hỗ trợ để được mở lại.
         </p>
     </c:when>
     <c:when test="${shopStatusKey == 'APPROVED'}">
-        <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
-            <span class="material-symbols-outlined text-[16px]">check_circle</span>
-            Đã duyệt
-        </span>
-        <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
+                <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                Đã duyệt
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        </div>
         <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-on-surface">Gian hàng đã hoạt động</h2>
         <p class="mt-3 text-sm md:text-base text-on-surface-variant leading-6">
             Hồ sơ đã được phê duyệt. Bạn có thể truy cập dashboard, xem lại tài liệu đã lưu và quản lý gian hàng ngay từ đây.
         </p>
     </c:when>
     <c:otherwise>
-        <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">
-            <span class="material-symbols-outlined text-[16px]">info</span>
-            Trạng thái hồ sơ
-        </span>
-        <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">
+                <span class="material-symbols-outlined text-[16px]">info</span>
+                Trạng thái hồ sơ
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Trạng thái gian hàng</span>
+        </div>
         <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-on-surface">Trạng thái hồ sơ của bạn</h2>
         <p class="mt-3 text-sm md:text-base text-on-surface-variant leading-6">
             Chúng tôi đã lưu hồ sơ shop hiện tại của bạn. Bạn có thể xem chi tiết thông tin, tài liệu đính kèm và trạng thái xử lý ở bên dưới.

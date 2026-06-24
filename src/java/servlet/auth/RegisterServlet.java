@@ -1,14 +1,15 @@
 package servlet.auth;
-import dao.auth.UserDAO;
-import dao.shop.ShopProfileDAO;
 
 import config.AppConfig;
 import dao.catalog.CategoryDAO;
+import dao.auth.UserDAO;
+import dao.shop.ShopProfileDAO;
 import model.entity.catalog.Category;
 import model.entity.auth.User;
 import util.FileUploadUtil;
 import util.ShopDocDraftUtil;
 import util.SessionUtil;
+import util.ShopStatusRedirectUtil;
 import service.auth.AuthService;
 import service.shop.ShopService;
 
@@ -63,11 +64,17 @@ public class RegisterServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
         User currentUser = SessionUtil.getCurrentUser(session);
         if (currentUser != null) {
-            if ("SHOP_OWNER".equals(currentUser.getRole())) {
-                resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
-                return;
-            } else if ("ADMIN".equals(currentUser.getRole()) || "DELIVERY".equals(currentUser.getRole())) {
-                resp.sendRedirect(req.getContextPath() + "/");
+            try {
+                List<model.entity.shop.ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
+                if (!profiles.isEmpty()) {
+                    ShopStatusRedirectUtil.redirectToShopStatusIfProfileExists(req, resp, currentUser, session);
+                    return;
+                }
+            } catch (SQLException e) {
+                getServletContext().log("RegisterServlet GET: Không kiểm tra được trạng thái shop profile", e);
+            }
+            if ("ADMIN".equals(currentUser.getRole()) || "DELIVERY".equals(currentUser.getRole())) {
+                ShopStatusRedirectUtil.redirectToRoleHome(req, resp, currentUser);
                 return;
             }
             req.setAttribute("prefilledUser", currentUser);
@@ -278,8 +285,10 @@ public class RegisterServlet extends HttpServlet {
             }
 
             ShopDocDraftUtil.clearDraftDocs(session, ShopDocDraftUtil.REGISTER_SCOPE);
-            SessionUtil.flashSuccess(req.getSession(), "Đăng ký mở cửa hàng thành công! Đang chờ Admin phê duyệt đơn đăng ký của bạn.");
-            resp.sendRedirect(req.getContextPath() + "/");
+            if (ShopStatusRedirectUtil.redirectToShopStatusIfProfileExists(req, resp, currentUser, session)) {
+                return;
+            }
+            ShopStatusRedirectUtil.redirectToRoleHome(req, resp, currentUser);
 
         } catch (Exception e) {
             rollbackPromotedDocs(promotedDocPaths);

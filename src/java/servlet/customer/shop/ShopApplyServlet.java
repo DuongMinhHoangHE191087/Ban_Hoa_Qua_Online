@@ -59,7 +59,8 @@ public class ShopApplyServlet extends HttpServlet {
         try {
             List<ShopProfile> existingProfiles = shopProfileDAO.findByUserId(currentUser.getUserId());
             if (!existingProfiles.isEmpty()) {
-                req.setAttribute("existingProfile", existingProfiles.get(0));
+                resp.sendRedirect(req.getContextPath() + "/shop/status");
+                return;
             }
             req.setAttribute("categories", categoryDAO.findAllActive());
         } catch (SQLException e) {
@@ -305,7 +306,9 @@ public class ShopApplyServlet extends HttpServlet {
             if (currentUser != null) {
                 List<ShopProfile> existingProfiles = shopProfileDAO.findByUserId(currentUser.getUserId());
                 if (!existingProfiles.isEmpty()) {
-                    req.setAttribute("existingProfile", existingProfiles.get(0));
+                    ShopProfile existingProfile = existingProfiles.get(0);
+                    req.setAttribute("existingProfile", existingProfile);
+                    req.setAttribute("existingProfileDocPaths", parseJsonArray(existingProfile.getDocPaths()));
                 }
             }
             req.setAttribute("categories", categoryDAO.findAllActive());
@@ -315,5 +318,40 @@ public class ShopApplyServlet extends HttpServlet {
         ShopDocDraftUtil.exposeDraftDocs(session, req, ShopDocDraftUtil.APPLY_SCOPE, "shopApplyDraftDocPaths");
         req.setAttribute("errorMsg", errorMsg);
         req.getRequestDispatcher("/WEB-INF/jsp/customer/shop-apply.jsp").forward(req, resp);
+    }
+
+    private List<String> parseJsonArray(String json) {
+        List<String> values = new ArrayList<>();
+        if (json == null) {
+            return values;
+        }
+
+        String trimmed = json.trim();
+        if (trimmed.isEmpty() || "[]".equals(trimmed)) {
+            return values;
+        }
+
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+
+        if (trimmed.isEmpty()) {
+            return values;
+        }
+
+        for (String token : trimmed.split(",")) {
+            String item = token.trim();
+            if (item.startsWith("\"") && item.endsWith("\"") && item.length() >= 2) {
+                item = item.substring(1, item.length() - 1);
+            }
+            if (item.startsWith("'") && item.endsWith("'") && item.length() >= 2) {
+                item = item.substring(1, item.length() - 1);
+            }
+            if (!item.isEmpty() && !"null".equalsIgnoreCase(item)) {
+                values.add(item);
+            }
+        }
+
+        return values;
     }
 }

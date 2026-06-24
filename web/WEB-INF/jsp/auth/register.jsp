@@ -134,57 +134,31 @@
             </c:if>
 
             <c:if test="${not empty requestScope.prefilledUser}">
-                <div class="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-                    <section class="rounded-3xl border border-white/70 bg-white/85 p-5 md:p-6 shadow-[0_18px_45px_rgba(20,83,45,0.10)]">
-                        <div class="flex flex-wrap items-center gap-3">
-                            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
-                                <span class="material-symbols-outlined text-[16px]">assignment</span>
-                                Trạng thái luồng
+                <div class="mb-6 overflow-hidden rounded-[1.75rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 shadow-[0_18px_45px_rgba(20,83,45,0.10)]">
+                    <div class="flex items-start gap-4 p-5 md:p-6">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-primary flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-[26px]">assignment</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+                                Trạng thái đăng ký
                             </span>
-                            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Luồng nâng cấp</span>
-                        </div>
-                        <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-on-surface">
-                            Bạn đang nâng cấp từ tài khoản cá nhân lên quyền chủ gian hàng
-                        </h2>
-                        <p class="mt-3 text-sm md:text-base text-on-surface-variant leading-6">
-                            Thông tin tài khoản cơ bản đã được giữ lại. Bạn chỉ cần hoàn tất phần cửa hàng, danh mục kinh doanh và tài liệu xác minh để gửi hồ sơ, rồi hệ thống sẽ xử lý theo đúng trạng thái.
-                        </p>
-                        <div class="mt-6 flex flex-wrap gap-3">
-                            <a href="#shopFields" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover hover:-translate-y-0.5">
-                                <span class="material-symbols-outlined text-[18px]">domain</span>
-                                Đi đến thông tin gian hàng
-                            </a>
-                            <a href="#businessDocs" class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-50">
-                                <span class="material-symbols-outlined text-[18px]">description</span>
-                                Xem tài liệu xác minh
-                            </a>
-                        </div>
-                    </section>
-
-                    <aside class="rounded-3xl border border-primary/10 bg-primary/5 p-5 md:p-6 shadow-[0_18px_45px_rgba(20,83,45,0.06)]">
-                        <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/70">Thông tin tài khoản</p>
-                        <div class="mt-4 space-y-3">
-                            <div class="rounded-2xl bg-white/80 p-4 border border-white/60">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Họ và tên</p>
-                                <p class="mt-1 text-sm font-semibold text-on-surface break-words"><c:out value="${requestScope.prefilledUser.fullName}"/></p>
-                            </div>
-                            <div class="rounded-2xl bg-white/80 p-4 border border-white/60">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Email đăng nhập</p>
-                                <p class="mt-1 text-sm font-semibold text-on-surface break-words"><c:out value="${requestScope.prefilledUser.email}"/></p>
-                            </div>
-                            <div class="rounded-2xl bg-white/80 p-4 border border-white/60">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Số điện thoại</p>
-                                <p class="mt-1 text-sm font-semibold text-on-surface break-words">
-                                    <c:choose>
-                                        <c:when test="${not empty requestScope.prefilledUser.phone}">
-                                            <c:out value="${requestScope.prefilledUser.phone}"/>
-                                        </c:when>
-                                        <c:otherwise>Cần bổ sung ở bước hồ sơ gian hàng</c:otherwise>
-                                    </c:choose>
-                                </p>
+                            <h2 class="mt-2 text-lg md:text-xl font-extrabold text-on-surface">Xem lại đơn shop_owner của bạn</h2>
+                            <p class="mt-2 text-sm leading-6 text-on-surface-variant">
+                                Tài khoản của bạn đang ở luồng nâng cấp. Mở trang trạng thái để xem hồ sơ đang chờ duyệt, bị từ chối hay đã bị đình chỉ.
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-3">
+                                <a href="${pageContext.request.contextPath}/shop/status" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
+                                    <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                                    Xem trạng thái đăng ký
+                                </a>
+                                <a href="#registerForm" class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-primary transition-all hover:border-emerald-300 hover:bg-emerald-50">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    Quay lại form
+                                </a>
                             </div>
                         </div>
-                    </aside>
+                    </div>
                 </div>
             </c:if>
 
