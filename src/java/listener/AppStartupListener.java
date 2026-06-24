@@ -84,25 +84,18 @@ public class AppStartupListener implements ServletContextListener {
                 }
             }
 
-            boolean hasAutoApproveKey = false;
-            try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM system_config WHERE config_key = 'product_auto_approve'")) {
-                try (java.sql.ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        hasAutoApproveKey = true;
-                    }
-                }
-            }
-            if (!hasAutoApproveKey) {
-                try (java.sql.PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO system_config (config_key, config_value, description, data_type) VALUES (?, ?, ?, ?)")) {
-                    ps.setString(1, "product_auto_approve");
-                    ps.setString(2, "false");
-                    ps.setString(3, "Tự động duyệt sản phẩm khi tạo mới hoặc cập nhật (true/false). Mặc định false.");
-                    ps.setString(4, "BOOLEAN");
-                    ps.executeUpdate();
-                    LoggerUtil.info(log, "[AppStartup] Successfully seeded 'product_auto_approve' configuration key.");
-                }
-            }
+            seedSystemConfigIfMissing(
+                    conn,
+                    "product_auto_approve",
+                    "false",
+                    "Tự động duyệt sản phẩm khi tạo mới hoặc cập nhật (true/false). Mặc định false.",
+                    "BOOLEAN");
+            seedSystemConfigIfMissing(
+                    conn,
+                    AppConfig.CONFIG_GEMINI_API_KEY,
+                    "",
+                    "API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.",
+                    "STRING");
         } catch (Exception e) {
             LoggerUtil.warn(log, "[AppStartup] Warning during automatic DB migration", e);
         }
@@ -129,6 +122,31 @@ public class AppStartupListener implements ServletContextListener {
                     LoggerUtil.error(log, "[AppStartup] Error deregistering driver: " + driver, e);
                 }
             }
+        }
+    }
+
+    private void seedSystemConfigIfMissing(java.sql.Connection conn, String configKey, String configValue,
+            String description, String dataType) throws java.sql.SQLException {
+        boolean exists = false;
+        try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM system_config WHERE config_key = ?")) {
+            ps.setString(1, configKey);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                exists = rs.next();
+            }
+        }
+
+        if (exists) {
+            return;
+        }
+
+        try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO system_config (config_key, config_value, description, data_type) VALUES (?, ?, ?, ?)")) {
+            ps.setString(1, configKey);
+            ps.setString(2, configValue);
+            ps.setString(3, description);
+            ps.setString(4, dataType);
+            ps.executeUpdate();
+            LoggerUtil.info(log, "[AppStartup] Successfully seeded '%s' configuration key.", configKey);
         }
     }
 }
