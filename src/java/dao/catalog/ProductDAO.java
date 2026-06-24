@@ -128,6 +128,27 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
+     * Tìm kiếm sản phẩm của chủ cửa hàng theo tên hoặc mô tả.
+     */
+    public List<Product> findByOwnerAndKeyword(int ownerId, String keyword) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' AND (name LIKE ? OR description LIKE ?) ORDER BY product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            String k = "%" + keyword.trim() + "%";
+            ps.setString(2, k);
+            ps.setString(3, k);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
      * Lấy danh sách sản phẩm đang ACTIVE của một shop owner cụ thể.
      */
     public Map<Integer, Product> findActiveByOwner(int ownerId) throws SQLException {

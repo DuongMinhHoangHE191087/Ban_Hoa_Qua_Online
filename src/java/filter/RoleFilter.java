@@ -123,6 +123,8 @@ public class RoleFilter implements Filter {
                     || AppConfig.ROLE_DELIVERY.equals(user.getRole());
         } else if (uri.equals(ctx + "/checkout")
                 || uri.equals(ctx + "/orders")
+                || uri.equals(ctx + "/orders/detail")
+                || uri.equals(ctx + "/notifications")
                 || uri.equals(ctx + "/reviews")
                 || uri.equals(ctx + "/returns")
                 || uri.equals(ctx + "/chat")) {
