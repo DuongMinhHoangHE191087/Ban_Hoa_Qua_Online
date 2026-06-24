@@ -814,9 +814,22 @@ BEGIN
         ('settlement_freeze_days',  '15',   N'Số ngày đóng băng tiền quyết toán của shop.', 'INT'),
         ('shop_accept_timeout_min', '30',   N'Thời gian tối đa (phút) để shop chấp nhận đơn hàng trước khi tự hủy.', 'INT'),
         ('return_request_max_hours','24',   N'Thời gian tối đa (giờ) để khách hàng gửi return request sau DELIVERED.', 'INT'),
-        ('gemini_api_key',          '',     N'API Key cho mô hình Gemini 2.5 Flash để hỗ trợ AI Search & Tư vấn.', 'STRING');
+        ('gemini_api_key',          '',     N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING');
 
     PRINT 'Created system_config table and seeded defaults.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.system_config', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM dbo.system_config WHERE config_key = 'gemini_api_key')
+BEGIN
+    INSERT INTO dbo.system_config (config_key, config_value, description, data_type)
+    VALUES (
+        'gemini_api_key',
+        '',
+        N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.',
+        'STRING'
+    );
 END
 GO
 
@@ -1156,16 +1169,16 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.categories ON;
     INSERT INTO dbo.categories (category_id, name, slug, display_order, is_active)
     VALUES
-        (1, N'Cam, Bưởi, Quýt', N'citrus', 1, 1),
-        (2, N'Trái Cây Nhiệt Đới', N'tropical', 2, 1),
-        (3, N'Quả Mọng & Dâu Tây', N'berries', 3, 1),
-        (4, N'Hộp Quà Trái Cây', N'gift-boxes', 4, 1),
-        (5, N'Táo Cao Cấp', N'apples', 5, 1),
-        (6, N'Nho Không Hạt', N'grapes', 6, 1),
-        (7, N'Dưa Lưới & Dưa Hấu', N'melons', 7, 1),
-        (8, N'Kiwi Tươi', N'kiwi', 8, 1),
-        (9, N'Cherry Nhập Khẩu', N'cherries', 9, 1),
-        (10, N'Trái Cây Hỗn Hợp', N'imported-mix', 10, 1);
+        (1, N'Cam, Bưởi, Quýt', N'cam-buoi-quyt', 1, 1),
+        (2, N'Trái Cây Nhiệt Đới', N'trai-cay-nhiet-doi', 2, 1),
+        (3, N'Quả Mọng & Dâu Tây', N'qua-mong-dau-tay', 3, 1),
+        (4, N'Hộp Quà Trái Cây', N'hop-qua-trai-cay', 4, 1),
+        (5, N'Táo Cao Cấp', N'tao-cao-cap', 5, 1),
+        (6, N'Nho Không Hạt', N'nho-khong-hat', 6, 1),
+        (7, N'Dưa Lưới & Dưa Hấu', N'dua-luoi-dua-hau', 7, 1),
+        (8, N'Kiwi Tươi', N'kiwi-tuoi', 8, 1),
+        (9, N'Cherry Nhập Khẩu', N'cherry-nhap-khau', 9, 1),
+        (10, N'Trái Cây Hỗn Hợp', N'trai-cay-hon-hop', 10, 1);
     SET IDENTITY_INSERT dbo.categories OFF;
 
     SET IDENTITY_INSERT dbo.products ON;
