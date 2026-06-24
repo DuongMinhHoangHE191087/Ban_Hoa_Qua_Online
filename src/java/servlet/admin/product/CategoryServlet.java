@@ -37,10 +37,10 @@ public class CategoryServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        HttpSession session = req.getSession();
-        User currentUser = SessionUtil.getCurrentUser(session);
-        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
+        HttpSession session = req.getSession(false);
+        User user = SessionUtil.getCurrentUser(session);
+        if (user == null || !AppConfig.ROLE_ADMIN.equals(user.getRole())) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền quản trị");
             return;
         }
 
@@ -65,13 +65,14 @@ public class CategoryServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        HttpSession session = req.getSession();
-        User currentUser = SessionUtil.getCurrentUser(session);
-        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
+        HttpSession session = req.getSession(false);
+        User user = SessionUtil.getCurrentUser(session);
+        if (user == null || !AppConfig.ROLE_ADMIN.equals(user.getRole())) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền quản trị");
             return;
         }
 
+        session = req.getSession();
         String action = req.getParameter("action");
         if (action == null) {
             SessionUtil.setFlashMessage(session, "Hành động không hợp lệ", "danger");

@@ -266,23 +266,32 @@ body { background: #F0FDF4; }
 <%-- Modal: Giao Thành Công (Proof) --%>
 <div id="proofModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl border border-emerald-100">
-        <h3 class="text-emerald-700 font-extrabold text-lg flex items-center gap-2 mb-2">
-            <span class="w-9 h-9 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                <i class="fa-solid fa-check-circle text-emerald-600"></i>
-            </span>
-            Xác nhận Giao Thành Công
-        </h3>
-        <p class="text-xs text-txt-2 mb-5">Cung cấp URL ảnh bằng chứng giao hàng để hoàn tất xác nhận.</p>
-        <input type="hidden" id="proofDeliveryId">
-        <div class="mb-5">
-            <label class="block text-xs font-bold text-txt-2 mb-1.5">URL Ảnh Bằng Chứng <span class="text-red-500">*</span></label>
-            <input type="text" id="proofImageUrl" placeholder="https://example.com/proof.jpg"
-                class="w-full px-4 py-3 border border-[#BAE6FD] rounded-2xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
-        </div>
-        <div class="flex gap-3 justify-end">
-            <button onclick="closeModal('proofModal')" class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-txt-2 font-bold text-xs transition-all">Hủy</button>
-            <button onclick="submitSuccess()" class="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-md">Xác nhận giao thành công</button>
-        </div>
+        <form action="${pageContext.request.contextPath}/delivery/confirm-success" method="POST" enctype="multipart/form-data">
+            <h3 class="text-emerald-700 font-extrabold text-lg flex items-center gap-2 mb-2">
+                <span class="w-9 h-9 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                    <i class="fa-solid fa-check-circle text-emerald-600"></i>
+                </span>
+                Xác nhận Giao Thành Công
+            </h3>
+            <p class="text-xs text-txt-2 mb-5">Tải lên ảnh bằng chứng giao hàng (định dạng ảnh) để hoàn tất xác nhận.</p>
+            <input type="hidden" id="proofDeliveryId" name="deliveryId">
+            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-txt-2 mb-1.5">Ảnh Bằng Chứng <span class="text-red-500">*</span></label>
+                <input type="file" id="proofImage" name="proofImage" accept="image/*" required
+                    class="w-full px-3 py-2 border border-[#BAE6FD] rounded-2xl text-sm text-txt-2
+                           file:mr-4 file:py-2.5 file:px-5
+                           file:rounded-xl file:border-0
+                           file:text-xs file:font-bold
+                           file:bg-emerald-50 file:text-emerald-700
+                           hover:file:bg-emerald-100 file:transition-all
+                           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white cursor-pointer file:cursor-pointer">
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button type="button" onclick="closeModal('proofModal')" class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-txt-2 font-bold text-xs transition-all">Hủy</button>
+                <button type="submit" class="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-md">Xác nhận giao thành công</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -334,7 +343,7 @@ body { background: #F0FDF4; }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function openProofModal(id) {
     document.getElementById('proofDeliveryId').value = id;
-    document.getElementById('proofImageUrl').value = '';
+    document.getElementById('proofImage').value = '';
     document.getElementById('proofModal').classList.remove('hidden');
 }
 function openFailModal(id) {
@@ -385,13 +394,7 @@ function updateStatus(id, status) {
         apiCall({ action: "STATUS", deliveryId: id, status: status });
     }
 }
-function submitSuccess() {
-    const id = document.getElementById('proofDeliveryId').value;
-    const url = document.getElementById('proofImageUrl').value.trim();
-    if (!url) { alert("Vui lòng nhập link ảnh bằng chứng!"); return; }
-    closeModal('proofModal');
-    apiCall({ action: "STATUS", deliveryId: id, status: "DELIVERED", proofImageUrl: url });
-}
+// submitSuccess function removed since proof form is now submitted natively
 function submitFail() {
     const id = document.getElementById('failDeliveryId').value;
     const reason = document.getElementById('failureReason').value.trim();
