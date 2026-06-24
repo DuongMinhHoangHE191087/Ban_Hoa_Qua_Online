@@ -43,6 +43,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
+import dao.shop.ShopProfileDAO;
+import model.entity.shop.ShopProfile;
 
 /**
  * Business logic cho luong checkout.
@@ -52,7 +54,7 @@ public class CheckoutService {
     private static final Logger log = LoggerUtil.getLogger(CheckoutService.class);
 
     private static final BigDecimal DELIVERY_FEE_PER_SHOP = new BigDecimal("15000");
-    private static final String PHONE_REGEX = "^(0|\\+84)[35789][0-9]{8}$";
+    private static final String PHONE_REGEX = "^(0|\\+84)[3|5|7|8|9][0-9]{8}$";
     /** PAY-01: COD is blocked for orders >= 2,000,000 VND */
     private static final BigDecimal COD_MAX_AMOUNT = new BigDecimal("2000000");
     /** DEL-02: Maximum cart weight for express delivery in kg */
@@ -64,6 +66,7 @@ public class CheckoutService {
     private final OrderDAO orderDAO = new OrderDAO();
     private final OrderItemDAO orderItemDAO = new OrderItemDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final PromotionService promotionService = new PromotionService();
     private final PromotionDAO promotionDAO = new PromotionDAO();
     private final SystemConfigDAO configDAO = new SystemConfigDAO();
@@ -92,6 +95,7 @@ public class CheckoutService {
         }
 
         Map<Integer, List<CartItem>> itemsByOwner = groupItemsByOwnerId(cartSummary.getItems(), null);
+        validateShopStatus(itemsByOwner);
         BigDecimal deliveryFee = DELIVERY_FEE_PER_SHOP.multiply(new BigDecimal(itemsByOwner.size()));
         cartSummary.setDeliveryFee(deliveryFee);
         cartSummary.setTotal(cartSummary.getSubtotal().add(deliveryFee));
@@ -157,6 +161,7 @@ public class CheckoutService {
             }
 
             Map<Integer, List<CartItem>> itemsByOwner = groupItemsByOwnerId(checkoutItems, variantMap);
+            validateShopStatus(itemsByOwner);
 
             CheckoutResultDTO result;
             if (itemsByOwner.size() > 1) {
@@ -435,6 +440,21 @@ public class CheckoutService {
         if (!AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())
                 && !AppConfig.PAYMENT_CK.equals(request.getPaymentMethod())) {
             throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
+        }
+    }
+
+    private void validateShopStatus(Map<Integer, List<CartItem>> itemsByOwner) {
+        for (Integer ownerId : itemsByOwner.keySet()) {
+            java.util.List<ShopProfile> profiles;
+            try {
+                profiles = shopProfileDAO.findByUserId(ownerId);
+            } catch (SQLException e) {
+                throw new RuntimeException("Lỗi truy vấn ShopProfile", e);
+            }
+            ShopProfile profile = (profiles == null || profiles.isEmpty()) ? null : profiles.get(0);
+            if (profile == null || !"APPROVED".equals(profile.getApprovalStatus())) {
+                throw new BusinessException("SHOP-SUSPENDED", "Cửa hàng bán sản phẩm của bạn đã bị đình chỉ hoạt động. Vui lòng xóa các sản phẩm của cửa hàng này khỏi giỏ hàng.");
+            }
         }
     }
 
