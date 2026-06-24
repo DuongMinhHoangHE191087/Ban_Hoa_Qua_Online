@@ -133,6 +133,61 @@
                 <c:remove var="flashType" scope="session"/>
             </c:if>
 
+            <c:if test="${not empty requestScope.prefilledUser}">
+                <div class="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+                    <section class="rounded-3xl border border-white/70 bg-white/85 p-5 md:p-6 shadow-[0_18px_45px_rgba(20,83,45,0.10)]">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
+                                <span class="material-symbols-outlined text-[16px]">assignment</span>
+                                Trạng thái luồng
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Luồng nâng cấp</span>
+                        </div>
+                        <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-on-surface">
+                            Bạn đang nâng cấp từ tài khoản cá nhân lên quyền chủ gian hàng
+                        </h2>
+                        <p class="mt-3 text-sm md:text-base text-on-surface-variant leading-6">
+                            Thông tin tài khoản cơ bản đã được giữ lại. Bạn chỉ cần hoàn tất phần cửa hàng, danh mục kinh doanh và tài liệu xác minh để gửi hồ sơ, rồi hệ thống sẽ xử lý theo đúng trạng thái.
+                        </p>
+                        <div class="mt-6 flex flex-wrap gap-3">
+                            <a href="#shopFields" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover hover:-translate-y-0.5">
+                                <span class="material-symbols-outlined text-[18px]">domain</span>
+                                Đi đến thông tin gian hàng
+                            </a>
+                            <a href="#businessDocs" class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-50">
+                                <span class="material-symbols-outlined text-[18px]">description</span>
+                                Xem tài liệu xác minh
+                            </a>
+                        </div>
+                    </section>
+
+                    <aside class="rounded-3xl border border-primary/10 bg-primary/5 p-5 md:p-6 shadow-[0_18px_45px_rgba(20,83,45,0.06)]">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/70">Thông tin tài khoản</p>
+                        <div class="mt-4 space-y-3">
+                            <div class="rounded-2xl bg-white/80 p-4 border border-white/60">
+                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Họ và tên</p>
+                                <p class="mt-1 text-sm font-semibold text-on-surface break-words"><c:out value="${requestScope.prefilledUser.fullName}"/></p>
+                            </div>
+                            <div class="rounded-2xl bg-white/80 p-4 border border-white/60">
+                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Email đăng nhập</p>
+                                <p class="mt-1 text-sm font-semibold text-on-surface break-words"><c:out value="${requestScope.prefilledUser.email}"/></p>
+                            </div>
+                            <div class="rounded-2xl bg-white/80 p-4 border border-white/60">
+                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Số điện thoại</p>
+                                <p class="mt-1 text-sm font-semibold text-on-surface break-words">
+                                    <c:choose>
+                                        <c:when test="${not empty requestScope.prefilledUser.phone}">
+                                            <c:out value="${requestScope.prefilledUser.phone}"/>
+                                        </c:when>
+                                        <c:otherwise>Cần bổ sung ở bước hồ sơ gian hàng</c:otherwise>
+                                    </c:choose>
+                                </p>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </c:if>
+
             <!-- Unified Form -->
             <form action="${pageContext.request.contextPath}/auth/register" method="post" enctype="multipart/form-data" class="space-y-6" id="registerForm">
                 

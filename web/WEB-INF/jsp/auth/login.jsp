@@ -1,5 +1,6 @@
 ﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -113,10 +114,58 @@
 
             <!-- Error message display if any -->
             <c:if test="${not empty requestScope.errorMsg}">
-                <div class="mb-6 p-4 bg-red-50 border-l-4 border-error text-red-800 rounded-r-lg flex items-center gap-3 shadow-sm">
-                    <span class="material-symbols-outlined text-error">error</span>
-                    <span class="text-sm font-medium"><c:out value="${requestScope.errorMsg}"/></span>
-                </div>
+                <c:set var="loginErrorText" value="${fn:toLowerCase(requestScope.errorMsg)}"/>
+                <c:choose>
+                    <c:when test="${fn:contains(loginErrorText, 'khóa') or fn:contains(loginErrorText, 'đình chỉ') or fn:contains(loginErrorText, 'lock')}">
+                        <div class="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-rose-50 p-5 md:p-6 shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="w-11 h-11 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-[24px]">lock</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <span class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-700">
+                                            Trạng thái tài khoản
+                                        </span>
+                                        <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-red-500">
+                                            Bảo mật đăng nhập
+                                        </span>
+                                    </div>
+                                    <c:choose>
+                                        <c:when test="${fn:contains(loginErrorText, 'đình chỉ')}">
+                                            <h2 class="mt-1 text-lg font-bold text-red-800">Tài khoản đang bị đình chỉ</h2>
+                                        </c:when>
+                                        <c:when test="${fn:contains(loginErrorText, 'tạm thời')}">
+                                            <h2 class="mt-1 text-lg font-bold text-red-800">Tài khoản đang bị khóa tạm thời</h2>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <h2 class="mt-1 text-lg font-bold text-red-800">Tài khoản đang bị khóa</h2>
+                                        </c:otherwise>
+                                    </c:choose>
+                                    <p class="mt-2 text-sm leading-6 text-red-700">
+                                        <c:out value="${requestScope.errorMsg}"/>
+                                    </p>
+                                    <div class="mt-4 flex flex-wrap gap-3">
+                                        <a href="mailto:support@metafruit.com" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
+                                            <span class="material-symbols-outlined text-[18px]">support_agent</span>
+                                            Liên hệ hỗ trợ
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/auth/forgot" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-700 transition-all hover:border-red-300 hover:bg-red-50">
+                                            <span class="material-symbols-outlined text-[18px]">key</span>
+                                            Khôi phục mật khẩu
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="mb-6 p-4 bg-red-50 border-l-4 border-error text-red-800 rounded-r-lg flex items-center gap-3 shadow-sm">
+                            <span class="material-symbols-outlined text-error">error</span>
+                            <span class="text-sm font-medium"><c:out value="${requestScope.errorMsg}"/></span>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
             </c:if>
             <c:if test="${not empty sessionScope.flashMsg}">
                 <c:set var="isError" value="${sessionScope.flashType == 'error'}"/>
