@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -188,7 +189,7 @@
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">call</span>
                                 <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
                                        id="phone" name="phone" 
-                                       value="<c:out value="${not empty requestScope.prefilledUser ? requestScope.prefilledUser.phone : param.phone}"/>" 
+                                       value="<c:out value="${not empty requestScope.prefilledUser and not empty requestScope.prefilledUser.phone ? requestScope.prefilledUser.phone : param.phone}"/>" 
                                        placeholder="Nhập số điện thoại" type="tel" required maxlength="15"
                                        ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'readonly' : ''}>
                             </div>
@@ -330,11 +331,12 @@
                         <label class="text-xs font-semibold text-primary">Tải lên tài liệu xác minh (GPKD, Chứng nhận ATTP...) *</label>
                         <p class="text-[10px] text-outline">Tối đa 10 tài liệu • Mỗi file ≤ 25MB • Định dạng: PDF, JPG, PNG, DOCX</p>
                         <div class="border-2 border-dashed border-primary/20 rounded-lg p-5 text-center bg-white/20 hover:bg-emerald-50/50 transition-colors cursor-pointer group relative" id="dropzone">
-                            <input class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                                   id="businessDocs" name="businessDocs" type="file" 
-                                   multiple 
-                                   accept=".pdf,.jpg,.jpeg,.png,.docx"
-                                   onchange="handleFileSelect(this)">
+                                <input class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                                       id="businessDocs" name="businessDocs" type="file" 
+                                       multiple 
+                                       accept=".pdf,.jpg,.jpeg,.png,.docx"
+                                       onchange="handleFileSelect(this)"
+                                       <c:if test="${empty requestScope.registerDraftDocPaths}">required</c:if>>
                             <div class="flex flex-col items-center gap-2 pointer-events-none">
                                 <span class="material-symbols-outlined text-[36px] text-primary/60 group-hover:text-primary transition-colors">cloud_upload</span>
                                 <p class="text-xs font-medium text-on-surface-variant" id="uploadLabel">
@@ -345,13 +347,34 @@
                         <!-- File list preview -->
                         <ul id="fileList" class="mt-2 space-y-1 hidden"></ul>
                         <p id="fileError" class="text-xs text-red-600 hidden"></p>
+                        <c:if test="${not empty requestScope.registerDraftDocPaths}">
+                            <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary text-[20px]">draft</span>
+                                    <div>
+                                        <p class="text-sm font-semibold text-primary">Tài liệu nháp đã lưu trên hệ thống</p>
+                                        <p class="text-xs text-on-surface-variant">Bạn chỉ cần sửa các trường khác nếu đang lỗi validation.</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <c:forEach var="draftDocPath" items="${requestScope.registerDraftDocPaths}">
+                                        <c:set var="draftPathSegments" value="${fn:split(draftDocPath, '/')}"/>
+                                        <c:set var="draftFileName" value="${draftPathSegments[fn:length(draftPathSegments) - 1]}"/>
+                                        <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-white/80 px-3 py-2 text-xs">
+                                            <span class="material-symbols-outlined text-primary text-[16px]">description</span>
+                                            <span class="font-medium text-on-surface break-all"><c:out value="${draftFileName}"/></span>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+                            </div>
+                        </c:if>
                     </div>
                 </div>
 
                 <!-- Terms and Conditions Checkbox -->
                 <div class="flex items-start gap-3 mt-4">
                     <div class="flex items-center h-5 mt-0.5">
-                        <input class="w-4 h-4 rounded border-outline/30 text-primary focus:ring-primary bg-white cursor-pointer" id="terms" name="terms" type="checkbox" required>
+                        <input class="w-4 h-4 rounded border-outline/30 text-primary focus:ring-primary bg-white cursor-pointer" id="terms" name="terms" type="checkbox" <c:if test="${not empty param.terms}">checked</c:if> required>
                     </div>
                     <label class="text-xs text-on-surface-variant leading-relaxed cursor-pointer" for="terms">
                         Tôi đồng ý với các <a class="text-primary font-bold hover:underline" href="#">Điều khoản sử dụng dịch vụ</a> và <a class="text-primary font-bold hover:underline" href="#">Chính sách bảo mật dữ liệu khách hàng</a> của MetaFruit.
@@ -409,6 +432,7 @@
         const MAX_DOC_SIZE_MB = 25;
         const MAX_DOC_SIZE_BYTES = MAX_DOC_SIZE_MB * 1024 * 1024;
         const ALLOWED_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'docx'];
+        const hasDraftDocs = ${not empty requestScope.registerDraftDocPaths};
 
         /**
          * Chuyển giữa tab Đăng ký khách hàng / Chủ cửa hàng
@@ -611,13 +635,13 @@
 
                     // Check files
                     const fileInput = document.getElementById('businessDocs');
-                    if (fileInput.files.length === 0) {
+                    if (fileInput.files.length === 0 && !hasDraftDocs) {
                         hasError = true;
                         const errorDiv = document.createElement('p');
                         errorDiv.className = 'client-error text-xs text-red-600 mt-1';
                         errorDiv.textContent = 'Vui lòng chọn ít nhất một tệp tài liệu để xác minh.';
                         document.getElementById('dropzone').parentNode.appendChild(errorDiv);
-                    } else {
+                    } else if (fileInput.files.length > 0) {
                         const files = Array.from(fileInput.files);
                         if (files.length > MAX_DOC_COUNT) {
                             hasError = true;

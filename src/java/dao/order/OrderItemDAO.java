@@ -16,28 +16,37 @@ public class OrderItemDAO extends BaseDAO {
 
     public List<OrderItem> findByOrderId(int orderId) throws SQLException {
         List<OrderItem> list = new ArrayList<>();
-        String sql = "SELECT * FROM order_items WHERE order_id = ?";
+        String sql = "SELECT oi.*, pi.file_path AS image_path "
+                + "FROM order_items oi "
+                + "LEFT JOIN product_variants pv ON pv.variant_id = oi.variant_id "
+                + "LEFT JOIN product_images pi ON pi.product_id = pv.product_id AND pi.is_primary = 1 "
+                + "WHERE oi.order_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    OrderItem item = new OrderItem();
-                    item.setOrderItemId(rs.getInt("order_item_id"));
-                    item.setOrderId(rs.getInt("order_id"));
-                    item.setVariantId(rs.getObject("variant_id") != null ? rs.getInt("variant_id") : null);
-                    item.setProductNameSnapshot(rs.getString("product_name_snapshot"));
-                    item.setVariantLabelSnapshot(rs.getString("variant_label_snapshot"));
-                    item.setQuantity(rs.getInt("quantity"));
-                    item.setUnitPrice(rs.getBigDecimal("unit_price"));
-                    item.setSubtotal(rs.getBigDecimal("subtotal"));
-                    item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
-                    item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
-                    list.add(item);
+                    list.add(mapRow(rs));
                 }
             }
         }
         return list;
+    }
+
+    private OrderItem mapRow(ResultSet rs) throws SQLException {
+        OrderItem item = new OrderItem();
+        item.setOrderItemId(rs.getInt("order_item_id"));
+        item.setOrderId(rs.getInt("order_id"));
+        item.setVariantId(rs.getObject("variant_id") != null ? rs.getInt("variant_id") : null);
+        item.setProductNameSnapshot(rs.getString("product_name_snapshot"));
+        item.setVariantLabelSnapshot(rs.getString("variant_label_snapshot"));
+        item.setQuantity(rs.getInt("quantity"));
+        item.setUnitPrice(rs.getBigDecimal("unit_price"));
+        item.setSubtotal(rs.getBigDecimal("subtotal"));
+        item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
+        item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
+        item.setImagePath(rs.getString("image_path"));
+        return item;
     }
 
     public void saveBatch(Connection conn, int orderId, List<CartItem> items, Map<Integer, ProductVariant> variantMap)

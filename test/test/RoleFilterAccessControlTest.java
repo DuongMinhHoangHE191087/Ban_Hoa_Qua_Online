@@ -203,6 +203,21 @@ public class RoleFilterAccessControlTest {
     }
 
     // =========================================================
+    // TC-RF-09: Admin Ä‘Æ°á»£c phÃ©p truy cáº­p /notifications
+    // =========================================================
+
+    @Test
+    public void should_allowAdmin_when_requestingNotificationsPath() throws Exception {
+        env.reset();
+        env.uri = "/Ban_Hoa_Qua_Online/notifications";
+        env.user = buildUser(adminId, AppConfig.ROLE_ADMIN);
+
+        runFilter();
+        assertTrue("Admin pháº£i Ä‘Æ°á»£c truy cáº­p /notifications", env.chainCalled.get());
+        assertEquals("KhÃ´ng Ä‘Æ°á»£c tráº£ vá» lá»—i cho admin", 0, env.errorCode.get());
+    }
+
+    // =========================================================
     // Helpers
     // =========================================================
 

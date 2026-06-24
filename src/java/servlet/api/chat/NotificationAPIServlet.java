@@ -16,9 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 /**
@@ -56,17 +54,17 @@ public class NotificationAPIServlet extends HttpServlet {
                     LoggerUtil.warn(log, "Tham số limit không hợp lệ: " + limitStr, e);
                 }
             }
-
-            List<Notification> unreadNotifs = notificationService.getUnread(user.getUserId());
-            int unreadCount = unreadNotifs.size();
-
-            List<Notification> allNotifs = notificationService.getAllNotifications(user.getUserId());
-            if (allNotifs.size() > limit) {
-                allNotifs = allNotifs.subList(0, limit);
+            if (limit <= 0) {
+                limit = 5;
+            } else if (limit > 50) {
+                limit = 50;
             }
 
+            int unreadCount = notificationService.countUnreadByUser(user.getUserId());
+            List<Notification> recentNotifs = notificationService.getRecentNotifications(user.getUserId(), limit);
+
             JsonUtil.writeJson(resp, ApiResponse.ok(
-                    new NotificationListResponse(unreadCount, List.copyOf(allNotifs))));
+                    new NotificationListResponse(unreadCount, List.copyOf(recentNotifs))));
         } catch (Exception e) {
             util.ServletUtil.sendJsonInternalServerError(
                     req,
@@ -107,12 +105,28 @@ public class NotificationAPIServlet extends HttpServlet {
             if ("markRead".equals(action)) {
                 String notifIdStr = req.getParameter("notificationId");
                 if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
+                    notifIdStr = req.getParameter("notifId");
+                }
+                if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JsonUtil.writeJson(resp, ApiResponse.fail(400, "Thiếu ID thông báo."));
                     return;
                 }
                 int notifId = Integer.parseInt(notifIdStr);
-                notificationService.markRead(notifId);
+                notificationService.markRead(notifId, user.getUserId());
+                JsonUtil.writeJson(resp, ApiResponse.ok(null));
+            } else if ("delete".equals(action)) {
+                String notifIdStr = req.getParameter("notificationId");
+                if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
+                    notifIdStr = req.getParameter("notifId");
+                }
+                if (notifIdStr == null || notifIdStr.trim().isEmpty()) {
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(400, "Thiếu ID thông báo."));
+                    return;
+                }
+                int notifId = Integer.parseInt(notifIdStr);
+                notificationService.delete(notifId, user.getUserId());
                 JsonUtil.writeJson(resp, ApiResponse.ok(null));
             } else if ("markAllRead".equals(action)) {
                 notificationService.markAllRead(user.getUserId());
@@ -121,6 +135,12 @@ public class NotificationAPIServlet extends HttpServlet {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 JsonUtil.writeJson(resp, ApiResponse.fail(400, "Hành động không hợp lệ."));
             }
+        } catch (SecurityException e) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            JsonUtil.writeJson(resp, ApiResponse.fail(403, "Thông báo không tồn tại hoặc bạn không có quyền thao tác."));
+        } catch (NumberFormatException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(resp, ApiResponse.fail(400, "ID thông báo không hợp lệ."));
         } catch (Exception e) {
             util.ServletUtil.sendJsonInternalServerError(
                     req,

@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -26,7 +27,6 @@ public final class FileUploadUtil {
         "jpg",  new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
         "jpeg", new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
         "png",  new byte[]{(byte)0x89, 0x50, 0x4E, 0x47},
-        "gif",  new byte[]{0x47, 0x49, 0x46},
         "webp", new byte[]{0x52, 0x49, 0x46, 0x46},  // RIFF header (full WEBP validated in helper)
         "pdf",  new byte[]{0x25, 0x50, 0x44, 0x46},  // %PDF
         // DOCX/XLSX là ZIP — magic bytes: PK\x03\x04
@@ -125,13 +125,10 @@ public final class FileUploadUtil {
     public static void delete(String realPath) {
         if (realPath == null || realPath.trim().isEmpty()) return;
         try {
-            // Thử xóa từ thư mục bền vững trước
-            String fileName = Paths.get(realPath).getFileName().toString();
-            File persistentFile = new File(AppConfig.PERSISTENT_UPLOAD_DIR, fileName);
-            if (persistentFile.exists()) {
-                Files.deleteIfExists(persistentFile.toPath());
+            Path target = resolveDeleteTarget(realPath);
+            if (target != null) {
+                Files.deleteIfExists(target);
             }
-            Files.deleteIfExists(Paths.get(realPath));
         } catch (IOException e) {
             LoggerUtil.warn(log, "Không thể xóa file: " + realPath, e);
         }
@@ -148,46 +145,37 @@ public final class FileUploadUtil {
      * @return Đường dẫn relative để lưu DB (ví dụ: 'uploads/shop-docs/42/uuid.pdf')
      */
     public static String saveShopDoc(Part part, String uploadDir, int userId) throws IOException {
-        if (part == null || part.getSize() == 0) {
-            return null;
-        }
-
-        String originalFilename = part.getSubmittedFileName();
-        if (originalFilename == null || originalFilename.trim().isEmpty()) {
-            return null;
-        }
-
-        // Validate kích thước file (25MB)
-        if (part.getSize() > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
-            throw new IOException("File '" + sanitizeFilename(originalFilename)
-                    + "' vượt quá giới hạn 25MB.");
-        }
-
-        // Validate extension
-        if (!isAllowedDoc(originalFilename)) {
-            throw new IOException("Định dạng file '" + sanitizeFilename(originalFilename)
-                    + "' không được phép. Chỉ chấp nhận: PDF, JPG, PNG, DOCX.");
-        }
-
-        // Validate magic bytes (chống giả mạo đuôi file)
-        String docExt = getExtension(originalFilename);
-        if (!hasMagicBytesMatchingExtension(part, docExt)) {
-            throw new IOException("Nội dung file '" + sanitizeFilename(originalFilename)
-                    + "' không khớp với định dạng khai báo.");
-        }
-
-        // Tạo thư mục uploads/shop-docs/{userId}/ nếu chưa tồn tại trong thư mục bền vững
         File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR, "shop-docs" + File.separator + userId);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        return storeShopDoc(part, dir, AppConfig.UPLOAD_SHOP_DOCS_DIR + "/" + userId);
+    }
+
+    /** Lưu tài liệu xác minh shop vào thư mục nháp theo session token. */
+    public static String saveShopDocDraft(Part part, String uploadDir, String scope, String draftToken) throws IOException {
+        File dir = new File(AppConfig.PERSISTENT_UPLOAD_DIR,
+                "shop-docs" + File.separator + "_draft" + File.separator + scope + File.separator + draftToken);
+        return storeShopDoc(part, dir, AppConfig.UPLOAD_SHOP_DOCS_DRAFT_DIR + "/" + scope + "/" + draftToken);
+    }
+
+    /** Sao chép tài liệu nháp sang thư mục chính của user và trả về path đích. */
+    public static String promoteShopDocDraft(String draftRelativePath, int userId) throws IOException {
+        if (draftRelativePath == null || draftRelativePath.trim().isEmpty()) {
+            return null;
         }
 
-        // Đổi tên file thành UUID để chống ghi đè và path traversal
-        String newFilename = UUID.randomUUID().toString() + "." + docExt;
+        Path draftPath = resolveStoredPath(draftRelativePath);
+        if (!Files.exists(draftPath) || !Files.isRegularFile(draftPath)) {
+            throw new IOException("Không tìm thấy tệp tài liệu nháp để chuyển sang thư mục chính.");
+        }
 
-        Path filePath = Paths.get(dir.getAbsolutePath(), newFilename);
-        Files.copy(part.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        String ext = getExtension(draftPath.getFileName().toString());
+        File targetDir = new File(AppConfig.PERSISTENT_UPLOAD_DIR, "shop-docs" + File.separator + userId);
+        if (!targetDir.exists()) {
+            targetDir.mkdirs();
+        }
 
+        String newFilename = UUID.randomUUID().toString() + "." + ext;
+        Path targetPath = Paths.get(targetDir.getAbsolutePath(), newFilename);
+        Files.copy(draftPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
         return AppConfig.UPLOAD_SHOP_DOCS_DIR + "/" + userId + "/" + newFilename;
     }
 
@@ -201,6 +189,84 @@ public final class FileUploadUtil {
             }
         }
         return false;
+    }
+
+    private static String storeShopDoc(Part part, File dir, String relativePrefix) throws IOException {
+        if (part == null || part.getSize() == 0) {
+            return null;
+        }
+
+        String originalFilename = part.getSubmittedFileName();
+        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+            return null;
+        }
+
+        if (part.getSize() > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
+            throw new IOException("Tệp '" + sanitizeFilename(originalFilename)
+                    + "' vượt quá giới hạn 25MB.");
+        }
+
+        if (!isAllowedDoc(originalFilename)) {
+            throw new IOException("Tệp '" + sanitizeFilename(originalFilename)
+                    + "' không được hỗ trợ. Chỉ chấp nhận: PDF, JPG, PNG, DOCX.");
+        }
+
+        String docExt = getExtension(originalFilename);
+        if (!hasMagicBytesMatchingExtension(part, docExt)) {
+            throw new IOException("Nội dung tệp '" + sanitizeFilename(originalFilename)
+                    + "' không khớp với định dạng đã khai báo. Vui lòng chọn lại file gốc.");
+        }
+
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String newFilename = UUID.randomUUID().toString() + "." + docExt;
+        Path filePath = Paths.get(dir.getAbsolutePath(), newFilename);
+        Files.copy(part.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        return relativePrefix + "/" + newFilename;
+    }
+
+    private static Path resolveDeleteTarget(String realPath) throws IOException {
+        String trimmed = realPath.trim().replace("\\", "/");
+        Path candidate = Paths.get(trimmed);
+        if (candidate.isAbsolute()) {
+            if (Files.exists(candidate)) {
+                return candidate.normalize();
+            }
+            Path fallback = Paths.get(AppConfig.PERSISTENT_UPLOAD_DIR,
+                    candidate.getFileName() != null ? candidate.getFileName().toString() : "");
+            if (Files.exists(fallback)) {
+                return fallback.normalize();
+            }
+            return candidate.normalize();
+        }
+
+        if (trimmed.startsWith(AppConfig.UPLOAD_DIR + "/")) {
+            trimmed = trimmed.substring(AppConfig.UPLOAD_DIR.length() + 1);
+        }
+
+        Path root = Paths.get(AppConfig.PERSISTENT_UPLOAD_DIR).toAbsolutePath().normalize();
+        return root.resolve(trimmed).normalize();
+    }
+
+    private static Path resolveStoredPath(String storedPath) throws IOException {
+        String trimmed = storedPath.trim().replace("\\", "/");
+        Path candidate = Paths.get(trimmed);
+        if (candidate.isAbsolute()) {
+            return candidate.normalize();
+        }
+
+        if (trimmed.startsWith(AppConfig.UPLOAD_DIR + "/")) {
+            trimmed = trimmed.substring(AppConfig.UPLOAD_DIR.length() + 1);
+        }
+
+        Path root = Paths.get(AppConfig.PERSISTENT_UPLOAD_DIR).toAbsolutePath().normalize();
+        Path resolved = root.resolve(trimmed).normalize();
+        if (!resolved.startsWith(root)) {
+            throw new IOException("Đường dẫn tài liệu không hợp lệ.");
+        }
+        return resolved;
     }
 
     /** Kiểm tra extension có nằm trong whitelist cấu hình ở AppConfig không */

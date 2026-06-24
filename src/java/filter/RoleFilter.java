@@ -118,13 +118,13 @@ public class RoleFilter implements Filter {
         } else if (uri.equals(ctx + "/customer") || uri.startsWith(ctx + "/customer/")) {
             allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
         } else if (uri.equals(ctx + "/notifications")) {
-            allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) 
+            allowed = AppConfig.ROLE_ADMIN.equals(user.getRole())
+                    || AppConfig.ROLE_CUSTOMER.equals(user.getRole())
                     || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())
                     || AppConfig.ROLE_DELIVERY.equals(user.getRole());
         } else if (uri.equals(ctx + "/checkout")
                 || uri.equals(ctx + "/orders")
                 || uri.equals(ctx + "/orders/detail")
-                || uri.equals(ctx + "/notifications")
                 || uri.equals(ctx + "/reviews")
                 || uri.equals(ctx + "/returns")
                 || uri.equals(ctx + "/chat")) {
