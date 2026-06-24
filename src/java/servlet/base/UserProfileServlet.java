@@ -6,9 +6,11 @@ import model.entity.auth.UserAddress;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
 import model.entity.shop.PaymentTransaction;
+import model.entity.shop.ShopProfile;
 import dao.auth.UserAddressDAO;
 import dao.order.OrderDAO;
 import dao.shop.PaymentDAO;
+import dao.shop.ShopProfileDAO;
 import service.auth.UserService;
 import service.auth.AuthService;
 import service.order.OrderViewService;
@@ -49,6 +51,7 @@ public class UserProfileServlet extends HttpServlet {
     private final UserAddressDAO addressDAO = new UserAddressDAO();
     private final OrderDAO orderDAO = new OrderDAO();
     private final PaymentDAO paymentDAO = new PaymentDAO();
+    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final OrderViewService orderViewService = new OrderViewService();
 
     @Override
@@ -63,6 +66,14 @@ public class UserProfileServlet extends HttpServlet {
             // Lấy lại user mới nhất từ DB
             User dbUser = userService.findById(currentUser.getUserId());
             req.setAttribute("user", dbUser);
+
+            try {
+                ShopProfile shopProfile = shopProfileDAO.findOneByUserId(dbUser.getUserId());
+                req.setAttribute("shopProfile", shopProfile);
+            } catch (Exception e) {
+                LoggerUtil.warn(log, "Không thể tải shop profile cho profile page", e);
+                req.setAttribute("shopProfile", null);
+            }
 
             // Load Address Book
             List<UserAddress> addresses = addressDAO.findByUser(dbUser.getUserId());

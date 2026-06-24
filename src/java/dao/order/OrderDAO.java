@@ -766,24 +766,16 @@ public class OrderDAO extends BaseDAO {
 
     public List<OrderItem> findItemsByOrderId(Connection conn, int orderId) throws SQLException {
         List<OrderItem> list = new ArrayList<>();
-        String sql = "SELECT * FROM order_items WHERE order_id = ?";
+        String sql = "SELECT oi.*, pi.file_path AS image_path "
+                   + "FROM order_items oi "
+                   + "LEFT JOIN product_variants pv ON pv.variant_id = oi.variant_id "
+                   + "LEFT JOIN product_images pi ON pi.product_id = pv.product_id AND pi.is_primary = 1 "
+                   + "WHERE oi.order_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    OrderItem item = new OrderItem();
-                    item.setOrderItemId(rs.getInt("order_item_id"));
-                    item.setOrderId(rs.getInt("order_id"));
-                    int vId = rs.getInt("variant_id");
-                    item.setVariantId(rs.wasNull() ? null : vId);
-                    item.setProductNameSnapshot(rs.getString("product_name_snapshot"));
-                    item.setVariantLabelSnapshot(rs.getString("variant_label_snapshot"));
-                    item.setQuantity(rs.getInt("quantity"));
-                    item.setUnitPrice(rs.getBigDecimal("unit_price"));
-                    item.setSubtotal(rs.getBigDecimal("subtotal"));
-                    item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
-                    item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
-                    list.add(item);
+                    list.add(mapOrderItem(rs));
                 }
             }
         }
@@ -809,7 +801,12 @@ public class OrderDAO extends BaseDAO {
             placeholders.append("?");
         }
 
-        String sql = "SELECT * FROM order_items WHERE order_id IN (" + placeholders + ") ORDER BY order_id ASC, order_item_id ASC";
+        String sql = "SELECT oi.*, pi.file_path AS image_path "
+                   + "FROM order_items oi "
+                   + "LEFT JOIN product_variants pv ON pv.variant_id = oi.variant_id "
+                   + "LEFT JOIN product_images pi ON pi.product_id = pv.product_id AND pi.is_primary = 1 "
+                   + "WHERE oi.order_id IN (" + placeholders + ") "
+                   + "ORDER BY oi.order_id ASC, oi.order_item_id ASC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             int paramIndex = 1;
@@ -818,24 +815,29 @@ public class OrderDAO extends BaseDAO {
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    OrderItem item = new OrderItem();
-                    item.setOrderItemId(rs.getInt("order_item_id"));
-                    item.setOrderId(rs.getInt("order_id"));
-                    int vId = rs.getInt("variant_id");
-                    item.setVariantId(rs.wasNull() ? null : vId);
-                    item.setProductNameSnapshot(rs.getString("product_name_snapshot"));
-                    item.setVariantLabelSnapshot(rs.getString("variant_label_snapshot"));
-                    item.setQuantity(rs.getInt("quantity"));
-                    item.setUnitPrice(rs.getBigDecimal("unit_price"));
-                    item.setSubtotal(rs.getBigDecimal("subtotal"));
-                    item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
-                    item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
-
+                    OrderItem item = mapOrderItem(rs);
                     map.computeIfAbsent(item.getOrderId(), key -> new ArrayList<>()).add(item);
                 }
             }
         }
         return map;
+    }
+
+    private OrderItem mapOrderItem(ResultSet rs) throws SQLException {
+        OrderItem item = new OrderItem();
+        item.setOrderItemId(rs.getInt("order_item_id"));
+        item.setOrderId(rs.getInt("order_id"));
+        int vId = rs.getInt("variant_id");
+        item.setVariantId(rs.wasNull() ? null : vId);
+        item.setProductNameSnapshot(rs.getString("product_name_snapshot"));
+        item.setVariantLabelSnapshot(rs.getString("variant_label_snapshot"));
+        item.setQuantity(rs.getInt("quantity"));
+        item.setUnitPrice(rs.getBigDecimal("unit_price"));
+        item.setSubtotal(rs.getBigDecimal("subtotal"));
+        item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
+        item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
+        item.setImagePath(rs.getString("image_path"));
+        return item;
     }
 
     public List<Map<String, Object>> getRevenueTrend(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {

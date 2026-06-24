@@ -92,6 +92,10 @@ public final class AppConfig {
         public static final String[] ALLOWED_DOC_EXTS = { "pdf", "jpg", "jpeg", "png", "docx" };
         /** Thư mục con lưu tài liệu xác minh shop, relative với webapp root */
         public static final String UPLOAD_SHOP_DOCS_DIR = "uploads/shop-docs";
+        /** Thư mục nháp tạm cho tài liệu xác minh shop */
+        public static final String UPLOAD_SHOP_DOCS_DRAFT_DIR = "uploads/shop-docs/_draft";
+        /** Thời gian sống tối đa của draft upload trước khi được dọn tự động */
+        public static final long SHOP_DOC_DRAFT_TTL_MS = 24L * 60 * 60 * 1000;
 
         // ------------------------------------------------------------------
         // Logging

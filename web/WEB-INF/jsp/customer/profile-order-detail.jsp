@@ -1,13 +1,14 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <%--
-  Chi tiet don hang danh rieng cho Customer truy cap tu Profile.
-  Duong dan: /profile/order-detail?orderId=X
-  - Breadcrumb quay ve /profile?tab=orders (thay vi /orders)
-  - Invoice download link tro ve /profile/order-detail?action=invoice
-  - Tat ca noi dung giong order-detail.jsp nhung khong dung trang /orders
+  Chi tiết đơn hàng dành riêng cho Customer truy cập từ Profile.
+  Đường dẫn: /profile/order-detail?orderId=X
+  - Breadcrumb quay về /profile?tab=orders (thay vì /orders)
+  - Invoice download link trỏ về /profile/order-detail?action=invoice
+  - Tất cả nội dung giống order-detail.jsp nhưng không dùng trang /orders
 --%>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
     <jsp:param name="pageTitle" value="Chi tiết đơn hàng #${order.orderId}" />
@@ -236,48 +237,47 @@
 
         <!-- Delivery Info -->
         <div class="premium-glass-card rounded-[1.5rem] p-6 lg:col-span-2">
-            <h3 class="font-headline-md text-base text-inverse-surface font-bold mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-lg">local_shipping</span> Thông tin giao hàng
-            </h3>
-            <div class="space-y-3 text-sm text-on-surface-variant">
-                <div class="flex gap-3">
-                    <span class="material-symbols-outlined text-base text-outline">store</span>
-                    <div>
-                        <span class="text-xs text-outline">Cửa hàng</span>
-                        <p class="font-semibold text-on-surface">
-                            <c:choose>
-                                <c:when test="${not empty shopName}"><c:out value="${shopName}"/></c:when>
-                                <c:otherwise>Đơn tổng hợp nhiều cửa hàng</c:otherwise>
-                            </c:choose>
-                        </p>
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between mb-4">
+                <h3 class="font-headline-md text-lg text-inverse-surface font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg">local_shipping</span> Thông tin giao hàng
+                </h3>
+                <span class="text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Thông tin nhận hàng</span>
+            </div>
+            <div class="grid gap-3 text-sm text-on-surface-variant">
+                <div class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm">
+                    <div class="mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Cửa hàng</span>
                     </div>
+                    <p class="font-semibold text-on-surface">
+                        <c:choose>
+                            <c:when test="${not empty shopName}"><c:out value="${shopName}"/></c:when>
+                            <c:otherwise>Đơn tổng hợp nhiều cửa hàng</c:otherwise>
+                        </c:choose>
+                    </p>
                 </div>
-                <div class="flex gap-3">
-                    <span class="material-symbols-outlined text-base text-outline">location_on</span>
-                    <div>
-                        <span class="text-xs text-outline">Địa chỉ giao hàng</span>
-                        <p class="font-semibold text-on-surface"><c:out value="${order.deliveryAddress}"/></p>
+                <div class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm">
+                    <div class="mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Địa chỉ giao hàng</span>
                     </div>
+                    <p class="font-semibold text-on-surface"><c:out value="${order.deliveryAddress}"/></p>
                 </div>
-                <div class="flex gap-3">
-                    <span class="material-symbols-outlined text-base text-outline">payment</span>
-                    <div>
-                        <span class="text-xs text-outline">Phương thức thanh toán</span>
-                        <p class="font-semibold text-on-surface">
-                            <c:choose>
-                                <c:when test="${order.paymentMethod == 'COD'}">COD (Thanh toán khi nhận hàng)</c:when>
-                                <c:otherwise>Chuyển khoản ngân hàng</c:otherwise>
-                            </c:choose>
-                        </p>
+                <div class="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm">
+                    <div class="mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Phương thức thanh toán</span>
                     </div>
+                    <p class="font-semibold text-on-surface">
+                        <c:choose>
+                            <c:when test="${order.paymentMethod == 'COD'}">COD (Thanh toán khi nhận hàng)</c:when>
+                            <c:otherwise>Chuyển khoản ngân hàng</c:otherwise>
+                        </c:choose>
+                    </p>
                 </div>
                 <c:if test="${not empty order.notes}">
-                    <div class="flex gap-3">
-                        <span class="material-symbols-outlined text-base text-outline">sticky_note_2</span>
-                        <div>
-                            <span class="text-xs text-outline">Ghi chú</span>
-                            <p class="font-medium text-on-surface italic"><c:out value="${order.notes}"/></p>
+                    <div class="rounded-2xl border border-secondary-container/70 bg-secondary-container/20 p-4 shadow-sm">
+                        <div class="mb-2">
+                            <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Ghi chú vận chuyển</span>
                         </div>
+                        <p class="font-medium text-on-surface italic"><c:out value="${order.notes}"/></p>
                     </div>
                 </c:if>
             </div>
@@ -285,7 +285,7 @@
 
         <!-- Invoice Summary -->
         <div class="premium-glass-card rounded-[1.5rem] p-6">
-            <h3 class="font-headline-md text-base text-inverse-surface font-bold mb-4 flex items-center gap-2">
+            <h3 class="font-headline-md text-lg text-inverse-surface font-bold mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-lg">receipt_long</span> Hóa đơn
             </h3>
             <div class="space-y-3 text-sm">
@@ -351,13 +351,13 @@
                                         <p class="text-xs text-on-surface-variant">Đơn con #<c:out value="${child.orderId}"/></p>
                                     </div>
                                 </div>
-                                <c:choose>
-                                    <c:when test="${child.status == 'DELIVERED'}"><c:set var="badgeCls" value="bg-emerald-100 text-emerald-800"/></c:when>
-                                    <c:when test="${child.status == 'DISPATCHED'}"><c:set var="badgeCls" value="bg-purple-100 text-purple-800"/></c:when>
-                                    <c:when test="${child.status == 'CONFIRMED'}"><c:set var="badgeCls" value="bg-blue-100 text-blue-800"/></c:when>
-                                    <c:when test="${child.status == 'CANCELLED'}"><c:set var="badgeCls" value="bg-red-100 text-red-800"/></c:when>
-                                    <c:otherwise><c:set var="badgeCls" value="bg-amber-100 text-amber-800"/></c:otherwise>
-                                </c:choose>
+                                    <c:choose>
+                                        <c:when test="${child.status == 'DELIVERED'}"><c:set var="badgeCls" value="bg-emerald-100 text-emerald-800"/></c:when>
+                                        <c:when test="${child.status == 'DISPATCHED'}"><c:set var="badgeCls" value="bg-sky-100 text-sky-800"/></c:when>
+                                        <c:when test="${child.status == 'CONFIRMED'}"><c:set var="badgeCls" value="bg-amber-100 text-amber-800"/></c:when>
+                                        <c:when test="${child.status == 'CANCELLED'}"><c:set var="badgeCls" value="bg-red-100 text-red-800"/></c:when>
+                                        <c:otherwise><c:set var="badgeCls" value="bg-amber-100 text-amber-800"/></c:otherwise>
+                                    </c:choose>
                                 <span class="px-3 py-1 rounded-full text-xs font-bold ${badgeCls}">
                                     <c:choose>
                                         <c:when test="${child.status == 'PENDING_PAYMENT'}">Chờ thanh toán</c:when>
@@ -373,28 +373,7 @@
                             <!-- Child items -->
                             <div class="p-6 space-y-4">
                                 <c:forEach var="item" items="${childOrderItemsMap[child.orderId]}">
-                                    <div class="flex items-start gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                                        <div class="w-16 h-16 bg-surface-container-low rounded-xl flex items-center justify-center shrink-0">
-                                            <span class="material-symbols-outlined text-2xl text-outline">nutrition</span>
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="font-semibold text-on-surface"><c:out value="${item.productNameSnapshot}"/></p>
-                                            <c:if test="${not empty item.variantLabelSnapshot}">
-                                                <p class="text-xs text-on-surface-variant mt-0.5"><c:out value="${item.variantLabelSnapshot}"/></p>
-                                            </c:if>
-                                            <div class="flex items-center gap-4 mt-1">
-                                                <span class="text-xs text-outline">x${item.quantity}</span>
-                                                <span class="text-xs text-on-surface-variant">
-                                                    <fmt:formatNumber value="${item.unitPrice}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>/sp
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="text-right shrink-0">
-                                            <p class="font-bold text-on-surface">
-                                                <fmt:formatNumber value="${item.subtotal}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <%@ include file="/WEB-INF/jsp/customer/common/order-item-card.jspf" %>
                                 </c:forEach>
                             </div>
                         </div>
@@ -410,34 +389,13 @@
                         <span class="material-symbols-outlined text-primary">shopping_basket</span>
                         Sản phẩm đã đặt
                         <c:if test="${not empty shopName}">
-                            <span class="text-sm text-on-surface-variant font-normal">— <c:out value="${shopName}"/></span>
+                            <span class="text-sm text-on-surface-variant font-normal">—<c:out value="${shopName}"/></span>
                         </c:if>
                     </h3>
                 </div>
                 <div class="p-6 space-y-4">
                     <c:forEach var="item" items="${orderItems}">
-                        <div class="flex items-start gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                            <div class="w-16 h-16 bg-surface-container-low rounded-xl flex items-center justify-center shrink-0">
-                                <span class="material-symbols-outlined text-2xl text-outline">nutrition</span>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="font-semibold text-on-surface"><c:out value="${item.productNameSnapshot}"/></p>
-                                <c:if test="${not empty item.variantLabelSnapshot}">
-                                    <p class="text-xs text-on-surface-variant mt-0.5"><c:out value="${item.variantLabelSnapshot}"/></p>
-                                </c:if>
-                                <div class="flex items-center gap-4 mt-1">
-                                    <span class="text-xs text-outline">x${item.quantity}</span>
-                                    <span class="text-xs text-on-surface-variant">
-                                        <fmt:formatNumber value="${item.unitPrice}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>/sp
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="text-right shrink-0">
-                                <p class="font-bold text-on-surface">
-                                    <fmt:formatNumber value="${item.subtotal}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
-                                </p>
-                            </div>
-                        </div>
+                        <%@ include file="/WEB-INF/jsp/customer/common/order-item-card.jspf" %>
                     </c:forEach>
                 </div>
             </div>
@@ -468,3 +426,4 @@
 </main>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />
+

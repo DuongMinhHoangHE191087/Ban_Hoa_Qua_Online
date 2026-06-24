@@ -1,8 +1,18 @@
 package model.entity.order;
 
 /**
- * Review — Ánh xạ bảng DB tương ứng.
- * TODO: Tham khảo Schema.sql và SRS để hiểu ràng buộc của từng field.
+ * Review — Ánh xạ bảng DB reviews.
+ * 
+ * Ràng buộc dữ liệu (Schema.sql):
+ *   - reviewId: INT, tự tăng, khóa chính.
+ *   - orderItemId: INT NOT NULL, liên kết bảng order_items.
+ *   - customerId: INT NOT NULL, liên kết bảng users.
+ *   - rating: TINYINT NOT NULL, giới hạn giá trị từ 1 đến 5.
+ *   - reviewText: NVARCHAR(1000) NULL.
+ *   - reviewImageUrl: NVARCHAR(500) NULL.
+ *   - isHidden: BIT NOT NULL DEFAULT 0.
+ *   - createdAt: DATETIME NOT NULL DEFAULT GETDATE().
+ * 
  * @author fruitmkt-team
  */
 public class Review {

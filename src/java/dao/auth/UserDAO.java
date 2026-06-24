@@ -239,6 +239,15 @@ public class UserDAO extends BaseDAO {
         }
     }
 
+    public void updatePhone(Connection conn, int userId, String phone) throws SQLException {
+        String sql = "UPDATE users SET phone = ?, updated_at = GETDATE() WHERE user_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phone);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
+    }
+
     /**
      * Cập nhật trạng thái của User (Khóa/Mở khóa)
      */
@@ -571,12 +580,17 @@ public class UserDAO extends BaseDAO {
     }
 
     public boolean isPhoneExists(String phone, int excludeUserId) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return isPhoneExists(conn, phone, excludeUserId);
+        }
+    }
+
+    public boolean isPhoneExists(Connection conn, String phone, int excludeUserId) throws SQLException {
         if (phone == null || phone.trim().isEmpty()) {
             return false;
         }
         String sql = "SELECT COUNT(*) FROM users WHERE phone = ? AND user_id != ?";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, phone.trim());
             stmt.setInt(2, excludeUserId);
             try (ResultSet rs = stmt.executeQuery()) {
