@@ -28,7 +28,8 @@ import java.util.logging.Logger;
  *   scope    - "SHOP" hoặc "SYSTEM"
  *
  * Response JSON:
- *   {"valid": true/false, "discountAmount": 10000, "message": "..."}
+ *   {"success": true, "data": {"discountAmount": 10000, "message": "..."}}
+ *   {"success": false, "error": "..."}
  *
  * @author fruitmkt-team
  */
@@ -100,7 +101,7 @@ public class CouponValidateServlet extends HttpServlet {
                     req,
                     resp,
                     log,
-                    "CouponValidateServlet#doPost",
+                    "CouponValidateServlet#doGet",
                     "Lỗi hệ thống. Vui lòng thử lại.",
                     e);
         }
