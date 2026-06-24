@@ -1695,7 +1695,14 @@
                                 <c:if test="${not empty r.reviewImageUrl}">
                                     <div class="review-attachment-box">
                                         <div class="review-thumb-image" onclick="openPhotoModal(this)">
-                                            <img src="<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
+                                            <c:choose>
+                                                <c:when test="${r.reviewImageUrl.startsWith('http')}">
+                                                    <img src="<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <img src="${pageContext.request.contextPath}/<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </div>
                                 </c:if>
