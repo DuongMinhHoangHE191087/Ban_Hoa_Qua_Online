@@ -576,7 +576,7 @@ function applyCoupon() {
                             renderAppliedCoupons();
                         } else {
                             // If both failed, show error message
-                            showCouponMsg('✘ Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.', 'text-red-600 font-bold');
+                            showCouponMsg('✘ ' + (sysData.message || data.message || 'Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.'), 'text-red-600 font-bold');
                             console.log('[Coupon Log] Shop check error:', data.message);
                             console.log('[Coupon Log] System check error:', sysData.message);
                         }
@@ -589,13 +589,60 @@ function applyCoupon() {
         });
 }
 
+function normalizeCouponResponse(resp) {
+    if (!resp || typeof resp !== 'object') {
+        return {
+            valid: false,
+            discountAmount: 0,
+            message: 'Phản hồi mã giảm giá không hợp lệ.'
+        };
+    }
+
+    if (typeof resp.success === 'boolean') {
+        if (!resp.success) {
+            return {
+                valid: false,
+                discountAmount: 0,
+                message: resp.error || 'Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.'
+            };
+        }
+
+        const payload = resp.data || {};
+        return {
+            valid: true,
+            discountAmount: Number(payload.discountAmount ?? 0) || 0,
+            promoId: payload.promoId,
+            discountType: payload.discountType,
+            message: payload.message || 'Áp dụng thành công!'
+        };
+    }
+
+    if (typeof resp.valid === 'boolean') {
+        return {
+            valid: resp.valid,
+            discountAmount: Number(resp.discountAmount ?? 0) || 0,
+            promoId: resp.promoId,
+            discountType: resp.discountType,
+            message: resp.message || resp.error || ''
+        };
+    }
+
+    return {
+        valid: false,
+        discountAmount: 0,
+        message: resp.error || resp.message || 'Phản hồi mã giảm giá không hợp lệ.'
+    };
+}
+
 function validateCouponAPI(code, scope) {
     const currentSubtotal = scope === 'SYSTEM' ? (SUBTOTAL - shopDiscount) : SUBTOTAL;
     const url = CTX + '/api/coupon/validate?code=' + encodeURIComponent(code) +
                 '&subtotal=' + currentSubtotal +
                 '&ownerId=' + OWNER_ID +
                 '&scope=' + scope;
-    return fetch(url).then(r => r.json());
+    return fetch(url)
+        .then(r => r.json())
+        .then(normalizeCouponResponse);
 }
 
 function revalidateSystemCoupon() {

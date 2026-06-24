@@ -58,6 +58,111 @@
         <c:remove var="flashType" scope="session"/>
     </c:if>
 
+    <c:if test="${user.status ne 'ACTIVE' or not empty user.lockedUntil}">
+        <div class="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-rose-50 p-5 md:p-6 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-lock text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-red-500">Trạng thái tài khoản</p>
+                        <c:choose>
+                            <c:when test="${not empty user.lockedUntil}">
+                                <h2 class="text-lg md:text-xl font-bold text-red-800 mt-1">Tài khoản đang bị khóa tạm thời</h2>
+                                <p class="text-sm text-red-700 mt-2 leading-6">
+                                    Hệ thống đã khóa tạm thời tài khoản của bạn do thao tác đăng nhập sai nhiều lần. Bạn có thể thử lại sau hoặc dùng các tùy chọn hỗ trợ bên dưới.
+                                </p>
+                            </c:when>
+                            <c:when test="${user.status == 'SUSPENDED'}">
+                                <h2 class="text-lg md:text-xl font-bold text-red-800 mt-1">Tài khoản đang bị đình chỉ</h2>
+                                <p class="text-sm text-red-700 mt-2 leading-6">
+                                    Tài khoản hiện đang bị tạm ngưng bởi quản trị viên. Một số chức năng sẽ bị hạn chế cho đến khi trạng thái được khôi phục.
+                                </p>
+                            </c:when>
+                            <c:otherwise>
+                                <h2 class="text-lg md:text-xl font-bold text-red-800 mt-1">Tài khoản đang bị khóa</h2>
+                                <p class="text-sm text-red-700 mt-2 leading-6">
+                                    Tài khoản của bạn hiện không ở trạng thái hoạt động. Vui lòng liên hệ hỗ trợ để được xem xét mở lại.
+                                </p>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-red-700 border border-red-200">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <c:out value="${user.status}"/>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-slate-600 border border-slate-200">
+                        <i class="fa-solid fa-user-tag"></i>
+                        <c:out value="${user.role}"/>
+                    </span>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <a href="mailto:support@metafruit.com" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
+                    <i class="fa-solid fa-headset"></i>
+                    Liên hệ hỗ trợ
+                </a>
+                <a href="${pageContext.request.contextPath}/auth/forgot" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-700 transition-all hover:border-red-300 hover:bg-red-50">
+                    <i class="fa-solid fa-key"></i>
+                    Khôi phục mật khẩu
+                </a>
+            </div>
+        </div>
+    </c:if>
+
+    <c:if test="${not empty shopProfile and shopProfile.approvalStatus == 'SUSPENDED'}">
+        <div class="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-rose-50 p-5 md:p-6 shadow-sm">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-store text-lg"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-red-700 border border-red-200">
+                                Trạng thái gian hàng
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-red-500">Shop owner status</span>
+                        </div>
+                        <h2 class="text-lg md:text-xl font-bold text-red-800 mt-1">Gian hàng đang bị đình chỉ</h2>
+                        <p class="text-sm text-red-700 mt-2 leading-6">
+                            <c:out value="${not empty shopProfile.shopName ? shopProfile.shopName : 'Gian hàng của bạn'}"/> đang tạm dừng hoạt động. Bạn có thể xem chi tiết trạng thái và liên hệ hỗ trợ để được kiểm tra lại.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-red-700 border border-red-200">
+                        <i class="fa-solid fa-lock"></i>
+                        <c:out value="${shopProfile.approvalStatus}"/>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[10px] font-bold text-slate-600 border border-slate-200">
+                        <i class="fa-solid fa-store"></i>
+                        <c:out value="${shopProfile.shopName}"/>
+                    </span>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <a href="${pageContext.request.contextPath}/shop/status" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    Xem chi tiết trạng thái
+                </a>
+                <a href="mailto:support@metafruit.com" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-700 transition-all hover:border-red-300 hover:bg-red-50">
+                    <i class="fa-solid fa-headset"></i>
+                    Liên hệ hỗ trợ
+                </a>
+            </div>
+            <c:if test="${not empty shopProfile.rejectionReason}">
+                <div class="mt-4 rounded-2xl border border-red-200 bg-white/80 p-4">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-red-700">Lý do trạng thái</p>
+                    <p class="mt-2 text-xs text-red-700 leading-6"><c:out value="${shopProfile.rejectionReason}"/></p>
+                </div>
+            </c:if>
+        </div>
+    </c:if>
+
     <div class="flex flex-col lg:flex-row gap-8">
         
         <!-- Sidebar Navigation -->

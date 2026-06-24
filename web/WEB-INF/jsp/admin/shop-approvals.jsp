@@ -229,13 +229,15 @@
     </div>
 </div>
 
-<!-- Map các danh mục từ DB thành object js để lookup dễ dàng -->
-<script>
-    const categoryMap = {
-        <c:forEach var="cat" items="${categories}">
-            "${cat.categoryId}": "${fn:escapeXml(cat.name)}",
+<script id="categoriesData" type="application/json">
+    {
+        <c:forEach var="cat" items="${categories}" varStatus="status">
+            "${cat.categoryId}": "${fn:escapeXml(cat.name)}"<c:if test="${!status.last}">,</c:if>
         </c:forEach>
-    };
+    }
+</script>
+<script>
+    const categoryMap = JSON.parse(document.getElementById('categoriesData').textContent);
 </script>
 
 <%-- Reject Modal --%>
@@ -414,15 +416,14 @@
                             if (paths && paths.length > 0) {
                                 paths.forEach(path => {
                                     const fileName = path.split('/').pop().split('\\').pop();
-                                    const fileUrl = '${pageContext.request.contextPath}/' + path;
+                                    const fileUrl = '${pageContext.request.contextPath}/shop/docs?path=' + encodeURIComponent(path);
                                     docContainer.innerHTML += `<li class="flex items-center justify-between p-3 border border-border rounded-lg bg-white">
                                         <div class="flex items-center gap-2 overflow-hidden">
                                             <i class="fa-solid fa-file-alt text-primary text-lg"></i>
                                             <span class="text-xs text-txt truncate">` + fileName + `</span>
                                         </div>
                                         <div class="flex gap-2">
-                                            <a href="` + fileUrl + `" target="_blank" class="text-blue-600 hover:text-blue-800" title="Xem trước"><i class="fa-solid fa-eye"></i></a>
-                                            <a href="` + fileUrl + `" download class="text-emerald-600 hover:text-emerald-800" title="Tải xuống"><i class="fa-solid fa-download"></i></a>
+                                            <a href="` + fileUrl + `" class="text-emerald-600 hover:text-emerald-800" title="Tải xuống"><i class="fa-solid fa-download"></i></a>
                                         </div>
                                     </li>`;
                                 });

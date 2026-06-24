@@ -6,6 +6,7 @@ import service.auth.AuthService;
 import service.auth.AuthService.VerificationRequiredException;
 import util.SessionUtil;
 import util.TokenUtil;
+import util.ShopStatusRedirectUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -31,7 +32,6 @@ import java.nio.charset.StandardCharsets;
 public class LoginServlet extends HttpServlet {
 
     private final AuthService authService = new AuthService();
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -40,7 +40,10 @@ public class LoginServlet extends HttpServlet {
         HttpSession session = req.getSession(false);
         if (SessionUtil.isLoggedIn(session)) {
             User user = SessionUtil.getCurrentUser(session);
-            redirectToRoleDashboard(req, resp, user);
+            if (ShopStatusRedirectUtil.redirectToShopStatusIfProfileExists(req, resp, user, session)) {
+                return;
+            }
+            ShopStatusRedirectUtil.redirectToRoleHome(req, resp, user);
             return;
         }
         
@@ -110,10 +113,16 @@ public class LoginServlet extends HttpServlet {
                 if (isSafeInternal) {
                     resp.sendRedirect(cleanTarget);
                 } else {
-                    redirectToRoleDashboard(req, resp, user);
+                    if (ShopStatusRedirectUtil.redirectToShopStatusIfProfileExists(req, resp, user, newSession)) {
+                        return;
+                    }
+                    ShopStatusRedirectUtil.redirectToRoleHome(req, resp, user);
                 }
             } else {
-                redirectToRoleDashboard(req, resp, user);
+                if (ShopStatusRedirectUtil.redirectToShopStatusIfProfileExists(req, resp, user, newSession)) {
+                    return;
+                }
+                ShopStatusRedirectUtil.redirectToRoleHome(req, resp, user);
             }
             
         } catch (VerificationRequiredException e) {
@@ -129,19 +138,4 @@ public class LoginServlet extends HttpServlet {
         }
     }
     
-    /**
-     * Phương thức hỗ trợ điều hướng người dùng về đúng trang quản trị theo vai trò (Role-based redirection)
-     */
-    private void redirectToRoleDashboard(HttpServletRequest req, HttpServletResponse resp, User user) throws IOException {
-        String role = user.getRole();
-        if (AppConfig.ROLE_ADMIN.equals(role)) {
-            resp.sendRedirect(req.getContextPath() + "/admin/dashboard");
-        } else if (AppConfig.ROLE_SHOP_OWNER.equals(role)) {
-            resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
-        } else if (AppConfig.ROLE_DELIVERY.equals(role)) {
-            resp.sendRedirect(req.getContextPath() + "/delivery/dashboard");
-        } else {
-            resp.sendRedirect(req.getContextPath() + "/");
-        }
-    }
 }

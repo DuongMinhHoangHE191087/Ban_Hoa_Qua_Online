@@ -113,15 +113,18 @@ public final class ValidationUtil {
      * @return null nếu hợp lệ, hoặc chuỗi mô tả lỗi cụ thể
      */
     public static String validateShopDoc(String filename, long size) {
-        if (filename == null || filename.trim().isEmpty() || size == 0) {
-            return "File không được rỗng hoặc tên file không hợp lệ.";
+        if (filename == null || filename.trim().isEmpty()) {
+            return "Vui lòng chọn một tệp tài liệu hợp lệ.";
+        }
+        if (size <= 0) {
+            return "Tệp '" + sanitizeForLog(filename) + "' đang trống. Vui lòng chọn lại file khác.";
         }
         if (size > AppConfig.MAX_SHOP_DOC_SIZE_BYTES) {
-            return "File '" + sanitizeForLog(filename) + "' vượt quá giới hạn "
+            return "Tệp '" + sanitizeForLog(filename) + "' vượt quá giới hạn "
                     + (AppConfig.MAX_SHOP_DOC_SIZE_BYTES / 1024 / 1024) + "MB.";
         }
         if (!isAllowedDocExtension(filename)) {
-            return "File '" + sanitizeForLog(filename) + "' không được hỗ trợ. "
+            return "Tệp '" + sanitizeForLog(filename) + "' không được hỗ trợ. "
                     + "Chỉ chấp nhận: " + String.join(", ", AppConfig.ALLOWED_DOC_EXTS).toUpperCase() + ".";
         }
         return null; // hợp lệ

@@ -133,19 +133,7 @@ if "%choice%"=="16" (
     exit /b 0
 )
 if "%choice%"=="17" (
-    echo.
-    echo === DANG KY ^& TAO MOI CLOUDFLARE TUNNEL ===
-    echo Trinh duyet se duoc mo de ban dang nhap vao Cloudflare.
-    cloudflared tunnel login
-    echo.
-    set /p tunnel_name="Nhap ten tunnel muon tao [VD: fruitshop-tunnel]: "
-    if not "!tunnel_name!"=="" (
-        cloudflared tunnel create !tunnel_name!
-        echo.
-        echo Da tao tunnel !tunnel_name! thanh cong.
-        echo Vui long cau hinh route DNS hoac file config.yml de su dung.
-    )
-    pause
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tools.ps1" setup-tunnel
     goto menu
 )
 if "%choice%"=="18" (

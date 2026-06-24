@@ -31,7 +31,12 @@
             </c:otherwise>
         </c:choose>
 
-        <ul class="navbar__menu">
+        <!-- Hamburger Menu Toggle Button for Mobile -->
+        <button type="button" id="navbarToggle" class="navbar__toggle" aria-label="Toggle Navigation">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <ul class="navbar__menu" id="navbarMenu">
             <li>
                 <a href="${pageContext.request.contextPath}/products" class="menu-link">
                     <i class="fa-solid fa-apple-whole"></i> Sản phẩm
@@ -280,6 +285,8 @@
             if (!window.NotificationAjax) {
                 return;
             }
+            NotificationAjax.refreshBadges().catch(err => console.error("Error loading badges", err));
+        }
 
             NotificationAjax.deleteNotification(notifId)
                 .then(() => NotificationAjax.refreshBadges())
