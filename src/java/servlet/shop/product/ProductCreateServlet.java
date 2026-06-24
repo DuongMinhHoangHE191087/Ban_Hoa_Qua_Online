@@ -45,6 +45,7 @@ import java.util.List;
 )//upload file
 public class ProductCreateServlet extends HttpServlet {
 
+    // Khởi tạo Logger để ghi lại nhật ký hoạt động (log) của class này thay cho System.out.println
     private static final Logger log = Logger.getLogger(ProductCreateServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
