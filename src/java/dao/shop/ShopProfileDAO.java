@@ -303,7 +303,7 @@ public class ShopProfileDAO extends BaseDAO {
         p.setUserId(rs.getInt("user_id"));
         p.setShopName(rs.getString("shop_name"));
         p.setShopDescription(rs.getString("shop_description"));
-        p.setApprovalStatus(rs.getString("approval_status") != null ? rs.getString("approval_status").trim() : null);
+        p.setApprovalStatus(rs.getString("approval_status"));
         p.setRejectionReason(rs.getString("rejection_reason"));
         
         Timestamp approvedAtTs = rs.getTimestamp("approved_at");
