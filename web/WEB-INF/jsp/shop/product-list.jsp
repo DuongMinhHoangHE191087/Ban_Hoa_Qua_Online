@@ -669,6 +669,15 @@
             const todayStr = new Date().toISOString().split('T')[0];
             harvestDateInput.setAttribute('max', todayStr);
         }
+
+        // Tự động mở modal chỉnh sửa nếu URL chứa tham số action=edit và id
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'edit') {
+            const productId = urlParams.get('id');
+            if (productId) {
+                openEditModal(productId);
+            }
+        }
     });
 
     function handleJSONResponse(response) {
