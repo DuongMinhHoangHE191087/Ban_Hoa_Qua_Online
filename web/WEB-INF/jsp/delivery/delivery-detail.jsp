@@ -316,7 +316,13 @@ body { background: #F0FDF4; }
             <div class="mb-5">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5">Ảnh Bằng Chứng <span class="text-red-500">*</span></label>
                 <input type="file" id="proofImage" name="proofImage" accept="image/*" required
-                    class="w-full px-4 py-3 border border-[#BAE6FD] rounded-2xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white">
+                    class="w-full px-3 py-2 border border-[#BAE6FD] rounded-2xl text-sm text-txt-2
+                           file:mr-4 file:py-2.5 file:px-5
+                           file:rounded-xl file:border-0
+                           file:text-xs file:font-bold
+                           file:bg-emerald-50 file:text-emerald-700
+                           hover:file:bg-emerald-100 file:transition-all
+                           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white cursor-pointer file:cursor-pointer">
             </div>
             <div class="flex gap-3 justify-end">
                 <button type="button" onclick="closeModal('proofModal')" class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-txt-2 font-bold text-xs transition-all">Hủy</button>
