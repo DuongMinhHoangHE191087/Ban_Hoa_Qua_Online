@@ -7,7 +7,9 @@ import dao.system.SystemConfigDAO;
 import model.entity.catalog.Category;
 import model.entity.catalog.Product;
 import model.response.ApiResponse;
+import servlet.guest.product.AiSearchServlet;
 import util.JsonUtil;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -123,6 +125,71 @@ public class AiSearchTest {
         assertTrue("ApiResponse thanh cong phai boc payload trong data", json.contains("\"data\":"));
         assertTrue("Payload reply phai con nguyen trong data", json.contains("\"reply\":\"Cam sành ngọt thanh\""));
         assertTrue("Payload suggestedProductIds phai con nguyen trong data", json.contains("\"suggestedProductIds\":[1,2]"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testFallbackReplyIsNaturalAndProductFocused() throws Exception {
+        AiSearchServlet servlet = new AiSearchServlet();
+        Method method = AiSearchServlet.class.getDeclaredMethod("buildFallbackReply", String.class, List.class);
+        method.setAccessible(true);
+
+        Product first = new Product();
+        first.setName("Táo Envy Mỹ Nhập Khẩu Premium");
+        Product second = new Product();
+        second.setName("Kiwi Vàng New Zealand Zespri");
+
+        String reply = (String) method.invoke(servlet, "Hoa quả nào nhập khẩu giàu vitamin C", List.of(first, second));
+
+        assertFalse("Fallback reply khong duoc nhac den su co ky thuat", reply.contains("sự cố"));
+        assertTrue("Fallback reply phai goi y theo nhom nhu cau", reply.contains("trái cây nhập khẩu giàu vitamin C") || reply.contains("trái cây giàu vitamin C"));
+        assertTrue("Fallback reply phai nhan manh san pham cu the", reply.contains("Táo Envy") || reply.contains("Kiwi Vàng"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRelevantSelectionPrioritizesImportedVitaminCFruits() throws Exception {
+        AiSearchServlet servlet = new AiSearchServlet();
+        Method method = AiSearchServlet.class.getDeclaredMethod("selectRelevantProducts", String.class, List.class, Map.class, int.class);
+        method.setAccessible(true);
+
+        Product domestic = new Product();
+        domestic.setProductId(1);
+        domestic.setCategoryId(1);
+        domestic.setName("Cam Sành Cao Phong Hòa Bình");
+        domestic.setOriginCountry("Việt Nam");
+        domestic.setDescription("Cam tươi ngọt thanh");
+        domestic.setSoldQuantity(100);
+
+        Product imported = new Product();
+        imported.setProductId(2);
+        imported.setCategoryId(2);
+        imported.setName("Táo Envy Mỹ Nhập Khẩu Premium");
+        imported.setOriginCountry("Mỹ");
+        imported.setDescription("Táo nhập khẩu giàu vitamin C");
+        imported.setSoldQuantity(20);
+
+        Product imported2 = new Product();
+        imported2.setProductId(3);
+        imported2.setCategoryId(2);
+        imported2.setName("Kiwi Vàng New Zealand Zespri");
+        imported2.setOriginCountry("New Zealand");
+        imported2.setDescription("Kiwi nhập khẩu giàu vitamin C");
+        imported2.setSoldQuantity(10);
+
+        Map<Integer, String> categoryNames = new LinkedHashMap<>();
+        categoryNames.put(1, "Trái cây trong nước");
+        categoryNames.put(2, "Trái cây nhập khẩu");
+
+        List<Product> selected = (List<Product>) method.invoke(
+                servlet,
+                "Hoa quả nào nhập khẩu giàu vitamin C",
+                List.of(domestic, imported, imported2),
+                categoryNames,
+                2);
+
+        assertFalse("Danh sach goi y fallback khong duoc rong", selected.isEmpty());
+        assertTrue("San pham dau tien phai la san pham nhap khau phu hop", !selected.get(0).getOriginCountry().toLowerCase().contains("viet"));
     }
 
     @Test

@@ -347,19 +347,25 @@ public class ProductDetailServlet extends HttpServlet {
 
             // 12. Thống kê số lượng đánh giá theo từng sao (1-5★)
             Map<Integer, Integer> ratingDistribution = reviewService.getRatingDistribution(productId);
+            int[] ratingCounts = new int[6];
+            for (Map.Entry<Integer, Integer> entry : ratingDistribution.entrySet()) {
+                Integer starKey = entry.getKey();
+                if (starKey != null && starKey >= 1 && starKey <= 5) {
+                    ratingCounts[starKey] = entry.getValue() != null ? entry.getValue() : 0;
+                }
+            }
 
             // 13. Tính tổng số review thực tế
             int totalReviewsCount = 0;
-            for (int count : ratingDistribution.values()) {
-                totalReviewsCount += count;
+            for (int star = 1; star <= 5; star++) {
+                totalReviewsCount += ratingCounts[star];
             }
             boolean hasReviews = totalReviewsCount > 0;
             java.math.BigDecimal displayRating = java.math.BigDecimal.ZERO;
             if (hasReviews) {
                 java.math.BigDecimal totalScore = java.math.BigDecimal.ZERO;
-                for (Map.Entry<Integer, Integer> entry : ratingDistribution.entrySet()) {
-                    int star = entry.getKey();
-                    int count = entry.getValue() != null ? entry.getValue() : 0;
+                for (int star = 1; star <= 5; star++) {
+                    int count = ratingCounts[star];
                     if (count > 0) {
                         totalScore = totalScore.add(java.math.BigDecimal.valueOf((long) star * count));
                     }
@@ -380,6 +386,7 @@ public class ProductDetailServlet extends HttpServlet {
             req.setAttribute("productPromotions", productPromotions);
             req.setAttribute("reviewPagedResult", reviewPagedResult);
             req.setAttribute("ratingDistribution", ratingDistribution);
+            req.setAttribute("ratingCounts", ratingCounts);
             req.setAttribute("ratingFilter", ratingFilter);
             req.setAttribute("totalReviewsCount", totalReviewsCount);
             req.setAttribute("hasReviews", hasReviews);

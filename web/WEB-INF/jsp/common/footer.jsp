@@ -215,10 +215,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-1">
-                <button onclick="clearAiChatHistory()" title="Xóa lịch sử chat" class="text-white/50 hover:text-red-300 hover:bg-white/10 rounded-full w-7 h-7 flex items-center justify-center transition-colors">
+                <button type="button" onclick="clearAiChatHistory()" title="Xóa lịch sử chat" class="text-white/50 hover:text-red-300 hover:bg-white/10 rounded-full w-7 h-7 flex items-center justify-center transition-colors">
                     <span class="material-symbols-outlined text-[17px]">delete_sweep</span>
                 </button>
-                <button onclick="toggleAiChat()" class="text-white/70 hover:text-white hover:bg-white/10 rounded-full w-7 h-7 flex items-center justify-center transition-colors">
+                <button type="button" onclick="toggleAiChat()" class="text-white/70 hover:text-white hover:bg-white/10 rounded-full w-7 h-7 flex items-center justify-center transition-colors">
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
@@ -231,10 +231,10 @@
 
         <%-- Quick Suggestion Tag list --%>
         <div class="px-4 py-2 border-t border-emerald-50 bg-white flex items-center gap-1.5 overflow-x-auto hide-scrollbar whitespace-nowrap">
-            <button onclick="sendQuickAiQuery('Mua biếu người ốm nên chọn quả gì?')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">🏥 Người ốm</button>
-            <button onclick="sendQuickAiQuery('Hoa quả nào nhập khẩu giàu vitamin C')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">🥝 Giàu Vitamin C</button>
-            <button onclick="sendQuickAiQuery('Tư vấn hộp quà tặng sang trọng')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">🎁 Hộp quà</button>
-            <button onclick="sendQuickAiQuery('Cách chọn sầu riêng chín ngon')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">👑 Chọn sầu riêng</button>
+            <button type="button" onclick="sendQuickAiQuery('Mua biếu người ốm nên chọn quả gì?')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">🏥 Người ốm</button>
+            <button type="button" onclick="sendQuickAiQuery('Hoa quả nào nhập khẩu giàu vitamin C')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">🥝 Giàu Vitamin C</button>
+            <button type="button" onclick="sendQuickAiQuery('Tư vấn hộp quà tặng sang trọng')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">🎁 Hộp quà</button>
+            <button type="button" onclick="sendQuickAiQuery('Cách chọn sầu riêng chín ngon')" class="text-[10px] bg-slate-100 hover:bg-emerald-50 border border-slate-200/60 rounded-full px-2.5 py-1 text-on-surface-variant font-medium transition-all">👑 Chọn sầu riêng</button>
         </div>
 
         <%-- Input form --%>
@@ -242,7 +242,7 @@
             <input type="text" id="ai-chat-input" onkeydown="handleAiInputKey(event)"
                    class="flex-1 rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none text-on-surface placeholder:text-slate-400"
                    placeholder="Nhập câu hỏi tìm kiếm hoa quả của bạn...">
-            <button onclick="sendAiChatMessage()" id="ai-chat-send-btn"
+            <button type="button" onclick="sendAiChatMessage()" id="ai-chat-send-btn"
                     class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-xl flex items-center justify-center transition-colors shadow-md shadow-emerald-900/10 cursor-pointer">
                 <span class="material-symbols-outlined text-[18px]">send</span>
             </button>
@@ -336,7 +336,7 @@
         function renderWelcomeMessage() {
             const log = document.getElementById('ai-message-log');
             if (log.querySelector('[data-welcome]')) return;
-            const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+            const contextPath = getAppContextPath();
             const logoUrl = contextPath + '/assets/images/logo_light.png';
             log.insertAdjacentHTML('afterbegin', `
                 <div class="flex items-start gap-2 max-w-[85%]" data-welcome="1">
@@ -405,6 +405,15 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function getAppContextPath() {
+            return window.contextPath || window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+        }
+
+        function getAiCsrfToken() {
+            const csrfInput = document.querySelector('input[name="_csrf"]');
+            return window.csrfToken || (csrfInput ? csrfInput.value : '');
+        }
+
         async function sendAiChatMessage() {
             const input = document.getElementById('ai-chat-input');
             const message = input.value.trim();
@@ -416,28 +425,41 @@
             // Append loading indicator
             const log = document.getElementById('ai-message-log');
             const loadingId = 'ai-loading-' + Date.now();
-            const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+            const contextPath = getAppContextPath();
             const logoUrl = contextPath + '/assets/images/logo_light.png';
+            const aiFallbackMessage = 'AI hiện chưa phản hồi. Mình đã chuyển sang gợi ý sản phẩm phù hợp bên dưới.';
             const loadingHtml = '<div class="flex items-start gap-2 max-w-[85%] animate-pulse" id="' + loadingId + '">' +
                 '<div class="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-emerald-100/30">' +
                     '<img src="' + logoUrl + '" alt="MetaFruit Logo" class="w-full h-full object-cover">' +
                 '</div>' +
                 '<div class="bg-white border border-emerald-100/50 rounded-2xl rounded-tl-none p-3 text-xs text-on-surface-variant shadow-sm italic flex items-center gap-1.5">' +
-                    '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> AI đang phân tích kho hàng...' +
+                    '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> AI đang tìm sản phẩm phù hợp...' +
                 '</div>' +
             '</div>';
             log.insertAdjacentHTML('beforeend', loadingHtml);
             log.scrollTop = log.scrollHeight;
 
             try {
-                const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
-                const apiUrl = contextPath + '/api/ai/search';
+                const csrfToken = getAiCsrfToken();
+                if (!csrfToken) {
+                    const loadingEl = document.getElementById(loadingId);
+                    if (loadingEl) loadingEl.remove();
+                    appendMessage('ai', 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang rồi thử lại.');
+                    return;
+                }
+
+                // Gửi token cả qua query string lẫn header để CsrfFilter luôn đọc được,
+                // kể cả khi proxy / browser / cache làm rơi custom headers.
+                const apiUrl = contextPath + '/api/ai/search?_csrf=' + encodeURIComponent(csrfToken);
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': csrfToken,
+                        'X-XSRF-TOKEN': csrfToken
                     },
+                    credentials: 'same-origin',
                     body: JSON.stringify({ message: message })
                 });
                 const responseText = await response.text();
@@ -445,11 +467,10 @@
                 try {
                     data = responseText ? JSON.parse(responseText) : {};
                 } catch (parseError) {
+                    console.warn('AI response is not valid JSON:', parseError, responseText);
                     data = {
                         success: false,
-                        message: responseText && responseText.trim()
-                            ? responseText.trim()
-                            : 'Lỗi khi kết nối với dịch vụ AI: HTTP ' + response.status
+                        message: aiFallbackMessage
                     };
                 }
                 
@@ -466,13 +487,13 @@
                         : (Array.isArray(data.suggestedProductIds) ? data.suggestedProductIds : []);
                     appendMessage('ai', reply, products, suggestedProductIds);
                 } else {
-                    appendMessage('ai', data.error || data.message || ('Lỗi khi kết nối với dịch vụ AI: HTTP ' + response.status));
+                    appendMessage('ai', data.error || data.message || aiFallbackMessage);
                 }
             } catch (error) {
                 console.error('Lỗi khi gọi AI:', error);
                 const loadingEl = document.getElementById(loadingId);
                 if (loadingEl) loadingEl.remove();
-                appendMessage('ai', 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng của bạn.');
+                appendMessage('ai', 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau ít phút.');
             }
         }
 
@@ -500,11 +521,11 @@
                         let imgUrl = p.image || 'assets/img/placeholder.png';
                         if (imgUrl && !imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
                             if (!imgUrl.startsWith('/')) imgUrl = '/' + imgUrl;
-                            const ctx = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                            const ctx = getAppContextPath();
                             imgUrl = ctx + imgUrl;
                         }
 
-                        const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                        const contextPath = getAppContextPath();
                         const detailUrl = contextPath + '/products/detail?id=' + encodeURIComponent(p.productId);
                         const priceFormatted = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price);
                         const safeName = escapeHtml(p.name);
@@ -548,7 +569,7 @@
                                 applyClientFilters();
                             }
                         } else {
-                            const ctxPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                            const ctxPath = getAppContextPath();
                             productsHtml += '<div class="mt-3 text-center">' +
                                 '<a href="' + ctxPath + '/products?fromAi=true&suggestedIds=' + encodeURIComponent(suggestedIds.join(',')) + '" class="inline-flex items-center gap-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-[10px] px-3.5 py-2 rounded-full transition-all shadow-sm">' +
                                     '<span class="material-symbols-outlined text-[14px]">open_in_new</span> Xem danh sách trên trang Sản phẩm' +
@@ -558,7 +579,7 @@
                     }
                 }
 
-                const contextPath = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                const contextPath = getAppContextPath();
                 const logoUrl = contextPath + '/assets/images/logo_light.png';
                 contentHtml = '<div class="flex items-start gap-2 max-w-[90%]">' +
                     '<div class="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-emerald-100/30">' +
@@ -592,7 +613,7 @@
                 } else if (typeof quickAddProduct === 'function') {
                     quickAddProduct(null, productId);
                 } else {
-                    const ctx = window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+                    const ctx = getAppContextPath();
                     window.location.href = ctx + '/products/detail?id=' + productId;
                 }
             }

@@ -76,7 +76,12 @@ public class ProductStatusServlet extends HttpServlet {
                     return;
                 }
 
-                productDAO.updateStatus(productId, status);
+                Product p = products.get(0);
+                String targetStatus = status;
+                if ("ACTIVE".equals(status) && p.isExpired()) {
+                    targetStatus = "OUT_OF_SEASON";
+                }
+                productDAO.updateStatus(productId, targetStatus);
                 resp.setStatus(HttpServletResponse.SC_OK);
                 JsonUtil.writeJson(resp, ApiResponse.ok(null));
 
