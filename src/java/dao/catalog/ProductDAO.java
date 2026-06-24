@@ -72,7 +72,7 @@ public class ProductDAO extends BaseDAO {
 
     private String buildPublicVisibilityClause(String alias) {
         return alias + ".status = 'ACTIVE' AND " + alias + ".approval_status = 'APPROVED' "
-             + "AND EXISTS (SELECT 1 FROM shop_profiles sp WHERE sp.user_id = " + alias + ".owner_id AND sp.approval_status = 'APPROVED') "
+             + "AND EXISTS (SELECT 1 FROM shop_owner_profiles sp WHERE sp.user_id = " + alias + ".owner_id AND sp.approval_status = 'APPROVED') "
              + "AND (" + alias + ".season_start_month IS NULL OR " + alias + ".season_end_month IS NULL "
              + "OR (" + alias + ".season_start_month <= " + alias + ".season_end_month "
              + "AND MONTH(GETDATE()) BETWEEN " + alias + ".season_start_month AND " + alias + ".season_end_month) "
