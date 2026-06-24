@@ -1638,7 +1638,7 @@
                 <div class="flex flex-col justify-center">
                     <c:forEach var="star" begin="1" end="5">
                         <c:set var="starIndex" value="${6 - star}"/>
-                        <c:set var="starCount" value="${ratingDistribution[starIndex] != null ? ratingDistribution[starIndex] : 0}"/>
+                        <c:set var="starCount" value="${ratingCounts[starIndex]}"/>
                         <c:set var="starPercent" value="${totalReviewsCount > 0 ? (starCount * 100 / totalReviewsCount) : 0}"/>
                         <div class="rating-bar-row">
                             <div class="bar-stars">${starIndex} <i class="fa-solid fa-star text-[#F59E0B]"></i></div>
@@ -1661,7 +1661,7 @@
                 </a>
                 <c:forEach var="starIndex" begin="1" end="5">
                     <c:set var="sVal" value="${6 - starIndex}"/>
-                    <c:set var="sCount" value="${ratingDistribution[sVal] != null ? ratingDistribution[sVal] : 0}"/>
+                    <c:set var="sCount" value="${ratingCounts[sVal]}"/>
                     <a href="${pageContext.request.contextPath}/products/detail?id=${product.productId}&amp;rating=${sVal}#reviews"
                        class="filter-tab-btn ${ratingFilter == sVal ? 'active' : ''}">
                         ${sVal} Sao (${sCount})
@@ -1696,8 +1696,14 @@
                                     <div class="review-attachment-box">
                                         <div class="review-thumb-image" onclick="openPhotoModal(this)">
                                             <c:choose>
-                                                <c:when test="${r.reviewImageUrl.startsWith('http')}">
+                                                <c:when test="${fn:startsWith(r.reviewImageUrl, 'http://') || fn:startsWith(r.reviewImageUrl, 'https://') || fn:startsWith(r.reviewImageUrl, 'data:')}">
                                                     <img src="<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
+                                                </c:when>
+                                                <c:when test="${fn:startsWith(r.reviewImageUrl, pageContext.request.contextPath)}">
+                                                    <img src="<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
+                                                </c:when>
+                                                <c:when test="${fn:startsWith(r.reviewImageUrl, '/')}">
+                                                    <img src="${pageContext.request.contextPath}<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
                                                 </c:when>
                                                 <c:otherwise>
                                                     <img src="${pageContext.request.contextPath}/<c:out value='${r.reviewImageUrl}'/>" alt="Ảnh review khách hàng">
@@ -2382,22 +2388,33 @@
             .replace(/'/g, '&#39;');
     }
 
+    const reviewContextPath = '${pageContext.request.contextPath}';
+    const reviewProductId = ${product.productId};
+
     let currentReviewPage = 1;
     let currentRatingFilter = null;
+
+    function resolveReviewImageSrc(rawSrc) {
+        if (!rawSrc) return '';
+        const src = String(rawSrc).trim();
+        if (/^(https?:\/\/|data:)/i.test(src)) return src;
+        if (src.startsWith(reviewContextPath + '/')) return src;
+        if (src.startsWith('/')) return reviewContextPath + src;
+        return reviewContextPath + '/' + src;
+    }
 
     async function loadReviewsRealtime() {
         const wrapper = document.querySelector('.reviews-list-wrapper');
         if (!wrapper) return;
         
-        wrapper.innerHTML = `
-            <div class="text-center py-12">
-                <i class="fa-solid fa-spinner fa-spin text-3xl text-[#4d661c] mb-3"></i>
-                <p class="text-sm text-muted">Đang tải đánh giá thực tế...</p>
-            </div>
-        `;
+        wrapper.innerHTML =
+            '<div class="text-center py-12">' +
+                '<i class="fa-solid fa-spinner fa-spin text-3xl text-[#4d661c] mb-3"></i>' +
+                '<p class="text-sm text-muted">Đang tải đánh giá thực tế...</p>' +
+            '</div>';
         
         try {
-            let url = `${pageContext.request.contextPath}/products/detail?id=\${product.productId}&format=json&action=getReviews&page=` + currentReviewPage;
+            let url = reviewContextPath + '/products/detail?id=' + reviewProductId + '&format=json&action=getReviews&page=' + currentReviewPage;
             if (currentRatingFilter !== null) {
                 url += '&rating=' + currentRatingFilter;
             }
@@ -2408,11 +2425,11 @@
             if (result.success && result.data) {
                 renderReviewsList(result.data);
             } else {
-                wrapper.innerHTML = `<div class="text-center text-red-500 py-8">Không thể tải dữ liệu đánh giá.</div>`;
+                wrapper.innerHTML = '<div class="text-center text-red-500 py-8">Không thể tải dữ liệu đánh giá.</div>';
             }
         } catch (err) {
             console.error("Lỗi tải review realtime:", err);
-            wrapper.innerHTML = `<div class="text-center text-red-500 py-8">Lỗi kết nối khi tải đánh giá.</div>`;
+            wrapper.innerHTML = '<div class="text-center text-red-500 py-8">Lỗi kết nối khi tải đánh giá.</div>';
         }
     }
 
@@ -2421,11 +2438,7 @@
         if (!wrapper) return;
         
         if (!pagedResult.items || pagedResult.items.length === 0) {
-            wrapper.innerHTML = `
-                <div class="text-center text-[#8E9285] py-8 italic font-semibold">
-                    Chưa có lượt đánh giá nào phù hợp với bộ lọc đã chọn.
-                </div>
-            `;
+            wrapper.innerHTML = '<div class="text-center text-[#8E9285] py-8 italic font-semibold">Chưa có lượt đánh giá nào phù hợp với bộ lọc đã chọn.</div>';
             return;
         }
         
@@ -2442,17 +2455,13 @@
             
             let imgHtml = '';
             if (r.reviewImageUrl) {
-                let src = r.reviewImageUrl;
-                if (!src.startsWith('http') && !src.startsWith('/')) {
-                    src = '${pageContext.request.contextPath}/' + src;
-                }
-                imgHtml = `
-                    <div class="review-attachment-box">
-                        <div class="review-thumb-image" onclick="openPhotoModal(this)">
-                            <img src="\${escapeHtml(src || '')}" alt="Ảnh review khách hàng">
-                        </div>
-                    </div>
-                `;
+                const src = resolveReviewImageSrc(r.reviewImageUrl);
+                imgHtml =
+                    '<div class="review-attachment-box">' +
+                        '<div class="review-thumb-image" onclick="openPhotoModal(this)">' +
+                            '<img src="' + escapeHtml(src || '') + '" alt="Ảnh review khách hàng">' +
+                        '</div>' +
+                    '</div>';
             }
             
             const safeCustomerName = escapeHtml(r.customerName || 'Người dùng');
@@ -2460,58 +2469,46 @@
             const safeCreatedAt = escapeHtml(r.createdAt || '');
             const avatarChar = escapeHtml(r.customerName ? r.customerName.substring(0, 1).toUpperCase() : 'U');
             
-            html += `
-                <div class="review-card-item">
-                    <div class="review-card-header">
-                        <div class="reviewer-meta">
-                            <div class="reviewer-avatar">
-                                \${avatarChar}
-                            </div>
-                            <div>
-                                <div class="reviewer-name">\${safeCustomerName}</div>
-                                <div class="flex items-center gap-2">
-                                    <div class="flex items-center text-xs">\${starsHtml}</div>
-                                    <span class="review-date">\${safeCreatedAt}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="review-body-text">
-                        \${safeReviewText}
-                    </div>
-                    \${imgHtml}
-                </div>
-            `;
+            html +=
+                '<div class="review-card-item">' +
+                    '<div class="review-card-header">' +
+                        '<div class="reviewer-meta">' +
+                            '<div class="reviewer-avatar">' +
+                                avatarChar +
+                            '</div>' +
+                            '<div>' +
+                                '<div class="reviewer-name">' + safeCustomerName + '</div>' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<div class="flex items-center text-xs">' + starsHtml + '</div>' +
+                                    '<span class="review-date">' + safeCreatedAt + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="review-body-text">' +
+                        safeReviewText +
+                    '</div>' +
+                    imgHtml +
+                '</div>';
         });
         
         if (pagedResult.totalPages > 1) {
             let paginationHtml = '<div class="flex items-center justify-center gap-2 mt-6">';
+            const navButtonClass = 'px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-bold transition-all cursor-pointer bg-white';
             if (pagedResult.currentPage > 1) {
-                paginationHtml += `
-                    <button onclick="changeReviewPage(\${pagedResult.currentPage - 1})" 
-                            class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-bold transition-all cursor-pointer bg-white">
-                        Trước
-                    </button>
-                `;
+                paginationHtml += '<button onclick="changeReviewPage(' + (pagedResult.currentPage - 1) + ')" class="' + navButtonClass + '">Trước</button>';
             }
             
             for (let i = 1; i <= pagedResult.totalPages; i++) {
                 const isActive = i === pagedResult.currentPage;
-                paginationHtml += `
-                    <button onclick="changeReviewPage(\${i})" 
-                            class="w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer \${isActive ? 'bg-primary text-white border-none' : 'border border-gray-200 hover:bg-gray-50 bg-white' }">
-                        \${i}
-                    </button>
-                `;
+                const pageButtonClass = isActive
+                    ? 'w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer bg-primary text-white border-none'
+                    : 'w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border border-gray-200 hover:bg-gray-50 bg-white';
+                paginationHtml += '<button onclick="changeReviewPage(' + i + ')" class="' + pageButtonClass + '">' + i + '</button>';
             }
             
             if (pagedResult.currentPage < pagedResult.totalPages) {
-                paginationHtml += `
-                    <button onclick="changeReviewPage(\${pagedResult.currentPage + 1})" 
-                            class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-xs font-bold transition-all cursor-pointer bg-white">
-                        Tiếp
-                    </button>
-                `;
+                paginationHtml += '<button onclick="changeReviewPage(' + (pagedResult.currentPage + 1) + ')" class="' + navButtonClass + '">Tiếp</button>';
             }
             paginationHtml += '</div>';
             html += paginationHtml;
