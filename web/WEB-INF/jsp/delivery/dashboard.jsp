@@ -275,6 +275,7 @@ body { background: #F0FDF4; }
             </h3>
             <p class="text-xs text-txt-2 mb-5">Tải lên ảnh bằng chứng giao hàng (định dạng ảnh) để hoàn tất xác nhận.</p>
             <input type="hidden" id="proofDeliveryId" name="deliveryId">
+            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
             <div class="mb-5">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5">Ảnh Bằng Chứng <span class="text-red-500">*</span></label>
                 <input type="file" id="proofImage" name="proofImage" accept="image/*" required
