@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * ProductDAO — DAO cho entity Product.
@@ -70,6 +71,8 @@ public class ProductDAO extends BaseDAO {
       + "p.is_organic, p.is_imported, p.approval_status, CAST(NULL AS NVARCHAR(255)) AS verification_doc_path, "
       + "p.rejection_reason, p.season_start_month, p.season_end_month, p.created_at, p.updated_at";
 
+    private static final String SEARCH_COLLATION = "Vietnamese_100_CI_AI";
+
     private String buildPublicVisibilityClause(String alias) {
         return alias + ".status = 'ACTIVE' AND " + alias + ".approval_status = 'APPROVED' "
              + "AND EXISTS (SELECT 1 FROM shop_owner_profiles sp WHERE sp.user_id = " + alias + ".owner_id AND sp.approval_status = 'APPROVED') "
@@ -84,6 +87,103 @@ public class ProductDAO extends BaseDAO {
         return "EXISTS (SELECT 1 FROM product_variants pv_stock "
              + "WHERE pv_stock.product_id = " + alias + ".product_id "
              + "AND pv_stock.is_active = 1 AND pv_stock.stock_quantity > 0)";
+    }
+
+    private static final class SearchTerms {
+        private final String normalizedKeyword;
+        private final List<String> tokens;
+
+        private SearchTerms(String normalizedKeyword, List<String> tokens) {
+            this.normalizedKeyword = normalizedKeyword;
+            this.tokens = tokens;
+        }
+
+        private boolean hasKeyword() {
+            return normalizedKeyword != null && !normalizedKeyword.isEmpty();
+        }
+    }
+
+    private SearchTerms prepareSearchTerms(String keyword) {
+        if (keyword == null) {
+            return new SearchTerms(null, new ArrayList<>());
+        }
+
+        String normalized = keyword.trim()
+                .replaceAll("[^\\p{L}\\p{Nd}]+", " ")
+                .replaceAll("\\s+", " ")
+                .toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return new SearchTerms(null, new ArrayList<>());
+        }
+
+        LinkedHashSet<String> uniqueTokens = new LinkedHashSet<>();
+        for (String token : normalized.split(" ")) {
+            String cleaned = token.trim();
+            if (cleaned.isEmpty()) {
+                continue;
+            }
+            if (cleaned.length() < 2 && !cleaned.chars().allMatch(Character::isDigit)) {
+                continue;
+            }
+            uniqueTokens.add(cleaned);
+        }
+        return new SearchTerms(normalized, new ArrayList<>(uniqueTokens));
+    }
+
+    private String buildSearchBlob(String productAlias, String categoryAlias) {
+        return "("
+             + "ISNULL(CAST(" + productAlias + ".product_id AS NVARCHAR(20)), N'') + N' '"
+             + " + ISNULL(" + productAlias + ".name, N'') + N' '"
+             + " + ISNULL(" + productAlias + ".description, N'') + N' '"
+             + " + ISNULL(" + productAlias + ".origin_country, N'') + N' '"
+             + " + ISNULL(" + productAlias + ".origin_region, N'') + N' '"
+             + " + ISNULL(" + productAlias + ".storage_instruction, N'') + N' '"
+             + " + ISNULL(" + categoryAlias + ".name, N'') + N' '"
+             + " + CASE WHEN " + productAlias + ".is_organic = 1 THEN N'huu co' ELSE N'' END + N' '"
+             + " + CASE WHEN " + productAlias + ".is_imported = 1 THEN N'nhap khau' ELSE N'' END"
+             + ") COLLATE " + SEARCH_COLLATION;
+    }
+
+    private String buildSearchScoreExpression(String searchBlob, SearchTerms terms) {
+        if (!terms.hasKeyword()) {
+            return "0";
+        }
+
+        StringBuilder score = new StringBuilder("CASE WHEN ");
+        score.append(searchBlob).append(" LIKE ? THEN 1000 ELSE 0 END");
+        for (int i = 0; i < terms.tokens.size(); i++) {
+            score.append(" + CASE WHEN ").append(searchBlob).append(" LIKE ? THEN 100 ELSE 0 END");
+        }
+        return score.toString();
+    }
+
+    private String buildSearchRankJoin(String searchBlob, SearchTerms terms) {
+        if (!terms.hasKeyword()) {
+            return "";
+        }
+        return "CROSS APPLY (SELECT " + buildSearchScoreExpression(searchBlob, terms) + " AS relevance_score) sr ";
+    }
+
+    private void bindSearchParameters(List<Object> params, SearchTerms terms) {
+        if (!terms.hasKeyword()) {
+            return;
+        }
+        params.add("%" + terms.normalizedKeyword + "%");
+        for (String token : terms.tokens) {
+            params.add("%" + token + "%");
+        }
+    }
+
+    private int getSearchRelevanceThreshold(SearchTerms terms) {
+        if (!terms.hasKeyword()) {
+            return 0;
+        }
+        int tokenCount = terms.tokens.size();
+        if (tokenCount <= 1) {
+            return 100;
+        }
+        int requiredMatches = Math.max(2, (tokenCount + 1) / 2);
+        return requiredMatches * 100;
     }
 
     /**
@@ -215,18 +315,27 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> search(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, int page, int pageSize) throws SQLException {
         List<Product> list = new ArrayList<>();
-        StringBuilder sql = new StringBuilder("SELECT DISTINCT p.* FROM products p ");
+        SearchTerms searchTerms = prepareSearchTerms(keyword);
+        String searchBlob = buildSearchBlob("p", "c");
+        StringBuilder sql = new StringBuilder("SELECT DISTINCT p.*");
+        if (searchTerms.hasKeyword()) {
+            sql.append(", sr.relevance_score AS relevance_score");
+        }
+        sql.append(" FROM products p ");
+        sql.append("LEFT JOIN categories c ON c.category_id = p.category_id ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");
+        }
+        if (searchTerms.hasKeyword()) {
+            sql.append(buildSearchRankJoin(searchBlob, searchTerms));
         }
         sql.append("WHERE ").append(buildPublicVisibilityClause("p")).append(" AND ").append(buildActiveStockExistsClause("p")).append(" ");
 
         List<Object> params = new ArrayList<>();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
-            String k = "%" + keyword.trim() + "%";
-            params.add(k);
-            params.add(k);
+        if (searchTerms.hasKeyword()) {
+            bindSearchParameters(params, searchTerms);
+            sql.append("AND sr.relevance_score >= ? ");
+            params.add(getSearchRelevanceThreshold(searchTerms));
         }
         if (categoryId != null) {
             sql.append("AND p.category_id = ? ");
@@ -241,7 +350,12 @@ public class ProductDAO extends BaseDAO {
             params.add(maxPrice);
         }
 
-        sql.append("ORDER BY p.product_id DESC ").append(PaginationHelper.OFFSET_FETCH_SQL);
+        if (searchTerms.hasKeyword()) {
+            sql.append("ORDER BY sr.relevance_score DESC, p.product_id DESC ");
+        } else {
+            sql.append("ORDER BY p.product_id DESC ");
+        }
+        sql.append(PaginationHelper.OFFSET_FETCH_SQL);
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -264,18 +378,21 @@ public class ProductDAO extends BaseDAO {
      */
     public int countSearch(String keyword, Integer categoryId, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT p.product_id) FROM products p ");
+        sql.append("LEFT JOIN categories c ON c.category_id = p.category_id ");
         if (minPrice != null || maxPrice != null) {
             sql.append("JOIN product_variants pv ON p.product_id = pv.product_id ");//khang
         }
+        SearchTerms searchTerms = prepareSearchTerms(keyword);
+        String searchBlob = buildSearchBlob("p", "c");
+        sql.append(buildSearchRankJoin(searchBlob, searchTerms));
         sql.append("WHERE ").append(buildPublicVisibilityClause("p")).append(" ");
         sql.append("AND ").append(buildActiveStockExistsClause("p")).append(" ");
         
         List<Object> params = new ArrayList<>();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (p.name LIKE ? OR p.description LIKE ?) ");
-            String k = "%" + keyword.trim() + "%";
-            params.add(k);
-            params.add(k);
+        if (searchTerms.hasKeyword()) {
+            bindSearchParameters(params, searchTerms);
+            sql.append("AND sr.relevance_score >= ? ");
+            params.add(getSearchRelevanceThreshold(searchTerms));
         }
         if (categoryId != null) {
             sql.append("AND p.category_id = ? ");
@@ -1279,6 +1396,8 @@ public class ProductDAO extends BaseDAO {
     public List<Map<String, Object>> searchProductsOptimized(String keyword, Integer categoryId, int page, int pageSize, String contextPath) throws SQLException {
         List<Map<String, Object>> list = new ArrayList<>();
         int offset = (page - 1) * pageSize;
+        SearchTerms searchTerms = prepareSearchTerms(keyword);
+        String searchBlob = buildSearchBlob("p", "c");
         
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT p.product_id, p.name, p.description, p.rating, p.sold_quantity, ");
@@ -1287,24 +1406,32 @@ public class ProductDAO extends BaseDAO {
         sql.append("       pr.discount_type, pr.discount_value, pr.discount_max ");
         sql.append("FROM products p ");
         sql.append("JOIN ( ");
-        sql.append("    SELECT p.product_id ");
+        sql.append("    SELECT p.product_id");
+        if (searchTerms.hasKeyword()) {
+            sql.append(", sr.relevance_score ");
+        }
         sql.append("    FROM products p ");
+        sql.append("    LEFT JOIN categories c ON c.category_id = p.category_id ");
+        sql.append(buildSearchRankJoin(searchBlob, searchTerms));
         sql.append("    WHERE ").append(buildPublicVisibilityClause("p")).append(" ");
         sql.append("      AND ").append(buildActiveStockExistsClause("p")).append(" ");
         
         List<Object> params = new ArrayList<>();
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("    AND (p.name LIKE ? OR p.description LIKE ?) ");
-            String k = "%" + keyword.trim() + "%";
-            params.add(k);
-            params.add(k);
+        if (searchTerms.hasKeyword()) {
+            bindSearchParameters(params, searchTerms);
+            sql.append("      AND sr.relevance_score >= ? ");
+            params.add(getSearchRelevanceThreshold(searchTerms));
         }
         if (categoryId != null) {
             sql.append("    AND p.category_id = ? ");
             params.add(categoryId);
         }
 
-        sql.append("    ORDER BY p.product_id DESC ");
+        if (searchTerms.hasKeyword()) {
+            sql.append("    ORDER BY sr.relevance_score DESC, p.product_id DESC ");
+        } else {
+            sql.append("    ORDER BY p.product_id DESC ");
+        }
         sql.append("    OFFSET ? ROWS FETCH NEXT ? ROWS ONLY ");
         sql.append(") temp ON p.product_id = temp.product_id ");
         sql.append("LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 ");
@@ -1317,7 +1444,11 @@ public class ProductDAO extends BaseDAO {
         sql.append("LEFT JOIN promotions pr ON pr.product_id = p.product_id ");
         sql.append("    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 ");
         sql.append("    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() ");
-        sql.append("ORDER BY p.product_id DESC");
+        if (searchTerms.hasKeyword()) {
+            sql.append("ORDER BY temp.relevance_score DESC, p.product_id DESC");
+        } else {
+            sql.append("ORDER BY p.product_id DESC");
+        }
         
         params.add(offset);
         params.add(pageSize);
