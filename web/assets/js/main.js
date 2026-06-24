@@ -202,18 +202,394 @@ const ApiClient = {
     }
 };
 
-// ── 6. Format tiền VND (phía client) ─────────────────────────────────────────
+// ── 6. Notification AJAX helper ──────────────────────────────────────────────
+const NotificationAjax = {
+    getContextPath() {
+        return window.contextPath || '';
+    },
+
+    getCsrfToken() {
+        if (window.csrfToken) {
+            return window.csrfToken;
+        }
+        if (typeof ApiClient !== 'undefined' && ApiClient.getCsrfToken) {
+            return ApiClient.getCsrfToken();
+        }
+        return '';
+    },
+
+    buildUrl(path, params = {}) {
+        const url = new URL(`${this.getContextPath()}${path}`, window.location.origin);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '') {
+                return;
+            }
+            url.searchParams.set(key, String(value));
+        });
+        return url.toString();
+    },
+
+    buildHeaders(method = 'GET', extraHeaders = {}) {
+        const headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+            ...extraHeaders
+        };
+        if (!['GET', 'HEAD'].includes(String(method).toUpperCase())) {
+            headers['X-CSRF-Token'] = this.getCsrfToken();
+        }
+        return headers;
+    },
+
+    async requestJson(path, { method = 'GET', params = {}, extraHeaders = {} } = {}) {
+        const response = await fetch(this.buildUrl(path, params), {
+            method,
+            credentials: 'same-origin',
+            headers: this.buildHeaders(method, extraHeaders)
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        let payload = null;
+        if (contentType.includes('application/json')) {
+            payload = await response.json();
+        } else {
+            const text = await response.text();
+            payload = text ? { raw: text } : null;
+        }
+
+        if (!response.ok) {
+            throw this.createError(response, payload);
+        }
+        if (payload && payload.success === false) {
+            throw this.createError(response, payload);
+        }
+        return payload;
+    },
+
+    createError(response, payload) {
+        const rawMessage = payload?.error || payload?.message || payload?.raw || `Lỗi hệ thống (Mã: ${response.status})`;
+        const error = new Error(rawMessage);
+        error.status = response.status;
+        error.payload = payload;
+        return error;
+    },
+
+    normalizeErrorMessage(error) {
+        const raw = String(error?.message || '').trim();
+        const status = Number(error?.status || 0);
+        if (status === 401) {
+            return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        }
+        if (status === 403) {
+            return 'Không thể xác thực yêu cầu. Vui lòng tải lại trang rồi thử lại.';
+        }
+        if (status === 404) {
+            return 'Không tìm thấy dữ liệu thông báo.';
+        }
+        if (status >= 500) {
+            return 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau ít phút.';
+        }
+        if (!raw) {
+            return 'Không thể xử lý thông báo. Vui lòng thử lại.';
+        }
+
+        const lower = raw.toLowerCase();
+        if (lower.includes('csrf')) {
+            return 'Phiên làm việc đã thay đổi hoặc hết hạn. Vui lòng tải lại trang rồi thử lại.';
+        }
+        if (lower.includes('chưa đăng nhập') || lower.includes('không đăng nhập')) {
+            return 'Bạn cần đăng nhập lại để tiếp tục.';
+        }
+        if (lower.includes('failed to fetch') || lower.includes('network') || lower.includes('kết nối')) {
+            return 'Không thể kết nối tới máy chủ. Kiểm tra mạng rồi thử lại.';
+        }
+        return raw;
+    },
+
+    escapeHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
+
+    formatNotifTime(createdAt, createdAtAsDate) {
+        let d = null;
+        if (createdAtAsDate !== undefined && createdAtAsDate !== null && createdAtAsDate !== '') {
+            const numeric = Number(createdAtAsDate);
+            if (!Number.isNaN(numeric) && numeric > 0) {
+                d = new Date(numeric);
+            }
+        }
+        if (!d && Array.isArray(createdAt)) {
+            d = new Date(createdAt[0], createdAt[1] - 1, createdAt[2], createdAt[3] || 0, createdAt[4] || 0, createdAt[5] || 0);
+        } else if (!d && createdAt) {
+            d = new Date(createdAt);
+        }
+        return d && !Number.isNaN(d.getTime())
+            ? d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+            : '';
+    },
+
+    updateBadgeElement(badge, count) {
+        if (!badge) {
+            return;
+        }
+
+        const safeCount = Math.max(0, Number(count) || 0);
+        if (safeCount > 0) {
+            badge.textContent = safeCount > 99 ? '99+' : String(safeCount);
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    },
+
+    async getUnreadCounts() {
+        const payload = await this.requestJson('/api/notifications/unread');
+        return payload?.data || { unreadNotifications: 0, unreadChats: 0 };
+    },
+
+    async refreshBadges() {
+        const counts = await this.getUnreadCounts();
+        this.updateBadgeElement(document.getElementById('chat-badge'), counts.unreadChats);
+        this.updateBadgeElement(document.getElementById('notif-badge'), counts.unreadNotifications);
+        return counts;
+    },
+
+    async getRecentNotifications() {
+        const payload = await this.requestJson('/api/notifications/recent');
+        const notifications = payload?.data?.notifications;
+        return Array.isArray(notifications) ? notifications : [];
+    },
+
+    async loadRecentNotifications(container) {
+        if (!container) {
+            return [];
+        }
+
+        this.renderLoading(container);
+        try {
+            const notifications = await this.getRecentNotifications();
+            if (!notifications.length) {
+                this.renderEmpty(container);
+                return [];
+            }
+            this.renderRecentNotifications(container, notifications);
+            return notifications;
+        } catch (error) {
+            this.renderError(container, error, () => this.loadRecentNotifications(container));
+            return [];
+        }
+    },
+
+    async markRead(notifId) {
+        return this.requestJson('/api/notifications/markRead', {
+            method: 'POST',
+            params: { action: 'markRead', notifId }
+        });
+    },
+
+    async deleteNotification(notifId) {
+        return this.requestJson('/api/notifications/delete', {
+            method: 'POST',
+            params: { action: 'delete', notifId }
+        });
+    },
+
+    async markAllRead() {
+        return this.requestJson('/api/notifications/markAllRead', {
+            method: 'POST',
+            params: { action: 'markAllRead' }
+        });
+    },
+
+    setButtonBusy(button, busy, busyLabel = 'Đang xử lý...') {
+        if (!button) {
+            return;
+        }
+
+        if (busy) {
+            if (!button.dataset.originalText) {
+                button.dataset.originalText = button.textContent || '';
+            }
+            button.disabled = true;
+            button.textContent = busyLabel;
+            button.style.opacity = '0.65';
+            button.style.cursor = 'wait';
+        } else {
+            button.disabled = false;
+            button.textContent = button.dataset.originalText || button.textContent || '';
+            delete button.dataset.originalText;
+            button.style.opacity = '';
+            button.style.cursor = '';
+        }
+    },
+
+    renderStatusCard(container, { tone = 'info', icon, title, message, actionLabel, onAction } = {}) {
+        if (!container) {
+            return;
+        }
+
+        const paletteMap = {
+            info: {
+                border: '#dbeafe',
+                background: '#eff6ff',
+                iconBackground: '#dbeafe',
+                iconColor: '#1d4ed8',
+                titleColor: '#1e3a8a',
+                messageColor: '#334155',
+                buttonBackground: '#4d661c',
+                buttonColor: '#ffffff'
+            },
+            success: {
+                border: '#bbf7d0',
+                background: '#f0fdf4',
+                iconBackground: '#dcfce7',
+                iconColor: '#15803d',
+                titleColor: '#166534',
+                messageColor: '#166534',
+                buttonBackground: '#4d661c',
+                buttonColor: '#ffffff'
+            },
+            warning: {
+                border: '#fed7aa',
+                background: '#fff7ed',
+                iconBackground: '#ffedd5',
+                iconColor: '#c2410c',
+                titleColor: '#9a3412',
+                messageColor: '#9a3412',
+                buttonBackground: '#b45309',
+                buttonColor: '#ffffff'
+            },
+            error: {
+                border: '#fecaca',
+                background: '#fff1f2',
+                iconBackground: '#fee2e2',
+                iconColor: '#b91c1c',
+                titleColor: '#991b1b',
+                messageColor: '#7f1d1d',
+                buttonBackground: '#4d661c',
+                buttonColor: '#ffffff'
+            }
+        };
+        const palette = paletteMap[tone] || paletteMap.info;
+
+        let html = `
+            <div style="padding: 12px;">
+                <div style="display:flex; gap:12px; align-items:flex-start; padding:14px 14px 12px; border-radius:16px; border:1px solid ${palette.border}; background:${palette.background};">
+                    <div style="width:36px; height:36px; border-radius:12px; background:${palette.iconBackground}; color:${palette.iconColor}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <span class="material-symbols-outlined" style="font-size:18px; line-height:1;">${icon}</span>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:13px; font-weight:800; color:${palette.titleColor}; line-height:1.35;">${this.escapeHtml(title)}</div>
+                        <div style="margin-top:4px; font-size:12px; line-height:1.5; color:${palette.messageColor}; white-space:pre-line;">${this.escapeHtml(message)}</div>`;
+
+        if (actionLabel) {
+            html += `
+                        <div style="margin-top:12px;">
+                            <button type="button" data-notification-action
+                                style="border:none; background:${palette.buttonBackground}; color:${palette.buttonColor}; font-size:12px; font-weight:700; padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:0 6px 14px rgba(77, 102, 28, 0.18);">
+                                ${this.escapeHtml(actionLabel)}
+                            </button>
+                        </div>`;
+        }
+
+        html += `
+                    </div>
+                </div>
+            </div>`;
+
+        container.innerHTML = html;
+        const actionButton = container.querySelector('[data-notification-action]');
+        if (actionButton && typeof onAction === 'function') {
+            actionButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                onAction();
+            });
+        }
+    },
+
+    renderLoading(container, message = 'Đang tải thông báo...') {
+        this.renderStatusCard(container, {
+            tone: 'info',
+            icon: 'progress_activity',
+            title: 'Đang tải thông báo',
+            message
+        });
+    },
+
+    renderEmpty(container, message = 'Bạn chưa có thông báo mới nào gần đây.') {
+        this.renderStatusCard(container, {
+            tone: 'success',
+            icon: 'notifications_off',
+            title: 'Chưa có thông báo',
+            message
+        });
+    },
+
+    renderError(container, error, retryHandler) {
+        this.renderStatusCard(container, {
+            tone: 'error',
+            icon: 'warning',
+            title: 'Không thể tải thông báo',
+            message: this.normalizeErrorMessage(error),
+            actionLabel: retryHandler ? 'Thử lại' : null,
+            onAction: retryHandler
+        });
+    },
+
+    renderRecentNotifications(container, notifications) {
+        if (!container) {
+            return;
+        }
+
+        const html = notifications.map(notification => this.buildNotificationItem(notification)).join('');
+        container.innerHTML = html;
+    },
+
+    buildNotificationItem(notification) {
+        const isRead = !!notification?.isRead;
+        const bg = isRead ? 'transparent' : '#f8fafc';
+        const dot = isRead ? '' : '<span style="display:inline-block; width:6px; height:6px; background:#4d661c; border-radius:50%; margin-right:4px;"></span>';
+        const link = notification?.actionUrl ? `${this.getContextPath()}${notification.actionUrl}` : '#';
+        const dateStr = this.formatNotifTime(notification?.createdAt, notification?.createdAtAsDate);
+        const title = this.escapeHtml(notification?.title);
+        const message = this.escapeHtml(notification?.message);
+
+        return `
+            <div class="notif-dropdown-item" style="position:relative; padding:12px 16px; background:${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick='handleNotifClick(event, ${notification.notificationId}, ${JSON.stringify(link)})'>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center; padding-right:16px;">
+                    <span style="font-weight:600; font-size:13px; color:#334155; display:flex; align-items:center;">
+                        ${dot}${title}
+                    </span>
+                    <span style="font-size:10px; color:#94a3b8; white-space:nowrap; margin-left:8px;">${dateStr}</span>
+                </div>
+                <p style="margin:0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; padding-right:16px;">
+                    ${message}
+                </p>
+                <button onclick="handleNotifDelete(event, ${notification.notificationId})" style="position:absolute; right:12px; top:12px; border:none; background:none; color:#94a3b8; cursor:pointer; font-size:14px; padding:2px 6px; line-height:1; display:flex; align-items:center; justify-content:center; border-radius:4px;" onmouseover="this.style.color='#ef4444'; this.style.background='#f1f5f9';" onmouseout="this.style.color='#94a3b8'; this.style.background='none';">
+                    &times;
+                </button>
+            </div>
+        `;
+    }
+};
+window.NotificationAjax = NotificationAjax;
+
+// ── 7. Format tiền VND (phía client) ─────────────────────────────────────────
 const CurrencyFmt = {
     format(amount) {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     }
 };
 
-// ── 7. TODO: WebSocket Chat ───────────────────────────────────────────────────
+// ── 8. TODO: WebSocket Chat ───────────────────────────────────────────────────
 // Runtime chat được gắn trực tiếp trong các JSP chat page và dùng /ws/chat/{sessionId}.
 
 
-// ── 8. Unified AJAX Add-to-Cart Helper (Global) ──────────────────────────────
+// ── 9. Unified AJAX Add-to-Cart Helper (Global) ──────────────────────────────
 /**
  * Thêm sản phẩm vào giỏ hàng qua AJAX (Dùng chung cho cả Home, Detail, List...)
  * Tự động gộp / cập nhật Local Storage userCart hoặc guestCart tương ứng.

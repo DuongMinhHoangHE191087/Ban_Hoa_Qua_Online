@@ -67,6 +67,22 @@ public class CsrfProtectionTest {
     }
 
     // =========================================================
+    // TC-CSRF-02B: POST API notification popup với token đúng
+    // =========================================================
+
+    @Test
+    public void should_allowNotificationMarkAllRead_when_tokenMatchesSession_viaXCsrfHeader() throws Exception {
+        env.sessionToken = VALID_TOKEN;
+        env.method = "POST";
+        env.uri = "/Ban_Hoa_Qua_Online/api/notifications/markAllRead";
+        env.headerToken = VALID_TOKEN;
+
+        runFilter();
+        assertTrue("chain.doFilter phải được gọi cho notification popup", env.chainCalled.get());
+        assertFalse("sendError không được gọi", env.errorSent.get());
+    }
+
+    // =========================================================
     // TC-CSRF-03: POST không có token → 403
     // =========================================================
 
