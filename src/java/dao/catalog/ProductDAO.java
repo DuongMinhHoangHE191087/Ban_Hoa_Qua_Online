@@ -885,7 +885,7 @@ public class ProductDAO extends BaseDAO {
      */
     public List<Product> findAllActiveForAI() throws SQLException {
         List<Product> list = new ArrayList<>();
-        String sql = "SELECT product_id, category_id, name, description, origin_country, view_count, rating, sold_quantity FROM products p WHERE "
+        String sql = "SELECT product_id, category_id, name, description, origin_country, origin_region, storage_instruction, is_imported, view_count, rating, sold_quantity FROM products p WHERE "
                    + buildPublicVisibilityClause("p") + " AND " + buildActiveStockExistsClause("p") + " ORDER BY product_id DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -897,6 +897,9 @@ public class ProductDAO extends BaseDAO {
                 p.setName(rs.getString("name"));
                 p.setDescription(rs.getString("description"));
                 p.setOriginCountry(rs.getString("origin_country"));
+                p.setOriginRegion(rs.getString("origin_region"));
+                p.setStorageInstruction(rs.getString("storage_instruction"));
+                p.setIsImported(rs.getBoolean("is_imported"));
                 p.setViewCount(rs.getInt("view_count"));
                 p.setRating(rs.getBigDecimal("rating"));
                 p.setSoldQuantity(rs.getInt("sold_quantity"));

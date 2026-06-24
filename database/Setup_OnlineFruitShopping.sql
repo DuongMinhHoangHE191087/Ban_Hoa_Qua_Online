@@ -814,9 +814,22 @@ BEGIN
         ('settlement_freeze_days',  '15',   N'Số ngày đóng băng tiền quyết toán của shop.', 'INT'),
         ('shop_accept_timeout_min', '30',   N'Thời gian tối đa (phút) để shop chấp nhận đơn hàng trước khi tự hủy.', 'INT'),
         ('return_request_max_hours','24',   N'Thời gian tối đa (giờ) để khách hàng gửi return request sau DELIVERED.', 'INT'),
-        ('gemini_api_key',          '',     N'API Key cho mô hình Gemini 2.5 Flash để hỗ trợ AI Search & Tư vấn.', 'STRING');
+        ('gemini_api_key',          '',     N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING');
 
     PRINT 'Created system_config table and seeded defaults.';
+END
+GO
+
+IF OBJECT_ID(N'dbo.system_config', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM dbo.system_config WHERE config_key = 'gemini_api_key')
+BEGIN
+    INSERT INTO dbo.system_config (config_key, config_value, description, data_type)
+    VALUES (
+        'gemini_api_key',
+        '',
+        N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.',
+        'STRING'
+    );
 END
 GO
 
