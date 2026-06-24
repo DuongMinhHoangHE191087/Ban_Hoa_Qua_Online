@@ -2389,7 +2389,7 @@
     }
 
     const reviewContextPath = '${pageContext.request.contextPath}';
-    const reviewProductId = ${product.productId};
+    const reviewProductId = '${product.productId}';
 
     let currentReviewPage = 1;
     let currentRatingFilter = null;
