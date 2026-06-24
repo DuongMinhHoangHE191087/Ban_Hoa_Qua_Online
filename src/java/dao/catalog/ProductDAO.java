@@ -72,6 +72,7 @@ public class ProductDAO extends BaseDAO {
 
     private String buildPublicVisibilityClause(String alias) {
         return alias + ".status = 'ACTIVE' AND " + alias + ".approval_status = 'APPROVED' "
+             + "AND EXISTS (SELECT 1 FROM shop_owner_profiles sp WHERE sp.user_id = " + alias + ".owner_id AND sp.approval_status = 'APPROVED') "
              + "AND (" + alias + ".season_start_month IS NULL OR " + alias + ".season_end_month IS NULL "
              + "OR (" + alias + ".season_start_month <= " + alias + ".season_end_month "
              + "AND MONTH(GETDATE()) BETWEEN " + alias + ".season_start_month AND " + alias + ".season_end_month) "
@@ -117,6 +118,27 @@ public class ProductDAO extends BaseDAO {
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Tìm kiếm sản phẩm của chủ cửa hàng theo tên hoặc mô tả.
+     */
+    public List<Product> findByOwnerAndKeyword(int ownerId, String keyword) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' AND (name LIKE ? OR description LIKE ?) ORDER BY product_id DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            String k = "%" + keyword.trim() + "%";
+            ps.setString(2, k);
+            ps.setString(3, k);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRow(rs));

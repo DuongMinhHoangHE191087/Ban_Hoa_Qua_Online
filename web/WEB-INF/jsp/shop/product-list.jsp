@@ -127,19 +127,116 @@
             <c:remove var="flashType" scope="session"/>
         </c:if>
 
+        <!-- Search and Filter Bar -->
+        <div class="glass-card rounded-2xl p-6 mb-6">
+            <form action="${pageContext.request.contextPath}/shop/products" method="GET" class="flex flex-col gap-4">
+                <!-- Search Input Row -->
+                <div class="flex flex-col md:flex-row items-center gap-3">
+                    <div class="relative flex-grow w-full">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-txt-3">
+                            <span class="material-symbols-outlined text-[20px]">search</span>
+                        </span>
+                        <input type="text" name="keyword" value="<c:out value="${keyword}"/>" placeholder="Tìm kiếm sản phẩm theo tên hoặc mô tả..." 
+                               class="w-full pl-10 pr-4 py-2.5 border border-border rounded-xl text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none" />
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto shrink-0">
+                        <button type="submit" class="bg-primary hover:bg-primary-hover text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95 duration-150 cursor-pointer border-0 w-full md:w-auto">
+                            <span class="material-symbols-outlined text-[18px]">search</span> Tìm kiếm
+                        </button>
+                        <c:if test="${not empty keyword || not empty categoryId || (not empty stockStatus && stockStatus != 'ALL') || (not empty approvalStatus && approvalStatus != 'ALL') || (not empty sellStatus && sellStatus != 'ALL')}">
+                            <a href="${pageContext.request.contextPath}/shop/products" class="bg-gray-100 hover:bg-gray-200 text-txt-2 hover:text-txt font-semibold text-sm px-5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1 active:scale-95 duration-150 no-underline w-full md:w-auto">
+                                <span class="material-symbols-outlined text-[18px]">restart_alt</span> Xóa bộ lọc
+                            </a>
+                        </c:if>
+                    </div>
+                </div>
+
+                <!-- Dropdown Filters Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <!-- Category Filter -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold text-txt-2">Danh mục</label>
+                        <select name="categoryId" onchange="this.form.submit()" class="form-control-custom text-sm py-2">
+                            <option value="">Tất cả danh mục</option>
+                            <c:forEach var="cat" items="${categories}">
+                                <option value="${cat.categoryId}" ${categoryId == cat.categoryId ? 'selected' : ''}>
+                                    <c:out value="${cat.name}"/>
+                                </option>
+                            </c:forEach>
+                        </select>
+                    </div>
+
+                    <!-- Stock Status Filter -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold text-txt-2">Tồn kho</label>
+                        <select name="stockStatus" onchange="this.form.submit()" class="form-control-custom text-sm py-2">
+                            <option value="ALL" ${stockStatus == 'ALL' ? 'selected' : ''}>Tất cả</option>
+                            <option value="IN_STOCK" ${stockStatus == 'IN_STOCK' ? 'selected' : ''}>Còn hàng</option>
+                            <option value="OUT_OF_STOCK" ${stockStatus == 'OUT_OF_STOCK' ? 'selected' : ''}>Hết hàng</option>
+                        </select>
+                    </div>
+
+                    <!-- Approval Status Filter -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold text-txt-2">Kiểm duyệt</label>
+                        <select name="approvalStatus" onchange="this.form.submit()" class="form-control-custom text-sm py-2">
+                            <option value="ALL" ${approvalStatus == 'ALL' ? 'selected' : ''}>Tất cả trạng thái</option>
+                            <option value="APPROVED" ${approvalStatus == 'APPROVED' ? 'selected' : ''}>Đã duyệt</option>
+                            <option value="PENDING" ${approvalStatus == 'PENDING' ? 'selected' : ''}>Chờ duyệt</option>
+                            <option value="REJECTED" ${approvalStatus == 'REJECTED' ? 'selected' : ''}>Bị từ chối</option>
+                        </select>
+                    </div>
+
+                    <!-- Selling Status Filter -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold text-txt-2">Trạng thái bán</label>
+                        <select name="sellStatus" onchange="this.form.submit()" class="form-control-custom text-sm py-2">
+                            <option value="ALL" ${sellStatus == 'ALL' ? 'selected' : ''}>Tất cả</option>
+                            <option value="ACTIVE" ${sellStatus == 'ACTIVE' ? 'selected' : ''}>Đang bán</option>
+                            <option value="INACTIVE" ${sellStatus == 'INACTIVE' ? 'selected' : ''}>Đang ẩn</option>
+                            <option value="OUT_OF_SEASON" ${sellStatus == 'OUT_OF_SEASON' ? 'selected' : ''}>Hết vụ</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Result Stats -->
+            <c:if test="${not empty keyword || not empty categoryId || (not empty stockStatus && stockStatus != 'ALL') || (not empty approvalStatus && approvalStatus != 'ALL') || (not empty sellStatus && sellStatus != 'ALL')}">
+                <div class="text-xs text-txt-2 font-medium mt-4 pt-3 border-t border-border flex items-center justify-between">
+                    <span>Kết quả lọc: Tìm thấy <strong class="text-primary">${products.size()}</strong> sản phẩm.</span>
+                    <a href="${pageContext.request.contextPath}/shop/products" class="text-primary hover:underline font-semibold flex items-center gap-0.5">
+                        <span class="material-symbols-outlined text-[14px]">restart_alt</span> Thiết lập lại bộ lọc
+                    </a>
+                </div>
+            </c:if>
+        </div>
+
         <!-- Product Table Grid -->
         <div class="glass-card rounded-2xl overflow-hidden mb-8">
             <c:choose>
                 <c:when test="${empty products}">
                     <div class="text-center py-20 px-4">
                         <span class="material-symbols-outlined text-[64px] text-primary/30 mb-4">box_edit</span>
-                        <h3 class="text-lg font-bold">Cửa hàng của bạn chưa có sản phẩm nào</h3>
-                        <p class="text-xs text-txt-2 mt-1 max-w-md mx-auto font-light">Bắt đầu đưa trái cây sạch, hữu cơ tươi ngon của bạn tiếp cận hàng ngàn khách hàng bằng cách bấm nút thêm sản phẩm!</p>
-                        <button onclick="openCreateModal()" 
-                           class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-6 transition-all shadow-sm border-0 cursor-pointer">
-                            <span class="material-symbols-outlined text-[16px]">add</span>
-                            Thêm sản phẩm đầu tiên
-                        </button>
+                        <c:choose>
+                            <c:when test="${not empty keyword || not empty categoryId || (not empty stockStatus && stockStatus != 'ALL') || (not empty approvalStatus && approvalStatus != 'ALL') || (not empty sellStatus && sellStatus != 'ALL')}">
+                                <h3 class="text-lg font-bold">Không tìm thấy sản phẩm nào khớp với bộ lọc hiện tại</h3>
+                                <p class="text-xs text-[#475569] mt-1 max-w-md mx-auto font-light">Thử thay đổi bộ lọc hoặc xóa các tiêu chí tìm kiếm để hiển thị các sản phẩm khác.</p>
+                                <a href="${pageContext.request.contextPath}/shop/products" 
+                                   class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-6 transition-all shadow-sm cursor-pointer no-underline">
+                                    <span class="material-symbols-outlined text-[16px]">restart_alt</span>
+                                    Xóa toàn bộ bộ lọc
+                                </a>
+                            </c:when>
+                            <c:otherwise>
+                                <h3 class="text-lg font-bold">Cửa hàng của bạn chưa có sản phẩm nào</h3>
+                                <p class="text-xs text-txt-2 mt-1 max-w-md mx-auto font-light">Bắt đầu đưa trái cây sạch, hữu cơ tươi ngon của bạn tiếp cận hàng ngàn khách hàng bằng cách bấm nút thêm sản phẩm!</p>
+                                <button onclick="openCreateModal()" 
+                                   class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-3 rounded-full mt-6 transition-all shadow-sm border-0 cursor-pointer">
+                                    <span class="material-symbols-outlined text-[16px]">add</span>
+                                    Thêm sản phẩm đầu tiên
+                                </button>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                 </c:when>
                 <c:otherwise>

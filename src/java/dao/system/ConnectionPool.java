@@ -99,9 +99,10 @@ public final class ConnectionPool {
                 LoggerUtil.info(log, "[ConnectionPool] Đã đóng DataSource và giải phóng Timer thành công.");
             } catch (Exception e) {
                 LoggerUtil.warn(log, "[ConnectionPool] Không thể đóng DataSource: " + e.getMessage());
+            } finally {
+                dataSource = null;
+                poolActive = false;
             }
-            dataSource = null;
-            poolActive = false;
         }
     }
 
@@ -267,17 +268,5 @@ public final class ConnectionPool {
     /**
      * Shut down and close the connection pool to prevent classloader/timer memory leaks.
      */
-    public static void shutdown() {
-        if (dataSource != null) {
-            try {
-                dataSource.getClass().getMethod("close").invoke(dataSource);
-                LoggerUtil.info(log, "[ConnectionPool] Connection pool closed successfully on context destroy.");
-            } catch (Exception e) {
-                LoggerUtil.warn(log, "[ConnectionPool] Error closing pool on context destroy", e);
-            } finally {
-                dataSource = null;
-                poolActive = false;
-            }
-        }
-    }
+
 }

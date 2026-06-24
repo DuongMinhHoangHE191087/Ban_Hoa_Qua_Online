@@ -151,6 +151,7 @@
                 </c:if>
                 <c:if test="${review != null}">
                     <input type="hidden" name="reviewId" value="${review.reviewId}">
+                    <input type="hidden" name="reviewImageUrl" value="<c:out value='${review.reviewImageUrl}'/>">
                 </c:if>
                 
                 <div class="form-group">
