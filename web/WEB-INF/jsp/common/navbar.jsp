@@ -205,34 +205,6 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Hamburger Mobile Menu Toggle
-        const navbarToggle = document.getElementById('navbarToggle');
-        const navbarMenu = document.getElementById('navbarMenu');
-        
-        if (navbarToggle && navbarMenu) {
-            navbarToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                navbarMenu.classList.toggle('active');
-                const icon = navbarToggle.querySelector('i');
-                if (icon) {
-                    if (navbarMenu.classList.contains('active')) {
-                        icon.className = 'fa-solid fa-xmark';
-                    } else {
-                        icon.className = 'fa-solid fa-bars';
-                    }
-                }
-            });
-
-            // Close mobile menu when clicking outside
-            document.addEventListener('click', function(e) {
-                if (navbarMenu.classList.contains('active') && !navbarMenu.contains(e.target) && !navbarToggle.contains(e.target)) {
-                    navbarMenu.classList.remove('active');
-                    const icon = navbarToggle.querySelector('i');
-                    if (icon) icon.className = 'fa-solid fa-bars';
-                }
-            });
-        }
-
         if (!window.isLoggedIn) {
             return;
         }
@@ -313,6 +285,8 @@
             if (!window.NotificationAjax) {
                 return;
             }
+            NotificationAjax.refreshBadges().catch(err => console.error("Error loading badges", err));
+        }
 
             NotificationAjax.deleteNotification(notifId)
                 .then(() => NotificationAjax.refreshBadges())
