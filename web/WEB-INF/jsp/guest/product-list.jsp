@@ -607,11 +607,8 @@
         const gridContainer = document.getElementById('products-catalog-container');
         if (!gridContainer) return;
 
-        // Keep spinner and banner
-        const spinner = document.getElementById('catalog-loading');
+        // Keep banner state when re-rendering results; the loading overlay stays outside the catalog HTML.
         const banner = document.getElementById('aiFilterBanner');
-        
-        let spinnerHtml = spinner ? spinner.outerHTML : '';
         let bannerHtml = banner ? banner.outerHTML : '';
 
         // Dynamic results count text update
@@ -621,7 +618,7 @@
         }
 
         if (products.length === 0) {
-            gridContainer.innerHTML = spinnerHtml + bannerHtml + `
+            gridContainer.innerHTML = bannerHtml + `
                 <div class="glass-panel rounded-3xl p-16 text-center max-w-xl mx-auto ambient-shadow flex flex-col items-center gap-4 bg-white/60 mt-6">
                     <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce">sentiment_dissatisfied</span>
                     <div>
@@ -640,7 +637,7 @@
         }
 
         const ctx = '${pageContext.request.contextPath}';
-        let html = spinnerHtml + bannerHtml + '<div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">';
+        let html = bannerHtml + '<div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">';
 
         products.forEach(p => {
             const detailUrl = `\${ctx}/products/detail?id=\${p.productId}`;
