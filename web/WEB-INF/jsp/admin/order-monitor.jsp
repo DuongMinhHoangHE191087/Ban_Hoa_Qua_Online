@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -27,6 +27,25 @@
         .status-CANCELLED { background: #fee2e2; color: #991b1b; }
         .payment-COD { background: #e5e7eb; color: #374151; }
         .payment-BANK_TRANSFER { background: #dbeafe; color: #0c4a6e; }
+        .pagination-wrapper { padding: 0 !important; }
+        .pagination { gap: 0.375rem !important; margin: 0 !important; }
+        .pagination .page-link {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
+            font-size: 0.75rem; font-weight: 600;
+            border: 1px solid #e2ece7; background: #fff;
+            color: #374151; cursor: pointer; transition: all 0.15s;
+            text-decoration: none;
+        }
+        .pagination .page-item.active .page-link {
+            background: #4d661c; border-color: #4d661c; color: #fff;
+        }
+        .pagination .page-item.disabled .page-link {
+            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
+        }
+        .pagination .page-item .page-link:hover:not(.disabled) {
+            background: #f1f5f9; border-color: #9ca3af;
+        }
     </style>
 </head>
 <body>
@@ -135,11 +154,8 @@
                     </div>
 
                     <c:if test="${pagedResult.totalPages > 1}">
-                        <div style="display: flex; justify-content: center; margin-top: var(--space-4); gap: 5px;">
-                            <c:forEach begin="1" end="${pagedResult.totalPages}" var="i">
-                                <a href="?page=${i}&status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}"
-                                   class="btn btn-sm ${i == pagedResult.currentPage ? 'btn-primary' : 'btn-secondary'}">${i}</a>
-                            </c:forEach>
+                        <div style="display: flex; justify-content: center; margin-top: var(--space-4);">
+                            <ft:pagination current="${pagedResult.currentPage}" total="${pagedResult.totalPages}" baseUrl="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}" />
                         </div>
                     </c:if>
                 </div>

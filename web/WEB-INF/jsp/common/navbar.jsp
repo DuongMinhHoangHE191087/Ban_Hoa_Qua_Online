@@ -285,9 +285,6 @@
             if (!window.NotificationAjax) {
                 return;
             }
-            NotificationAjax.refreshBadges().catch(err => console.error("Error loading badges", err));
-        }
-
             NotificationAjax.deleteNotification(notifId)
                 .then(() => NotificationAjax.refreshBadges())
                 .then(loadRecentNotifications)

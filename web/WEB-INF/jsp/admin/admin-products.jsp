@@ -2,6 +2,7 @@
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -47,6 +48,25 @@
         }
         tbody tr { transition:background .12s; }
         tbody tr:hover td { background:#f8fafc; }
+        .pagination-wrapper { padding: 0 !important; }
+        .pagination { gap: 0.375rem !important; margin: 0 !important; }
+        .pagination .page-link {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
+            font-size: 0.75rem; font-weight: 600;
+            border: 1px solid #e2ece7; background: #fff;
+            color: #374151; cursor: pointer; transition: all 0.15s;
+            text-decoration: none;
+        }
+        .pagination .page-item.active .page-link {
+            background: #4d661c; border-color: #4d661c; color: #fff;
+        }
+        .pagination .page-item.disabled .page-link {
+            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
+        }
+        .pagination .page-item .page-link:hover:not(.disabled) {
+            background: #f1f5f9; border-color: #9ca3af;
+        }
     </style>
 </head>
 <body>
@@ -288,23 +308,12 @@
             </div>
             
             <%-- Pagination --%>
-            <div class="px-6 py-4 border-t border-border flex items-center justify-between bg-slate-50/50">
-                <span class="text-xs text-txt-2">Trang <b>${currentPage}</b></span>
-                <div class="flex items-center gap-1">
-                    <c:if test="${currentPage > 1}">
-                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage - 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" 
-                           class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
-                            Trước
-                        </a>
-                    </c:if>
-                    <c:if test="${products.size() == 25}">
-                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage + 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" 
-                           class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
-                            Sau
-                        </a>
-                    </c:if>
+            <c:if test="${totalPages > 1}">
+                <div class="px-6 py-4 border-t border-border flex items-center justify-between bg-slate-50/50">
+                    <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="${pageContext.request.contextPath}/admin/products?${not empty paramApprovalStatus ? 'approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" />
                 </div>
-            </div>
+            </c:if>
         </div>
     </main>
 </div>

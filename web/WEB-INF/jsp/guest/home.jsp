@@ -49,7 +49,7 @@
                     <script>
                         /**
                          * Handle image loading error by resolving context path casing mismatch or falling back.
-                         * Declared globally early in <head> so it's defined before <img> tags render.
+                         * Declared globally early in <head> so it's defined before img tags render.
                          */
                         window.handleImageError = function (img) {
                             if (!img.dataset.errorStage) {
@@ -156,9 +156,7 @@
 
                                     <h1 class="text-3xl md:text-5xl font-extrabold text-on-surface mb-6 leading-tight">
                                         Nông Sản Sạch <br>
-                                        <span
-                                            class="text-primary bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Hữu
-                                            Cơ Cao Cấp</span>
+                                        <span class="text-primary">Hữu Cơ Cao Cấp</span>
                                     </h1>
 
                                     <p
@@ -1134,110 +1132,7 @@
                                 </div>
 
                                 <!-- Beautiful Pagination Controls -->
-                                <c:if test="${totalPages > 1}">
-                                    <div class="flex justify-center items-center mt-12 gap-2">
-                                        <!-- Prev Button -->
-                                        <c:choose>
-                                            <c:when test="${currentPage > 1}">
-                                                <c:url var="prevUrl" value="/home">
-                                                    <c:param name="page" value="${currentPage - 1}" />
-                                                    <c:if test="${not empty keyword}">
-                                                        <c:param name="keyword" value="${keyword}" />
-                                                    </c:if>
-                                                    <c:if test="${not empty selectedCategoryId}">
-                                                        <c:param name="categoryId" value="${selectedCategoryId}" />
-                                                    </c:if>
-                                                </c:url>
-                                                <a href="${prevUrl}"
-                                                    class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                                    <span
-                                                        class="material-symbols-outlined text-[20px]">chevron_left</span>
-                                                </a>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span
-                                                    class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
-                                                    <span
-                                                        class="material-symbols-outlined text-[20px]">chevron_left</span>
-                                                </span>
-                                            </c:otherwise>
-                                        </c:choose>
-
-                                        <!-- Page Numbers with Ellipsis -->
-                                        <c:forEach var="p" begin="1" end="${totalPages}">
-                                            <c:choose>
-                                                <%-- Display conditions: first page, last page, and neighbor pages --%>
-                                                    <c:when
-                                                        test="${p == 1 || p == totalPages || (p >= currentPage - 1 && p <= currentPage + 1)}">
-                                                        <c:url var="pageUrl" value="/home">
-                                                            <c:param name="page" value="${p}" />
-                                                            <c:if test="${not empty keyword}">
-                                                                <c:param name="keyword" value="${keyword}" />
-                                                            </c:if>
-                                                            <c:if test="${not empty selectedCategoryId}">
-                                                                <c:param name="categoryId"
-                                                                    value="${selectedCategoryId}" />
-                                                            </c:if>
-                                                        </c:url>
-                                                        <c:choose>
-                                                            <c:when test="${currentPage == p}">
-                                                                <span
-                                                                    class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                                                                    ${p}
-                                                                </span>
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <a href="${pageUrl}"
-                                                                    class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                                                    ${p}
-                                                                </a>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                    </c:when>
-                                                    <%-- Ellipsis before active range --%>
-                                                        <c:when test="${p == 2 && currentPage > 3}">
-                                                            <button onclick="promptPageJump('${totalPages}')"
-                                                                class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer"
-                                                                title="Nhảy đến trang...">...</button>
-                                                        </c:when>
-                                                        <%-- Ellipsis after active range --%>
-                                                            <c:when
-                                                                test="${p == totalPages - 1 && currentPage < totalPages - 2}">
-                                                                <button onclick="promptPageJump('${totalPages}')"
-                                                                    class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer"
-                                                                    title="Nhảy đến trang...">...</button>
-                                                            </c:when>
-                                            </c:choose>
-                                        </c:forEach>
-
-                                        <!-- Next Button -->
-                                        <c:choose>
-                                            <c:when test="${currentPage < totalPages}">
-                                                <c:url var="nextUrl" value="/home">
-                                                    <c:param name="page" value="${currentPage + 1}" />
-                                                    <c:if test="${not empty keyword}">
-                                                        <c:param name="keyword" value="${keyword}" />
-                                                    </c:if>
-                                                    <c:if test="${not empty selectedCategoryId}">
-                                                        <c:param name="categoryId" value="${selectedCategoryId}" />
-                                                    </c:if>
-                                                </c:url>
-                                                <a href="${nextUrl}"
-                                                    class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                                    <span
-                                                        class="material-symbols-outlined text-[20px]">chevron_right</span>
-                                                </a>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span
-                                                    class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
-                                                    <span
-                                                        class="material-symbols-outlined text-[20px]">chevron_right</span>
-                                                </span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </div>
-                                </c:if>
+                                <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="${pageContext.request.contextPath}/home?keyword=${fn:escapeXml(keyword)}&categoryId=${selectedCategoryId}"/>
 
                                 <!-- View All Products Button -->
                                 <div class="flex justify-center mt-8">
@@ -1272,7 +1167,7 @@
 
                             <!-- Product Info Row -->
                             <div class="flex items-center gap-4 mb-5 bg-emerald-50/60 rounded-2xl p-3">
-                                <img id="qa-product-img" src="" alt=""
+                                <img id="qa-product-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt=""
                                     class="w-20 h-20 rounded-xl object-cover shrink-0 border border-emerald-100/50"
                                     onerror="handleImageError(this)">
                                 <div class="flex-grow min-w-0">
@@ -1868,55 +1763,6 @@
                             setTimeout(() => toast.classList.remove('show'), 3500);
                         }
 
-                        function promptPageJump(totalPages) {
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    title: 'Nhảy đến trang',
-                                    text: 'Nhập số trang muốn đến (1 - ' + totalPages + '):',
-                                    input: 'number',
-                                    inputAttributes: {
-                                        min: 1,
-                                        max: totalPages,
-                                        step: 1
-                                    },
-                                    inputValue: 1,
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Đồng ý',
-                                    cancelButtonText: 'Hủy',
-                                    confirmButtonColor: '#4d661c',
-                                    cancelButtonColor: '#6b7280',
-                                    background: '#ffffff',
-                                    inputValidator: (value) => {
-                                        if (!value) {
-                                            return 'Vui lòng nhập số trang!';
-                                        }
-                                        const page = parseInt(value);
-                                        if (isNaN(page) || page < 1 || page > totalPages) {
-                                            return 'Số trang phải từ 1 đến ' + totalPages + '!';
-                                        }
-                                    }
-                                }).then((result) => {
-                                    if (result.isConfirmed && result.value) {
-                                        const targetPage = parseInt(result.value);
-                                        const urlParams = new URLSearchParams(window.location.search);
-                                        urlParams.set('page', targetPage);
-                                        window.location.search = urlParams.toString();
-                                    }
-                                });
-                            } else {
-                                const targetPageStr = prompt("Nhập số trang bạn muốn chuyển đến (1 - " + totalPages + "):");
-                                if (targetPageStr !== null) {
-                                    const targetPage = parseInt(targetPageStr.trim());
-                                    if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
-                                        const urlParams = new URLSearchParams(window.location.search);
-                                        urlParams.set('page', targetPage);
-                                        window.location.search = urlParams.toString();
-                                    } else {
-                                        alert("Số trang không hợp lệ!");
-                                    }
-                                }
-                            }
-                        }
 
                         function scrollBestSellers(direction) {
                             const container = document.getElementById('bestSellersContainer');
@@ -2168,7 +2014,7 @@
                         window.handleHeroSearch = handleHeroSearch;
                         window.filterCategoryAjax = filterCategoryAjax;
                         window.searchProductsAjax = searchProductsAjax;
-                        window.promptPageJump = promptPageJump;
+
 
                         document.addEventListener('DOMContentLoaded', () => {
                             // Initialize Hero Slideshow

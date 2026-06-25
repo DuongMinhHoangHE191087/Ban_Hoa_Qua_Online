@@ -69,10 +69,13 @@ public class AdminProductServlet extends HttpServlet {
             // Gọi qua Service Layer thay vì trực tiếp DAO
             List<Product> products = productService.getAllAdminProducts(page, pageSize, approvalStatus);
             List<Category> categories = categoryService.getAllCategories();
+            int totalCount = productService.countAllAdminProducts(approvalStatus);
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
 
             req.setAttribute("products", products);
             req.setAttribute("categories", categories);
             req.setAttribute("currentPage", page);
+            req.setAttribute("totalPages", totalPages);
             req.setAttribute("paramApprovalStatus", approvalStatus);
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-products.jsp").forward(req, resp);

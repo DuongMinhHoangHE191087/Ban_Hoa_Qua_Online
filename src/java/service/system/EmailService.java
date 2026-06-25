@@ -24,6 +24,13 @@ import java.util.Properties;
  */
 public class EmailService {
 
+    private static final java.util.concurrent.ExecutorService emailExecutor = 
+        java.util.concurrent.Executors.newFixedThreadPool(4, r -> {
+            Thread t = new Thread(r, "app-email-executor");
+            t.setDaemon(true);
+            return t;
+        });
+
     private final EmailTemplateService templateService = new EmailTemplateService();
 
     // ── Convenience methods (nghiệp vụ cụ thể) ────────────────────────────
@@ -168,20 +175,21 @@ public class EmailService {
             throw new IllegalArgumentException("Nội dung không được để trống.");
         }
 
-        try {
-            Session session = buildSession();
-            MimeMessage message = buildMessage(session, toEmail, subject, htmlBody);
-            Transport transport = session.getTransport("smtp");
+        emailExecutor.submit(() -> {
             try {
-                transport.connect(AppConfig.EMAIL_SMTP_HOST, AppConfig.EMAIL_FROM, AppConfig.EMAIL_PASSWORD);
-                transport.sendMessage(message, message.getAllRecipients());
-                return true;
-            } finally {
-                if (transport.isConnected()) transport.close();
+                Session session = buildSession();
+                MimeMessage message = buildMessage(session, toEmail, subject, htmlBody);
+                try (Transport transport = session.getTransport("smtp")) {
+                    transport.connect(AppConfig.EMAIL_SMTP_HOST, AppConfig.EMAIL_FROM, AppConfig.EMAIL_PASSWORD);
+                    transport.sendMessage(message, message.getAllRecipients());
+                }
+            } catch (Exception e) {
+                java.util.logging.Logger.getLogger(EmailService.class.getName())
+                        .log(java.util.logging.Level.SEVERE, "Lỗi gửi email bất đồng bộ tới " + toEmail, e);
             }
-        } catch (MessagingException e) {
-            throw new SQLException("Không thể gửi email: " + e.getMessage(), e);
-        }
+        });
+
+        return true;
     }
 
     // ── Private helpers ────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
     <jsp:param name="pageTitle" value="Lịch sử đơn hàng" />
@@ -89,6 +90,25 @@
         -webkit-backdrop-filter: blur(16px);
         border: 1px solid rgba(255, 255, 255, 0.5);
         box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.05);
+    }
+    .pagination-wrapper { padding: 0 !important; }
+    .pagination { gap: 0.375rem !important; margin: 0.5rem 0 0 0 !important; display: flex; list-style: none; justify-content: center; }
+    .pagination .page-link {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;
+        font-size: 0.75rem; font-weight: 600;
+        border: 1px solid #e2ece7; background: #fff;
+        color: #374151; cursor: pointer; transition: all 0.15s;
+        text-decoration: none;
+    }
+    .pagination .page-item.active .page-link {
+        background: #4d661c; border-color: #4d661c; color: #fff;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
+    }
+    .pagination .page-item .page-link:hover:not(.disabled) {
+        background: #f1f5f9; border-color: #9ca3af;
     }
 </style>
 
@@ -268,6 +288,13 @@
 
             </div>
         </c:forEach>
+        
+        <c:if test="${totalPages > 1}">
+            <div class="mt-6 flex items-center justify-between bg-white/60 p-4 rounded-2xl border border-white/30 backdrop-blur-[8px]">
+                <span class="text-xs text-on-surface-variant font-medium">Trang ${currentPage} / ${totalPages}</span>
+                <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="${pageContext.request.contextPath}/orders?status=${fn:escapeXml(selectedStatus)}" />
+            </div>
+        </c:if>
 
         <c:if test="${empty orders}">
             <div class="text-center py-16 bg-white/50 premium-glass-card rounded-[2rem] border border-white/30">
