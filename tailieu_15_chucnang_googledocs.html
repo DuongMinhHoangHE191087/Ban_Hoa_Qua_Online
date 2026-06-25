@@ -172,20 +172,22 @@
             <li><strong>Bước 1 (Client - Trình duyệt):</strong> Chủ shop điền thông tin sản phẩm trên giao diện, thêm các biến thể phân loại (SKU, giá bán, trọng lượng), tải lên tệp tài liệu xác thực và các ảnh sản phẩm. Bấm nút "Lưu sản phẩm" (Request gửi đi dưới dạng <code>multipart/form-data</code>).</li>
             <li><strong>Bước 2 (Servlet - <code>ProductCreateServlet</code>):</strong>
                 <ul>
-                    <li>Thực hiện kiểm tra quyền đăng nhập và vai trò <code>SHOP_OWNER</code> của Session hiện tại.</li>
-                    <li>Sử dụng cấu hình <code>@MultipartConfig</code> để trích xuất các trường dữ liệu và file tải lên từ Request.</li>
-                    <li>Thực hiện validate dữ liệu đầu vào. Kiểm tra định dạng file tải lên (chỉ nhận ảnh: <code>jpg, jpeg, png, webp</code> và tài liệu: <code>pdf, docx, jpg, png</code>).</li>
+                    <li>Thực hiện kiểm tra quyền đăng nhập và vai trò <code>SHOP_OWNER</code> của Session hiện tại. <em>(Xem code Java nhãn <code>[Bước 2 - Kiểm tra đăng nhập và vai trò]</code>)</em></li>
+                    <li>Đọc các trường thông tin sản phẩm và danh sách các biến thể phân loại, tùy chọn đóng gói gửi lên từ form. <em>(Xem code Java nhãn <code>[Bước 2 - Đọc dữ liệu từ form request]</code>)</em></li>
+                    <li>Thực hiện validate dữ liệu đầu vào phía Server (kiểm tra rỗng, đúng định dạng số, giới hạn hạn sử dụng). <em>(Xem code Java nhãn <code>[Bước 2 - Validate dữ liệu phía Server]</code>)</em></li>
+                    <li>Đọc các file đính kèm và kiểm tra tính hợp lệ định dạng. <em>(Xem code Java nhãn <code>[Bước 2 - Đọc và validate file đính kèm]</code>)</em></li>
                 </ul>
             </li>
-            <li><strong>Bước 3 (Service/Util):</strong> Gọi <code>FileUploadUtil</code> ghi các file thực tế vào ổ đĩa trên máy chủ và trả về đường dẫn tương đối (relative path) phục vụ lưu DB.</li>
+            <li><strong>Bước 3 (Service/Util):</strong> Gọi <code>FileUploadUtil</code> ghi các file thực tế vào ổ đĩa trên máy chủ và trả về đường dẫn tương đối (relative path). <em>(Xem code Java nhãn <code>[Bước 3 - Ghi file vật lý lên server]</code>)</em></li>
             <li><strong>Bước 4 (DAO Layer - Bắt đầu Transaction):</strong>
                 <ul>
-                    <li>Gọi <code>ProductDAO.save()</code> chèn thông tin chung vào bảng <code>products</code> và lấy ra <code>product_id</code> tự động sinh.</li>
-                    <li>Gọi <code>ProductImageDAO.save()</code> cho từng file ảnh để lưu vào bảng <code>product_images</code>.</li>
-                    <li>Gọi <code>ProductVariantDAO.save()</code> để tạo các biến thể trong bảng <code>product_variants</code>.</li>
+                    <li>Gọi <code>ProductDAO.save()</code> chèn thông tin chung vào bảng <code>products</code> và lấy ra <code>product_id</code> tự động sinh. <em>(Xem code Java nhãn <code>[Bước 4 - Lưu thông tin sản phẩm chung]</code>)</em></li>
+                    <li>Gọi <code>ProductImageDAO.save()</code> cho từng file ảnh để lưu vào bảng <code>product_images</code> (ảnh đầu tiên là ảnh chính). <em>(Xem code Java nhãn <code>[Bước 4 - Lưu danh sách hình ảnh]</code>)</em></li>
+                    <li>Gọi <code>ProductVariantDAO.save()</code> để tạo các biến thể trong bảng <code>product_variants</code>. <em>(Xem code Java nhãn <code>[Bước 4 - Lưu danh sách phân loại biến thể]</code>)</em></li>
+                    <li>Gọi <code>ProductPackagingOptionDAO.save()</code> để lưu các tùy chọn đóng gói đi kèm. <em>(Xem code Java nhãn <code>[Bước 4 - Lưu danh sách tùy chọn đóng gói]</code>)</em></li>
                 </ul>
             </li>
-            <li><strong>Bước 5 (Database):</strong> Ghi nhận dữ liệu thành công, commit transaction và redirect về trang danh sách sản phẩm (PRG Pattern).</li>
+            <li><strong>Bước 5 (Database &amp; Response):</strong> Ghi nhận dữ liệu thành công, redirect về trang danh sách sản phẩm và hiển thị thông điệp thành công. <em>(Xem code Java nhãn <code>[Bước 5 - Trả về phản hồi và redirect]</code>)</em></li>
         </ul>
 
         <h3>3. Các câu lệnh SQL chính</h3>
@@ -200,6 +202,165 @@ VALUES (?, ?, ?, ?);
 -- 3. Thêm mới các biến thể của sản phẩm
 INSERT INTO product_variants (product_id, sku, variant_label, price, stock_quantity, weight_kg, discount_price, discount_start, discount_end, is_active) 
 VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, 1);</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// ProductCreateServlet.java - Phương thức doPost() xử lý luồng thêm mới sản phẩm hoàn chỉnh
+@Override
+protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+    req.setCharacterEncoding("UTF-8");
+    resp.setContentType("text/html;charset=UTF-8");
+    resp.setCharacterEncoding("UTF-8");
+
+    // [Bước 2 - Kiểm tra đăng nhập và vai trò]: Xác thực Session của người dùng hiện hành
+    HttpSession session = req.getSession();
+    User currentUser = SessionUtil.getCurrentUser(session);
+    if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
+        resp.sendRedirect(req.getContextPath() + "/auth/login");
+        return;
+    }
+
+    // [Bước 2 - Đọc dữ liệu từ form request]: Đọc các thông tin văn bản và mảng phân loại
+    String name = req.getParameter("name");
+    String description = req.getParameter("description");
+    String originCountry = req.getParameter("originCountry");
+    String originRegion = req.getParameter("originRegion");
+    String harvestDateStr = req.getParameter("harvestDate");
+    String shelfLifeStr = req.getParameter("shelfLifeDays");
+    String storageInstruction = req.getParameter("storageInstruction");
+    String categoryIdStr = req.getParameter("categoryId");
+    boolean isOrganic = req.getParameter("isOrganic") != null;
+    boolean isImported = req.getParameter("isImported") != null;
+    
+    String[] variantLabels = req.getParameterValues("variantLabel");
+    String[] variantPrices = req.getParameterValues("variantPrice");
+    String[] variantWeights = req.getParameterValues("variantWeight");
+    String[] variantDiscountPrices = req.getParameterValues("variantDiscountPrice");
+    String[] variantDiscountStarts = req.getParameterValues("variantDiscountStart");
+    String[] variantDiscountEnds = req.getParameterValues("variantDiscountEnd");
+    
+    String[] packagingLabels = req.getParameterValues("packagingLabel");
+    String[] packagingPriceAdds = req.getParameterValues("packagingPriceAdd");
+
+    List<String> errors = new ArrayList<>();
+    // [Bước 2 - Validate dữ liệu phía Server]: Kiểm tra tính hợp lệ của dữ liệu trước khi lưu
+    if (name == null || name.trim().isEmpty()) {
+        errors.add("Tên sản phẩm không được để trống.");
+    }
+    int categoryId = 0;
+    try {
+        categoryId = Integer.parseInt(categoryIdStr);
+    } catch (NumberFormatException e) {
+        errors.add("Vui lòng chọn danh mục hợp lệ.");
+    }
+    if (variantLabels == null || variantLabels.length == 0) {
+        errors.add("Sản phẩm phải có ít nhất một phân loại/biến thể.");
+    }
+
+    // [Bước 2 - Đọc và validate file đính kèm]: Đọc các file ảnh và tài liệu đính kèm
+    List<Part> imageParts = new ArrayList<>();
+    Part verificationDocPart = null;
+    try {
+        verificationDocPart = req.getPart("verificationDoc");
+        if (verificationDocPart == null || verificationDocPart.getSize() == 0) {
+            errors.add("Vui lòng tải lên giấy tờ xác nhận nguồn gốc nông sản.");
+        }
+        for (Part part : req.getParts()) {
+            if ("images".equals(part.getName()) && part.getSize() > 0) {
+                imageParts.add(part);
+            }
+        }
+    } catch (Exception e) {
+        errors.add("Lỗi đọc tệp tải lên: " + e.getMessage());
+    }
+
+    if (!errors.isEmpty()) {
+        SessionUtil.flashError(session, String.join("<br>", errors));
+        resp.sendRedirect(req.getContextPath() + "/shop/products");
+        return;
+    }
+
+    try {
+        String uploadDir = getServletContext().getRealPath("");
+        // [Bước 3 - Ghi file vật lý lên server]: Lưu giấy tờ chứng nhận và trả về đường dẫn tương đối
+        String docPath = FileUploadUtil.saveShopDoc(verificationDocPart, uploadDir, currentUser.getUserId());
+
+        Product p = new Product();
+        p.setOwnerId(currentUser.getUserId());
+        p.setCategoryId(categoryId);
+        p.setName(name.trim());
+        p.setDescription(description != null ? description.trim() : null);
+        p.setOriginCountry(originCountry != null ? originCountry.trim() : null);
+        p.setOriginRegion(originRegion != null ? originRegion.trim() : null);
+        p.setHarvestDate(harvestDateStr != null && !harvestDateStr.trim().isEmpty() ? LocalDate.parse(harvestDateStr) : null);
+        p.setShelfLifeDays(shelfLifeStr != null && !shelfLifeStr.trim().isEmpty() ? Integer.parseInt(shelfLifeStr) : null);
+        p.setStorageInstruction(storageInstruction != null ? storageInstruction.trim() : null);
+        p.setStatus("ACTIVE");
+        p.setIsOrganic(isOrganic);
+        p.setIsImported(isImported);
+        p.setVerificationDocPath(docPath);
+        
+        String autoApproveVal = systemConfigDAO.getValue("product_auto_approve");
+        p.setApprovalStatus("true".equalsIgnoreCase(autoApproveVal) ? "APPROVED" : "PENDING");
+
+        // [Bước 4 - Lưu thông tin sản phẩm chung]: Lưu vào bảng products
+        int productId = productDAO.save(p);
+
+        // [Bước 4 - Lưu danh sách hình ảnh]: Gọi DAO lưu thông tin file ảnh tương ứng sản phẩm
+        int imageIndex = 0;
+        for (Part part : imageParts) {
+            String relativePath = FileUploadUtil.save(part, uploadDir);
+            if (relativePath != null) {
+                ProductImage img = new ProductImage();
+                img.setProductId(productId);
+                img.setFilePath(relativePath);
+                img.setDisplayOrder(imageIndex);
+                img.setIsPrimary(imageIndex == 0);
+                productImageDAO.save(img);
+                imageIndex++;
+            }
+        }
+
+        // [Bước 4 - Lưu danh sách phân loại biến thể]: Lưu các phân loại biến thể sản phẩm
+        if (variantLabels != null) {
+            for (int i = 0; i < variantLabels.length; i++) {
+                ProductVariant variant = new ProductVariant();
+                variant.setProductId(productId);
+                variant.setSku("SP-" + productId + "-" + (i + 1));
+                variant.setVariantLabel(variantLabels[i].trim());
+                variant.setPrice(new BigDecimal(variantPrices[i].trim()));
+                variant.setStockQuantity(0); 
+                variant.setWeightKg(new BigDecimal(variantWeights[i].trim()));
+                variant.setIsActive(true);
+                productVariantDAO.save(variant);
+            }
+        }
+
+        // [Bước 4 - Lưu danh sách tùy chọn đóng gói]: Lưu các tùy chọn đóng gói đi kèm
+        if (packagingLabels != null) {
+            dao.catalog.ProductPackagingOptionDAO ppoDAO = new dao.catalog.ProductPackagingOptionDAO();
+            for (int i = 0; i < packagingLabels.length; i++) {
+                String pLabel = packagingLabels[i];
+                if (pLabel != null && !pLabel.trim().isEmpty()) {
+                    model.entity.catalog.ProductPackagingOption option = new model.entity.catalog.ProductPackagingOption();
+                    option.setProductId(productId);
+                    option.setLabel(pLabel.trim());
+                    option.setPriceAdd(new BigDecimal(packagingPriceAdds[i].trim()));
+                    option.setIsActive(true);
+                    ppoDAO.save(option);
+                }
+            }
+        }
+
+        // [Bước 5 - Trả về phản hồi và redirect]: Chuyển hướng người dùng và lưu flash message thành công
+        SessionUtil.flashSuccess(session, "Thêm sản phẩm mới thành công!");
+        resp.sendRedirect(req.getContextPath() + "/shop/products");
+
+    } catch (SQLException e) {
+        SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi thêm mới sản phẩm: " + e.getMessage());
+        resp.sendRedirect(req.getContextPath() + "/shop/products");
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 2 -->
@@ -222,18 +383,20 @@ VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, 1);</code></pre>
             <li><strong>Bước 1 (Client):</strong> Chủ shop bấm nút "Sửa" trên giao diện danh sách. Hệ thống gửi yêu cầu GET lên <code>/shop/product-edit?productId=X</code>. Giao diện hiển thị form chứa toàn bộ thông tin sản phẩm cũ được lấy ra từ Database.</li>
             <li><strong>Bước 2 (Servlet - <code>ProductEditServlet</code>):</strong>
                 <ul>
-                    <li>Xác thực vai trò Shop Owner và quyền sở hữu sản phẩm.</li>
-                    <li>Đọc các tham số mới thay đổi từ form gửi lên (POST).</li>
-                    <li>Validate tính hợp lệ của dữ liệu đầu vào.</li>
+                    <li>Xác thực vai trò Shop Owner và quyền sở hữu sản phẩm hiện hành. <em>(Xem code Java nhãn <code>[Bước 2 - Auth &amp; Owner Check]</code>)</em></li>
+                    <li>Đọc các tham số mới thay đổi từ form gửi lên (POST). <em>(Xem code Java nhãn <code>[Bước 2 - Đọc tham số cập nhật]</code>)</em></li>
+                    <li>Validate tính hợp lệ của dữ liệu đầu vào. <em>(Xem code Java nhãn <code>[Bước 2 - Validate dữ liệu cập nhật]</code>)</em></li>
                 </ul>
             </li>
             <li><strong>Bước 3 (DAO Layer):</strong>
                 <ul>
-                    <li>Gọi <code>ProductDAO.update()</code> cập nhật các thông tin mô tả chung của sản phẩm trong bảng <code>products</code>.</li>
-                    <li>Gọi <code>ProductVariantDAO.update()</code> để cập nhật giá hoặc cân nặng cho các biến thể cũ, hoặc gọi <code>save()</code> nếu chủ shop thêm mới phân loại biến thể.</li>
+                    <li>Gọi <code>ProductDAO.update()</code> cập nhật các thông tin mô tả chung của sản phẩm trong bảng <code>products</code>. <em>(Xem code Java nhãn <code>[Bước 3 - Cập nhật thông tin chung sản phẩm]</code>)</em></li>
+                    <li>Tìm các phân loại cũ bị xóa trên giao diện để gọi <code>ProductVariantDAO.deactivate()</code> (soft-delete). <em>(Xem code Java nhãn <code>[Bước 3 - Soft-delete biến thể bị bỏ]</code>)</em></li>
+                    <li>Duyệt danh sách biến thể gửi lên: Nếu là biến thể mới (chưa có ID) thì gọi <code>ProductVariantDAO.save()</code>, nếu là biến thể cũ thì gọi <code>ProductVariantDAO.update()</code>. <em>(Xem code Java nhãn <code>[Bước 3 - Cập nhật hoặc lưu biến thể mới/cũ]</code>)</em></li>
+                    <li>Đồng bộ danh sách bao bì đóng gói: cập nhật, lưu mới và xóa các bao bì đóng gói không còn giữ lại. <em>(Xem code Java nhãn <code>[Bước 3 - Cập nhật danh sách bao bì đóng gói]</code>)</em></li>
                 </ul>
             </li>
-            <li><strong>Bước 4 (Database & Redirect):</strong> Cập nhật dữ liệu vào cơ sở dữ liệu, ghi nhận thay đổi, lưu thông điệp thành công vào HTTP Session và redirect người dùng (PRG Pattern) về danh sách sản phẩm.</li>
+            <li><strong>Bước 4 (Database &amp; Redirect):</strong> Cập nhật dữ liệu vào cơ sở dữ liệu, ghi nhận thay đổi, lưu thông điệp thành công vào HTTP Session và redirect người dùng (PRG Pattern) về danh sách sản phẩm. <em>(Xem code Java nhãn <code>[Bước 4 - Trả về phản hồi và redirect]</code>)</em></li>
         </ul>
 
         <h3>3. Các câu lệnh SQL chính</h3>
@@ -246,6 +409,204 @@ WHERE product_id = ? AND owner_id = ?;
 UPDATE product_variants 
 SET variant_label = ?, price = ?, weight_kg = ?, discount_price = ?, discount_start = ?, discount_end = ?, updated_at = GETDATE()
 WHERE variant_id = ? AND product_id = ?;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// ProductEditServlet.java - Phương thức doPost() cập nhật thông tin sản phẩm và các biến thể phân loại cũ/mới
+@Override
+protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+    req.setCharacterEncoding("UTF-8");
+    resp.setCharacterEncoding("UTF-8");
+
+    // [Bước 2 - Auth & Owner Check]: Xác thực quyền chủ shop và kiểm tra sự tồn tại của sản phẩm
+    HttpSession session = req.getSession();
+    User currentUser = SessionUtil.getCurrentUser(session);
+    if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
+        resp.sendRedirect(req.getContextPath() + "/auth/login");
+        return;
+    }
+
+    int productId = Integer.parseInt(req.getParameter("id").trim());
+    try {
+        Product p = productDAO.findOneById(productId);
+        if (p == null || p.getOwnerId() != currentUser.getUserId() || "DELETED".equals(p.getStatus())) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền chỉnh sửa sản phẩm này.");
+            return;
+        }
+
+        // [Bước 2 - Đọc tham số cập nhật]: Đọc các trường thuộc tính mới
+        String name = req.getParameter("name");
+        String description = req.getParameter("description");
+        String originCountry = req.getParameter("originCountry");
+        String originRegion = req.getParameter("originRegion");
+        String harvestDateStr = req.getParameter("harvestDate");
+        String shelfLifeStr = req.getParameter("shelfLifeDays");
+        String storageInstruction = req.getParameter("storageInstruction");
+        String categoryIdStr = req.getParameter("categoryId");
+        String status = req.getParameter("status");
+        boolean isOrganic = req.getParameter("isOrganic") != null;
+        boolean isImported = req.getParameter("isImported") != null;
+
+        String[] variantIds = req.getParameterValues("variantId");
+        String[] variantLabels = req.getParameterValues("variantLabel");
+        String[] variantPrices = req.getParameterValues("variantPrice");
+        String[] variantWeights = req.getParameterValues("variantWeight");
+        String[] variantDiscountPrices = req.getParameterValues("variantDiscountPrice");
+        String[] variantDiscountStarts = req.getParameterValues("variantDiscountStart");
+        String[] variantDiscountEnds = req.getParameterValues("variantDiscountEnd");
+
+        String[] packagingIds = req.getParameterValues("packagingId");
+        String[] packagingLabels = req.getParameterValues("packagingLabel");
+        String[] packagingPriceAdds = req.getParameterValues("packagingPriceAdd");
+
+        // [Bước 2 - Validate dữ liệu cập nhật]: Thực hiện validate thông tin cập nhật
+        List<String> errors = new ArrayList<>();
+        if (name == null || name.trim().isEmpty()) {
+            errors.add("Tên sản phẩm không được để trống.");
+        }
+        if (variantLabels == null || variantLabels.length == 0) {
+            errors.add("Sản phẩm phải có ít nhất một phân loại/biến thể.");
+        }
+
+        if (!errors.isEmpty()) {
+            SessionUtil.flashError(session, String.join("<br>", errors));
+            resp.sendRedirect(req.getContextPath() + "/shop/products");
+            return;
+        }
+
+        // [Bước 3 - Cập nhật thông tin chung sản phẩm]: Lưu lại cập nhật sản phẩm vào DB
+        p.setName(name.trim());
+        p.setDescription(description != null ? description.trim() : null);
+        p.setCategoryId(Integer.parseInt(categoryIdStr));
+        p.setOriginCountry(originCountry != null ? originCountry.trim() : null);
+        p.setOriginRegion(originRegion != null ? originRegion.trim() : null);
+        p.setHarvestDate(harvestDateStr != null && !harvestDateStr.trim().isEmpty() ? LocalDate.parse(harvestDateStr) : null);
+        p.setShelfLifeDays(shelfLifeStr != null && !shelfLifeStr.trim().isEmpty() ? Integer.parseInt(shelfLifeStr) : null);
+        p.setStorageInstruction(storageInstruction != null ? storageInstruction.trim() : null);
+        p.setStatus(status);
+        p.setIsOrganic(isOrganic);
+        p.setIsImported(isImported);
+
+        productDAO.update(p);
+
+        List<ProductVariant> existingVariants = productVariantDAO.findByProduct(productId);
+        Map<Integer, ProductVariant> existingVariantMap = new java.util.LinkedHashMap<>();
+        if (existingVariants != null) {
+            for (ProductVariant ev : existingVariants) {
+                existingVariantMap.put(ev.getVariantId(), ev);
+            }
+        }
+
+        Set<Integer> submittedIds = new HashSet<>();
+        if (variantIds != null) {
+            for (String vidStr : variantIds) {
+                if (vidStr != null && !vidStr.trim().isEmpty()) {
+                    submittedIds.add(Integer.parseInt(vidStr.trim()));
+                }
+            }
+        }
+
+        // [Bước 3 - Soft-delete biến thể bị bỏ]: Hủy kích hoạt biến thể không gửi lên
+        if (existingVariants != null) {
+            for (ProductVariant ev : existingVariants) {
+                if (!submittedIds.contains(ev.getVariantId())) {
+                    productVariantDAO.deactivate(ev.getVariantId());
+                }
+            }
+        }
+
+        // [Bước 3 - Cập nhật hoặc lưu biến thể mới/cũ]: Cập nhật hoặc lưu mới các biến thể
+        if (variantLabels != null) {
+            for (int i = 0; i < variantLabels.length; i++) {
+                String label = variantLabels[i].trim();
+                BigDecimal price = new BigDecimal(variantPrices[i].trim());
+                BigDecimal weight = new BigDecimal(variantWeights[i].trim());
+
+                Integer currentVid = null;
+                if (variantIds != null && variantIds.length > i && variantIds[i] != null && !variantIds[i].trim().isEmpty()) {
+                    currentVid = Integer.parseInt(variantIds[i].trim());
+                }
+
+                if (currentVid == null || currentVid == 0) {
+                    ProductVariant v = new ProductVariant();
+                    v.setProductId(productId);
+                    v.setSku("SP-" + productId + "-" + System.currentTimeMillis() + "-" + i);
+                    v.setVariantLabel(label);
+                    v.setPrice(price);
+                    v.setStockQuantity(0);
+                    v.setWeightKg(weight);
+                    v.setIsActive(true);
+                    productVariantDAO.save(v);
+                } else {
+                    ProductVariant v = existingVariantMap.get(currentVid);
+                    if (v != null) {
+                        v.setVariantLabel(label);
+                        v.setPrice(price);
+                        v.setWeightKg(weight);
+                        productVariantDAO.update(v);
+                    }
+                }
+            }
+        }
+
+        // [Bước 3 - Cập nhật danh sách bao bì đóng gói]: Lưu mới, cập nhật hoặc xóa các tùy chọn bao bì
+        ProductPackagingOptionDAO ppoDAO = new ProductPackagingOptionDAO();
+        List<ProductPackagingOption> existingPackagings = ppoDAO.findByProduct(productId);
+        Map<Integer, ProductPackagingOption> existingPackagingMap = new java.util.LinkedHashMap<>();
+        if (existingPackagings != null) {
+            for (ProductPackagingOption option : existingPackagings) {
+                existingPackagingMap.put(option.getPackagingId(), option);
+            }
+        }
+
+        List<Integer> keepPackagingIds = new ArrayList<>();
+        if (packagingLabels != null) {
+            for (int i = 0; i < packagingLabels.length; i++) {
+                String pLabel = packagingLabels[i];
+                if (pLabel != null && !pLabel.trim().isEmpty()) {
+                    BigDecimal priceAdd = new BigDecimal(packagingPriceAdds[i].trim());
+                    Integer currentPpid = null;
+                    if (packagingIds != null && packagingIds.length > i && packagingIds[i] != null && !packagingIds[i].trim().isEmpty()) {
+                        currentPpid = Integer.parseInt(packagingIds[i].trim());
+                    }
+
+                    if (currentPpid == null || currentPpid == 0) {
+                        ProductPackagingOption option = new ProductPackagingOption();
+                        option.setProductId(productId);
+                        option.setLabel(pLabel.trim());
+                        option.setPriceAdd(priceAdd);
+                        option.setIsActive(true);
+                        int newId = ppoDAO.save(option);
+                        keepPackagingIds.add(newId);
+                    } else {
+                        ProductPackagingOption option = existingPackagingMap.get(currentPpid);
+                        if (option != null) {
+                            option.setLabel(pLabel.trim());
+                            option.setPriceAdd(priceAdd);
+                            ppoDAO.update(option);
+                            keepPackagingIds.add(currentPpid);
+                        }
+                    }
+                }
+            }
+        }
+        ppoDAO.deleteByProductExcept(productId, keepPackagingIds);
+
+        // [Bước 4 - Trả về phản hồi và redirect]: Lưu thông điệp thành công và chuyển hướng về danh sách
+        SessionUtil.flashSuccess(session, "Cập nhật sản phẩm thành công!");
+        resp.sendRedirect(req.getContextPath() + "/shop/products");
+
+    } catch (SQLException e) {
+        SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage());
+        resp.sendRedirect(req.getContextPath() + "/shop/products");
+    }
+}
+
+    } catch (SQLException e) {
+        SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage());
+        resp.sendRedirect(req.getContextPath() + "/shop/products");
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 3 -->
@@ -274,10 +635,12 @@ WHERE variant_id = ? AND product_id = ?;</code></pre>
             </li>
             <li><strong>Bước 3 (DAO Layer & Database Transaction):</strong> Thực thi đồng thời trong một Transaction:
                 <ul>
-                    <li>Cập nhật cột <code>status</code> của sản phẩm thành <code>'DELETED'</code>.</li>
-                    <li>Hủy kích hoạt toàn bộ các biến thể của sản phẩm này (gán <code>is_active = 0</code>).</li>
-                    <li>Xóa sản phẩm này khỏi giỏ hàng hiện tại của khách hàng trong bảng <code>cart_items</code> để ngăn chặn việc checkout sản phẩm đã xóa.</li>
-                    <li>Hủy kích hoạt các khuyến mãi liên quan riêng tới sản phẩm.</li>
+                    <li>Bắt đầu Transaction và xóa mềm sản phẩm. <em>(Xem code Java nhãn <code>[Bước 3 - Bắt đầu Transaction và xóa mềm sản phẩm]</code>)</em>.</li>
+                    <li>Xóa sản phẩm này khỏi giỏ hàng hiện tại của khách hàng trong bảng <code>cart_items</code>. <em>(Xem code Java nhãn <code>[Bước 3 - Xóa sản phẩm khỏi giỏ hàng]</code>)</em>.</li>
+                    <li>Hủy kích hoạt toàn bộ các biến thể của sản phẩm này (gán <code>is_active = 0</code>). <em>(Xem code Java nhãn <code>[Bước 3 - Hủy kích hoạt biến thể]</code>)</em>.</li>
+                    <li>Hủy kích hoạt các khuyến mãi liên quan riêng tới sản phẩm. <em>(Xem code Java nhãn <code>[Bước 3 - Hủy khuyến mãi liên quan]</code>)</em>.</li>
+                    <li>Cập nhật cột <code>status</code> của sản phẩm thành <code>'DELETED'</code>. <em>(Xem code Java nhãn <code>[Bước 3 - Cập nhật status sản phẩm]</code>)</em>.</li>
+                    <li>Commit Transaction để hoàn tất thay đổi. <em>(Xem code Java nhãn <code>[Bước 3 - Commit Transaction]</code>)</em>.</li>
                 </ul>
             </li>
             <li><strong>Bước 4 (Response):</strong> Trả về phản hồi JSON báo thành công (HTTP 200). JavaScript ở Client ẩn dòng sản phẩm trên giao diện danh sách mà không cần tải lại toàn bộ trang.</li>
@@ -293,6 +656,47 @@ UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_
 
 -- 3. Xóa sản phẩm khỏi giỏ hàng của khách hàng
 DELETE FROM cart_items WHERE variant_id IN (SELECT variant_id FROM product_variants WHERE product_id = ?);</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// ProductDAO.java - Xóa mềm sản phẩm và xử lý giỏ hàng/biến thể liên quan trong Transaction
+public void deleteProduct(int productId) throws SQLException {
+    String updateProductSql = "UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?";
+    String updateVariantsSql = "UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?";
+    String deleteCartSql = "DELETE FROM cart_items WHERE variant_id IN (SELECT variant_id FROM product_variants WHERE product_id = ?)";
+    String updatePromotionsSql = "UPDATE promotions SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?";
+    
+    // [Bước 3 - Bắt đầu Transaction và xóa mềm sản phẩm]: Khởi tạo Transaction bằng cách set AutoCommit = false
+    try (Connection conn = getConnection()) {
+        conn.setAutoCommit(false);
+        try (PreparedStatement psCart = conn.prepareStatement(deleteCartSql);
+             PreparedStatement psVar = conn.prepareStatement(updateVariantsSql);
+             PreparedStatement psProm = conn.prepareStatement(updatePromotionsSql);
+             PreparedStatement psProd = conn.prepareStatement(updateProductSql)) {
+            
+            // [Bước 3 - Xóa sản phẩm khỏi giỏ hàng]: Xóa sản phẩm khỏi giỏ hàng của tất cả khách hàng
+            psCart.setInt(1, productId);
+            psCart.executeUpdate();
+            
+            // [Bước 3 - Hủy kích hoạt biến thể]: Tắt hoạt động toàn bộ biến thể sản phẩm
+            psVar.setInt(1, productId);
+            psVar.executeUpdate();
+            
+            // [Bước 3 - Hủy khuyến mãi liên quan]: Tắt hoạt động các khuyến mãi áp dụng riêng cho sản phẩm này
+            psProm.setInt(1, productId);
+            psProm.executeUpdate();
+            
+            // [Bước 3 - Cập nhật status sản phẩm]: Cập nhật status sản phẩm thành DELETED
+            psProd.setInt(1, productId);
+            psProd.executeUpdate();
+            
+            // [Bước 3 - Commit Transaction]: Xác nhận các thay đổi dữ liệu thành công
+            conn.commit();
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        }
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 4 -->
@@ -321,7 +725,7 @@ DELETE FROM cart_items WHERE variant_id IN (SELECT variant_id FROM product_varia
                     <li>Gọi <code>ProductDAO.updateStatus(productId, targetStatus)</code>.</li>
                 </ul>
             </li>
-            <li><strong>Bước 3 (DAO Layer & Database):</strong> Thực hiện câu lệnh SQL cập nhật cột <code>status</code> trong bảng <code>products</code>.</li>
+            <li><strong>Bước 3 (DAO Layer & Database):</strong> Thực hiện câu lệnh SQL cập nhật cột <code>status</code> trong bảng <code>products</code>. <em>(Xem code Java nhãn <code>[Bước 3 - Cập nhật trạng thái hiển thị của sản phẩm]</code>)</em>.</li>
             <li><strong>Bước 4 (Response):</strong> Phản hồi JSON báo thành công. JavaScript ở client đổi màu nút switch hiển thị tương ứng.</li>
         </ul>
 
@@ -330,6 +734,19 @@ DELETE FROM cart_items WHERE variant_id IN (SELECT variant_id FROM product_varia
 UPDATE products 
 SET status = ?, updated_at = GETDATE() 
 WHERE product_id = ?;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// ProductDAO.java - Cập nhật trạng thái hiển thị của sản phẩm (ACTIVE / INACTIVE)
+public void updateStatus(int productId, String status) throws SQLException {
+    String sql = "UPDATE products SET status = ?, updated_at = GETDATE() WHERE product_id = ?";
+    // [Bước 3 - Cập nhật trạng thái hiển thị của sản phẩm]: Thực thi cập nhật status cho sản phẩm trong DB
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, status);
+        ps.setInt(2, productId);
+        ps.executeUpdate();
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 5 -->
@@ -353,11 +770,12 @@ WHERE product_id = ?;</code></pre>
             <li><strong>Đặt ảnh chính (Set Primary):</strong>
                 <ul>
                     <li>Client gửi request AJAX <code>action=set-primary</code> kèm <code>imageId</code> và <code>productId</code>.</li>
-                    <li>DAO thực hiện Transaction: Đưa thuộc tính <code>is_primary = 0</code> cho toàn bộ ảnh của sản phẩm đó, rồi đổi <code>is_primary = 1</code> riêng cho <code>imageId</code> được chọn.</li>
+                    <li>DAO thực hiện Transaction: Đưa thuộc tính <code>is_primary = 0</code> cho toàn bộ ảnh của sản phẩm đó. <em>(Xem code Java nhãn <code>[Bước 2 - Reset toàn bộ ảnh sản phẩm về ảnh phụ]</code>)</em>.</li>
+                    <li>Sau đó đổi <code>is_primary = 1</code> riêng cho <code>imageId</code> được chọn. <em>(Xem code Java nhãn <code>[Bước 2 - Thiết lập ảnh được chọn làm ảnh chính]</code>)</em>.</li>
                 </ul>
             </li>
-            <li><strong>Sắp xếp ảnh (Reorder):</strong> Client gửi danh sách ID ảnh đã sắp xếp bằng kéo thả (ví dụ: <code>15,12,14</code>). Servlet duyệt qua mảng và cập nhật giá trị <code>display_order</code> tăng dần của từng ảnh trong DB.</li>
-            <li><strong>Xóa ảnh:</strong> Client gửi request AJAX <code>action=delete-image</code>. Servlet tìm đường dẫn file vật lý trên server, gọi <code>FileUploadUtil.delete()</code> để xóa file trên ổ cứng, và gọi DAO xóa dòng dữ liệu tương ứng trong bảng <code>product_images</code>.</li>
+            <li><strong>Sắp xếp ảnh (Reorder):</strong> Client gửi danh sách ID ảnh đã sắp xếp bằng kéo thả (ví dụ: <code>15,12,14</code>). Servlet duyệt qua mảng và cập nhật giá trị <code>display_order</code> tăng dần của từng ảnh trong DB. <em>(Xem code Java nhãn <code>[Bước 2 - Cập nhật thứ tự hiển thị của ảnh]</code>)</em>.</li>
+            <li><strong>Xóa ảnh:</strong> Client gửi request AJAX <code>action=delete-image</code>. Servlet tìm đường dẫn file vật lý trên server, gọi <code>FileUploadUtil.delete()</code> để xóa file trên ổ cứng, và gọi DAO xóa dòng dữ liệu tương ứng trong bảng <code>product_images</code>. <em>(Xem code Java nhãn <code>[Bước 2 - Xóa ảnh sản phẩm khỏi database]</code>)</em>.</li>
         </ul>
 
         <h3>3. Các câu lệnh SQL chính</h3>
@@ -371,6 +789,58 @@ UPDATE product_images SET display_order = ? WHERE image_id = ?;
 
 -- 4. Xóa ảnh khỏi database
 DELETE FROM product_images WHERE image_id = ?;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// ProductImageDAO.java - Thiết lập ảnh chính, xóa ảnh và cập nhật thứ tự sắp xếp ảnh
+// 1. Thiết lập một ảnh làm ảnh chính đại diện (is_primary = 1) và đặt tất cả ảnh khác thành ảnh phụ (is_primary = 0)
+public void setPrimary(int imageId, int productId) throws SQLException {
+    String sqlReset = "UPDATE product_images SET is_primary = 0 WHERE product_id = ?";
+    String sqlSet = "UPDATE product_images SET is_primary = 1 WHERE image_id = ?";
+    try (Connection conn = getConnection()) {
+        conn.setAutoCommit(false);
+        try (PreparedStatement psReset = conn.prepareStatement(sqlReset);
+             PreparedStatement psSet = conn.prepareStatement(sqlSet)) {
+            
+            // [Bước 2 - Reset toàn bộ ảnh sản phẩm về ảnh phụ]: Cập nhật is_primary = 0 cho toàn bộ ảnh của sản phẩm
+            psReset.setInt(1, productId);
+            psReset.executeUpdate();
+            
+            // [Bước 2 - Thiết lập ảnh được chọn làm ảnh chính]: Cập nhật is_primary = 1 cho ảnh cụ thể
+            psSet.setInt(1, imageId);
+            psSet.executeUpdate();
+            
+            conn.commit();
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+}
+
+// 2. Cập nhật thứ tự sắp xếp hiển thị của ảnh sản phẩm
+public void updateDisplayOrder(int imageId, int order) throws SQLException {
+    String sql = "UPDATE product_images SET display_order = ? WHERE image_id = ?";
+    // [Bước 2 - Cập nhật thứ tự hiển thị của ảnh]: Thực thi câu lệnh SQL cập nhật cột display_order
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setInt(1, order);
+        ps.setInt(2, imageId);
+        ps.executeUpdate();
+    }
+}
+
+// 3. Xóa ảnh sản phẩm khỏi database
+public void delete(int imageId) throws SQLException {
+    String sql = "DELETE FROM product_images WHERE image_id = ?";
+    // [Bước 2 - Xóa ảnh sản phẩm khỏi database]: Thực thi câu lệnh SQL xóa dòng ảnh
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setInt(1, imageId);
+        ps.executeUpdate();
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 6 -->
@@ -387,17 +857,18 @@ DELETE FROM product_images WHERE image_id = ?;</code></pre>
         <h3>2. Luồng hoạt động chi tiết</h3>
         <ul>
             <li><strong>Bước 1 (Giao dịch thành công):</strong> Khách hàng hoàn tất thanh toán giỏ hàng trực tuyến hoặc chọn COD. Hệ thống xử lý đặt hàng tại lớp <code>CheckoutService</code> và lưu đơn hàng thành công vào Database.</li>
-            <li><strong>Bước 2 (Thông báo cho Khách hàng):</strong>
+            <li><strong>Bước 2 (Thông báo cho Khách hàng - Đơn shop đơn lẻ):</strong>
                 <ul>
-                    <li>Ghi nhận một thông báo in-app loại <code>'ORDER_UPDATE'</code> vào bảng <code>notifications</code> cho khách hàng: *"Đặt hàng thành công đơn hàng #X"*.</li>
-                    <li>Gọi <code>EmailService.sendOrderNotificationEmail()</code> gửi thư điện tử báo hóa đơn đơn hàng chi tiết về hòm thư của khách hàng.</li>
+                    <li>Ghi nhận một thông báo in-app loại <code>'ORDER_UPDATE'</code> vào bảng <code>notifications</code> cho khách hàng: *"Đặt hàng thành công đơn hàng #X"*. <em>(Xem code Java nhãn <code>[Bước 2 - Gửi thông báo In-app cho Khách hàng (Đơn shop)]</code>)</em>.</li>
+                    <li>Gọi <code>EmailService.sendOrderNotificationEmail()</code> gửi thư điện tử báo hóa đơn đơn hàng chi tiết về hòm thư của khách hàng. <em>(Xem code Java nhãn <code>[Bước 2 - Gửi Email xác nhận đặt hàng (Đơn shop)]</code>)</em>.</li>
+                    <li>Gửi thông báo in-app và gửi email nhắc nhở chuẩn bị hàng cho Shop Owner. <em>(Xem code Java nhãn <code>[Bước 2 - Gửi thông báo In-app và Email cho Shop Owner (Đơn shop)]</code>)</em>.</li>
                 </ul>
             </li>
-            <li><strong>Bước 3 (Thông báo cho Shop Owners):</strong>
+            <li><strong>Bước 3 (Thông báo khi mua hàng Đa shop - Đơn hàng tổng):</strong>
                 <ul>
                     <li>Hệ thống phân tích đơn hàng lớn, tách sản phẩm theo từng Shop Owner sở hữu.</li>
-                    <li>Với mỗi Shop Owner, ghi nhận thông báo in-app: *"Có đơn hàng mới cần chuẩn bị (Đơn hàng con #Y)"*.</li>
-                    <li>Gửi email nhắc nhở chuẩn bị đơn hàng về email của chủ shop.</li>
+                    <li>Gửi thông báo in-app báo đơn tổng đặt hàng thành công. <em>(Xem code Java nhãn <code>[Bước 3 - Gửi thông báo In-app cho Khách hàng (Đa shop)]</code>)</em>.</li>
+                    <li>Gửi email xác nhận đơn tổng kèm chi tiết tách đơn. <em>(Xem code Java nhãn <code>[Bước 3 - Gửi Email xác nhận đơn hàng tổng (Đa shop)]</code>)</em>.</li>
                 </ul>
             </li>
         </ul>
@@ -406,6 +877,44 @@ DELETE FROM product_images WHERE image_id = ?;</code></pre>
         <pre><code>-- Ghi thông báo in-app vào database
 INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at)
 VALUES (?, 'ORDER_UPDATE', ?, ?, ?, 0, GETDATE());</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// CheckoutService.java - Xử lý gửi thông báo in-app và email khi đặt hàng thành công
+// 1. Trường hợp 1: Khách hàng mua hàng từ một Shop duy nhất (placeSingleShopOrder)
+try {
+    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+    
+    // [Bước 2 - Gửi thông báo In-app cho Khách hàng (Đơn shop)]: Gửi thông báo In-app cho Khách hàng
+    String customerMsg = "Đơn hàng #" + orderId + " của bạn đã được tạo thành công.";
+    notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+    
+    // [Bước 2 - Gửi Email xác nhận đặt hàng (Đơn shop)]: Gửi Email xác nhận đặt hàng kèm hóa đơn cho Khách hàng
+    emailService.sendOrderNotificationEmail(user.getEmail(), user.getFullName(), String.valueOf(orderId), "Đặt hàng thành công", orderDetailUrl);
+    
+    // [Bước 2 - Gửi thông báo In-app và Email cho Shop Owner (Đơn shop)]: Gửi thông báo In-app và Email báo chuẩn bị hàng cho Chủ shop sở hữu sản phẩm
+    User shopOwner = userDAO.findUserById(ownerId);
+    if (shopOwner != null) {
+        String shopMsg = "Bạn có đơn hàng mới #" + orderId + " cần chuẩn bị.";
+        notificationService.send(ownerId, AppConfig.NOTIF_ORDER_UPDATE, "Có đơn hàng mới cần chuẩn bị", shopMsg, "/shop/orders");
+        emailService.sendOrderNotificationEmail(shopOwner.getEmail(), shopOwner.getFullName(), String.valueOf(orderId), "Có đơn hàng mới cần chuẩn bị", AppConfig.APP_BASE_URL + "/shop/orders");
+    }
+} catch (Exception ex) {
+    LoggerUtil.warn(log, "Không gửi được thông báo đặt hàng cho đơn hàng #" + orderId, ex);
+}
+
+// 2. Trường hợp 2: Khách hàng mua hàng từ nhiều Shop khác nhau (placeMultiShopOrder - thông báo đơn hàng tổng)
+try {
+    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + parentOrderId;
+    
+    // [Bước 3 - Gửi thông báo In-app cho Khách hàng (Đa shop)]: Gửi thông báo In-app cho Khách hàng về đơn hàng tổng (chứa các đơn con được tách tự động)
+    String msg = "Đơn hàng tổng #" + parentOrderId + " đã đặt thành công và được tự động tách theo từng shop.";
+    notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", msg, "/orders/detail?orderId=" + parentOrderId);
+    
+    // [Bước 3 - Gửi Email xác nhận đơn hàng tổng (Đa shop)]: Gửi Email xác nhận đơn hàng tổng cho Khách hàng
+    emailService.sendOrderNotificationEmail(user.getEmail(), user.getFullName(), String.valueOf(parentOrderId), "Đặt hàng thành công", orderDetailUrl);
+} catch (Exception ex) {
+    LoggerUtil.warn(log, "Không gửi được thông báo đặt hàng tổng cho khách hàng #" + user.getUserId(), ex);
+}</code></pre>
     </div>
 
     <!-- FEATURE 7 -->
@@ -427,11 +936,16 @@ VALUES (?, 'ORDER_UPDATE', ?, ?, ?, 0, GETDATE());</code></pre>
                     <li>Hoặc Admin duyệt giao dịch chuyển khoản thủ công trên hệ thống quản lý thanh toán.</li>
                 </ul>
             </li>
-            <li><strong>Bước 2 (Xử lý nghiệp vụ):</strong> Hệ thống cập nhật trạng thái giao dịch trong bảng <code>payment_transactions</code> thành <code>'completed'</code> và cập nhật trạng thái đơn hàng trong bảng <code>orders</code> sang <code>CONFIRMED</code>.</li>
+            <li><strong>Bước 2 (Xử lý nghiệp vụ):</strong>
+                <ul>
+                    <li>Cập nhật trạng thái giao dịch trong bảng <code>payment_transactions</code> thành <code>'completed'</code>. <em>(Xem code Java nhãn <code>[Bước 2 - Cập nhật trạng thái giao dịch thành completed]</code>)</em>.</li>
+                    <li>Cập nhật trạng thái đơn hàng trong bảng <code>orders</code> sang <code>CONFIRMED</code>. <em>(Xem code Java nhãn <code>[Bước 2 - Cập nhật trạng thái đơn hàng sang CONFIRMED]</code>)</em>.</li>
+                </ul>
+            </li>
             <li><strong>Bước 3 (Thông báo):</strong>
                 <ul>
-                    <li>Gọi <code>NotificationService.send()</code> tạo thông báo in-app loại <code>'PAYMENT'</code> gửi cho khách hàng: *"Đơn hàng #X đã được xác nhận thanh toán thành công"*.</li>
-                    <li>Gọi <code>EmailService</code> gửi email biên lai thu tiền tự động xác nhận số tiền đã nhận.</li>
+                    <li>Gọi <code>NotificationService.send()</code> tạo thông báo in-app gửi cho khách hàng. <em>(Xem code Java nhãn <code>[Bước 3 - Tạo thông báo In-app báo thanh toán thành công]</code>)</em>.</li>
+                    <li>Gọi <code>EmailService</code> gửi email biên lai thu tiền tự động. <em>(Xem code Java nhãn <code>[Bước 3 - Gửi email xác nhận thanh toán thành công]</code>)</em>.</li>
                 </ul>
             </li>
         </ul>
@@ -446,6 +960,35 @@ UPDATE orders SET status = 'CONFIRMED', updated_at = GETDATE() WHERE order_id = 
 -- 3. Tạo bản ghi thông báo in-app
 INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at)
 VALUES (?, 'PAYMENT', 'Thanh toán thành công', ?, ?, 0, GETDATE());</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// PaymentService.java - Phê duyệt thanh toán điện tử / thủ công
+public void adminApprovePayment(int orderId, int adminId) throws SQLException {
+    Order order = orderDAO.findOneById(orderId);
+    PaymentTransaction tx = getPaymentByOrder(orderId);
+
+    // [Bước 2 - Cập nhật trạng thái giao dịch thành completed]: Cập nhật trạng thái payment_transaction sang 'completed'
+    paymentDAO.updateStatus(tx.getTransactionId(), "completed", "ADMIN_MANUAL_" + adminId, null);
+    
+    // [Bước 2 - Cập nhật trạng thái đơn hàng sang CONFIRMED]: Cập nhật trạng thái đơn hàng sang CONFIRMED
+    orderDAO.updateStatus(orderId, AppConfig.ORDER_CONFIRMED);
+
+    // 3. Tạo thông báo in-app & gửi email xác nhận biên lai thanh toán cho khách hàng
+    try {
+        User customer = userDAO.findUserById(order.getCustomerId());
+        if (customer != null) {
+            // [Bước 3 - Tạo thông báo In-app báo thanh toán thành công]: Tạo và gửi thông báo in-app
+            String customerMsg = "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công.";
+            notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+            
+            // [Bước 3 - Gửi email xác nhận thanh toán thành công]: Gửi email biên lai thanh toán điện tử
+            String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+            emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
+        }
+    } catch (Exception ex) {
+        LoggerUtil.warn(log, "Không gửi được thông báo thanh toán", ex);
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 8 -->
@@ -471,9 +1014,10 @@ VALUES (?, 'PAYMENT', 'Thanh toán thành công', ?, ?, 0, GETDATE());</code></p
             </li>
             <li><strong>Bước 3 (Khi đơn đã giao thành công - <code>DELIVERED</code>):</strong>
                 <ul>
-                    <li>Cập nhật trạng thái đơn hàng sang <code>'DELIVERED'</code>.</li>
-                    <li>Tạo thông báo in-app gửi khách hàng: *"Đơn hàng #X đã được giao thành công. Cảm ơn bạn!"*</li>
-                    <li>Gửi email xác nhận hoàn tất giao dịch đơn hàng.</li>
+                    <li>Cập nhật bảng <code>deliveries</code> lưu trạng thái <code>DELIVERED</code> và ảnh minh chứng. <em>(Xem code Java nhãn <code>[Bước 3 - Cập trạng thái giao hàng và ảnh minh chứng]</code>)</em>.</li>
+                    <li>Đồng bộ cập nhật trạng thái đơn hàng trong bảng <code>orders</code> sang <code>DELIVERED</code>. <em>(Xem code Java nhãn <code>[Bước 3 - Cập nhật trạng thái đơn hàng sang DELIVERED]</code>)</em>.</li>
+                    <li>Gửi thông báo in-app cho Khách hàng. <em>(Xem code Java nhãn <code>[Bước 3 - Tạo thông báo In-app giao hàng thành công]</code>)</em>.</li>
+                    <li>Gửi email báo giao hàng thành công cho Khách hàng. <em>(Xem code Java nhãn <code>[Bước 3 - Gửi email tự động giao hàng thành công]</code>)</em>.</li>
                 </ul>
             </li>
         </ul>
@@ -485,6 +1029,47 @@ UPDATE orders SET status = ?, updated_at = GETDATE() WHERE order_id = ?;
 -- 2. Tạo thông báo vận chuyển
 INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at)
 VALUES (?, 'ORDER_UPDATE', ?, ?, ?, 0, GETDATE());</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// DeliveryService.java - Delivery staff xác nhận giao hàng thành công, cập nhật đơn hàng & gửi thông báo
+public void markAsDelivered(int staffId, int deliveryId, String proofImageUrl) throws SQLException {
+    Delivery del = deliveryDAO.findById(deliveryId);
+    if (del == null) {
+        throw new IllegalArgumentException("Không tìm thấy thông tin giao hàng.");
+    }
+    if (del.getStaffId() == null || !del.getStaffId().equals(staffId)) {
+        throw new IllegalArgumentException("Bạn không có quyền xác nhận đơn giao hàng này.");
+    }
+    if (proofImageUrl == null || proofImageUrl.trim().isEmpty()) {
+        throw new IllegalArgumentException("Vui lòng cung cấp ảnh bằng chứng giao hàng!");
+    }
+    
+    // [Bước 3 - Cập trạng thái giao hàng và ảnh minh chứng]: Cập nhật bảng deliveries (Trạng thái = DELIVERED, lưu đường dẫn ảnh bằng chứng)
+    deliveryDAO.updateStatusAndProof(deliveryId, "DELIVERED", null, proofImageUrl);
+    
+    // [Bước 3 - Cập nhật trạng thái đơn hàng sang DELIVERED]: Đồng bộ cập nhật trạng thái đơn hàng trong bảng orders sang DELIVERED
+    orderDAO.updateStatus(del.getOrderId(), "DELIVERED");
+
+    // 3. Gửi thông báo in-app và gửi email tự động cho Khách hàng báo giao hàng thành công
+    try {
+        List<Order> orders = orderDAO.findById(del.getOrderId());
+        if (!orders.isEmpty()) {
+            Order order = orders.get(0);
+            User customer = userDAO.findUserById(order.getCustomerId());
+            if (customer != null) {
+                // [Bước 3 - Tạo thông báo In-app giao hàng thành công]: Gửi thông báo chuông in-app
+                String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã giao hàng thành công bởi người vận chuyển. Vui lòng kiểm tra và xác nhận.";
+                notificationService.send(customer.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thành công", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
+                
+                // [Bước 3 - Gửi email tự động giao hàng thành công]: Gửi email thông báo giao hàng thành công
+                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + order.getOrderId();
+                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(order.getOrderId()), "Giao hàng thành công", orderDetailUrl);
+            }
+        }
+    } catch (Exception ex) {
+        LoggerUtil.warn(log, "Không gửi được thông báo giao hàng thành công cho đơn #" + del.getOrderId(), ex);
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 9 -->
@@ -517,6 +1102,38 @@ SELECT low_stock_threshold FROM shop_owner_profiles WHERE user_id = ?;
 -- 2. Lưu thông báo cảnh báo tồn kho thấp cho Shop Owner
 INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at)
 VALUES (?, 'INVENTORY_ALERT', 'Cảnh báo tồn kho thấp', ?, '/shop/products', 0, GETDATE());</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// InventoryService.java - Kiểm tra tồn kho sau thay đổi và kích hoạt cảnh báo in-app
+private void checkAndSendLowStockAlert(Connection conn, int variantId, int stockAfter) {
+    try {
+        int ownerId = productVariantDAO.getProductOwnerId(conn, variantId);
+        int threshold = 5; // Mặc định là 5
+        // [Bước 2 - Truy vấn ngưỡng cảnh báo tồn kho của Shop]: Đọc low_stock_threshold từ shop_owner_profiles
+        String thresholdSql = "SELECT low_stock_threshold FROM shop_owner_profiles WHERE user_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(thresholdSql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    threshold = rs.getInt("low_stock_threshold");
+                }
+            }
+        }
+
+        // [Bước 3 - Gửi thông báo cảnh báo tồn kho thấp]: Nếu lượng tồn kho giảm xuống dưới hoặc bằng ngưỡng cấu hình
+        if (stockAfter <= threshold) {
+            Map<String, Object> info = productVariantDAO.getVariantAndProductName(conn, variantId);
+            String sku = (String) info.get("sku");
+            String productName = (String) info.get("name");
+            
+            String title = "Cảnh báo tồn kho thấp";
+            String message = "Sản phẩm \"" + productName + "\" (SKU: " + sku + ") sắp hết hàng. Chỉ còn " + stockAfter + " sản phẩm.";
+            notificationService.send(ownerId, AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/products");
+        }
+    } catch (Exception ex) {
+        LoggerUtil.warn(log, "Không thể gửi cảnh báo tồn kho thấp", ex);
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 10 -->
@@ -536,8 +1153,8 @@ VALUES (?, 'INVENTORY_ALERT', 'Cảnh báo tồn kho thấp', ?, '/shop/products
             <li><strong>Bước 2 (Chỉ định đúng shop):</strong> Hệ thống xác định đơn hàng con của Shop Owner nào dựa vào các sản phẩm được đặt mua.</li>
             <li><strong>Bước 3 (Gửi thông báo tức thời):</strong>
                 <ul>
-                    <li>Ghi nhận một thông báo in-app loại <code>'ORDER_UPDATE'</code> gửi riêng cho Shop Owner: *"Có đơn đặt hàng mới cần chuẩn bị (Mã đơn: #Y)"* liên kết trang đơn hàng của shop <code>/shop/orders</code>.</li>
-                    <li>Gửi email thông báo tự động đến email đăng ký của chủ shop.</li>
+                    <li>Gửi thông báo chuông in-app cho Shop Owner biết có đơn hàng mới cần chuẩn bị. <em>(Xem code Java nhãn <code>[Bước 3 - Gửi thông báo in-app đơn hàng mới cho Shop Owner]</code>)</em>.</li>
+                    <li>Gửi email tự động báo cho Shop Owner. <em>(Xem code Java nhãn <code>[Bước 3 - Gửi email đơn hàng mới cho Shop Owner]</code>)</em>.</li>
                 </ul>
             </li>
         </ul>
@@ -546,6 +1163,34 @@ VALUES (?, 'INVENTORY_ALERT', 'Cảnh báo tồn kho thấp', ?, '/shop/products
         <pre><code>-- Thêm thông báo tức thời cho Shop Owner
 INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at)
 VALUES (?, 'ORDER_UPDATE', 'Có đơn hàng mới cần chuẩn bị', ?, '/shop/orders', 0, GETDATE());</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// CheckoutService.java - Tách đơn hàng và gửi thông báo tức thời đơn hàng mới cho các chủ shop
+private void sendShopPreparationNotifications(Map<Integer, Integer> childOrderIdByOwner) {
+    for (Map.Entry<Integer, Integer> entry : childOrderIdByOwner.entrySet()) {
+        Integer ownerId = entry.getKey();
+        Integer childOrderId = entry.getValue();
+        try {
+            // [Bước 3 - Gửi thông báo in-app đơn hàng mới cho Shop Owner]: Gửi thông báo chuông in-app cho chủ shop
+            String shopMsg = "Đơn hàng #" + childOrderId + " đã được tạo. Vui lòng kiểm tra và chuẩn bị hàng.";
+            notificationService.send(ownerId, AppConfig.NOTIF_ORDER_UPDATE, "Có đơn hàng mới cần chuẩn bị", shopMsg, "/shop/orders");
+            
+            // [Bước 3 - Gửi email đơn hàng mới cho Shop Owner]: Gửi email báo về hòm thư chủ shop
+            User shopOwner = userDAO.findUserById(ownerId);
+            if (shopOwner != null) {
+                emailService.sendOrderNotificationEmail(
+                    shopOwner.getEmail(),
+                    shopOwner.getFullName(),
+                    String.valueOf(childOrderId),
+                    "Có đơn hàng mới cần chuẩn bị",
+                    AppConfig.APP_BASE_URL + "/shop/orders"
+                );
+            }
+        } catch (Exception ex) {
+            LoggerUtil.warn(log, "Không gửi được thông báo chuẩn bị hàng cho chủ shop", ex);
+        }
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 11 -->
@@ -564,21 +1209,22 @@ VALUES (?, 'ORDER_UPDATE', 'Có đơn hàng mới cần chuẩn bị', ?, '/shop
             <li><strong>Định kỳ cập nhật số đỏ (Badge):</strong>
                 <ul>
                     <li>Khi trang web tải, đoạn script JavaScript ở <code>navbar.jsp</code> sẽ gọi AJAX GET tới <code>/api/notifications/unread</code>.</li>
-                    <li>Servlet <code>NotificationServlet</code> tiếp nhận, truy vấn tổng số thông báo chưa đọc của user hiện hành và trả về JSON.</li>
-                    <li>JavaScript cập nhật số đỏ (badge) hiển thị trên biểu tượng quả chuông của Header.</li>
+                    <li>Servlet <code>NotificationServlet</code> tiếp nhận, truy vấn tổng số thông báo chưa đọc của user hiện hành. <em>(Xem code Java nhãn <code>[Bước 2 - Đếm số lượng thông báo chưa đọc]</code>)</em>.</li>
+                    <li>Trả về JSON để JavaScript cập nhật số đỏ (badge) hiển thị trên biểu tượng quả chuông của Header.</li>
                 </ul>
             </li>
             <li><strong>Dropdown hiển thị danh sách (Click chuông):</strong>
                 <ul>
                     <li>Khi người dùng click vào chuông, JavaScript gọi AJAX GET tới <code>/api/notifications/recent</code>.</li>
-                    <li>Servlet trả về danh sách 5 thông báo mới nhất dạng JSON.</li>
-                    <li>JavaScript render danh sách này hiển thị lên khung dropdown ngay trên màn hình.</li>
+                    <li>Servlet truy xuất 5 thông báo mới nhất. <em>(Xem code Java nhãn <code>[Bước 2 - Lấy danh sách thông báo mới nhất]</code>)</em>.</li>
+                    <li>Trả về JSON để JavaScript render danh sách này hiển thị lên khung dropdown ngay trên màn hình.</li>
                 </ul>
             </li>
             <li><strong>Đánh dấu đã đọc / Xóa nhanh:</strong>
                 <ul>
-                    <li>Người dùng click vào dòng thông báo sẽ kích hoạt AJAX gửi yêu cầu POST đến <code>/api/notifications/markRead?notifId=X</code> để đánh dấu đã đọc trước khi chuyển trang.</li>
-                    <li>Click nút "x" gọi AJAX POST đến <code>/api/notifications/delete?notifId=X</code> để xóa thông báo khỏi DB và ẩn khỏi danh sách dropdown.</li>
+                    <li>Người dùng click vào dòng thông báo sẽ kích hoạt AJAX gửi yêu cầu POST đến <code>/api/notifications/markRead?notifId=X</code> để đánh dấu đã đọc trước khi chuyển trang. <em>(Xem code Java nhãn <code>[Bước 2 - Đánh dấu đã đọc cho một thông báo cụ thể]</code>)</em>.</li>
+                    <li>Click nút "x" gọi AJAX POST đến <code>/api/notifications/delete?notifId=X</code> để xóa thông báo khỏi DB và ẩn khỏi danh sách dropdown. <em>(Xem code Java nhãn <code>[Bước 2 - Xóa bỏ thông báo khỏi database]</code>)</em>.</li>
+                    <li>Click nút "Đọc tất cả" gửi AJAX POST đến <code>/api/notifications/markAllRead</code>. <em>(Xem code Java nhãn <code>[Bước 2 - Đánh dấu đã đọc tất cả thông báo]</code>)</em>.</li>
                 </ul>
             </li>
         </ul>
@@ -592,6 +1238,114 @@ SELECT TOP 5 * FROM notifications WHERE user_id = ? ORDER BY created_at DESC;
 
 -- 3. Đánh dấu đã đọc thông báo
 UPDATE notifications SET is_read = 1 WHERE notification_id = ?;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// NotificationAPIServlet.java - Endpoint API (/api/notifications) phục vụ AJAX lấy danh sách chuông đỏ và xử lý đọc/xóa thông báo
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+    HttpSession session = req.getSession(false);
+    User user = SessionUtil.getCurrentUser(session);
+
+    if (user == null) {
+        resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        JsonUtil.writeJson(resp, ApiResponse.fail(401, "Người dùng chưa đăng nhập."));
+        return;
+    }
+
+    try {
+        int limit = 5;
+        String limitStr = req.getParameter("limit");
+        if (limitStr != null && !limitStr.trim().isEmpty()) {
+            try {
+                limit = Integer.parseInt(limitStr);
+            } catch (NumberFormatException e) {
+                LoggerUtil.warn(log, "Tham số limit không hợp lệ: " + limitStr, e);
+            }
+        }
+        if (limit <= 0) {
+            limit = 5;
+        } else if (limit > 50) {
+            limit = 50;
+        }
+
+        // [Bước 2 - Đếm số lượng thông báo chưa đọc]: Đếm số lượng thông báo chưa đọc của người dùng hiện tại
+        int unreadCount = notificationService.countUnreadByUser(user.getUserId());
+        // [Bước 2 - Lấy danh sách thông báo mới nhất]: Lấy danh sách các thông báo mới nhất phục vụ vẽ dropdown xem nhanh
+        List<Notification> recentNotifs = notificationService.getRecentNotifications(user.getUserId(), limit);
+
+        JsonUtil.writeJson(resp, ApiResponse.ok(
+                new NotificationListResponse(unreadCount, List.copyOf(recentNotifs))));
+    } catch (Exception e) {
+        util.ServletUtil.sendJsonInternalServerError(
+                req,
+                resp,
+                log,
+                "NotificationAPIServlet#doGet",
+                "Lỗi hệ thống khi lấy danh sách thông báo.",
+                e);
+    }
+}
+
+@Override
+protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+    HttpSession session = req.getSession(false);
+    User user = SessionUtil.getCurrentUser(session);
+
+    if (user == null) {
+        resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        JsonUtil.writeJson(resp, ApiResponse.fail(401, "Người dùng chưa đăng nhập."));
+        return;
+    }
+
+    // Xác thực tính hợp lệ của CSRF Token chống tấn công giả mạo yêu cầu
+    String sessionToken = session != null ? (String) session.getAttribute(AppConfig.SESSION_CSRF_TOKEN) : null;
+    String requestToken = req.getHeader("X-CSRF-Token");
+    if (requestToken == null || requestToken.trim().isEmpty()) {
+        requestToken = req.getParameter("_csrf");
+    }
+    if (sessionToken == null || !sessionToken.equals(requestToken)) {
+        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        JsonUtil.writeJson(resp, ApiResponse.fail(403, "CSRF token không hợp lệ."));
+        return;
+    }
+
+    String action = req.getParameter("action");
+    try {
+        if ("markRead".equals(action)) {
+            // [Bước 2 - Đánh dấu đã đọc cho một thông báo cụ thể]: Đánh dấu đã đọc cho một thông báo cụ thể
+            String notifIdStr = req.getParameter("notifId");
+            int notifId = Integer.parseInt(notifIdStr);
+            notificationService.markRead(notifId, user.getUserId());
+            JsonUtil.writeJson(resp, ApiResponse.ok(null));
+        } else if ("delete".equals(action)) {
+            // [Bước 2 - Xóa bỏ thông báo khỏi database]: Xóa bỏ một thông báo khỏi database
+            String notifIdStr = req.getParameter("notifId");
+            int notifId = Integer.parseInt(notifIdStr);
+            notificationService.delete(notifId, user.getUserId());
+            JsonUtil.writeJson(resp, ApiResponse.ok(null));
+        } else if ("markAllRead".equals(action)) {
+            // [Bước 2 - Đánh dấu đã đọc tất cả thông báo]: Đánh dấu đã đọc tất cả thông báo của người dùng hiện tại
+            notificationService.markAllRead(user.getUserId());
+            JsonUtil.writeJson(resp, ApiResponse.ok(null));
+        } else {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(resp, ApiResponse.fail(400, "Hành động không hợp lệ."));
+        }
+    } catch (SecurityException e) {
+        resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        JsonUtil.writeJson(resp, ApiResponse.fail(403, "Bạn không có quyền thao tác trên thông báo này."));
+    } catch (Exception e) {
+        util.ServletUtil.sendJsonInternalServerError(
+                req,
+                resp,
+                log,
+                "NotificationAPIServlet#doPost",
+                "Lỗi hệ thống khi cập nhật trạng thái thông báo.",
+                e);
+    }
+}</code></pre>
     </div>
 
     <!-- FEATURE 12 -->
@@ -609,7 +1363,7 @@ UPDATE notifications SET is_read = 1 WHERE notification_id = ?;</code></pre>
         <ul>
             <li><strong>Bước 1 (Yêu cầu):</strong> Người dùng truy cập trang dashboard quản lý (<code>/shop/dashboard</code> hoặc <code>/admin/dashboard</code>).</li>
             <li><strong>Bước 2 (Servlet):</strong> Servlet xác thực quyền truy cập và thực hiện gọi các phương thức thống kê doanh thu của lớp Service.</li>
-            <li><strong>Bước 3 (DAO):</strong> Chạy câu lệnh SQL thống kê doanh thu theo ngày của các đơn hàng thành công, trả về danh sách dạng bản ghi (Ngày, Doanh thu).</li>
+            <li><strong>Bước 3 (DAO):</strong> Chạy câu lệnh SQL thống kê doanh thu theo ngày của các đơn hàng thành công, trả về danh sách dạng bản ghi (Ngày, Doanh thu). <em>(Xem code Java nhãn <code>[Bước 3 - Truy vấn dữ liệu thống kê doanh thu theo ngày]</code>)</em>.</li>
             <li><strong>Bước 4 (Truyền dữ liệu lên JSP):</strong> Servlet chuyển danh sách này thành chuỗi JSON và đính kèm vào thuộc tính của request để nạp vào thẻ HTML ẩn trong trang JSP.</li>
             <li><strong>Bước 5 (Vẽ biểu đồ tại Client):</strong> Script Chart.js trên trình duyệt đọc dữ liệu từ thẻ ẩn, phân tích thành mảng và khởi tạo biểu đồ dạng đường (Line Chart) hiển thị trực quan lên màn hình.</li>
         </ul>
@@ -624,6 +1378,76 @@ JOIN products p ON pv.product_id = p.product_id
 WHERE p.owner_id = ? AND o.status = 'DELIVERED'
 GROUP BY CAST(o.created_at AS DATE)
 ORDER BY order_date;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// OrderDAO.java - Lấy dữ liệu thống kê xu hướng doanh thu theo ngày của shop để vẽ biểu đồ Line Chart
+public List&lt;Map&lt;String, Object&gt;&gt; getRevenueTrend(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
+    List&lt;Map&lt;String, Object&gt;&gt; list = new ArrayList&lt;&gt;();
+    StringBuilder sql = new StringBuilder();
+    List&lt;Object&gt; params = new ArrayList&lt;&gt;();
+    
+    if (categoryId != null) {
+        sql.append(
+            "SELECT CAST(o.created_at AS DATE) AS order_date, SUM(oi.subtotal) AS total_revenue " +
+            "FROM orders o " +
+            "JOIN order_items oi ON o.order_id = oi.order_id " +
+            "JOIN product_variants pv ON oi.variant_id = pv.variant_id " +
+            "JOIN products p ON pv.product_id = p.product_id " +
+            "WHERE o.status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND o.order_type = 'CHILD' "
+        );
+        if (ownerId != null) {
+            sql.append("AND o.owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) &gt;= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) &lt;= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("AND p.category_id = ? ");
+        params.add(categoryId);
+        sql.append("GROUP BY CAST(o.created_at AS DATE) ORDER BY order_date");
+    } else {
+        sql.append(
+            "SELECT CAST(created_at AS DATE) AS order_date, SUM(final_amount) AS total_revenue " +
+            "FROM orders " +
+            "WHERE status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND order_type = 'CHILD' "
+        );
+        if (ownerId != null) {
+            sql.append("AND owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) &gt;= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) &lt;= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("GROUP BY CAST(created_at AS DATE) ORDER BY order_date");
+    }
+
+    // [Bước 3 - Truy vấn dữ liệu thống kê doanh thu theo ngày]: Thực hiện kết nối và truy vấn dữ liệu doanh thu từ DB
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        for (int i = 0; i < params.size(); i++) {
+            ps.setObject(i + 1, params.get(i));
+        }
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("date", rs.getDate("order_date").toString());
+                map.put("revenue", rs.getBigDecimal("total_revenue"));
+                list.add(map);
+            }
+        }
+    }
+    return list;
+}</code></pre>
     </div>
 
     <!-- FEATURE 13 -->
@@ -641,7 +1465,7 @@ ORDER BY order_date;</code></pre>
         <ul>
             <li><strong>Bước 1:</strong> Người dùng truy cập giao diện báo cáo, chọn khoảng thời gian lọc (Từ ngày - Đến ngày), danh mục mặt hàng và bấm nút "Lọc báo cáo".</li>
             <li><strong>Bước 2:</strong> Servlet nhận tham số, kiểm tra tính hợp lệ của ngày tháng và gọi Service xử lý dữ liệu.</li>
-            <li><strong>Bước 3 (DAO Layer):</strong> Thực hiện câu lệnh SQL kết nối (JOIN) nhiều bảng để thống kê tổng sản lượng bán ra, doanh thu trước thuế, phí dịch vụ sàn (ví dụ 5%) và thực nhận sau chiết khấu (95%).</li>
+            <li><strong>Bước 3 (DAO Layer):</strong> Thực hiện câu lệnh SQL kết nối (JOIN) nhiều bảng để thống kê tổng sản lượng bán ra, doanh thu trước thuế, phí dịch vụ sàn (ví dụ 5%) và thực nhận sau chiết khấu (95%). <em>(Xem code Java nhãn <code>[Bước 3 - Truy vấn sản lượng tiêu thụ và doanh thu chi tiết]</code>)</em>.</li>
             <li><strong>Bước 4:</strong> Dữ liệu được trả về Servlet và kết xuất hiển thị dạng bảng HTML trên giao diện JSP, hỗ trợ xuất báo cáo định dạng Excel/PDF.</li>
         </ul>
 
@@ -655,6 +1479,84 @@ JOIN products p ON pv.product_id = p.product_id
 WHERE p.owner_id = ? AND o.status = 'DELIVERED' AND o.created_at BETWEEN ? AND ?
 GROUP BY p.name, pv.sku
 ORDER BY total_quantity_sold DESC;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// OrderDAO.java - Lấy dữ liệu báo cáo chi tiết sản lượng tiêu thụ, phí sàn và doanh thu thực nhận
+public List&lt;Map&lt;String, Object&gt;&gt; getFruitUsageReport(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
+    List&lt;Map&lt;String, Object&gt;&gt; list = new ArrayList&lt;&gt;();
+    StringBuilder sql = new StringBuilder(
+        "SELECT oi.product_name_snapshot, oi.variant_label_snapshot, " +
+        "       SUM(oi.quantity) AS total_quantity, SUM(oi.subtotal) AS total_amount, " +
+        "       COUNT(DISTINCT o.order_id) AS order_count "
+    );
+    
+    if (ownerId == null) {
+        sql.append(", s.shop_name ");
+    }
+    
+    sql.append(
+        "FROM order_items oi " +
+        "JOIN orders o ON oi.order_id = o.order_id "
+    );
+    
+    if (ownerId == null) {
+        sql.append("LEFT JOIN shop_owner_profiles s ON o.owner_id = s.user_id ");
+    }
+    
+    if (categoryId != null) {
+        sql.append("JOIN product_variants pv ON oi.variant_id = pv.variant_id ");
+        sql.append("JOIN products p ON pv.product_id = p.product_id ");
+    }
+    
+    sql.append("WHERE o.status IN ('DELIVERED', 'APPROVED', 'CONFIRMED', 'PREPARING', 'DISPATCHED') AND o.order_type = 'CHILD' ");
+    
+    List&lt;Object&gt; params = new ArrayList&lt;&gt;();
+    if (ownerId != null) {
+        sql.append("AND o.owner_id = ? ");
+        params.add(ownerId);
+    }
+    if (startDate != null && !startDate.trim().isEmpty()) {
+        sql.append("AND CAST(o.created_at AS DATE) &gt;= ? ");
+        params.add(java.sql.Date.valueOf(startDate));
+    }
+    if (endDate != null && !endDate.trim().isEmpty()) {
+        sql.append("AND CAST(o.created_at AS DATE) &lt;= ? ");
+        params.add(java.sql.Date.valueOf(endDate));
+    }
+    if (categoryId != null) {
+        sql.append("AND p.category_id = ? ");
+        params.add(categoryId);
+    }
+    
+    sql.append("GROUP BY oi.product_name_snapshot, oi.variant_label_snapshot ");
+    if (ownerId == null) {
+        sql.append(", s.shop_name ");
+    }
+    sql.append("ORDER BY total_quantity DESC");
+
+    // [Bước 3 - Truy vấn sản lượng tiêu thụ và doanh thu chi tiết]: Thực hiện kết nối DB và truy vấn sản lượng, phí sàn, doanh thu thực nhận
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        for (int i = 0; i < params.size(); i++) {
+            ps.setObject(i + 1, params.get(i));
+        }
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("productName", rs.getString("product_name_snapshot"));
+                map.put("variantLabel", rs.getString("variant_label_snapshot"));
+                map.put("totalQuantity", rs.getInt("total_quantity"));
+                map.put("totalAmount", rs.getBigDecimal("total_amount"));
+                map.put("orderCount", rs.getInt("order_count"));
+                if (ownerId == null) {
+                    map.put("shopName", rs.getString("shop_name") != null ? rs.getString("shop_name") : "Hệ thống");
+                }
+                list.add(map);
+            }
+        }
+    }
+    return list;
+}</code></pre>
     </div>
 
     <!-- FEATURE 14 -->
@@ -671,7 +1573,12 @@ ORDER BY total_quantity_sold DESC;</code></pre>
         <h3>2. Luồng hoạt động chi tiết</h3>
         <ul>
             <li><strong>Bước 1:</strong> Người dùng truy cập trang báo cáo thống kê đơn hàng.</li>
-            <li><strong>Bước 2 (Servlet & DAO):</strong> Servlet gọi DAO thực hiện đếm số lượng đơn hàng theo từng trạng thái (DELIVERED, CANCELLED, RETURNED) và đếm các lý do hủy đơn phổ biến trong bảng đơn hàng của shop đó.</li>
+            <li><strong>Bước 2 (Servlet & DAO):</strong> Servlet gọi DAO thực hiện:
+                <ul>
+                    <li>Thống kê số lượng đơn hàng theo trạng thái của Shop. <em>(Xem code Java nhãn <code>[Bước 2 - Thống kê số lượng đơn hàng theo trạng thái]</code>)</em>.</li>
+                    <li>Thống kê các lý do hủy đơn phổ biến nhất. <em>(Xem code Java nhãn <code>[Bước 2 - Thống kê lý do hủy đơn hàng của Shop]</code>)</em>.</li>
+                </ul>
+            </li>
             <li><strong>Bước 3 (JSP & Client):</strong> Dữ liệu được truyền ngầm dưới dạng JSON lên trang JSP. Đoạn JavaScript sử dụng Chart.js vẽ 2 biểu đồ:
                 <ul>
                     <li>Biểu đồ hình tròn (Doughnut Chart) hiển thị tỷ lệ thành công và hủy đơn.</li>
@@ -699,6 +1606,144 @@ JOIN products p ON pv.product_id = p.product_id
 WHERE p.owner_id = ? AND o.status = 'CANCELLED'
 GROUP BY cancellation_reason
 ORDER BY count DESC;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// OrderDAO.java - Lấy phân tích tỷ lệ đơn hàng (OrderStatusStats) và lý do hủy đơn (CancellationReasonStats)
+public List&lt;Map&lt;String, Object&gt;&gt; getOrderStatusStats(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
+    List&lt;Map&lt;String, Object&gt;&gt; list = new ArrayList&lt;&gt;();
+    StringBuilder sql = new StringBuilder();
+    List&lt;Object&gt; params = new ArrayList&lt;&gt;();
+    
+    if (categoryId != null) {
+        sql.append(
+            "SELECT o.status, COUNT(DISTINCT o.order_id) AS order_count " +
+            "FROM orders o " +
+            "JOIN order_items oi ON o.order_id = oi.order_id " +
+            "JOIN product_variants pv ON oi.variant_id = pv.variant_id " +
+            "JOIN products p ON pv.product_id = p.product_id " +
+            "WHERE o.order_type = 'CHILD' "
+        );
+        if (ownerId != null) {
+            sql.append("AND o.owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) &gt;= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) &lt;= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("AND p.category_id = ? ");
+        params.add(categoryId);
+        sql.append("GROUP BY o.status");
+    } else {
+        sql.append(
+            "SELECT status, COUNT(*) AS order_count " +
+            "FROM orders " +
+            "WHERE order_type = 'CHILD' "
+        );
+        if (ownerId != null) {
+            sql.append("AND owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) &gt;= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) &lt;= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("GROUP BY status");
+    }
+
+    // [Bước 2 - Thống kê số lượng đơn hàng theo trạng thái]: Thực hiện truy vấn dữ liệu trạng thái đơn hàng từ DB
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        for (int i = 0; i < params.size(); i++) {
+            ps.setObject(i + 1, params.get(i));
+        }
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("status", rs.getString("status"));
+                map.put("count", rs.getInt("order_count"));
+                list.add(map);
+            }
+        }
+    }
+    return list;
+}
+
+public List&lt;Map&lt;String, Object&gt;&gt; getCancellationReasonStats(Integer ownerId, String startDate, String endDate, Integer categoryId) throws SQLException {
+    List&lt;Map&lt;String, Object&gt;&gt; list = new ArrayList&lt;&gt;();
+    StringBuilder sql = new StringBuilder();
+    List&lt;Object&gt; params = new ArrayList&lt;&gt;();
+    
+    if (categoryId != null) {
+        sql.append(
+            "SELECT COALESCE(o.cancellation_reason, N'Không có lý do') AS reason, COUNT(DISTINCT o.order_id) AS cancel_count " +
+            "FROM orders o " +
+            "JOIN order_items oi ON o.order_id = oi.order_id " +
+            "JOIN product_variants pv ON oi.variant_id = pv.variant_id " +
+            "JOIN products p ON pv.product_id = p.product_id " +
+            "WHERE o.status = 'CANCELLED' AND o.order_type = 'CHILD' "
+        );
+        if (ownerId != null) {
+            sql.append("AND o.owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) &gt;= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(o.created_at AS DATE) &lt;= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("AND p.category_id = ? ");
+        params.add(categoryId);
+        sql.append("GROUP BY o.cancellation_reason ORDER BY cancel_count DESC");
+    } else {
+        sql.append(
+            "SELECT COALESCE(cancellation_reason, N'Không có lý do') AS reason, COUNT(*) AS cancel_count " +
+            "FROM orders " +
+            "WHERE status = 'CANCELLED' AND order_type = 'CHILD' "
+        );
+        if (ownerId != null) {
+            sql.append("AND owner_id = ? ");
+            params.add(ownerId);
+        }
+        if (startDate != null && !startDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) &gt;= ? ");
+            params.add(java.sql.Date.valueOf(startDate));
+        }
+        if (endDate != null && !endDate.trim().isEmpty()) {
+            sql.append("AND CAST(created_at AS DATE) &lt;= ? ");
+            params.add(java.sql.Date.valueOf(endDate));
+        }
+        sql.append("GROUP BY cancellation_reason ORDER BY cancel_count DESC");
+    }
+
+    // [Bước 2 - Thống kê lý do hủy đơn hàng của Shop]: Thực hiện truy vấn các lý do hủy đơn và số lượng tương ứng từ DB
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+        for (int i = 0; i < params.size(); i++) {
+            ps.setObject(i + 1, params.get(i));
+        }
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("reason", rs.getString("reason"));
+                map.put("count", rs.getInt("cancel_count"));
+                list.add(map);
+            }
+        }
+    }
+    return list;
+}</code></pre>
     </div>
 
     <!-- FEATURE 15 -->
@@ -714,12 +1759,12 @@ ORDER BY count DESC;</code></pre>
 
         <h3>2. Luồng hoạt động chi tiết</h3>
         <ul>
-            <li><strong>Khởi tạo (`AutoSettlementListener`):</strong> Khi ứng dụng khởi chạy trên Tomcat Server, sự kiện <code>contextInitialized</code> kích hoạt. Bộ lập lịch <code>ScheduledExecutorService</code> được đăng ký và chạy dưới một luồng độc lập <code>AutoSettlement-Thread</code>.</li>
+            <li><strong>Khởi tạo (`AutoSettlementListener`):</strong> Khi ứng dụng khởi chạy trên Tomcat Server, sự kiện <code>contextInitialized</code> kích hoạt. Bộ lập lịch <code>ScheduledExecutorService</code> được đăng ký và chạy dưới một luồng độc lập <code>AutoSettlement-Thread</code> định kỳ. <em>(Xem code Java nhãn <code>[Bước 1 - Lập lịch executor chạy định kỳ hourly job]</code>)</em>.</li>
             <li><strong>Quá trình thực hiện (Chạy định kỳ mỗi 1 tiếng):</strong>
                 <ul>
                     <li>Đọc cấu hình thời gian đóng băng đơn hàng an toàn (ví dụ: 12 tiếng) từ bảng cấu hình.</li>
                     <li>Quét toàn bộ đơn hàng ở trạng thái <code>DELIVERED</code> có thời gian hoàn thành vượt quá 12 tiếng và chưa từng được đối soát quyết toán.</li>
-                    <li><strong>Quyết toán trong Transaction:</strong> Tạo bản ghi đối soát mới (<code>ShopSettlement</code>), lưu vết liên kết đơn hàng đối soát (<code>ShopSettlementOrder</code>) và thực hiện cộng doanh thu thực tế (sau trừ phí sàn) vào ví khả dụng của Shop Owner tương ứng.</li>
+                    <li><strong>Quyết toán trong Transaction:</strong> Tạo bản ghi đối soát mới (<code>ShopSettlement</code>), lưu vết liên kết đơn hàng đối soát (<code>ShopSettlementOrder</code>) và thực hiện cộng doanh thu thực tế (sau trừ phí sàn) vào ví khả dụng của Shop Owner tương ứng. <em>(Xem code Java nhãn <code>[Bước 2 - Tạo kỳ đối soát và lưu các đơn hàng liên quan vào Database Transaction]</code>)</em>.</li>
                 </ul>
             </li>
             <li><strong>Hủy tiến trình:</strong> Khi server Tomcat dừng, sự kiện <code>contextDestroyed</code> tắt bộ lập lịch ngầm an toàn để giải phóng tài nguyên.</li>
@@ -733,6 +1778,179 @@ WHERE status = 'DELIVERED' AND updated_at <= DATEADD(HOUR, -12, GETDATE())
 
 -- 2. Cộng tiền vào ví khả dụng của Shop Owner
 UPDATE shop_owner_profiles SET wallet_balance = wallet_balance + ?, updated_at = GETDATE() WHERE user_id = ?;</code></pre>
+
+        <h3>4. Mã nguồn Java xử lý cốt lõi</h3>
+        <pre><code class="language-java">// 1. AutoSettlementListener.java - Lập lịch thread chạy ngầm định kỳ 1 tiếng một lần
+@Override
+public void contextInitialized(ServletContextEvent sce) {
+    LoggerUtil.info(log, "[AutoSettlementListener] Khởi tạo daily background job cho quyết toán tự động...");
+    scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread t = new Thread(runnable, "AutoSettlement-Thread");
+        t.setDaemon(true);
+        return t;
+    });
+
+    // [Bước 1 - Lập lịch executor chạy định kỳ hourly job]: Đăng ký và lập lịch executor chạy định kỳ hourly job chốt đối soát cho shop
+    scheduler.scheduleWithFixedDelay(() -> {
+        try {
+            LoggerUtil.info(log, "[AutoSettlementListener] Bắt đầu tiến trình quyết toán đơn hàng tự động...");
+            int processed = settlementService.runAutoSettlement();
+            LoggerUtil.info(log, "[AutoSettlementListener] Hoàn thành tiến trình quyết toán. Đã tạo " + processed + " kỳ đối soát mới.");
+        } catch (Exception e) {
+            LoggerUtil.error(log, "[AutoSettlementListener] Lỗi khi chạy job quyết toán tự động", e);
+        }
+    }, 10, 60 * 60, TimeUnit.SECONDS);
+}
+
+// 2. SettlementDAO.java - Thực hiện quyết toán đơn hàng tự động trong Database Transaction
+private int runAutoSettlementInternal(int freezeValue, String datepart) throws SQLException {
+    int settlementsCreated = 0;
+    List&lt;Integer&gt; owners = new ArrayList&lt;&gt;();
+    
+    // Tìm các Shop Owner có đơn hàng thỏa mãn điều kiện quyết toán (DELIVERED quá 12h, không bị hoàn trả, chưa đối soát)
+    String getOwnersSql = "SELECT DISTINCT o.owner_id FROM orders o "
+                        + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
+                        + "WHERE o.status = 'DELIVERED' "
+                        + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
+                        + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
+                        + "  AND COALESCE(d.delivered_at, o.updated_at) &lt; DATEADD(" + datepart + ", ?, GETDATE())";
+                        
+    try (Connection conn = getConnection()) {
+        try (PreparedStatement ps = conn.prepareStatement(getOwnersSql)) {
+            ps.setInt(1, -freezeValue);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    owners.add(rs.getInt("owner_id"));
+                }
+            }
+        }
+
+        if (owners.isEmpty()) return 0;
+
+        // [Bước 2 - Tạo kỳ đối soát và lưu các đơn hàng liên quan vào Database Transaction]: Khởi tạo Transaction bằng cách set AutoCommit = false
+        conn.setAutoCommit(false);
+        try {
+            String getOrdersSql = "SELECT o.order_id, o.final_amount, o.platform_fee, o.discount_amount, o.created_at, "
+                                + "  COALESCE((SELECT SUM(r.refund_amount) FROM return_requests r WHERE r.order_id = o.order_id AND r.status = 'COMPLETED'), 0) AS refund_amount "
+                                + "FROM orders o LEFT JOIN deliveries d ON d.order_id = o.order_id "
+                                + "WHERE o.owner_id = ? AND o.status = 'DELIVERED' "
+                                + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
+                                + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
+                                + "  AND COALESCE(d.delivered_at, o.updated_at) &lt; DATEADD(" + datepart + ", ?, GETDATE())";
+                                
+            String insertSettlementSql = "INSERT INTO shop_settlements (owner_id, period_start, period_end, gross_amount, platform_fee_amount, refund_amount, adjustment_amount, net_amount, status, calculated_at, created_by, note) "
+                                       + "VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'PENDING', GETDATE(), 1, ?)";
+                                       
+            String insertSettlementOrderSql = "INSERT INTO shop_settlement_orders (settlement_id, order_id, order_amount, platform_fee_amount, discount_amount, refund_amount, net_amount) "
+                                            + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                                            
+            try (PreparedStatement psOrders = conn.prepareStatement(getOrdersSql);
+                 PreparedStatement psInsertSettle = conn.prepareStatement(insertSettlementSql, Statement.RETURN_GENERATED_KEYS);
+                 PreparedStatement psInsertSettleOrder = conn.prepareStatement(insertSettlementOrderSql)) {
+                 
+                for (int ownerId : owners) {
+                    psOrders.setInt(1, ownerId);
+                    psOrders.setInt(2, -freezeValue);
+                    
+                    List&lt;Map&lt;String, Object&gt;&gt; ordersList = new ArrayList&lt;&gt;();
+                    java.sql.Date periodStart = null;
+                    java.sql.Date periodEnd = null;
+                    BigDecimal gross = BigDecimal.ZERO;
+                    BigDecimal platformFee = BigDecimal.ZERO;
+                    BigDecimal refund = BigDecimal.ZERO;
+                    
+                    try (ResultSet rsOrders = psOrders.executeQuery()) {
+                        while (rsOrders.next()) {
+                            Map&lt;String, Object&gt; orderData = new HashMap&lt;&gt;();
+                            int orderId = rsOrders.getInt("order_id");
+                            BigDecimal finalAmount = rsOrders.getBigDecimal("final_amount");
+                            BigDecimal pFee = rsOrders.getBigDecimal("platform_fee");
+                            BigDecimal disc = rsOrders.getBigDecimal("discount_amount");
+                            BigDecimal ref = rsOrders.getBigDecimal("refund_amount");
+                            java.sql.Date orderDate = rsOrders.getDate("created_at");
+                            
+                            orderData.put("order_id", orderId);
+                            orderData.put("final_amount", finalAmount);
+                            orderData.put("platform_fee", pFee);
+                            orderData.put("discount_amount", disc);
+                            orderData.put("refund_amount", ref);
+                            ordersList.add(orderData);
+                            
+                            gross = gross.add(finalAmount != null ? finalAmount : BigDecimal.ZERO);
+                            platformFee = platformFee.add(pFee != null ? pFee : BigDecimal.ZERO);
+                            refund = refund.add(ref != null ? ref : BigDecimal.ZERO);
+                            
+                            if (orderDate != null) {
+                                if (periodStart == null || orderDate.before(periodStart)) periodStart = orderDate;
+                                if (periodEnd == null || orderDate.after(periodEnd)) periodEnd = orderDate;
+                            }
+                        }
+                    }
+                    
+                    if (ordersList.isEmpty()) continue;
+                    if (periodStart == null) periodStart = new java.sql.Date(System.currentTimeMillis());
+                    if (periodEnd == null) periodEnd = new java.sql.Date(System.currentTimeMillis());
+                    
+                    // Doanh thu thực nhận sau khi trừ phí sàn 5% và hoàn trả
+                    BigDecimal net = gross.subtract(platformFee).subtract(refund);
+                    String note = String.format("Quyết toán tự động hệ thống cho %d đơn hàng giao thành công.", ordersList.size());
+                    
+                    // Tạo bản ghi chốt đối soát shop_settlement
+                    psInsertSettle.setInt(1, ownerId);
+                    psInsertSettle.setDate(2, periodStart);
+                    psInsertSettle.setDate(3, periodEnd);
+                    psInsertSettle.setBigDecimal(4, gross);
+                    psInsertSettle.setBigDecimal(5, platformFee);
+                    psInsertSettle.setBigDecimal(6, refund);
+                    psInsertSettle.setBigDecimal(7, net);
+                    psInsertSettle.setString(8, note);
+                    psInsertSettle.executeUpdate();
+                    
+                    int settlementId = -1;
+                    try (ResultSet gk = psInsertSettle.getGeneratedKeys()) {
+                        if (gk.next()) settlementId = gk.getInt(1);
+                    }
+                    
+                    // Thêm liên kết các đơn hàng đối soát chi tiết vào bảng shop_settlement_orders
+                    for (Map&lt;String, Object&gt; orderData : ordersList) {
+                        int orderId = (int) orderData.get("order_id");
+                        BigDecimal finalAmount = (BigDecimal) orderData.get("final_amount");
+                        BigDecimal pFee = (BigDecimal) orderData.get("platform_fee");
+                        BigDecimal disc = (BigDecimal) orderData.get("discount_amount");
+                        BigDecimal ref = (BigDecimal) orderData.get("refund_amount");
+                        BigDecimal netOrder = finalAmount.subtract(pFee).subtract(ref);
+                        
+                        psInsertSettleOrder.setInt(1, settlementId);
+                        psInsertSettleOrder.setInt(2, orderId);
+                        psInsertSettleOrder.setBigDecimal(3, finalAmount);
+                        psInsertSettleOrder.setBigDecimal(4, pFee);
+                        psInsertSettleOrder.setBigDecimal(5, disc);
+                        psInsertSettleOrder.setBigDecimal(6, ref);
+                        psInsertSettleOrder.setBigDecimal(7, netOrder);
+                        psInsertSettleOrder.addBatch();
+                    }
+                    psInsertSettleOrder.executeBatch();
+                    settlementsCreated++;
+                    
+                    // Bắn thông báo In-app cho Shop Owner biết đã chốt kỳ đối soát mới
+                    try {
+                        service.chat.NotificationService notifService = new service.chat.NotificationService();
+                        notifService.send(ownerId, "PAYMENT", "Đối soát tự động mới", 
+                            String.format("Hệ thống đã tự động chốt kỳ đối soát mới #%d với doanh thu gộp: %,.0f đ, thực nhận: %,.0f đ. Vui lòng kiểm tra chi tiết.", 
+                            settlementId, gross.doubleValue(), net.doubleValue()), "/shop/settlement");
+                    } catch (Exception e) {
+                        LoggerUtil.warn(log, "Failed to send auto-settlement notification to shop owner " + ownerId, e);
+                    }
+                }
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        }
+    }
+    return settlementsCreated;
+}</code></pre>
     </div>
 
 </body>

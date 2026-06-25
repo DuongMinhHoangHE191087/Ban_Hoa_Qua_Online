@@ -1,12 +1,9 @@
 package servlet.shop.product;
-import dao.catalog.ProductPackagingOptionDAO;
 
 import config.AppConfig;
-import dao.catalog.CategoryDAO;
 import dao.catalog.ProductDAO;
 import dao.catalog.ProductImageDAO;
 import dao.catalog.ProductVariantDAO;
-import model.entity.catalog.Category;
 import model.entity.catalog.Product;
 import model.entity.catalog.ProductImage;
 import model.entity.catalog.ProductVariant;
@@ -49,7 +46,6 @@ public class ProductCreateServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(ProductCreateServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
-    private final CategoryDAO categoryDAO = new CategoryDAO();
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
     private final dao.system.SystemConfigDAO systemConfigDAO = new dao.system.SystemConfigDAO();
@@ -92,7 +88,6 @@ public class ProductCreateServlet extends HttpServlet {
         // Đọc danh sách biến thể
         String[] variantLabels = req.getParameterValues("variantLabel");
         String[] variantPrices = req.getParameterValues("variantPrice");
-        String[] variantStocks = req.getParameterValues("variantStock");
         String[] variantWeights = req.getParameterValues("variantWeight");
         String[] variantDiscountPrices = req.getParameterValues("variantDiscountPrice");
         String[] variantDiscountStarts = req.getParameterValues("variantDiscountStart");
