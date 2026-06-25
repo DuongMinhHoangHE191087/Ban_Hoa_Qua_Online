@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.security.SecureRandom;
 
 /**
  * PaymentService — Business logic cho thanh toán.
@@ -37,6 +38,7 @@ import java.util.logging.Logger;
 public class PaymentService {
 
     private static final Logger log = LoggerUtil.getLogger(PaymentService.class);
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     private final PaymentDAO paymentDAO = new PaymentDAO();
     private final OrderDAO   orderDAO   = new OrderDAO();
@@ -118,13 +120,13 @@ public class PaymentService {
         // Guard: đơn phải thuộc customer này
         Order order = orderDAO.findByIdForCustomer(orderId, customerId);
         if (order == null) throw new SecurityException("Không có quyền truy cập đơn hàng #" + orderId);
-        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
-            throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
-        }
-
         PaymentTransaction tx = getPaymentByOrder(orderId);
         if (tx == null) {
             throw new IllegalStateException("Không tìm thấy bản ghi thanh toán cho đơn #" + orderId);
+        }
+
+        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
+            throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
         }
         // Kiểm tra QR còn hạn không
         if (tx.getExpiresAt() != null && LocalDateTime.now().isAfter(tx.getExpiresAt())) {
@@ -220,11 +222,15 @@ public class PaymentService {
      *
      * @param jsonPayload raw JSON body từ SePay
      */
-    private static final class SepayWebhookPayload {
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    public static final class SepayWebhookPayload {
         public JsonNode id;
         public JsonNode code;
         public JsonNode transferType;
         public JsonNode transferAmount;
+        public JsonNode subAccount;
+        public JsonNode accountNumber;
+        public JsonNode referenceCode;
     }
 
     private static final class WebhookProcessingResult {
@@ -274,28 +280,44 @@ public class PaymentService {
         }
 
         String sepayTxId = normalizeNodeText(payload != null ? payload.id : null);
+        if (sepayTxId == null && payload != null) {
+            sepayTxId = normalizeNodeText(payload.referenceCode);
+        }
         String code = normalizeNodeText(payload != null ? payload.code : null);
         String transferType = normalizeNodeText(payload != null ? payload.transferType : null);
         String amountStr = normalizeNodeText(payload != null ? payload.transferAmount : null);
+        String subAccount = normalizeNodeText(payload != null ? payload.subAccount : null);
+        String accountNumber = normalizeNodeText(payload != null ? payload.accountNumber : null);
 
         if (sepayTxId == null || code == null) {
-            LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: %s", jsonPayload);
+            LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: sepayTxId (id/referenceCode) hoặc code. Payload: %s", jsonPayload);
             return;
         }
 
-        WebhookProcessingResult result;
-        try (Connection conn = paymentDAO.openConnection()) {
-            conn.setAutoCommit(false);
-            try {
-                result = processWebhook(conn, jsonPayload, sepayTxId, code, transferType, amountStr);
-                if (result.isDuplicate()) {
+        WebhookProcessingResult result = null;
+        int maxRetries = 3;
+        int retryDelayMs = 100;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try (Connection conn = paymentDAO.openConnection()) {
+                conn.setAutoCommit(false);
+                try {
+                    result = processWebhook(conn, jsonPayload, sepayTxId, code, transferType, amountStr, subAccount, accountNumber);
+                    if (result.isDuplicate()) {
+                        conn.rollback();
+                        return;
+                    }
+                    conn.commit();
+                    break; // Success! Exit retry loop.
+                } catch (SQLException e) {
                     conn.rollback();
-                    return;
+                    if (e.getErrorCode() == 1205 && attempt < maxRetries) {
+                        LoggerUtil.warn(log, "[Webhook] Deadlock detected (attempt " + attempt + "/" + maxRetries + "). Retrying in " + retryDelayMs + "ms...", e);
+                        try { Thread.sleep(retryDelayMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                        retryDelayMs *= 2; // Exponential backoff
+                        continue;
+                    }
+                    throw e;
                 }
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
             }
         }
 
@@ -305,7 +327,7 @@ public class PaymentService {
     }
 
     private WebhookProcessingResult processWebhook(Connection conn, String jsonPayload, String sepayTxId,
-                                                   String code, String transferType, String amountStr) throws SQLException {
+                                                   String code, String transferType, String amountStr, String subAccount, String accountNumber) throws SQLException {
         if (!paymentDAO.insertDedup(conn, sepayTxId, code, "processing")) {
             LoggerUtil.info(log, "[Webhook] Duplicate sepay_tx_id=%s — bỏ qua.", sepayTxId);
             return WebhookProcessingResult.duplicate();
@@ -314,6 +336,28 @@ public class PaymentService {
         if (!"in".equalsIgnoreCase(transferType)) {
             paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_not_in");
             return WebhookProcessingResult.skipped();
+        }
+
+        // Kiểm tra số tài khoản thụ hưởng nếu có gửi lên (sử dụng trong production)
+        if (subAccount != null || accountNumber != null) {
+            dao.system.SystemConfigDAO systemConfigDAO = new dao.system.SystemConfigDAO();
+            String expectedAccountNo = null;
+            try {
+                expectedAccountNo = systemConfigDAO.getValue(AppConfig.CONFIG_SEPAY_ACCOUNT_NO);
+            } catch (Exception e) {
+                // Bỏ qua lỗi truy vấn DB, sử dụng mặc định
+            }
+            if (expectedAccountNo == null || expectedAccountNo.trim().isEmpty()) {
+                expectedAccountNo = AppConfig.SEPAY_ACCOUNT_NO;
+            }
+            boolean matchSub = subAccount != null && subAccount.equalsIgnoreCase(expectedAccountNo);
+            boolean matchMain = accountNumber != null && accountNumber.equalsIgnoreCase(expectedAccountNo);
+            if (!matchSub && !matchMain) {
+                LoggerUtil.warn(log, "[Webhook] Số tài khoản nhận tiền không khớp: subAccount=%s, accountNumber=%s, config=%s. Bỏ qua.",
+                    subAccount, accountNumber, expectedAccountNo);
+                paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_wrong_account");
+                return WebhookProcessingResult.skipped();
+            }
         }
 
         PaymentTransaction tx = paymentDAO.findByReference(conn, code);
@@ -358,19 +402,28 @@ public class PaymentService {
         return WebhookProcessingResult.handled(order.getOrderId(), order.getCustomerId(), sepayTxId);
     }
 
+    private static final java.util.concurrent.ExecutorService notifierExecutor = 
+        java.util.concurrent.Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, "sepay-webhook-notifier");
+            t.setDaemon(true);
+            return t;
+        });
+
     private void notifyWebhookSuccess(int orderId, int customerId, String sepayTxId) {
-        try {
-            LoggerUtil.info(log, "[Webhook] Gửi thông báo khách hàng cho orderId=%d sepayTxId=%s", orderId, sepayTxId);
-            User customer = userDAO.findUserById(customerId);
-            if (customer != null) {
-                String customerMsg = "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
-                notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + orderId);
-                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
-                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
+        notifierExecutor.submit(() -> {
+            try {
+                LoggerUtil.info(log, "[Webhook] [Async] Gửi thông báo khách hàng cho orderId=%d sepayTxId=%s", orderId, sepayTxId);
+                User customer = userDAO.findUserById(customerId);
+                if (customer != null) {
+                    String customerMsg = "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
+                    notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                    emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
+                }
+            } catch (Exception ex) {
+                LoggerUtil.warn(log, "Không gửi được thông báo thanh toán webhook cho orderId=" + orderId, ex);
             }
-        } catch (Exception ex) {
-            LoggerUtil.warn(log, "Không gửi được thông báo thanh toán webhook cho orderId=" + orderId, ex);
-        }
+        });
     }
 
     private String normalizeNodeText(JsonNode node) {
@@ -385,9 +438,10 @@ public class PaymentService {
         return value.isEmpty() ? null : value;
     }
 
-    /** Tạo reference SePay theo format MF + mã đơn hàng, padded tối thiểu 3 chữ số. */
+    /** Tạo reference SePay theo format MF + mã đơn hàng + 4 chữ số ngẫu nhiên. */
     public static String buildSepayReference(int orderId) {
-        return String.format("%s%03d", AppConfig.PAYMENT_REF_PREFIX, orderId);
+        int suffix = secureRandom.nextInt(10000);
+        return String.format("%s%03d%04d", AppConfig.PAYMENT_REF_PREFIX, orderId, suffix);
     }
 
     /** Mở kết nối dùng cho renewQr (package-private để test). */

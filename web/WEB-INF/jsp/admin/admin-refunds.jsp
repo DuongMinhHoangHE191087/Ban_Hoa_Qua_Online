@@ -260,12 +260,7 @@
             <c:if test="${totalPages > 1}">
                 <div class="flex justify-between items-center px-6 py-4 border-t border-border gap-4">
                     <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
-                    <div class="flex gap-1.5">
-                        <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="?page=${i}&status=${paramStatus}" 
-                               class="page-btn ${i == currentPage ? 'page-btn-active' : ''}">${i}</a>
-                        </c:forEach>
-                    </div>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?status=${fn:escapeXml(paramStatus)}" />
                 </div>
             </c:if>
         </div>

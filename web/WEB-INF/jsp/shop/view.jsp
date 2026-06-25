@@ -513,9 +513,48 @@
         });
     }
 
+    window.promptPageJumpForCallback = function(totalPages, containerId) {
+        const onPageChange = window[containerId + 'Change'];
+        if (typeof onPageChange !== 'function') return;
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Chuyển đến trang',
+                text: 'Nhập số trang muốn đến (1 - ' + totalPages + '):',
+                input: 'number',
+                inputAttributes: { min: 1, max: totalPages, step: 1 },
+                showCancelButton: true,
+                confirmButtonText: 'Đến',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#14532D',
+                inputValidator: (value) => {
+                    const page = parseInt(value);
+                    if (isNaN(page) || page < 1 || page > totalPages) {
+                        return 'Số trang phải từ 1 đến ' + totalPages + '!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    onPageChange(parseInt(result.value));
+                }
+            });
+        } else {
+            const targetPageStr = prompt("Nhập số trang bạn muốn chuyển đến (1 - " + totalPages + "):");
+            if (targetPageStr) {
+                const targetPage = parseInt(targetPageStr);
+                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+                    onPageChange(targetPage);
+                }
+            }
+        }
+    };
+
     function renderPaginationControls(containerId, totalPages, currentPage, onPageChange) {
         const container = document.getElementById(containerId);
         if (!container) return;
+        
+        // Expose callback globally first
+        window[containerId + 'Change'] = onPageChange;
         
         if (totalPages <= 1) {
             container.innerHTML = '';
@@ -535,12 +574,34 @@
             </span>`;
         }
 
-        // Page numbers
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === currentPage) {
-                html += '<span class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary font-extrabold border border-primary/40 shadow-sm">' + i + '</span>';
+        // Page numbers with Neighbors and Ellipsis
+        const pagesToShow = new Set();
+        pagesToShow.add(1);
+        if (totalPages > 1) {
+            pagesToShow.add(totalPages);
+            pagesToShow.add(totalPages - 1);
+        }
+        pagesToShow.add(currentPage);
+        if (currentPage > 1) pagesToShow.add(currentPage - 1);
+        if (currentPage < totalPages) pagesToShow.add(currentPage + 1);
+
+        const pagesSorted = Array.from(pagesToShow).sort((a, b) => a - b);
+
+        for (let idx = 0; idx < pagesSorted.length; idx++) {
+            const pageNum = pagesSorted[idx];
+            if (idx > 0) {
+                const prevPage = pagesSorted[idx - 1];
+                if (pageNum - prevPage > 1) {
+                    html += `
+                        <a href="javascript:void(0)" onclick="promptPageJumpForCallback(${totalPages}, '${containerId}')" class="w-8 h-8 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer" title="Nhảy đến trang...">...</a>
+                    `;
+                }
+            }
+
+            if (pageNum === currentPage) {
+                html += '<span class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary font-extrabold border border-primary/40 shadow-sm">' + pageNum + '</span>';
             } else {
-                html += '<button onclick="window[\'' + containerId + 'Change\'](' + i + ')" class="flex items-center justify-center w-8 h-8 rounded-lg border border-primary/20 bg-white text-on-surface-variant hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">' + i + '</button>';
+                html += '<button onclick="window[\'' + containerId + 'Change\'](' + pageNum + ')" class="flex items-center justify-center w-8 h-8 rounded-lg border border-primary/20 bg-white text-on-surface-variant hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">' + pageNum + '</button>';
             }
         }
 
@@ -556,9 +617,6 @@
         }
 
         container.innerHTML = html;
-        
-        // Expose callback globally
-        window[containerId + 'Change'] = onPageChange;
     }
 
     // Client-side search filters inside shop

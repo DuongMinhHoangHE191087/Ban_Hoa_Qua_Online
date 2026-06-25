@@ -275,7 +275,7 @@ public class ProductDetailServlet extends HttpServlet {
                 String unit = "kg";
                 if (pVariants != null && !pVariants.isEmpty()) {
                     ProductVariant cheapestVariant = pVariants.get(0);
-                    basePrice = cheapestVariant.getPrice();
+                    basePrice = cheapestVariant.getActivePrice();
                     unit = cheapestVariant.getVariantLabel();
                 }
                 item.put("price", basePrice);
@@ -302,7 +302,7 @@ public class ProductDetailServlet extends HttpServlet {
                 List<ProductVariant> spVars = shopVariantMap.get(sp.getProductId());
                 java.math.BigDecimal spPrice = new java.math.BigDecimal("45000");
                 if (spVars != null && !spVars.isEmpty()) {
-                    spPrice = spVars.get(0).getPrice();
+                    spPrice = spVars.get(0).getActivePrice();
                 }
                 spItem.put("price", spPrice);
                 shopOtherProducts.add(spItem);

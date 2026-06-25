@@ -814,6 +814,9 @@ BEGIN
         ('settlement_freeze_days',  '15',   N'Số ngày đóng băng tiền quyết toán của shop.', 'INT'),
         ('shop_accept_timeout_min', '30',   N'Thời gian tối đa (phút) để shop chấp nhận đơn hàng trước khi tự hủy.', 'INT'),
         ('return_request_max_hours','24',   N'Thời gian tối đa (giờ) để khách hàng gửi return request sau DELIVERED.', 'INT'),
+        ('sepay_bank_id',           'MBBank', N'Mã ngân hàng thụ hưởng nhận thanh toán SePay.', 'STRING'),
+        ('sepay_account_no',         'SBSEPAY3NHWA061W5V2', N'Số tài khoản nhận thanh toán SePay.', 'STRING'),
+        ('sepay_account_name',       'CONG TY TNHH METAFRUIT', N'Tên chủ tài khoản nhận thanh toán SePay.', 'STRING'),
         ('gemini_api_key',          '',     N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING');
 
     PRINT 'Created system_config table and seeded defaults.';

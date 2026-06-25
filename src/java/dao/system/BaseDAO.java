@@ -105,17 +105,33 @@ public abstract class BaseDAO {
      * @throws SQLException khi DB lỗi hoặc work ném exception
      */
     protected <T> T withTransaction(TransactionalWork<T> work) throws SQLException {
-        try (Connection conn = getConnection()) {
-            conn.setAutoCommit(false);
-            try {
-                T result = work.execute(conn);
-                conn.commit();
-                return result;
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
+        int maxRetries = 3;
+        int retryDelayMs = 100;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try (Connection conn = getConnection()) {
+                conn.setAutoCommit(false);
+                try {
+                    T result = work.execute(conn);
+                    conn.commit();
+                    return result;
+                } catch (SQLException e) {
+                    conn.rollback();
+                    // SQL Server error code 1205 is deadlock
+                    if (e.getErrorCode() == 1205 && attempt < maxRetries) {
+                        java.util.logging.Logger.getLogger(BaseDAO.class.getName()).log(
+                            java.util.logging.Level.WARNING,
+                            "[Transaction] Deadlock detected (attempt " + attempt + "/" + maxRetries + "). Retrying in " + retryDelayMs + "ms...",
+                            e
+                        );
+                        try { Thread.sleep(retryDelayMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                        retryDelayMs *= 2; // Exponential backoff
+                        continue;
+                    }
+                    throw e;
+                }
             }
         }
+        throw new SQLException("Transaction failed after maximum retries due to deadlocks.");
     }
 
     /**

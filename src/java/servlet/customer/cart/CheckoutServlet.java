@@ -32,15 +32,49 @@ import java.util.logging.Logger;
 
 /**
  * Controller cho checkout.
+package servlet.customer.cart;
+
+import config.AppConfig;
+import dao.order.OrderDAO;
+import model.dto.checkout.CheckoutRequestDTO;
+import model.dto.checkout.CheckoutResultDTO;
+import model.dto.checkout.CheckoutViewData;
+import model.entity.order.Order;
+import model.entity.shop.PaymentTransaction;
+import model.entity.auth.User;
+import model.response.ApiResponse;
+import service.cart.CheckoutService;
+import service.shop.PaymentService;
+import util.JsonUtil;
+import util.SessionUtil;
+import util.ErrorMessageUtil;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import util.LoggerUtil;
+import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
+import java.math.RoundingMode;
+import java.security.MessageDigest;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+
+/**
+ * Controller cho checkout.
  */
 @WebServlet("/checkout")
 public class CheckoutServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(CheckoutServlet.class.getName());
 
-    private static final String BANK_ID = AppConfig.SEPAY_BANK_ID;
-    private static final String ACCOUNT_NO = AppConfig.SEPAY_ACCOUNT_NO;
-    private static final String ACCOUNT_NAME = AppConfig.SEPAY_ACCOUNT_NAME;
+    private static final String DEFAULT_BANK_ID = AppConfig.SEPAY_BANK_ID;
+    private static final String DEFAULT_ACCOUNT_NO = AppConfig.SEPAY_ACCOUNT_NO;
+    private static final String DEFAULT_ACCOUNT_NAME = AppConfig.SEPAY_ACCOUNT_NAME;
     private static final int QR_EXPIRE_MIN = AppConfig.QR_EXPIRE_MINUTES;
 
     private final CheckoutService checkoutService = new CheckoutService();
@@ -185,12 +219,30 @@ public class CheckoutServlet extends HttpServlet {
         String reference = paymentTx != null && paymentTx.getSepayReference() != null
                 ? paymentTx.getSepayReference()
                 : PaymentService.buildSepayReference(order.getOrderId());
+
+        dao.system.SystemConfigDAO systemConfigDAO = new dao.system.SystemConfigDAO();
+        String bankId = null;
+        String accountNo = null;
+        String accountName = null;
+        try {
+            bankId = systemConfigDAO.getValue(AppConfig.CONFIG_SEPAY_BANK_ID);
+            accountNo = systemConfigDAO.getValue(AppConfig.CONFIG_SEPAY_ACCOUNT_NO);
+            accountName = systemConfigDAO.getValue(AppConfig.CONFIG_SEPAY_ACCOUNT_NAME);
+        } catch (Exception e) {
+            LoggerUtil.warn(log, "Không thể tải cấu hình SePay từ DB, sử dụng mặc định", e);
+        }
+
+        if (bankId == null || bankId.trim().isEmpty()) bankId = DEFAULT_BANK_ID;
+        if (accountNo == null || accountNo.trim().isEmpty()) accountNo = DEFAULT_ACCOUNT_NO;
+        if (accountName == null || accountName.trim().isEmpty()) accountName = DEFAULT_ACCOUNT_NAME;
+
         req.setAttribute("order", order);
-        req.setAttribute("qrUrl", buildQrUrl(reference, amountFormatted));
-        req.setAttribute("bankId", BANK_ID);
-        req.setAttribute("accountNo", ACCOUNT_NO);
-        req.setAttribute("accountName", ACCOUNT_NAME);
+        req.setAttribute("qrUrl", buildQrUrl(bankId, accountNo, reference, amountFormatted));
+        req.setAttribute("bankId", bankId);
+        req.setAttribute("accountNo", accountNo);
+        req.setAttribute("accountName", accountName);
         req.setAttribute("reference", reference);
+        req.setAttribute("description", reference);
         req.setAttribute("amountFormatted", amountFormatted);
         req.setAttribute("qrExpireMin", QR_EXPIRE_MIN);
         if (paymentTx != null) {
@@ -314,9 +366,9 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    private String buildQrUrl(String reference, String amount) throws java.io.UnsupportedEncodingException {
-        return "https://qr.sepay.vn/img?bank=" + java.net.URLEncoder.encode(BANK_ID, "UTF-8")
-                + "&acc=" + java.net.URLEncoder.encode(ACCOUNT_NO, "UTF-8")
+    private String buildQrUrl(String bankId, String accountNo, String reference, String amount) throws java.io.UnsupportedEncodingException {
+        return "https://qr.sepay.vn/img?bank=" + java.net.URLEncoder.encode(bankId, "UTF-8")
+                + "&acc=" + java.net.URLEncoder.encode(accountNo, "UTF-8")
                 + "&amount=" + java.net.URLEncoder.encode(amount, "UTF-8")
                 + "&des=" + java.net.URLEncoder.encode(reference, "UTF-8")
                 + "&template=compact";

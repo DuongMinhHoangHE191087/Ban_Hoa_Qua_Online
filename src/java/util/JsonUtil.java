@@ -24,6 +24,7 @@ public final class JsonUtil {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static {
+        MAPPER.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         SimpleModule module = new SimpleModule();
         module.addSerializer(LocalDate.class, new JsonSerializer<LocalDate>() {
             @Override

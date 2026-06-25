@@ -197,7 +197,7 @@ public class ProductListServlet extends HttpServlet {
         int cheapestStock = 0;
         if (variants != null && !variants.isEmpty()) {
             ProductVariant cheapestVariant = variants.get(0);
-            basePrice = cheapestVariant.getPrice();
+            basePrice = cheapestVariant.getActivePrice();
             unit = cheapestVariant.getVariantLabel();
             defaultVariantId = cheapestVariant.getVariantId();
             cheapestStock = cheapestVariant.getStockQuantity();

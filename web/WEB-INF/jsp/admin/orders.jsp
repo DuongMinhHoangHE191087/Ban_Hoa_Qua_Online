@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -45,6 +45,25 @@
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(77, 102, 28, 0.08);
             box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.03);
+        }
+        .pagination-wrapper { padding: 0 !important; }
+        .pagination { gap: 0.375rem !important; margin: 0 !important; }
+        .pagination .page-link {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
+            font-size: 0.75rem; font-weight: 600;
+            border: 1px solid #e2ece7; background: #fff;
+            color: #374151; cursor: pointer; transition: all 0.15s;
+            text-decoration: none;
+        }
+        .pagination .page-item.active .page-link {
+            background: #4d661c; border-color: #4d661c; color: #fff;
+        }
+        .pagination .page-item.disabled .page-link {
+            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
+        }
+        .pagination .page-item .page-link:hover:not(.disabled) {
+            background: #f1f5f9; border-color: #9ca3af;
         }
     </style>
 </head>
@@ -335,18 +354,7 @@
                 <!-- Pagination UI with advanced parameters preserved -->
                 <div class="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-border gap-4">
                     <span class="text-xs text-text-secondary font-medium">Trang ${currentPage} / ${totalPages}</span>
-                    <div class="flex gap-1.5">
-                        <c:if test="${currentPage > 1}">
-                            <a href="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}&page=${currentPage - 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
-                                <span class="material-symbols-outlined text-sm">chevron_left</span> Trước
-                            </a>
-                        </c:if>
-                        <c:if test="${currentPage < totalPages}">
-                            <a href="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}&page=${currentPage + 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
-                                Sau <span class="material-symbols-outlined text-sm">chevron_right</span>
-                            </a>
-                        </c:if>
-                    </div>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}" />
                 </div>
             </div>
         </main>

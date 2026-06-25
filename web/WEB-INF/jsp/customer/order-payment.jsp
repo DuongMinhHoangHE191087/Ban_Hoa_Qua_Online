@@ -101,6 +101,10 @@
 
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
     <input type="hidden" id="js-qr-expire-min" value="${qrExpireMin != null ? qrExpireMin : 15}">
+    <input type="hidden" id="js-order-id" value="<c:out value='${order.orderId}'/>">
+    <input type="hidden" id="js-reference" value="<c:out value='${reference}'/>">
+    <input type="hidden" id="js-amount-formatted" value="<c:out value='${amountFormatted}'/>">
+    <input type="hidden" id="js-context-path" value="<c:out value='${pageContext.request.contextPath}'/>">
     
     <div class="mb-8 flex items-baseline justify-between border-b border-[#b1f2be] pb-4">
         <div>
@@ -183,7 +187,7 @@
                             <span class="text-xs text-on-surface-variant font-medium block">Ngân hàng thụ hưởng</span>
                             <span class="font-extrabold text-[#00210d]">Ngân hàng Quân Đội (MB Bank)</span>
                         </div>
-                        <button onclick="copyText('Ngân hàng Quân Đội (MB Bank)', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="Ngân hàng Quân Đội (MB Bank)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -192,9 +196,9 @@
                     <div class="flex justify-between items-center bg-white/40 p-3 rounded-lg border border-emerald-100/50 hover:bg-white/60 transition-colors">
                         <div>
                             <span class="text-xs text-on-surface-variant font-medium block">Số tài khoản</span>
-                            <span class="font-extrabold text-[#00210d] text-base select-all tracking-wider">${accountNo}</span>
+                            <span class="font-extrabold text-[#00210d] text-base select-all tracking-wider"><c:out value="${accountNo}"/></span>
                         </div>
-                        <button onclick="copyText('${accountNo}', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${accountNo}'/>" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -203,9 +207,9 @@
                     <div class="flex justify-between items-center bg-white/40 p-3 rounded-lg border border-emerald-100/50 hover:bg-white/60 transition-colors">
                         <div>
                             <span class="text-xs text-on-surface-variant font-medium block">Chủ tài khoản thụ hưởng</span>
-                            <span class="font-extrabold text-[#00210d] select-all">${accountName}</span>
+                            <span class="font-extrabold text-[#00210d] select-all"><c:out value="${accountName}"/></span>
                         </div>
-                        <button onclick="copyText('${accountName}', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${accountName}'/>" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -216,7 +220,7 @@
                             <span class="text-xs text-on-surface-variant font-medium block">Số tiền chính xác</span>
                             <span class="font-black text-[#ba1a1a] text-lg select-all"><ft:currency value="${order.finalAmount}"/></span>
                         </div>
-                        <button onclick="copyText('${amountFormatted}', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${amountFormatted}'/>" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -228,9 +232,9 @@
                                 <span class="material-symbols-outlined text-sm">warning</span>
                                 Nội dung chuyển khoản bắt buộc
                             </span>
-                            <span class="font-black text-amber-900 text-base select-all tracking-wider font-mono">${description}</span>
+                            <span class="font-black text-amber-900 text-base select-all tracking-wider font-mono"><c:out value="${description}"/></span>
                         </div>
-                        <button onclick="copyText('${description}', this)" class="text-amber-800 hover:text-opacity-80 p-1.5 flex items-center justify-center rounded hover:bg-yellow-100 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${description}'/>" class="text-amber-800 hover:text-opacity-80 p-1.5 flex items-center justify-center rounded hover:bg-yellow-100 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[20px] font-bold">content_copy</span>
                         </button>
                     </div>
@@ -357,9 +361,15 @@
             (seconds < 10 ? '0' : '') + seconds;
     }, 1000);
 
+    // Read clean values from DOM hidden fields to prevent quote/syntax breaking issues
+    const orderId = document.getElementById('js-order-id').value;
+    const reference = document.getElementById('js-reference').value;
+    const amountFormatted = document.getElementById('js-amount-formatted').value;
+    const contextPath = document.getElementById('js-context-path').value;
+
     // Real-time Polling every 3 seconds to check order payment status
-    const pollingUrl = '${pageContext.request.contextPath}/checkout?action=status&orderId=${order.orderId}';
-    const successUrl = '${pageContext.request.contextPath}/checkout?action=success&orderId=${order.orderId}';
+    const pollingUrl = contextPath + '/checkout?action=status&orderId=' + encodeURIComponent(orderId);
+    const successUrl = contextPath + '/checkout?action=success&orderId=' + encodeURIComponent(orderId);
 
     // Hiển thị modal thông báo thành công và đếm ngược tự động chuyển hướng
     function showSuccessModal(redirectUrl) {
@@ -396,9 +406,10 @@
         })
             .then(handleJSONResponse)
             .then(data => {
-                console.log('[FruitMkt] Polling Order Status:', data.status);
+                const orderStatus = data.data ? data.data.status : null;
+                console.log('[FruitMkt] Polling Order Status:', orderStatus);
                 // If order state updated to CONFIRMED (or preparing, dispatched etc. indicating payment complete)
-                if (data.status && data.status !== 'PENDING_PAYMENT' && data.status !== 'UNKNOWN') {
+                if (orderStatus && orderStatus !== 'PENDING_PAYMENT' && orderStatus !== 'UNKNOWN') {
                     clearInterval(timerInterval);
                     clearInterval(pollingInterval);
                     showSuccessModal(successUrl);
@@ -413,24 +424,25 @@
     function simulateSuccessRedirect() {
         const payload = {
             id: "SIM_TX_" + Date.now(),
-            code: "${reference}",
+            code: reference,
             transferType: "in",
-            transferAmount: "${amountFormatted}"
+            transferAmount: amountFormatted
         };
 
-        fetch('${pageContext.request.contextPath}/api/payment/webhook', {
+        fetch(contextPath + '/api/payment/webhook', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         })
-        .then(res => {
-            if (res.ok) {
-                console.log('[Dev Sim] Webhook sent successfully');
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                console.log('[Dev Sim] Webhook simulation processed successfully:', data);
                 showSuccessModal(successUrl);
             } else {
-                alert('Gửi webhook mô phỏng thất bại.');
+                alert('Gửi webhook mô phỏng thất bại: ' + (data.message || 'Lỗi xử lý nội bộ'));
             }
         })
         .catch(err => {
