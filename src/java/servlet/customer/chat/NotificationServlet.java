@@ -15,7 +15,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -34,7 +33,7 @@ public class NotificationServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        User currentUser = SessionUtil.getCurrentUser(req.getSession());
+        User currentUser = SessionUtil.getCurrentUser(req.getSession(false));
         if (currentUser == null) {
             String requestType = req.getHeader("X-Requested-With");
             if ("XMLHttpRequest".equals(requestType) || req.getServletPath().contains("/api/")) {
@@ -53,9 +52,8 @@ public class NotificationServlet extends HttpServlet {
         if ("getRecent".equals(action) || servletPath.contains("/api/notifications/recent")) {
             resp.setContentType("application/json;charset=UTF-8");
             try {
-                List<Notification> list = notificationService.getAllNotifications(currentUser.getUserId());
-                int limit = Math.min(5, list.size());
-                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("notifications", list.subList(0, limit))));
+                List<Notification> list = notificationService.getRecentNotifications(currentUser.getUserId(), 5);
+                JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("notifications", list)));
             } catch (Exception e) {
                 LOG.log(Level.SEVERE, "Lỗi lấy danh sách thông báo gần đây", e);
                 JsonUtil.writeJson(resp, ApiResponse.error(e.getMessage()));
@@ -66,7 +64,7 @@ public class NotificationServlet extends HttpServlet {
         if ("getUnreadCounts".equals(action) || servletPath.contains("/api/notifications/unread")) {
             resp.setContentType("application/json;charset=UTF-8");
             try {
-                int unreadNotifs = notificationService.getUnread(currentUser.getUserId()).size();
+                int unreadNotifs = notificationService.countUnreadByUser(currentUser.getUserId());
                 int unreadChats = chatDAO.countTotalUnread(currentUser.getUserId());
                 JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("unreadNotifications", unreadNotifs, "unreadChats", unreadChats)));
             } catch (Exception e) {
@@ -91,7 +89,7 @@ public class NotificationServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        User currentUser = SessionUtil.getCurrentUser(req.getSession());
+        User currentUser = SessionUtil.getCurrentUser(req.getSession(false));
         if (currentUser == null) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
@@ -109,7 +107,7 @@ public class NotificationServlet extends HttpServlet {
                 }
                 if (notifIdStr != null && !notifIdStr.trim().isEmpty()) {
                     int notifId = Integer.parseInt(notifIdStr);
-                    notificationService.delete(notifId);
+                    notificationService.delete(notifId, currentUser.getUserId());
                 }
                 if (isApi) {
                     resp.setContentType("application/json;charset=UTF-8");
@@ -123,7 +121,7 @@ public class NotificationServlet extends HttpServlet {
                 }
                 if (notifIdStr != null && !notifIdStr.trim().isEmpty()) {
                     int notifId = Integer.parseInt(notifIdStr);
-                    notificationService.markRead(notifId);
+                    notificationService.markRead(notifId, currentUser.getUserId());
                 }
                 if (isApi) {
                     resp.setContentType("application/json;charset=UTF-8");
@@ -139,6 +137,29 @@ public class NotificationServlet extends HttpServlet {
                 }
                 SessionUtil.flashSuccess(req.getSession(), "Đã đánh dấu đọc tất cả thông báo.");
             }
+        } catch (SecurityException e) {
+            LOG.log(Level.WARNING, "Từ chối thao tác thông báo", e);
+            if (isApi) {
+                resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN,
+                        "Thông báo không tồn tại hoặc bạn không có quyền thao tác."));
+                return;
+            }
+            SessionUtil.flashError(req.getSession(),
+                    "Thông báo không tồn tại hoặc bạn không có quyền thao tác.");
+            resp.sendRedirect(req.getContextPath() + "/notifications");
+            return;
+        } catch (NumberFormatException e) {
+            LOG.log(Level.WARNING, "ID thông báo không hợp lệ", e);
+            if (isApi) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                        "ID thông báo không hợp lệ."));
+                return;
+            }
+            SessionUtil.flashError(req.getSession(), "ID thông báo không hợp lệ.");
+            resp.sendRedirect(req.getContextPath() + "/notifications");
+            return;
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "Lỗi xử lý POST thông báo", e);
             if (isApi) {
@@ -146,7 +167,7 @@ public class NotificationServlet extends HttpServlet {
                         req,
                         resp,
                         java.util.logging.Logger.getLogger(NotificationServlet.class.getName()),
-                        "NotificationServlet#doGet",
+                        "NotificationServlet#doPost",
                         "Có lỗi xảy ra: " + e.getMessage(),
                         e);
                 return;

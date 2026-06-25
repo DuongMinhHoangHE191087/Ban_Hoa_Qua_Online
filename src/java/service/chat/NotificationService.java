@@ -32,8 +32,23 @@ public class NotificationService {
         return notificationDAO.findByUser(userId, false);
     }
 
+    public int countUnreadByUser(int userId) throws SQLException {
+        return notificationDAO.countUnreadByUser(userId);
+    }
+
+    public List<Notification> getRecentNotifications(int userId, int limit) throws SQLException {
+        return notificationDAO.findRecentByUser(userId, limit);
+    }
+
     public void markRead(int notifId) throws SQLException {
         notificationDAO.markRead(notifId);
+    }
+
+    public void markRead(int notifId, int userId) throws SQLException {
+        int affected = notificationDAO.markRead(notifId, userId);
+        if (affected == 0) {
+            ensureNotificationOwnershipIfExists(notifId, userId);
+        }
     }
 
     public void markAllRead(int userId) throws SQLException {
@@ -53,5 +68,19 @@ public class NotificationService {
 
     public void delete(int notifId) throws SQLException {
         notificationDAO.delete(notifId);
+    }
+
+    public void delete(int notifId, int userId) throws SQLException {
+        int affected = notificationDAO.delete(notifId, userId);
+        if (affected == 0) {
+            ensureNotificationOwnershipIfExists(notifId, userId);
+        }
+    }
+
+    private void ensureNotificationOwnershipIfExists(int notifId, int userId) throws SQLException {
+        Integer ownerId = notificationDAO.findUserIdByNotificationId(notifId);
+        if (ownerId != null && ownerId != userId) {
+            throw new SecurityException("Thông báo không tồn tại hoặc không thuộc quyền của bạn.");
+        }
     }
 }

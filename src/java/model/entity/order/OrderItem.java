@@ -17,6 +17,7 @@ public class OrderItem {
     private java.math.BigDecimal subtotal;
     private String packagingLabelSnapshot;
     private java.math.BigDecimal packagingPriceSnapshot;
+    private String imagePath;
 
     public OrderItem() {}
 
@@ -49,5 +50,8 @@ public class OrderItem {
 
     public java.math.BigDecimal getPackagingPriceSnapshot() { return packagingPriceSnapshot; }
     public void setPackagingPriceSnapshot(java.math.BigDecimal packagingPriceSnapshot) { this.packagingPriceSnapshot = packagingPriceSnapshot; }
+
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 
 }

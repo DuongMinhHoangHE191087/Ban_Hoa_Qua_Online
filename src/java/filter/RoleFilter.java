@@ -76,39 +76,51 @@ public class RoleFilter implements Filter {
 
         // 2. Kiểm tra quyền truy cập theo Vai trò (RBAC)
         boolean allowed = false;
-        if (uri.equals(ctx + "/admin") || uri.startsWith(ctx + "/admin/")) {
-            allowed = AppConfig.ROLE_ADMIN.equals(user.getRole());
-        } else if (uri.equals(ctx + "/shop") || uri.startsWith(ctx + "/shop/")) {
-            if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
-                if (uri.equals(ctx + "/shop/status") || uri.startsWith(ctx + "/shop/status")) {
+        if (uri.equals(ctx + "/shop/status") || uri.startsWith(ctx + "/shop/status")) {
+            try {
+                ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+                List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
+                if (!profiles.isEmpty()) {
                     allowed = true;
                 } else {
-                    try {
-                        // Try to get cached profile from session to avoid DB query per request
-                        ShopProfile cachedProfile = (ShopProfile) session.getAttribute("_shopProfile");
-                        ShopProfile profile = null;
+                    resp.sendRedirect(ctx + "/auth/register");
+                    return;
+                }
+            } catch (Exception e) {
+                LoggerUtil.error(log, "Lỗi kiểm tra quyền vào shop status", e);
+                throw new ServletException("Không thể kiểm tra trạng thái shop", e);
+            }
+        } else if (uri.equals(ctx + "/admin") || uri.startsWith(ctx + "/admin/")) {
+            allowed = AppConfig.ROLE_ADMIN.equals(user.getRole());
+        } else if (uri.equals(ctx + "/shop/docs") || uri.startsWith(ctx + "/shop/docs")) {
+            allowed = true; // ShopDocDownloadServlet performs its own internal ownership/role checks
+        } else if (uri.equals(ctx + "/shop") || uri.startsWith(ctx + "/shop/")) {
+            if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
+                try {
+                    // Try to get cached profile from session to avoid DB query per request
+                    ShopProfile cachedProfile = (ShopProfile) session.getAttribute("_shopProfile");
+                    ShopProfile profile = null;
 
-                        if (cachedProfile != null) {
-                            profile = cachedProfile;
-                        } else {
-                            ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
-                            List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
-                            if (!profiles.isEmpty()) {
-                                profile = profiles.get(0);
-                                session.setAttribute("_shopProfile", profile);
-                            }
+                    if (cachedProfile != null) {
+                        profile = cachedProfile;
+                    } else {
+                        ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+                        List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
+                        if (!profiles.isEmpty()) {
+                            profile = profiles.get(0);
+                            session.setAttribute("_shopProfile", profile);
                         }
-
-                        if (profile != null && "APPROVED".equals(profile.getApprovalStatus())) {
-                            allowed = true;
-                        } else {
-                            resp.sendRedirect(ctx + "/shop/status");
-                            return;
-                        }
-                    } catch (Exception e) {
-                        LoggerUtil.error(log, "Lỗi kiểm tra trạng thái shop profile", e);
-                        throw new ServletException("Không thể kiểm tra trạng thái shop", e);
                     }
+
+                    if (profile != null && "APPROVED".equals(profile.getApprovalStatus())) {
+                        allowed = true;
+                    } else {
+                        resp.sendRedirect(ctx + "/shop/status");
+                        return;
+                    }
+                } catch (Exception e) {
+                    LoggerUtil.error(log, "Lỗi kiểm tra trạng thái shop profile", e);
+                    throw new ServletException("Không thể kiểm tra trạng thái shop", e);
                 }
             } else {
                 allowed = false;
@@ -118,7 +130,8 @@ public class RoleFilter implements Filter {
         } else if (uri.equals(ctx + "/customer") || uri.startsWith(ctx + "/customer/")) {
             allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
         } else if (uri.equals(ctx + "/notifications")) {
-            allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) 
+            allowed = AppConfig.ROLE_ADMIN.equals(user.getRole())
+                    || AppConfig.ROLE_CUSTOMER.equals(user.getRole())
                     || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())
                     || AppConfig.ROLE_DELIVERY.equals(user.getRole());
         } else if (uri.equals(ctx + "/checkout")

@@ -1069,6 +1069,79 @@
         pointer-events: none;
     }
     .copy-toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ============================================================
+       RESPONSIVE CUSTOM OVERRIDES
+       ============================================================ */
+    @media (max-width: 768px) {
+        .shop-header-band {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: left;
+            gap: var(--space-4);
+            padding: var(--space-4);
+        }
+        .shop-header-left {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .shop-avatar-lg {
+            margin-bottom: var(--space-2);
+        }
+        .shop-hero-sub {
+            flex-direction: column;
+            gap: var(--space-1);
+            align-items: center;
+        }
+        .shop-header-band .flex-row, .shop-header-band .flex {
+            flex-direction: column;
+            width: 100%;
+            gap: var(--space-2);
+        }
+        .shop-header-band a, .shop-header-band button {
+            width: 100% !important;
+            text-align: center;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .cart-action-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: var(--space-3);
+        }
+        .qty-selector {
+            justify-content: center;
+            width: 100%;
+        }
+        .btn-add-to-cart-large {
+            width: 100%;
+            padding: 12px var(--space-4);
+        }
+        .spec-table {
+            display: block;
+            border: none;
+        }
+        .spec-table tbody, .spec-table tr, .spec-table th, .spec-table td {
+            display: block;
+            width: 100% !important;
+        }
+        .spec-table tr {
+            border: 1px solid var(--color-glass-border);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-3);
+            overflow: hidden;
+        }
+        .spec-table th {
+            background: rgba(77, 102, 28, 0.08);
+            border-bottom: 1px solid var(--color-glass-border);
+        }
+        .spec-table td {
+            background: #fff;
+        }
+    }
 </style>
 
 <div class="detail-container">
@@ -2389,7 +2462,7 @@
     }
 
     const reviewContextPath = '${pageContext.request.contextPath}';
-    const reviewProductId = ${product.productId};
+    const reviewProductId = '${product.productId}';
 
     let currentReviewPage = 1;
     let currentRatingFilter = null;

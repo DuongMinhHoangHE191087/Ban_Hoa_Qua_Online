@@ -12,6 +12,8 @@
 - Use `PreparedStatement`, try-with-resources, and parameterized queries.
 - Preserve PRG after POST and keep JSPs behind `WEB-INF`.
 - Validate user input before persistence or redirecting.
+- Keep customer-facing JSP/HTML text saved as UTF-8 and verify Vietnamese labels after edits.
+- Prefer restrained icon usage in order-detail/order-history surfaces; use icons only for meaningful status or primary section headers, not every tile.
 - Do not edit generated NetBeans build files unless the failure clearly requires it.
 
 ## Domain Rules

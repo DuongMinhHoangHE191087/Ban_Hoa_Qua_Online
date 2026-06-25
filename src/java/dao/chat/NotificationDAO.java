@@ -35,6 +35,43 @@ public class NotificationDAO extends BaseDAO {
         return list;
     }
 
+    public List<Notification> findRecentByUser(int userId, int limit) throws SQLException {
+        List<Notification> list = new ArrayList<>();
+        if (limit <= 0) {
+            return list;
+        }
+
+        String sql = "SELECT * FROM notifications "
+                + "WHERE user_id = ? "
+                + "ORDER BY created_at DESC, notification_id DESC "
+                + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countUnreadByUser(int userId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
     public int save(Notification notif) throws SQLException {
         String sql = "INSERT INTO notifications (user_id, type, title, message, action_url, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
         try (Connection conn = getConnection();
@@ -79,6 +116,16 @@ public class NotificationDAO extends BaseDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, notifId);
             ps.executeUpdate();
+        }
+    }
+
+    public int markRead(int notifId, int userId) throws SQLException {
+        String sql = "UPDATE notifications SET is_read = 1 WHERE notification_id = ? AND user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, notifId);
+            ps.setInt(2, userId);
+            return ps.executeUpdate();
         }
     }
 
@@ -161,6 +208,30 @@ public class NotificationDAO extends BaseDAO {
             ps.setInt(1, notifId);
             ps.executeUpdate();
         }
+    }
+
+    public int delete(int notifId, int userId) throws SQLException {
+        String sql = "DELETE FROM notifications WHERE notification_id = ? AND user_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, notifId);
+            ps.setInt(2, userId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public Integer findUserIdByNotificationId(int notifId) throws SQLException {
+        String sql = "SELECT user_id FROM notifications WHERE notification_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, notifId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("user_id");
+                }
+            }
+        }
+        return null;
     }
 
     /**

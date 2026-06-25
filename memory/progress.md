@@ -20,6 +20,7 @@
   - Phát triển Ajax Address Book trong `UserProfileServlet` và giao diện `profile.jsp`.
   - Cập nhật `CheckoutServlet` và `checkout.jsp` hỗ trợ chọn địa chỉ từ sổ địa chỉ, tự điền thông tin và kiểm tra hợp lệ dữ liệu.
   - Cập nhật toàn bộ hệ thống tài liệu đặc tả (SRS Core, SRS Database Spec, Detailed Design Specification, Use Case Master) để khớp 100% với cấu trúc mã nguồn thực tế.
+- **25/06/2026:** Tạo tài liệu hướng dẫn cấu hình Cloudflare Tunnel (`CLOUDFLARE_TUNNEL_SHARING_GUIDE.md`) để chia sẻ dự án cho nhóm kiểm thử đồng thời (concurrency testing).
 
 ## 📈 Trạng thái Hệ thống
 - Hệ thống hoạt động hoàn toàn ổn định 100%.

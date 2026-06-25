@@ -112,10 +112,10 @@
                     <div class="detail-label"><i class="fa-regular fa-envelope mr-1"></i> Địa chỉ Email</div>
                     <div class="detail-value">${user.email} <c:if test="${user.emailVerified}"><i class="fa-solid fa-circle-check text-emerald-500 ml-1 text-sm" title="Đã xác thực"></i></c:if></div>
                 </div>
-                <div>
                     <div class="detail-label"><i class="fa-solid fa-phone mr-1"></i> Số điện thoại</div>
                     <div class="detail-value">${empty user.phone ? '<span class="text-txt-3 italic">Chưa cập nhật</span>' : user.phone}</div>
-                </div>
+                    <div class="detail-value">${empty user.phone ? '<span class="text-txt-3 italic">Chưa cập nhật</span>' : user.phone}</div>
+                    <div class="detail-label"><i class="fa-solid fa-user-shield mr-1"></i> Vai trò (Role)</div>
                 <div>
                     <div class="detail-label"><i class="fa-solid fa-user-shield mr-1"></i> Vai trò (Role)</div>
                     <div class="detail-value">

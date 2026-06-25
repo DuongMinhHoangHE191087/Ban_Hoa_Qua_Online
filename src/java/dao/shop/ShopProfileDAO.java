@@ -51,9 +51,14 @@ public class ShopProfileDAO extends BaseDAO {
      * Tìm shop profile duy nhất theo ID người dùng.
      */
     public ShopProfile findOneByUserId(int userId) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return findOneByUserId(conn, userId);
+        }
+    }
+
+    public ShopProfile findOneByUserId(Connection conn, int userId) throws SQLException {
         String sql = "SELECT * FROM shop_owner_profiles WHERE user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -153,9 +158,14 @@ public class ShopProfileDAO extends BaseDAO {
      * Xóa shop profile theo user_id.
      */
     public void deleteByUserId(int userId) throws SQLException {
+        try (Connection conn = getConnection()) {
+            deleteByUserId(conn, userId);
+        }
+    }
+
+    public void deleteByUserId(Connection conn, int userId) throws SQLException {
         String sql = "DELETE FROM shop_owner_profiles WHERE user_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             ps.executeUpdate();
         }
@@ -165,10 +175,16 @@ public class ShopProfileDAO extends BaseDAO {
      * Lưu mới một shop profile và trả về ID tự sinh.
      */
     public int save(ShopProfile profile) throws SQLException {
-        ShopProfile existing = findOneByUserId(profile.getUserId());
+        try (Connection conn = getConnection()) {
+            return save(conn, profile);
+        }
+    }
+
+    public int save(Connection conn, ShopProfile profile) throws SQLException {
+        ShopProfile existing = findOneByUserId(conn, profile.getUserId());
         if (existing != null) {
             if ("REJECTED".equals(existing.getApprovalStatus())) {
-                deleteByUserId(profile.getUserId());
+                deleteByUserId(conn, profile.getUserId());
             } else {
                 throw new SQLException("User " + profile.getUserId() + " đã có shop profile ở trạng thái "
                         + existing.getApprovalStatus());
@@ -179,8 +195,7 @@ public class ShopProfileDAO extends BaseDAO {
                    + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
                    + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, logo_url, cover_url, expiry_warning_days, low_stock_threshold, created_at, updated_at) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, profile.getUserId());
             ps.setString(2, profile.getShopName());
             ps.setString(3, profile.getShopDescription());
@@ -196,7 +211,7 @@ public class ShopProfileDAO extends BaseDAO {
             ps.setString(13, profile.getCoverUrl());
             ps.setInt(14, profile.getExpiryWarningDays() > 0 ? profile.getExpiryWarningDays() : 3);
             ps.setInt(15, profile.getLowStockThreshold() > 0 ? profile.getLowStockThreshold() : 5);
-            
+
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -213,11 +228,24 @@ public class ShopProfileDAO extends BaseDAO {
      * Cập nhật thông tin shop profile.
      */
     public void update(ShopProfile profile) throws SQLException {
+        try (Connection conn = getConnection()) {
+            update(conn, profile);
+        }
+    }
+
+    public void update(Connection conn, ShopProfile profile) throws SQLException {
+        if (profile.getProfileId() <= 0) {
+            ShopProfile existing = findOneByUserId(conn, profile.getUserId());
+            if (existing == null) {
+                throw new SQLException("Không tìm thấy shop profile để cập nhật.");
+            }
+            profile.setProfileId(existing.getProfileId());
+        }
+
         String sql = "UPDATE shop_owner_profiles SET shop_name = ?, shop_description = ?, approval_status = ?, "
                    + "rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, "
                    + "preferred_categories = ?, doc_paths = ?, business_email = ?, logo_url = ?, cover_url = ?, expiry_warning_days = ?, low_stock_threshold = ?, updated_at = GETDATE() WHERE profile_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, profile.getShopName());
             ps.setString(2, profile.getShopDescription());
             ps.setString(3, profile.getApprovalStatus());
@@ -336,13 +364,23 @@ public class ShopProfileDAO extends BaseDAO {
      * Kiểm tra xem email doanh nghiệp đã được sử dụng hay chưa.
      */
     public boolean isBusinessEmailExists(String businessEmail) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return isBusinessEmailExists(conn, businessEmail, 0);
+        }
+    }
+
+    public boolean isBusinessEmailExists(Connection conn, String businessEmail, int excludeUserId) throws SQLException {
         if (businessEmail == null || businessEmail.trim().isEmpty()) {
             return false;
         }
-        String sql = "SELECT COUNT(*) FROM shop_owner_profiles WHERE business_email = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = excludeUserId > 0
+                ? "SELECT COUNT(*) FROM shop_owner_profiles WHERE business_email = ? AND user_id <> ?"
+                : "SELECT COUNT(*) FROM shop_owner_profiles WHERE business_email = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, businessEmail.trim());
+            if (excludeUserId > 0) {
+                ps.setInt(2, excludeUserId);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1) > 0;
