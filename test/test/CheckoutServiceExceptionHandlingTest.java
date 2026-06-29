@@ -30,19 +30,52 @@ public class CheckoutServiceExceptionHandlingTest {
     private final ProductVariantDAO variantDAO = new ProductVariantDAO();
     private User testUser;
     private Integer ownerCartId;
+    private Integer testUserCartId;
 
     @Before
-    public void setUp() {
+    public void setUp() throws SQLException {
         checkoutService = new CheckoutService();
         testUser = createTestUser(5, "customer1@fruitshop.local", "Tran Minh Customer", "0900000005");
+        prepareTestUserCart();
     }
 
     @After
     public void tearDown() {
         try {
             cleanupOwnerCart();
+            cleanupTestUserCart();
             resetVariant1();
         } catch (SQLException ignored) {
+        }
+    }
+
+    private void prepareTestUserCart() throws SQLException {
+        List<model.entity.cart.Cart> carts = cartDAO.findByCustomer(testUser.getUserId());
+        int cartId;
+        if (carts.isEmpty()) {
+            cartId = cartDAO.createForCustomer(testUser.getUserId());
+        } else {
+            cartId = carts.get(0).getCartId();
+        }
+        cartDAO.clearCart(cartId);
+        cartDAO.addItem(cartId, 1, 5);
+        cartDAO.addItem(cartId, 2, 5);
+        testUserCartId = cartId;
+    }
+
+    private void cleanupTestUserCart() throws SQLException {
+        if (testUserCartId == null) {
+            return;
+        }
+        try (Connection conn = variantDAO.getConnection();
+             PreparedStatement clearItems = conn.prepareStatement("DELETE FROM cart_items WHERE cart_id = ?");
+             PreparedStatement deleteCart = conn.prepareStatement("DELETE FROM cart WHERE cart_id = ?")) {
+            clearItems.setInt(1, testUserCartId);
+            clearItems.executeUpdate();
+            deleteCart.setInt(1, testUserCartId);
+            deleteCart.executeUpdate();
+        } finally {
+            testUserCartId = null;
         }
     }
 

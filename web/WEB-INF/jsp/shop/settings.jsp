@@ -7,7 +7,7 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Kênh Người Bán | Cài Đặt Cửa Hàng</title>
+                <title>MetaFruit | Cài Đặt Cửa Hàng</title>
                 <meta name="description"
                     content="Cài đặt ngưỡng cảnh báo tồn kho thấp và số ngày cảnh báo trước khi lô hàng hết hạn.">
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
@@ -16,7 +16,7 @@
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link
-                    href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+                    href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
 
@@ -41,7 +41,7 @@
                                     'txt-3': '#94a3b8',
                                 },
                                 fontFamily: {
-                                    sans: ['Lexend', 'Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                                    sans: ['Lexend', 'Segoe UI', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
                                 },
                                 boxShadow: {
                                     card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
@@ -54,7 +54,7 @@
                 <style>
                     body {
                         background-color: #f4fbf7;
-                        font-family: 'Lexend', 'Plus Jakarta Sans', -apple-system, sans-serif;
+                        font-family: 'Lexend', 'Segoe UI', -apple-system, sans-serif;
                     }
 
                     .glass-card {
@@ -333,7 +333,8 @@
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-triangle-exclamation"></i></div>
+                                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                            </div>
                                             <div>
                                                 <p class="text-sm font-semibold text-[#0f172a]">Cảnh báo tồn kho thấp
                                                 </p>
@@ -353,7 +354,8 @@
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-calendar-xmark"></i></div>
+                                                <i class="fa-solid fa-calendar-xmark"></i>
+                                            </div>
                                             <div>
                                                 <p class="text-sm font-semibold text-[#0f172a]">Cảnh báo lô hàng hết hạn
                                                 </p>
@@ -373,7 +375,8 @@
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-clipboard-list"></i></div>
+                                                <i class="fa-solid fa-clipboard-list"></i>
+                                            </div>
                                             <div>
                                                 <p class="text-sm font-semibold text-[#0f172a]">Đơn hàng mới</p>
                                                 <p class="text-xs text-[#94a3b8]">Thông báo khi có đơn hàng cần xử lý
@@ -392,7 +395,8 @@
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-rotate-left"></i></div>
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </div>
                                             <div>
                                                 <p class="text-sm font-semibold text-[#0f172a]">Yêu cầu hoàn trả</p>
                                                 <p class="text-xs text-[#94a3b8]">Thông báo khi khách yêu cầu đổi/hoàn

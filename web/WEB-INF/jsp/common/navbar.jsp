@@ -8,9 +8,9 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <nav class="navbar">
     <div class="container navbar__inner">
-        <a href="${pageContext.request.contextPath}/home" class="navbar__logo flex items-center gap-2" style="text-decoration: none; display: inline-flex; align-items: center;">
-            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" style="height: 38px; width: 38px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(77, 102, 28, 0.15); border: 2px solid rgba(255, 255, 255, 0.8);">
-            <span class="logo-text" style="font-size: 1.25rem; font-weight: 800; color: #4d661c; letter-spacing: -0.025em; font-family: 'Lexend', sans-serif; margin-left: 8px;">Meta<span style="color: #31694b; font-weight: 600;">Fruit</span></span>
+        <a href="${pageContext.request.contextPath}/home" class="navbar__logo brand-lockup">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="brand-mark">
+            <span class="brand-wordmark">Meta<span class="brand-wordmark__accent">Fruit</span></span>
         </a>
 
         <c:set var="currentURI" value="${pageContext.request.requestURI}" />
@@ -126,16 +126,16 @@
                         </a>
                         
                         <!-- Dropdown Menu -->
-                        <div id="notifDropdown" class="hidden" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 10px; width: 340px; background: white; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); z-index: 999; overflow: hidden;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: #f8fafc;">
-                                <span style="font-weight: 700; color: #1e293b; font-size: 14px;">Thông báo mới</span>
-                                <button type="button" id="btnMarkAllReadAjax" style="font-size: 12px; font-weight: 600; color: #4d661c; border: none; background: none; cursor: pointer;">Đọc tất cả</button>
+                        <div id="notifDropdown" class="hidden notif-dropdown">
+                            <div class="notif-dropdown__header flex justify-between items-center px-4 py-3 border-b border-slate-100">
+                                <span class="font-bold text-slate-800 text-sm">Thông báo mới</span>
+                                <button type="button" id="btnMarkAllReadAjax" class="text-xs font-semibold text-primary hover:text-primary-dark border-0 bg-transparent cursor-pointer">Đọc tất cả</button>
                             </div>
-                            <div id="notifDropdownList" style="max-height: 280px; overflow-y: auto;">
-                                <div style="padding: 20px; text-align: center; color: #94a3b8; font-size: 13px;">Đang tải thông báo...</div>
+                            <div id="notifDropdownList" class="notif-dropdown__list max-h-[280px] overflow-y-auto">
+                                <div class="px-5 py-5 text-center text-slate-400 text-sm">Đang tải thông báo...</div>
                             </div>
-                            <div style="padding: 10px; text-align: center; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: center; gap: 10px;">
-                                <a href="${pageContext.request.contextPath}/notifications" style="font-size: 12px; font-weight: 700; color: #4d661c; text-decoration: none;">Xem chi tiết</a>
+                            <div class="notif-dropdown__footer flex justify-center gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50">
+                                <a href="${pageContext.request.contextPath}/notifications" class="text-xs font-bold text-primary no-underline">Xem chi tiết</a>
                             </div>
                         </div>
                     </li>
@@ -151,19 +151,18 @@
                     </li>
                     
                     <li class="navbar__user-profile">
-                        <div class="user-avatar" style="overflow: hidden; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid rgba(77, 102, 28, 0.15);">
+                        <div class="user-avatar">
                             <c:choose>
                                 <c:when test="${not empty sessionScope.currentUser.avatarUrl}">
                                     <img src="${fn:startsWith(sessionScope.currentUser.avatarUrl, 'http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" 
                                          alt="Avatar" 
-                                         style="width: 100%; height: 100%; object-fit: cover;"
                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <div class="avatar-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; text-transform: uppercase; border-radius: 50%;">
+                                    <div class="avatar-fallback" style="display: none;">
                                         <c:out value="${fn:substring(sessionScope.currentUser.fullName, 0, 1)}"/>
                                     </div>
                                 </c:when>
                                 <c:otherwise>
-                                    <div class="avatar-fallback" style="display: flex; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; text-transform: uppercase; border-radius: 50%;">
+                                    <div class="avatar-fallback" style="display: flex;">
                                         <c:out value="${fn:substring(sessionScope.currentUser.fullName, 0, 1)}"/>
                                     </div>
                                 </c:otherwise>

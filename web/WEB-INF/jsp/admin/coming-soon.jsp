@@ -6,9 +6,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tính năng sắp ra mắt – Admin Verdant Market</title>
+    <title>Tính năng sắp ra mắt – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
     <script>
@@ -36,15 +37,6 @@
             }
         }
     </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-    </style>
 </head>
 <body>
 <div class="admin-layout">
@@ -71,7 +63,7 @@
             <h2 class="text-lg md:text-xl font-black text-txt mb-3">Phase 4: Coming Soon</h2>
             
             <p class="text-xs md:text-sm text-txt-2 leading-relaxed max-w-sm mb-8">
-                Tính năng này thuộc về lộ trình **Phase 4** của dự án bán hàng nông sản Verdant Market và hiện đang trong quá trình xây dựng. Vui lòng quay lại sau!
+                Tính năng này thuộc về lộ trình **Phase 4** của dự án bán hàng nông sản MetaFruit và hiện đang trong quá trình xây dựng. Vui lòng quay lại sau!
             </p>
             
             <a href="${pageContext.request.contextPath}/admin/dashboard" 

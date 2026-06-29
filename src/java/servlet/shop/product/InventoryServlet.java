@@ -1,4 +1,5 @@
 package servlet.shop.product;
+
 import service.catalog.InventoryService;
 
 import config.AppConfig;
@@ -76,6 +77,10 @@ public class InventoryServlet extends HttpServlet {
             // 2. Fetch past restock history logs
             history = inventoryService.getRestockHistory(currentUser.getUserId());
 
+            // 3. Fetch active batches (lô hàng còn hạn) for batch/expiry panel
+            List<InventoryLog> activeBatches = inventoryService.getActiveBatches(currentUser.getUserId());
+            req.setAttribute("activeBatches", activeBatches);
+
         } catch (SQLException e) {
             LoggerUtil.error(log, "Không thể tải danh sách sản phẩm hoặc lịch sử nhập kho", e);
             errorMsg = "Không thể tải danh sách sản phẩm hoặc lịch sử: " + e.getMessage();
@@ -146,7 +151,7 @@ public class InventoryServlet extends HttpServlet {
 
         try {
             variantId = Integer.parseInt(variantIdStr);
-            quantity  = Integer.parseInt(quantityStr);
+            quantity = Integer.parseInt(quantityStr);
         } catch (NumberFormatException e) {
             SessionUtil.flashError(session, "Mã sản phẩm hoặc số lượng không hợp lệ.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
@@ -186,7 +191,8 @@ public class InventoryServlet extends HttpServlet {
                 inventoryService.manualAdjust(variantId, -quantity, note, currentUser.getUserId());
                 SessionUtil.flashSuccess(session, "Cập nhật giảm tồn kho thành công!");
             } else {
-                inventoryService.restockWithExpiry(variantId, quantity, note, changedAt, expiresAt, currentUser.getUserId());
+                inventoryService.restockWithExpiry(variantId, quantity, note, changedAt, expiresAt,
+                        currentUser.getUserId());
                 SessionUtil.flashSuccess(session, "Nhập kho sản phẩm thành công!");
             }
 

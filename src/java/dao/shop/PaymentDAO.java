@@ -97,6 +97,22 @@ public class PaymentDAO extends BaseDAO {
     }
 
     /**
+     * Tìm payment transaction duy nhất theo orderId trên connection hiện tại.
+     */
+    public PaymentTransaction findOneByOrder(Connection conn, int orderId) throws SQLException {
+        String sql = "SELECT * FROM payment_transactions WHERE order_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Batch load payment transaction theo danh sách orderId.
      */
     public Map<Integer, PaymentTransaction> findByOrderIds(Collection<Integer> orderIds) throws SQLException {
@@ -149,6 +165,30 @@ public class PaymentDAO extends BaseDAO {
     }
 
     /**
+     * Lấy các orderId có payment completed nhưng tree đơn vẫn còn lệch để reconcile nền.
+     */
+    public List<Integer> findCompletedOrderIdsForReconciliation() throws SQLException {
+        List<Integer> list = new ArrayList<>();
+        String sql = "SELECT DISTINCT o.order_id "
+                   + "FROM orders o "
+                   + "JOIN payment_transactions pt ON pt.order_id = o.order_id "
+                   + "WHERE pt.status = 'completed' "
+                   + "  AND (o.status = 'PENDING_PAYMENT' "
+                   + "       OR EXISTS (SELECT 1 FROM orders c "
+                   + "                  WHERE c.parent_order_id = o.order_id "
+                   + "                    AND c.status <> 'CONFIRMED')) "
+                   + "ORDER BY o.order_id";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(rs.getInt(1));
+            }
+        }
+        return list;
+    }
+
+    /**
      * Cập nhật trạng thái transaction. providerResponse có thể null.
      */
     public void updateStatus(int transactionId, String status,
@@ -163,16 +203,42 @@ public class PaymentDAO extends BaseDAO {
      */
     public void updateStatus(Connection conn, int transactionId, String status,
                              String sepayTransactionId, String providerResponse) throws SQLException {
-        String sql2 = "UPDATE payment_transactions "
-                     + "SET status = ?, sepay_transaction_id = ?, provider_response = ?, "
-                     + "    completed_at = CASE WHEN ? = 'completed' THEN GETDATE() ELSE NULL END "
-                     + "WHERE transaction_id = ?";
+        String normalizedStatus = status != null ? status.trim() : null;
+        String sql2;
+        if ("processing".equalsIgnoreCase(normalizedStatus)) {
+            sql2 = "UPDATE payment_transactions "
+                 + "SET status = ?, completed_at = NULL "
+                 + "WHERE transaction_id = ? AND status = 'pending'";
+            try (PreparedStatement ps = conn.prepareStatement(sql2)) {
+                ps.setString(1, normalizedStatus);
+                ps.setInt(2, transactionId);
+                ps.executeUpdate();
+            }
+            return;
+        }
+
+        if ("completed".equalsIgnoreCase(normalizedStatus)) {
+            sql2 = "UPDATE payment_transactions "
+                 + "SET status = ?, sepay_transaction_id = ?, provider_response = ?, "
+                 + "    completed_at = CASE WHEN status <> 'completed' THEN GETDATE() ELSE completed_at END "
+                 + "WHERE transaction_id = ? AND status IN ('pending', 'processing')";
+            try (PreparedStatement ps = conn.prepareStatement(sql2)) {
+                ps.setString(1, normalizedStatus);
+                ps.setString(2, sepayTransactionId);
+                ps.setString(3, providerResponse);
+                ps.setInt(4, transactionId);
+                ps.executeUpdate();
+            }
+            return;
+        }
+
+        sql2 = "UPDATE payment_transactions "
+             + "SET status = ? "
+             + "WHERE transaction_id = ? AND status <> ?";
         try (PreparedStatement ps = conn.prepareStatement(sql2)) {
-            ps.setString(1, status);
-            ps.setString(2, sepayTransactionId);
-            ps.setString(3, providerResponse);
-            ps.setString(4, status);
-            ps.setInt(5, transactionId);
+            ps.setString(1, normalizedStatus);
+            ps.setInt(2, transactionId);
+            ps.setString(3, normalizedStatus);
             ps.executeUpdate();
         }
     }
@@ -188,11 +254,19 @@ public class PaymentDAO extends BaseDAO {
      * Cập nhật status + ghi lỗi khi payment fail.
      */
     public void updateStatusFailed(int transactionId, String errorCode, String errorMessage) throws SQLException {
+        try (Connection conn = getConnection()) {
+            updateStatusFailed(conn, transactionId, errorCode, errorMessage);
+        }
+    }
+
+    /**
+     * Cập nhật trạng thái failed trên connection hiện tại.
+     */
+    public void updateStatusFailed(Connection conn, int transactionId, String errorCode, String errorMessage) throws SQLException {
         String sql = "UPDATE payment_transactions "
                    + "SET status = 'failed', error_code = ?, error_message = ? "
                    + "WHERE transaction_id = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, errorCode);
             ps.setString(2, errorMessage);
             ps.setInt(3, transactionId);
@@ -466,5 +540,26 @@ public class PaymentDAO extends BaseDAO {
             }
         }
         return 0;
+    }
+
+    /**
+     * Tạo bản ghi payment_transaction cho đơn COD khi shipper xác nhận giao thành công.
+     * Đây là thời điểm tiền mặt được thu — ghi nhận là completed ngay lập tức.
+     *
+     * @param conn   Connection trong transaction của DeliveryService
+     * @param orderId  ID đơn hàng (đơn con CHILD)
+     * @param amount   Số tiền thu được (final_amount của đơn)
+     * @param note     Ghi chú (VD: "Shipper xác nhận thu tiền COD đơn #123")
+     */
+    public void initCodTransaction(Connection conn, int orderId, BigDecimal amount, String note) throws SQLException {
+        String sql = "INSERT INTO payment_transactions "
+                   + "(order_id, payment_method, amount, currency, status, initiated_at, completed_at, provider_response) "
+                   + "VALUES (?, 'COD', ?, 'VND', 'completed', GETDATE(), GETDATE(), ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            ps.setBigDecimal(2, amount != null ? amount : BigDecimal.ZERO);
+            ps.setString(3, note);
+            ps.executeUpdate();
+        }
     }
 }

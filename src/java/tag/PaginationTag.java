@@ -5,12 +5,12 @@ import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import java.io.IOException;
 
 /**
- * PaginationTag — Custom tag:
+ * PaginationTag - Custom tag:
  * {@code <ft:pagination current="" total="" baseUrl="/products"/>}
  *
  * Render thanh phân trang Prev/Next và các số trang.
  * Style bằng CSS class .pagination, .page-item, .page-link
- * 
+ *
  * @author fruitmkt-team
  */
 public class PaginationTag extends SimpleTagSupport {
@@ -20,16 +20,15 @@ public class PaginationTag extends SimpleTagSupport {
 
     @Override
     public void doTag() throws JspException, IOException {
-        if (total <= 1)
+        if (total <= 1) {
             return;
+        }
 
-        // Clamp current to valid range
         int activeCurrent = Math.max(1, Math.min(current, total));
+        String safeBaseUrl = baseUrl == null ? "" : baseUrl;
 
         StringBuilder sb = new StringBuilder();
 
-        // Inject self-contained JavaScript for ellipsis jumping (only once per page
-        // check)
         sb.append("<script>\n")
                 .append("if (typeof window.promptPageJumpForTag === 'undefined') {\n")
                 .append("    window.promptPageJumpForTag = function(totalPages, baseUrl) {\n")
@@ -69,19 +68,16 @@ public class PaginationTag extends SimpleTagSupport {
                 .append("}\n")
                 .append("</script>\n");
 
-        sb.append("<nav class=\"pagination-wrapper\"><ul class=\"pagination\">");
+        sb.append("<nav class=\"pagination-wrapper\" aria-label=\"Phân trang\"><ul class=\"pagination\">");
 
-        // Prev
         if (activeCurrent > 1) {
-            String separator = baseUrl.contains("?") ? "&" : "?";
-            sb.append("<li class=\"page-item\"><a class=\"page-link\" href=\"").append(baseUrl)
-                    .append(separator).append("page=").append(activeCurrent - 1).append("\"> < </a></li>");
+            sb.append("<li class=\"page-item\"><a class=\"page-link\" href=\"")
+                    .append(escapeHtmlAttr(buildPageHref(safeBaseUrl, activeCurrent - 1)))
+                    .append("\" aria-label=\"Trang trước\">&lsaquo;</a></li>");
         } else {
-            sb.append(
-                    "<li class=\"page-item disabled\"><span class=\"page-link text-gray-400 cursor-not-allowed\"> < </span></li>");
+            sb.append("<li class=\"page-item disabled\"><span class=\"page-link is-disabled\" aria-disabled=\"true\" aria-label=\"Trang trước\">&lsaquo;</span></li>");
         }
 
-        // Collect page numbers to show in a sorted unique set
         java.util.Set<Integer> pagesToShow = new java.util.TreeSet<>();
         pagesToShow.add(1);
         if (total > 1) {
@@ -96,37 +92,35 @@ public class PaginationTag extends SimpleTagSupport {
             pagesToShow.add(activeCurrent + 1);
         }
 
-        // Render page list with gaps handled by ellipsis
         java.util.List<Integer> pagesList = new java.util.ArrayList<>(pagesToShow);
         for (int idx = 0; idx < pagesList.size(); idx++) {
             int pageNum = pagesList.get(idx);
             if (idx > 0) {
                 int prevPage = pagesList.get(idx - 1);
                 if (pageNum - prevPage > 1) {
-                    String escapedBaseUrl = baseUrl.replace("'", "\\'");
-                    sb.append(
-                            "<li class=\"page-item\"><a class=\"page-link\" href=\"javascript:void(0)\" onclick=\"promptPageJumpForTag(")
-                            .append(total).append(", '").append(escapedBaseUrl)
-                            .append("')\" title=\"Nhảy đến trang...\">...</a></li>");
+                    sb.append("<li class=\"page-item\">")
+                            .append("<button type=\"button\" class=\"page-link page-link--ellipsis\" ")
+                            .append("onclick=\"promptPageJumpForTag(").append(total).append(", '")
+                            .append(escapeJsString(safeBaseUrl)).append("')\" ")
+                            .append("title=\"Nhảy đến trang...\" aria-label=\"Nhảy đến trang\">...</button>")
+                            .append("</li>");
                 }
             }
 
-            String active = (pageNum == activeCurrent) ? " active" : "";
-            String separator = baseUrl.contains("?") ? "&" : "?";
-            sb.append("<li class=\"page-item").append(active).append("\">")
-                    .append("<a class=\"page-link\" href=\"").append(baseUrl)
-                    .append(separator).append("page=").append(pageNum).append("\">").append(pageNum)
-                    .append("</a></li>");
+            boolean isCurrent = pageNum == activeCurrent;
+            sb.append("<li class=\"page-item").append(isCurrent ? " active" : "").append("\">")
+                    .append("<a class=\"page-link").append(isCurrent ? " is-current" : "")
+                    .append("\" href=\"").append(escapeHtmlAttr(buildPageHref(safeBaseUrl, pageNum))).append("\"")
+                    .append(isCurrent ? " aria-current=\"page\"" : "")
+                    .append(">").append(pageNum).append("</a></li>");
         }
 
-        // Next
         if (activeCurrent < total) {
-            String separator = baseUrl.contains("?") ? "&" : "?";
-            sb.append("<li class=\"page-item\"><a class=\"page-link\" href=\"").append(baseUrl)
-                    .append(separator).append("page=").append(activeCurrent + 1).append("\"> > </a></li>");
+            sb.append("<li class=\"page-item\"><a class=\"page-link\" href=\"")
+                    .append(escapeHtmlAttr(buildPageHref(safeBaseUrl, activeCurrent + 1)))
+                    .append("\" aria-label=\"Trang tiếp theo\">&rsaquo;</a></li>");
         } else {
-            sb.append(
-                    "<li class=\"page-item disabled\"><span class=\"page-link text-gray-400 cursor-not-allowed\"> > </span></li>");
+            sb.append("<li class=\"page-item disabled\"><span class=\"page-link is-disabled\" aria-disabled=\"true\" aria-label=\"Trang tiếp theo\">&rsaquo;</span></li>");
         }
 
         sb.append("</ul></nav>");
@@ -143,5 +137,26 @@ public class PaginationTag extends SimpleTagSupport {
 
     public void setBaseUrl(String url) {
         this.baseUrl = url;
+    }
+
+    private String escapeHtmlAttr(String value) {
+        return value
+                .replace("&", "&amp;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+
+    private String escapeJsString(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("\"", "\\\"");
+    }
+
+    private String buildPageHref(String base, int pageNum) {
+        String separator = base.contains("?") ? "&" : "?";
+        return base + separator + "page=" + pageNum;
     }
 }

@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Tồn kho | Kênh Người Bán</title>
+    <title>Quản lý Tồn kho | MetaFruit</title>
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
     <!-- Google Fonts & Icons -->
@@ -14,6 +14,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
     <!-- Tailwind & SweetAlert -->
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -38,18 +40,6 @@
         }
     </script>
 
-    <style>
-        body { background-color: #f4fbf7; font-family: 'Lexend', sans-serif; }
-        .glass-card {
-            background: #ffffff;
-            border: 1px solid #e2ece7;
-            box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        /* Custom scrollbar for table container */
-        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; }
-        .scrollbar-thin::-webkit-scrollbar-thumb { background: #bbf7d0; border-radius: 2px; }
-    </style>
 </head>
 <body class="antialiased text-[#0f172a]">
 <div class="flex min-h-screen">
@@ -228,6 +218,81 @@
                                             <tr>
                                                 <td colspan="3" class="text-center py-8 text-[#94a3b8] italic">
                                                     Chưa có sản phẩm nào!
+                                                </td>
+                                            </tr>
+                                        </c:if>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Lô hàng & Ngày hết hạn ─────────────────────────────── -->
+                    <div class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden h-fit">
+                        <div class="p-5 border-b border-border bg-[#f9fdf9] flex items-center justify-between gap-3">
+                            <h2 class="text-sm font-bold text-txt whitespace-nowrap">
+                                <i class="fa-solid fa-calendar-days mr-2 text-amber-500"></i>Lô hàng & Ngày hết hạn
+                            </h2>
+                            <span class="text-xs text-txt-3">Chỉ hiển thị lô còn hiệu lực (chưa hết hạn / chưa xử lý)</span>
+                        </div>
+                        <div class="p-0">
+                            <div class="w-full overflow-auto max-h-[260px] scrollbar-thin">
+                                <table id="batchTable" class="w-full border-collapse text-left">
+                                    <thead class="bg-[#f8fcf9] text-xs font-bold uppercase tracking-wider text-txt-2 sticky top-0 z-10 border-b border-border">
+                                        <tr>
+                                            <th class="px-5 py-3.5">Lô #</th>
+                                            <th class="px-5 py-3.5">Sản phẩm & Phân loại</th>
+                                            <th class="px-5 py-3.5">SL nhập</th>
+                                            <th class="px-5 py-3.5">Ngày nhập</th>
+                                            <th class="px-5 py-3.5">Ngày hết hạn</th>
+                                            <th class="px-5 py-3.5">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <c:forEach var="batch" items="${activeBatches}">
+                                            <tr data-row class="hover:bg-primary/5 transition-colors">
+                                                <td class="px-5 py-3.5 border-b border-border text-sm font-mono text-txt-2">#${batch.logId}</td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
+                                                    <strong class="text-txt font-bold">${batch.productName}</strong>
+                                                    <div class="text-[#94a3b8] text-xs">${batch.variantLabel}</div>
+                                                </td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm font-bold text-emerald-700">+${batch.quantityDelta}</td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm text-txt-2">${batch.formattedChangedAt}</td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
+                                                    <c:choose>
+                                                        <c:when test="${empty batch.expiresAt}">
+                                                            <span class="text-txt-3 italic">Không có</span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="font-semibold">${batch.formattedExpiresAt}</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </td>
+                                                <td class="px-5 py-3.5 border-b border-border text-sm">
+                                                    <c:choose>
+                                                        <c:when test="${batch.expiringSoon}">
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                                                                <i class="fa-solid fa-triangle-exclamation mr-1 text-[10px]"></i>Sắp hết hạn
+                                                            </span>
+                                                        </c:when>
+                                                        <c:when test="${not empty batch.expiresAt}">
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                                                <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i>Còn hạn
+                                                            </span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-50 text-slate-500 border border-slate-200 whitespace-nowrap">
+                                                                <i class="fa-solid fa-minus mr-1 text-[10px]"></i>Không rõ
+                                                            </span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </td>
+                                            </tr>
+                                        </c:forEach>
+                                        <c:if test="${empty activeBatches}">
+                                            <tr>
+                                                <td colspan="6" class="text-center py-8 text-[#94a3b8] italic">
+                                                    Chưa có lô hàng nào còn hiệu lực!
                                                 </td>
                                             </tr>
                                         </c:if>

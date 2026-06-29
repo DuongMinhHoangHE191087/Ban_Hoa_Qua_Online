@@ -1,14 +1,14 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" isErrorPage="false" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-        <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-            <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
                 <!DOCTYPE html>
                 <html lang="vi">
 
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Kênh Người Bán | Đối Soát & Doanh Thu</title>
+                    <title>MetaFruit | Đối Soát & Doanh Thu</title>
 
                     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
@@ -41,7 +41,7 @@
                                         'txt-3': '#94a3b8',
                                     },
                                     fontFamily: {
-                                        sans: ['Segoe UI', 'Lexend', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                                        sans: ['Lexend', 'Segoe UI', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
                                     },
                                     boxShadow: {
                                         card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
@@ -54,7 +54,7 @@
                     <style>
                         body {
                             background-color: #f4fbf7;
-                            font-family: 'Segoe UI', 'Lexend', -apple-system, sans-serif;
+                            font-family: 'Lexend', 'Segoe UI', -apple-system, sans-serif;
                         }
 
                         .glass-card {
@@ -251,13 +251,9 @@
                                                         </c:choose>
                                                     </td>
                                                     <td class="px-6 py-4 text-center">
-                                                        <fmt:formatDate var="startStr" value="${s.periodStartAsDate}"
-                                                            pattern="dd/MM/yyyy" />
-                                                        <fmt:formatDate var="endStr" value="${s.periodEndAsDate}"
-                                                            pattern="dd/MM/yyyy" />
-                                                        <button type="button"
-                                                            onclick="openDetails('${s.settlementId}', '${startStr} - ${endStr}')"
-                                                            class="inline-flex items-center gap-1 bg-primary hover:bg-primary-dk text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
+                                                        <fmt:formatDate var="startStr" value="${s.periodStartAsDate}" pattern="dd/MM/yyyy" />
+                                                        <fmt:formatDate var="endStr" value="${s.periodEndAsDate}" pattern="dd/MM/yyyy" />
+                                                        <button type="button" onclick="openDetails('${s.settlementId}', '${startStr} - ${endStr}')" class="inline-flex items-center gap-1 bg-primary hover:bg-primary-dk text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
                                                             <i class="fa-solid fa-magnifying-glass-chart"></i> Chi tiết
                                                         </button>
                                                     </td>

@@ -18,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 
 /**
  * UserDAO — DAO cho entity User.
@@ -248,14 +249,24 @@ public class UserDAO extends BaseDAO {
         }
     }
 
-    /**
-     * Cập nhật trạng thái của User (Khóa/Mở khóa)
-     */
     public boolean updateUserStatus(int userId, String status) throws SQLException {
-        String sql = "UPDATE users SET status = ?, updated_at = GETDATE() WHERE user_id = ?";
+        if (status == null || status.trim().isEmpty()) {
+            throw new IllegalArgumentException("Trạng thái không được để trống.");
+        }
+
+        String normalizedStatus = status.trim().toUpperCase(Locale.ROOT);
+        String sql;
+        if (AppConfig.ACCOUNT_STATUS_ACTIVE.equals(normalizedStatus)) {
+            sql = "UPDATE users SET status = ?, failed_login_count = 0, locked_until = NULL, updated_at = GETDATE() WHERE user_id = ?";
+        } else if (AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(normalizedStatus)) {
+            sql = "UPDATE users SET status = ?, failed_login_count = 0, locked_until = NULL, email_verification_code_hash = NULL, email_verification_expires_at = NULL, email_verification_resend_at = NULL, email_verification_sent_at = NULL, updated_at = GETDATE() WHERE user_id = ?";
+        } else {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ. Chỉ chấp nhận ACTIVE hoặc SUSPENDED.");
+        }
+
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, status);
+            stmt.setString(1, normalizedStatus);
             stmt.setInt(2, userId);
             return stmt.executeUpdate() > 0;
         }
@@ -503,12 +514,13 @@ public class UserDAO extends BaseDAO {
             try (ResultSet rs = checkStmt.executeQuery()) {
                 if (rs.next() && rs.getInt(1) > 0) {
                     // Nếu có đơn hàng, không xóa cứng mà chuyển trạng thái thành SUSPENDED
-                    String sqlUpdate = "UPDATE users SET status = 'SUSPENDED', updated_at = GETDATE() WHERE user_id = ?";
+                    String sqlUpdate = "UPDATE users SET status = ?, failed_login_count = 0, locked_until = NULL, email_verification_code_hash = NULL, email_verification_expires_at = NULL, email_verification_resend_at = NULL, email_verification_sent_at = NULL, updated_at = GETDATE() WHERE user_id = ?";
                     try (PreparedStatement updateStmt = conn.prepareStatement(sqlUpdate)) {
-                        updateStmt.setInt(1, userId);
+                        updateStmt.setString(1, AppConfig.ACCOUNT_STATUS_SUSPENDED);
+                        updateStmt.setInt(2, userId);
                         updateStmt.executeUpdate();
                     }
-                    throw new SQLException("Không thể xóa cứng người dùng vì đã có đơn hàng trong hệ thống. Trạng thái tài khoản đã được chuyển sang SUSPENDED.");
+                    throw new SQLException("Không thể xóa cứng người dùng vì đã có đơn hàng trong hệ thống. Trạng thái tài khoản đã được chuyển sang " + AppConfig.ACCOUNT_STATUS_SUSPENDED + ".");
                 }
             }
         }

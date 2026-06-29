@@ -8,59 +8,6 @@
     <jsp:param name="pageTitle" value="Danh sách sản phẩm - MetaFruit" />
 </jsp:include>
 
-<!-- Google Fonts Lexend & Material Icons -->
-<link href="https://fonts.googleapis.com" rel="preconnect">
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
-
-<!-- Tailwind CSS Engine for consistent modern rich aesthetics -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-
-<script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    "primary": "#14532D", // Match MetaFruit theme precisely
-                    "primary-hover": "#166534",
-                    "primary-light": "#d1ffd8",
-                    "surface": "#eaffea",
-                    "on-surface": "#00210d",
-                    "on-surface-variant": "#44483b",
-                    "outline": "#75796a",
-                    "outline-variant": "#c5c8b7"
-                },
-                fontFamily: {
-                    sans: ["Lexend", "sans-serif"]
-                }
-            }
-        }
-    }
-</script>
-
-<style>
-    body {
-        font-family: 'Lexend', sans-serif;
-    }
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-    }
-    .ambient-shadow {
-        box-shadow: 0 10px 40px rgba(20, 83, 45, 0.06);
-    }
-    .hide-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-    .hide-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-</style>
-
 <script>
     window.handleImageError = function (img) {
         if (!img.dataset.errorStage) {

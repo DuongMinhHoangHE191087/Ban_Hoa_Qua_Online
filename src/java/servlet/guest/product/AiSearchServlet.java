@@ -71,19 +71,21 @@ public class AiSearchServlet extends HttpServlet {
             }
             List<Product> activeProductsForAI = productDAO.findAllActiveForAI();
 
-            // 2. Đọc câu hỏi/yêu cầu tìm kiếm của người dùng sớm để có thể fallback ngay khi cần.
-            byte[] bodyBytes = req.getInputStream().readAllBytes();
-            String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
-            Map<String, Object> requestData;
-            try {
-                requestData = mapper.readValue(jsonInput, Map.class);
-            } catch (Exception parseError) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
-                    "Nội dung tìm kiếm không hợp lệ."));
-                return;
+            // 2. Đọc câu hỏi/yêu cầu tìm kiếm sớm để có thể fallback ngay khi cần.
+            String userMessage = normalizeText(req.getParameter("message"));
+            if (userMessage == null) {
+                byte[] bodyBytes = req.getInputStream().readAllBytes();
+                String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
+                try {
+                    Map<String, Object> requestData = mapper.readValue(jsonInput, Map.class);
+                    userMessage = normalizeText(requestData.get("message"));
+                } catch (Exception parseError) {
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                            "Nội dung tìm kiếm không hợp lệ."));
+                    return;
+                }
             }
-            String userMessage = normalizeText(requestData.get("message"));
 
             if (userMessage == null || userMessage.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);

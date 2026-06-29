@@ -34,9 +34,12 @@
     /* High-contrast Deep Greenish-Black */
     --color-text-secondary: #44483B;
     --color-text-muted: #8E9285;
+    --color-surface-soft: #f8fcf6;
+    --color-surface-muted: #eef5ec;
+    --color-focus-ring: rgba(77, 102, 28, 0.18);
 
     /* Typography */
-    --font-family: 'Plus Jakarta Sans', 'Lexend', 'Inter', system-ui, sans-serif;
+    --font-family: 'Lexend', 'Segoe UI', system-ui, sans-serif;
     --font-size-xs: 0.75rem;
     /* 12px */
     --font-size-sm: 0.875rem;
@@ -110,7 +113,10 @@ body {
     font-size: var(--font-size-base);
     color: var(--color-text-primary);
     background: var(--color-bg);
-    line-height: 1.6;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 img {
@@ -221,7 +227,7 @@ a:hover {
     width: 100%;
     border: 2px solid var(--color-border);
     border-radius: var(--radius-full);
-    padding: var(--space-2) var(--space-12) var(--space-2) var(--space-4);
+    padding: var(--space-2) calc(var(--space-12) + var(--space-2)) var(--space-2) var(--space-4);
     font-size: var(--font-size-sm);
     font-family: inherit;
     transition: all 0.25s ease;
@@ -238,10 +244,10 @@ a:hover {
 .navbar__search button {
     position: absolute;
     right: 4px;
-    top: 4px;
-    bottom: 4px;
-    width: 36px;
-    height: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
     border: none;
     background: var(--color-primary);
     color: #fff;
@@ -559,25 +565,25 @@ a:hover {
 
 .alert-success {
     background: #E8F5E9;
-    border-left: 4px solid var(--color-success);
+    border: 1px solid #C8E6C9;
     color: var(--color-success);
 }
 
 .alert-error {
     background: #FFEBEE;
-    border-left: 4px solid var(--color-danger);
+    border: 1px solid #FFCDD2;
     color: var(--color-danger);
 }
 
 .alert-warning {
     background: #FFF3E0;
-    border-left: 4px solid var(--color-warning);
+    border: 1px solid #FFE0B2;
     color: var(--color-warning);
 }
 
 .alert-info {
     background: #E3F2FD;
-    border-left: 4px solid var(--color-info);
+    border: 1px solid #BBDEFB;
     color: var(--color-info);
 }
 

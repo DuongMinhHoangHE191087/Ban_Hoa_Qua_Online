@@ -69,4 +69,15 @@ public class InventoryLog {
     public String getChangedByName() { return changedByName; }
     public void setChangedByName(String changedByName) { this.changedByName = changedByName; }
 
+    public String getFormattedExpiresAt() {
+        if (expiresAt == null) return "";
+        return expiresAt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    public boolean isExpiringSoon() {
+        if (expiresAt == null || expired) return false;
+        java.time.LocalDate now = java.time.LocalDate.now();
+        return !expiresAt.isBefore(now) && expiresAt.isBefore(now.plusDays(7));
+    }
+
 }

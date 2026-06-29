@@ -76,6 +76,19 @@ public class ProductListServletSuggestedIdsRegressionTest {
         env = new MockHttpEnvironment("/products");
 
         ownerId = createUser("Suggested IDs Owner", "suggested_owner_" + System.currentTimeMillis() + "@test.com");
+        
+        // Tạo shop profile cho ownerId để sản phẩm hiển thị trong catalog
+        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
+        model.entity.shop.ShopProfile profile = new model.entity.shop.ShopProfile();
+        profile.setUserId(ownerId);
+        profile.setShopName("Suggested Shop Test");
+        profile.setShopDescription("Suggested test shop");
+        profile.setApprovalStatus("APPROVED");
+        profile.setDeliveryAddress("123 Suggested Street");
+        profile.setRating(java.math.BigDecimal.ZERO);
+        profile.setBusinessEmail("sug_biz_" + ownerId + "_" + System.currentTimeMillis() + "@company.com");
+        shopProfileDAO.save(profile);
+
         categoryId = createCategory("Suggested IDs " + System.currentTimeMillis());
 
         for (int i = 0; i < 4; i++) {
@@ -98,6 +111,7 @@ public class ProductListServletSuggestedIdsRegressionTest {
                 categoryDAO.delete(categoryId);
             }
             if (ownerId > 0) {
+                new dao.shop.ShopProfileDAO().deleteByUserId(ownerId);
                 userDAO.deleteUser(ownerId);
             }
         } catch (SQLException ignored) {

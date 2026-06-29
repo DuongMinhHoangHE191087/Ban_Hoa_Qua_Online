@@ -180,7 +180,36 @@ Khi bạn sửa code và Tomcat tự động reload/redeploy, các thành viên 
 
 ---
 
-## 6. Xử Lý Lỗi Thường Gặp (Troubleshooting)
+## 6. Cách Dự Phòng: Sử Dụng SSH Tunnel Qua Localhost.run (Khi Cổng 7844 Bị Chặn)
+
+Nếu mạng của bạn (ví dụ mạng wifi trường học, ký túc xá, hoặc doanh nghiệp) chặn cổng **outbound 7844 (TCP/UDP)**, Cloudflare Tunnel sẽ không kết nối được và báo lỗi `i/o timeout` (Error 1033). 
+
+**Giải pháp thay thế cực nhanh là sử dụng SSH Tunnel của localhost.run qua cổng 22 tiêu chuẩn (hầu như không bị chặn):**
+
+### Bước 1: Khởi động Tomcat Local
+Đảm bảo Tomcat đang chạy ở cổng 8080 (ví dụ: `http://localhost:8080/Ban_Hoa_Qua_Online/`).
+
+### Bước 2: Chạy lệnh SSH Tunnel
+Mở PowerShell hoặc CMD và chạy lệnh sau:
+```powershell
+ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run
+```
+*(Nếu Windows hỏi bạn có muốn tin cậy host key không, hãy gõ `yes` và nhấn Enter).*
+
+### Bước 3: Lấy URL và truy cập
+Trong terminal sẽ hiển thị dòng thông tin kết nối thành công:
+```
+authenticated as anonymous user
+xxxxxx.lhr.life tunneled with tls termination, https://xxxxxx.lhr.life
+```
+URL công khai của bạn sẽ là: `https://xxxxxx.lhr.life/Ban_Hoa_Qua_Online/`.
+
+### Bước 4: Cấu hình SePay Webhook (nếu cần)
+Copy địa chỉ `https://xxxxxx.lhr.life/Ban_Hoa_Qua_Online/api/payment/webhook` và dán vào phần cấu hình Webhook trên trang quản trị SePay.
+
+---
+
+## 7. Xử Lý Lỗi Thường Gặp (Troubleshooting)
 
 ### Lỗi 1: `502 Bad Gateway`
 - **Triệu chứng:** Người dùng truy cập URL Cloudflare Tunnel nhưng trình duyệt báo lỗi `502 Bad Gateway`.

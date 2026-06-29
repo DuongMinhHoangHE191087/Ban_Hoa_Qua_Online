@@ -7,46 +7,11 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Monitor Đơn hàng - Admin Verdant Market</title>
+    <title>Monitor Đơn hàng - Admin MetaFruit</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <style>
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: var(--radius-full);
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-block;
-        }
-        .status-PENDING_PAYMENT, .status-PENDING { background: #fef3c7; color: #92400e; }
-        .status-PAID, .status-PROCESSING { background: #e0e7ff; color: #3730a3; }
-        .status-SHIPPED { background: #dcfce7; color: #166534; }
-        .status-DELIVERED { background: #dcfce7; color: #166534; }
-        .status-CANCELLED { background: #fee2e2; color: #991b1b; }
-        .payment-COD { background: #e5e7eb; color: #374151; }
-        .payment-BANK_TRANSFER { background: #dbeafe; color: #0c4a6e; }
-        .pagination-wrapper { padding: 0 !important; }
-        .pagination { gap: 0.375rem !important; margin: 0 !important; }
-        .pagination .page-link {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
-            font-size: 0.75rem; font-weight: 600;
-            border: 1px solid #e2ece7; background: #fff;
-            color: #374151; cursor: pointer; transition: all 0.15s;
-            text-decoration: none;
-        }
-        .pagination .page-item.active .page-link {
-            background: #4d661c; border-color: #4d661c; color: #fff;
-        }
-        .pagination .page-item.disabled .page-link {
-            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-        }
-        .pagination .page-item .page-link:hover:not(.disabled) {
-            background: #f1f5f9; border-color: #9ca3af;
-        }
-    </style>
 </head>
 <body>
     <div class="admin-layout">

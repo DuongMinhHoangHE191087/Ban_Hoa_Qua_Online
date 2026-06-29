@@ -59,6 +59,11 @@ public class UserServiceTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void updateUserStatus_invalidTargetStatus_throws() throws SQLException {
+        userService.updateUserStatus(1, "INACTIVE");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void isPhoneTakenByAnother_nullPhone_throws() throws SQLException {
         userService.isPhoneTakenByAnother(null, 1);
     }

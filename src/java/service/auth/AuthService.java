@@ -173,9 +173,14 @@ public class AuthService {
         if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus())) {
             if (AppConfig.ACCOUNT_STATUS_INACTIVE.equals(user.getStatus())) {
                 throw new VerificationRequiredException(user.getEmail(), "Tài khoản chưa được xác minh. Vui lòng nhập mã code để kích hoạt tài khoản.");
-            } else {
-                throw new Exception("Tài khoản của bạn đã bị khóa bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.");
             }
+            if (AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(user.getStatus())) {
+                throw new Exception("Tài khoản đã bị đình chỉ bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.");
+            }
+            if (AppConfig.ACCOUNT_STATUS_LOCKED.equals(user.getStatus())) {
+                throw new Exception("Tài khoản đang bị khóa tạm thời do hệ thống. Vui lòng thử lại sau khi hệ thống mở khóa.");
+            }
+            throw new Exception("Tài khoản không thể đăng nhập ở trạng thái hiện tại.");
         }
 
         if (!user.isEmailVerified()) {
@@ -376,7 +381,22 @@ public class AuthService {
             if (AppConfig.ROLE_ADMIN.equals(role) || AppConfig.ROLE_SHOP_OWNER.equals(role)) {
                 throw new Exception("Vui lòng đăng nhập bằng mật khẩu của bạn.");
             }
-            if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(existingUser.getStatus()) || !existingUser.isEmailVerified()) {
+            
+            String status = existingUser.getStatus();
+            if (AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(status)) {
+                throw new Exception("Tài khoản đã bị đình chỉ bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.");
+            }
+            if (AppConfig.ACCOUNT_STATUS_LOCKED.equals(status)) {
+                throw new Exception("Tài khoản đang bị khóa tạm thời do hệ thống. Vui lòng thử lại sau khi hệ thống mở khóa.");
+            }
+
+            // Chặn đăng nhập nếu tài khoản đang bị khóa tạm thời
+            if (existingUser.getLockedUntil() != null && LocalDateTime.now().isBefore(existingUser.getLockedUntil())) {
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
+                throw new Exception("Tài khoản đang bị khóa tạm thời. Vui lòng thử lại sau: " + existingUser.getLockedUntil().format(dtf));
+            }
+
+            if (AppConfig.ACCOUNT_STATUS_INACTIVE.equals(status) || !existingUser.isEmailVerified()) {
                 userDAO.activateVerifiedEmail(existingUser.getUserId());
                 existingUser = userDAO.findByEmail(email);
             }
@@ -421,6 +441,16 @@ public class AuthService {
         if (user == null) {
             throw new Exception("Không tìm thấy tài khoản cần xác minh.");
         }
+        if (AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(user.getStatus())) {
+            throw new Exception("Tài khoản đã bị đình chỉ bởi Quản trị viên. Không thể xác minh email.");
+        }
+        if (AppConfig.ACCOUNT_STATUS_LOCKED.equals(user.getStatus())) {
+            throw new Exception("Tài khoản đang bị khóa tạm thời. Không thể xác minh email lúc này.");
+        }
+        if (user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil())) {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
+            throw new Exception("Tài khoản đang bị khóa tạm thời. Vui lòng thử lại sau: " + user.getLockedUntil().format(dtf));
+        }
         if (AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus()) && user.isEmailVerified()) {
             return user;
         }
@@ -445,6 +475,16 @@ public class AuthService {
         User user = userDAO.findByEmail(email);
         if (user == null) {
             throw new Exception("Không tìm thấy tài khoản cần xác minh.");
+        }
+        if (AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(user.getStatus())) {
+            throw new Exception("Tài khoản đã bị đình chỉ bởi Quản trị viên. Không thể gửi lại mã xác minh.");
+        }
+        if (AppConfig.ACCOUNT_STATUS_LOCKED.equals(user.getStatus())) {
+            throw new Exception("Tài khoản đang bị khóa tạm thời. Không thể gửi lại mã xác minh lúc này.");
+        }
+        if (user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil())) {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
+            throw new Exception("Tài khoản đang bị khóa tạm thời. Vui lòng thử lại sau: " + user.getLockedUntil().format(dtf));
         }
         if (AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus()) && user.isEmailVerified()) {
             throw new Exception("Tài khoản này đã được xác minh.");

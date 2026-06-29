@@ -207,6 +207,15 @@ public class ProductEditServlet extends HttpServlet {
 
             List<String> errors = new ArrayList<>();
 
+            // Tải thông tin các biến thể hiện tại để phục vụ so sánh validation ngày
+            List<ProductVariant> existingVariants = productVariantDAO.findByProduct(productId);
+            Map<Integer, ProductVariant> existingVariantMap = new java.util.LinkedHashMap<>();
+            if (existingVariants != null) {
+                for (ProductVariant ev : existingVariants) {
+                    existingVariantMap.put(ev.getVariantId(), ev);
+                }
+            }
+
             // 2. Validate thông tin
             if (name == null || name.trim().isEmpty()) {
                 errors.add("Tên sản phẩm không được để trống.");
@@ -276,8 +285,34 @@ public class ProductEditServlet extends HttpServlet {
                             errors.add("Phân loại '" + (label != null ? label : "") + "' cấu hình giảm giá phải có cả ngày bắt đầu và kết thúc.");
                         } else {
                             try {
-                                java.time.LocalDateTime.parse(dsStr.trim());
-                                java.time.LocalDateTime.parse(deStr.trim());
+                                java.time.LocalDateTime newDs = java.time.LocalDateTime.parse(dsStr.trim());
+                                java.time.LocalDateTime newDe = java.time.LocalDateTime.parse(deStr.trim());
+
+                                // Check if variant already exists and has original dates
+                                Integer currentVid = null;
+                                if (variantIds != null && variantIds.length > i && variantIds[i] != null && !variantIds[i].trim().isEmpty()) {
+                                    try {
+                                        currentVid = Integer.parseInt(variantIds[i].trim());
+                                    } catch (NumberFormatException e) {
+                                        // Ignore
+                                    }
+                                }
+
+                                ProductVariant existingVariant = (currentVid != null) ? existingVariantMap.get(currentVid) : null;
+                                boolean dsChanged = existingVariant == null || existingVariant.getDiscountStart() == null || !existingVariant.getDiscountStart().equals(newDs);
+                                boolean deChanged = existingVariant == null || existingVariant.getDiscountEnd() == null || !existingVariant.getDiscountEnd().equals(newDe);
+
+                                java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+                                if (dsChanged && newDs.isBefore(now.minusMinutes(5))) {
+                                    errors.add("Ngày bắt đầu giảm giá của phân loại '" + (label != null ? label : "") + "' không được ở trong quá khứ.");
+                                }
+                                if (deChanged && newDe.isBefore(now.minusMinutes(5))) {
+                                    errors.add("Ngày kết thúc giảm giá của phân loại '" + (label != null ? label : "") + "' không được ở trong quá khứ.");
+                                }
+                                if (!newDe.isAfter(newDs)) {
+                                    errors.add("Ngày kết thúc giảm giá của phân loại '" + (label != null ? label : "") + "' phải sau ngày bắt đầu.");
+                                }
                             } catch (Exception e) {
                                 errors.add("Ngày giảm giá của phân loại '" + (label != null ? label : "") + "' không đúng định dạng ISO (YYYY-MM-DDTHH:MM).");
                             }
@@ -408,14 +443,7 @@ public class ProductEditServlet extends HttpServlet {
             // Gọi DAO cập nhật products
             productDAO.update(p);
 
-            // Cập nhật danh sách biến thể
-            List<ProductVariant> existingVariants = productVariantDAO.findByProduct(productId);
-            Map<Integer, ProductVariant> existingVariantMap = new java.util.LinkedHashMap<>();
-            if (existingVariants != null) {
-                for (ProductVariant ev : existingVariants) {
-                    existingVariantMap.put(ev.getVariantId(), ev);
-                }
-            }
+            // Cập nhật danh sách biến thể (đã được tải ở phần validation phía trên)
 
             ProductPackagingOptionDAO ppoDAO = new ProductPackagingOptionDAO();
             List<ProductPackagingOption> existingPackagingOptions = ppoDAO.findByProduct(productId);

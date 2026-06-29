@@ -1275,6 +1275,14 @@ public class ProductDAO extends BaseDAO {
             item.put("stockRemaining", stockRemaining);
             item.put("stockTotal", Math.max(stockRemaining + soldQuantity, stockRemaining));
         }
+        try {
+            java.sql.Timestamp validUntil = rs.getTimestamp("valid_until");
+            if (validUntil != null) {
+                item.put("validUntil", validUntil.getTime());
+            }
+        } catch (SQLException e) {
+            // Bỏ qua nếu cột không tồn tại trong ResultSet
+        }
         return item;
     }
 
@@ -1283,7 +1291,7 @@ public class ProductDAO extends BaseDAO {
         String sql = "SELECT p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
                    + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
@@ -1313,7 +1321,7 @@ public class ProductDAO extends BaseDAO {
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
                    + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
@@ -1344,7 +1352,7 @@ public class ProductDAO extends BaseDAO {
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
                    + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
@@ -1375,7 +1383,7 @@ public class ProductDAO extends BaseDAO {
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
                    + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
@@ -1406,7 +1414,7 @@ public class ProductDAO extends BaseDAO {
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
                    + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
@@ -1442,7 +1450,7 @@ public class ProductDAO extends BaseDAO {
         sql.append("SELECT p.product_id, p.name, p.description, p.rating, p.sold_quantity, ");
         sql.append("       pi.file_path AS primary_image_path, ");
         sql.append("       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, ");
-        sql.append("       pr.discount_type, pr.discount_value, pr.discount_max ");
+        sql.append("       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until ");
         sql.append("FROM products p ");
         sql.append("JOIN ( ");
         sql.append("    SELECT p.product_id");

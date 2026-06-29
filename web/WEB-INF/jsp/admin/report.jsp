@@ -6,9 +6,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thống kê & Báo cáo – Admin Verdant Market</title>
+    <title>Thống kê & Báo cáo – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
     <!-- Chart.js Secure CDN -->
@@ -38,22 +39,6 @@
             }
         }
     </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        .table-container::-webkit-scrollbar {
-            height: 6px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-    </style>
 </head>
 <body>
 <div class="admin-layout">
@@ -438,7 +423,7 @@
     // Xuất báo cáo CSV phía client
     function exportToCSV() {
         const rows = [
-            ["Báo cáo bán hàng Verdant Market"],
+            ["Báo cáo bán hàng MetaFruit"],
             ["Giai doan", "${startDate} den ${endDate}"],
             [],
             ["Ten San Pham", "Phien Ban", "Cua Hang", "So Luong Ban", "Doanh Thu (VND)", "So Don Hang"]

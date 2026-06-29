@@ -35,21 +35,6 @@
             }
         }
     </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Lexend', sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-        
-        /* Layout structures to support flex horizontal layout for both admin and shop sidebars */
-        .admin-layout { display: flex; min-height: 100vh; }
-        .admin-main { flex: 1; display: flex; flex-direction: column; overflow-x: hidden; min-width: 0; }
-    </style>
 </head>
 <body>
 <div class="admin-layout">

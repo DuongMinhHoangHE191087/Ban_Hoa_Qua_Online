@@ -1,12 +1,14 @@
 package service.auth;
 
+import config.AppConfig;
+import dao.auth.UserAddressDAO;
 import dao.auth.UserDAO;
 import dao.auth.UserSessionDAO;
 import model.entity.auth.User;
-import dao.auth.UserAddressDAO;
 import model.entity.auth.UserAddress;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 
 public class UserService {
     private final UserDAO userDAO;
@@ -61,7 +63,7 @@ public class UserService {
         UserAddressDAO addressDAO = new UserAddressDAO();
         User persistedUser = userDAO.findUserById(user.getUserId());
         if (persistedUser == null) {
-            throw new IllegalArgumentException("User khÃ´ng tá»“n táº¡i.");
+            throw new IllegalArgumentException("User không tồn tại.");
         }
 
         // Merge from the persisted snapshot so a partial session user does not
@@ -125,7 +127,12 @@ public class UserService {
         if (status == null || status.trim().isEmpty()) {
             throw new IllegalArgumentException("Trạng thái không được để trống.");
         }
-        return userDAO.updateUserStatus(userId, status);
+        String normalizedStatus = status.trim().toUpperCase(Locale.ROOT);
+        if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(normalizedStatus)
+                && !AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(normalizedStatus)) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ. Chỉ chấp nhận ACTIVE hoặc SUSPENDED.");
+        }
+        return userDAO.updateUserStatus(userId, normalizedStatus);
     }
 
     public boolean isPhoneTakenByAnother(String phone, int userId) throws SQLException {

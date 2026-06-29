@@ -8,7 +8,7 @@
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Quản lý sản phẩm | Kênh Người Bán</title>
+                    <title>Quản lý sản phẩm | MetaFruit</title>
                     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
                     <!-- Google Fonts & Icons -->
@@ -1515,6 +1515,10 @@
                             if (discountStart && discountStart.length > 16) discountStart = discountStart.substring(0, 16);
                             if (discountEnd && discountEnd.length > 16) discountEnd = discountEnd.substring(0, 16);
 
+                            const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                            let minStart = discountStart ? discountStart : nowLocal;
+                            let minEnd = discountStart ? discountStart : nowLocal;
+
                             row.innerHTML =
                                 '<input type="hidden" name="variantId" value="' + variantId + '">' +
                                 '<input type="hidden" name="variantStock" value="' + stock + '">' +
@@ -1570,12 +1574,18 @@
                                 '<label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian bắt đầu</label>' +
                                 '<input type="datetime-local" name="variantDiscountStart" ' +
                                 'value="' + discountStart + '" ' +
+                                'data-original="' + discountStart + '" ' +
+                                'min="' + minStart + '" ' +
+                                'onchange="validateDiscountDateInput(this)" ' +
                                 'class="form-control-custom py-1 text-xs">' +
                                 '</div>' +
                                 '<div>' +
                                 '<label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian kết thúc</label>' +
                                 '<input type="datetime-local" name="variantDiscountEnd" ' +
                                 'value="' + discountEnd + '" ' +
+                                'data-original="' + discountEnd + '" ' +
+                                'min="' + minEnd + '" ' +
+                                'onchange="validateDiscountDateInput(this)" ' +
                                 'class="form-control-custom py-1 text-xs">' +
                                 '</div>' +
                                 '</div>' +
@@ -1710,6 +1720,92 @@
                         function submitProductForm(event) {
                             event.preventDefault();
                             const form = document.getElementById('productForm');
+
+                            // Client-side validation: Discount dates
+                            const variantRows = document.querySelectorAll('.variant-row');
+                            const now = new Date();
+                            const errors = [];
+
+                            variantRows.forEach((row, index) => {
+                                const labelInput = row.querySelector('[name="variantLabel"]');
+                                const label = (labelInput && labelInput.value.trim()) || `số ${index + 1}`;
+                                const priceInput = row.querySelector('[name="variantPrice"]');
+                                const price = parseFloat(priceInput.value) || 0;
+
+                                const dpInput = row.querySelector('[name="variantDiscountPrice"]');
+                                const dsInput = row.querySelector('[name="variantDiscountStart"]');
+                                const deInput = row.querySelector('[name="variantDiscountEnd"]');
+
+                                const dpVal = dpInput ? dpInput.value.trim() : '';
+                                const dsVal = dsInput ? dsInput.value.trim() : '';
+                                const deVal = deInput ? deInput.value.trim() : '';
+
+                                const hasDp = dpVal !== '';
+                                const hasDs = dsVal !== '';
+                                const hasDe = deVal !== '';
+
+                                if (hasDp || hasDs || hasDe) {
+                                    if (!hasDp || !hasDs || !hasDe) {
+                                        errors.push(`Phân loại "${label}": Cấu hình giảm giá phải điền đầy đủ cả giá khuyến mãi, ngày bắt đầu và ngày kết thúc.`);
+                                    } else {
+                                        const dp = parseFloat(dpVal) || 0;
+                                        if (dp < 0) {
+                                            errors.push(`Phân loại "${label}": Giá khuyến mãi không được âm.`);
+                                        }
+                                        if (dp >= price) {
+                                            errors.push(`Phân loại "${label}": Giá khuyến mãi phải nhỏ hơn giá gốc.`);
+                                        }
+
+                                        const ds = new Date(dsVal);
+                                        const de = new Date(deVal);
+
+                                        if (isNaN(ds.getTime())) {
+                                            errors.push(`Phân loại "${label}": Ngày bắt đầu giảm giá không hợp lệ.`);
+                                        }
+                                        if (isNaN(de.getTime())) {
+                                            errors.push(`Phân loại "${label}": Ngày kết thúc giảm giá không hợp lệ.`);
+                                        }
+
+                                        if (!isNaN(ds.getTime()) && !isNaN(de.getTime())) {
+                                            // Only check past date if it is changed or if it is a new variant
+                                            const originalDsVal = dsInput.dataset.original || '';
+                                            const originalDeVal = deInput.dataset.original || '';
+                                            const dsChanged = originalDsVal === '' || dsVal !== originalDsVal;
+                                            const deChanged = originalDeVal === '' || deVal !== originalDeVal;
+
+                                            // 5-minute grace period
+                                            const compareTime = new Date(now.getTime() - 5 * 60 * 1000);
+
+                                            if (dsChanged && ds < compareTime) {
+                                                errors.push(`Phân loại "${label}": Ngày bắt đầu giảm giá không được ở trong quá khứ.`);
+                                            }
+                                            if (deChanged && de < compareTime) {
+                                                errors.push(`Phân loại "${label}": Ngày kết thúc giảm giá không được ở trong quá khứ.`);
+                                            }
+                                            if (de <= ds) {
+                                                errors.push(`Phân loại "${label}": Ngày kết thúc giảm giá phải sau ngày bắt đầu.`);
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            if (errors.length > 0) {
+                                let errorHtml = '<ul class="list-disc list-inside text-left text-xs font-semibold text-red-600 space-y-1">';
+                                errors.forEach(err => {
+                                    errorHtml += '<li>' + err + '</li>';
+                                });
+                                errorHtml += '</ul>';
+
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Lỗi thông tin',
+                                    html: errorHtml,
+                                    confirmButtonColor: '#4d661c'
+                                });
+                                return;
+                            }
+
                             const formData = new FormData(form);
 
                             const productId = document.getElementById('modal-productId').value;
@@ -1771,6 +1867,67 @@
                                 .catch(err => {
                                     handleAjaxError(err, "Lỗi kết nối máy chủ khi lưu sản phẩm.");
                                 });
+                        }
+
+                        function validateDiscountDateInput(input) {
+                            const val = input.value.trim();
+                            if (val === '') return;
+
+                            const selectedDate = new Date(val);
+                            if (isNaN(selectedDate.getTime())) return;
+
+                            const originalVal = input.dataset.original || '';
+                            const isChanged = originalVal === '' || val !== originalVal;
+
+                            if (isChanged) {
+                                const now = new Date();
+                                // Grace period of 5 minutes to prevent normal delay alert issues
+                                const compareTime = new Date(now.getTime() - 5 * 60 * 1000);
+
+                                if (selectedDate < compareTime) {
+                                    const row = input.closest('.variant-row');
+                                    const labelInput = row ? row.querySelector('[name="variantLabel"]') : null;
+                                    const label = (labelInput && labelInput.value.trim()) || 'phân loại';
+                                    const fieldName = input.name === 'variantDiscountStart' ? 'bắt đầu' : 'kết thúc';
+
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Ngày không hợp lệ',
+                                        text: `Phân loại "${label}": Ngày ${fieldName} giảm giá không được ở trong quá khứ.`,
+                                        confirmButtonColor: '#4d661c'
+                                    });
+
+                                    input.value = originalVal;
+                                    return;
+                                }
+                            }
+
+                            // Verify that discount end date is after start date
+                            const row = input.closest('.variant-row');
+                            if (!row) return;
+                            const dsInput = row.querySelector('[name="variantDiscountStart"]');
+                            const deInput = row.querySelector('[name="variantDiscountEnd"]');
+
+                            // Dynamically update min of end date picker when start date is changed
+                            if (input.name === 'variantDiscountStart' && deInput) {
+                                deInput.min = input.value || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                            }
+
+                            if (dsInput && deInput && dsInput.value.trim() !== '' && deInput.value.trim() !== '') {
+                                const ds = new Date(dsInput.value.trim());
+                                const de = new Date(deInput.value.trim());
+                                if (!isNaN(ds.getTime()) && !isNaN(de.getTime()) && de <= ds) {
+                                    const labelInput = row.querySelector('[name="variantLabel"]');
+                                    const label = (labelInput && labelInput.value.trim()) || 'phân loại';
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Ngày không hợp lệ',
+                                        text: `Phân loại "${label}": Ngày kết thúc giảm giá phải sau ngày bắt đầu.`,
+                                        confirmButtonColor: '#4d661c'
+                                    });
+                                    input.value = originalVal;
+                                }
+                            }
                         }
                     </script>
                 </body>

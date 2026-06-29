@@ -2,6 +2,7 @@ package servlet.api.shop;
 
 import model.response.ApiResponse;
 import service.shop.PaymentService;
+import service.shop.PaymentService.WebhookProcessingResult;
 import util.JsonUtil;
 import util.LoggerUtil;
 
@@ -67,8 +68,10 @@ public class PaymentWebhookServlet extends HttpServlet {
         // Trạng thái xử lý nằm trong field "success" của body, KHÔNG ở HTTP status.
         resp.setStatus(HttpServletResponse.SC_OK);
         try {
-            paymentService.processWebhook(jsonPayload);
-            JsonUtil.writeJson(resp, ApiResponse.ok(null));
+            WebhookProcessingResult result = paymentService.processWebhook(jsonPayload);
+            LoggerUtil.info(log, "[SePay Webhook] outcome=%s orderId=%d sepayTxId=%s",
+                    result.getOutcome(), result.getOrderId(), result.getSepayTxId());
+            JsonUtil.writeJson(resp, ApiResponse.ok(result.toResponseMap()));
         } catch (Exception e) {
             LoggerUtil.error(log, "[SePay Webhook] Lỗi xử lý webhook", e);
             // Vẫn 200 (đã set ở trên) — chỉ báo lỗi qua body.

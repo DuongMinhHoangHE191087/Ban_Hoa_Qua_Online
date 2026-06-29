@@ -7,7 +7,7 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Quản lý Gian Hàng | Kênh Người Bán</title>
+                <title>Quản lý Gian Hàng | MetaFruit</title>
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
                 <!-- Google Fonts & Material Symbols -->

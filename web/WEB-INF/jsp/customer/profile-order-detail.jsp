@@ -308,7 +308,11 @@
                 <c:if test="${not empty paymentTx}">
                     <div class="mt-4 p-3 rounded-xl bg-surface-container-low border border-surface-container-high text-xs space-y-1">
                         <p class="font-bold text-on-surface mb-2 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm text-primary">verified</span> Giao dịch thanh toán
+                            <span class="material-symbols-outlined text-sm text-primary">verified</span>
+                            <c:choose>
+                                <c:when test="${order.orderType == 'PARENT'}">Giao dịch thanh toán của đơn cha</c:when>
+                                <c:otherwise>Giao dịch thanh toán</c:otherwise>
+                            </c:choose>
                         </p>
                         <div class="flex justify-between"><span class="text-outline">Trạng thái</span>
                             <c:choose>

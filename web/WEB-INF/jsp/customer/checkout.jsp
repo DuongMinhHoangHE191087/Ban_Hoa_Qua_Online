@@ -2,116 +2,7 @@
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Thanh toán - Verdant Market"/></jsp:include>
-
-<!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined cho phong cách Verdant Clarity -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com" rel="preconnect">
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-<link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
-
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "surface-container": "#bcfdc9",
-                    "on-tertiary": "#ffffff",
-                    "surface-variant": "#b1f2be",
-                    "on-error-container": "#93000a",
-                    "surface-container-highest": "#b1f2be",
-                    "secondary-fixed": "#b4f0c9",
-                    "on-background": "#00210d",
-                    "on-tertiary-fixed-variant": "#314d3e",
-                    "on-secondary-container": "#386f50",
-                    "inverse-surface": "#00391a",
-                    "surface-dim": "#a9e9b6",
-                    "secondary-container": "#b4f0c9",
-                    "outline-variant": "#c5c8b7",
-                    "tertiary-fixed-dim": "#afceba",
-                    "secondary-fixed-dim": "#99d4ae",
-                    "primary-fixed-dim": "#b3d17a",
-                    "primary-fixed": "#ceee93",
-                    "surface-bright": "#eaffea",
-                    "on-error": "#ffffff",
-                    "secondary": "#31694b",
-                    "on-surface": "#00210d",
-                    "primary-container": "#d9f99d",
-                    "error": "#ba1a1a",
-                    "on-tertiary-fixed": "#042014",
-                    "surface-container-lowest": "#ffffff",
-                    "surface-container-high": "#b7f7c3",
-                    "inverse-primary": "#b3d17a",
-                    "primary": "#4d661c",
-                    "on-surface-variant": "#44483b",
-                    "tertiary-container": "#d5f5e0",
-                    "on-secondary": "#ffffff",
-                    "error-container": "#ffdad6",
-                    "on-primary": "#ffffff",
-                    "background": "#eaffea",
-                    "tertiary": "#486554",
-                    "on-primary-fixed-variant": "#364e03",
-                    "inverse-on-surface": "#c3ffce",
-                    "on-secondary-fixed": "#002111",
-                    "surface-container-low": "#d1ffd8",
-                    "surface-tint": "#4d661c",
-                    "surface": "#eaffea",
-                    "on-primary-fixed": "#131f00",
-                    "on-primary-container": "#597428",
-                    "on-tertiary-container": "#557161",
-                    "on-secondary-fixed-variant": "#175034",
-                    "outline": "#75796a",
-                    "tertiary-fixed": "#caead6"
-            },
-            "borderRadius": {
-                    "DEFAULT": "0.25rem",
-                    "lg": "0.5rem",
-                    "xl": "0.75rem",
-                    "full": "9999px"
-            },
-            "spacing": {
-                    "gutter": "24px",
-                    "xs": "4px",
-                    "md": "24px",
-                    "xl": "64px",
-                    "margin-mobile": "16px",
-                    "sm": "12px",
-                    "lg": "40px",
-                    "base": "8px",
-                    "margin-desktop": "48px"
-            },
-            "fontFamily": {
-                    "sans": ["Lexend", "sans-serif"]
-            }
-          }
-        }
-      }
-    </script>
-<style>
-        .glass-card {
-            background-color: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 4px 6px -1px rgba(20, 83, 45, 0.05), 0 2px 4px -1px rgba(20, 83, 45, 0.03);
-        }
-        .form-input {
-            background-color: #DCFCE7;
-            border: 1px solid #14532D;
-            color: #00210d;
-        }
-        .form-input:focus {
-            border-width: 2px;
-            outline: none;
-            box-shadow: none;
-        }
-        .custom-radio:checked {
-            background-color: #14532D;
-            border-color: #14532D;
-        }
-</style>
+<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Thanh toán - MetaFruit"/></jsp:include>
 
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
     
@@ -127,7 +18,7 @@
                 <div>
                     <h1 class="text-3xl font-bold text-inverse-surface tracking-tight">Đặt Hàng Thành Công!</h1>
                     <p class="text-on-surface-variant mt-3 text-sm leading-relaxed max-w-md mx-auto">
-                        Cảm ơn bạn đã mua nông sản sạch tại <strong>Verdant Market</strong>. Đơn hàng của bạn đã được chuyển tới nhà vườn đóng gói lạnh giao hỏa tốc!
+                        Cảm ơn bạn đã mua nông sản sạch tại <strong>MetaFruit</strong>. Đơn hàng của bạn đã được chuyển tới nhà vườn đóng gói lạnh giao hỏa tốc!
                     </p>
                 </div>
 

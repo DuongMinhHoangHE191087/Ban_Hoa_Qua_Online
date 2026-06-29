@@ -19,10 +19,10 @@
 
                 <%-- Column 1: Brand --%>
                 <div class="space-y-5 lg:col-span-1">
-                    <a href="${pageContext.request.contextPath}/home" class="flex items-center gap-3 group">
+                    <a href="${pageContext.request.contextPath}/home" class="brand-lockup group">
                         <img src="${pageContext.request.contextPath}/assets/images/logo.png"
                              alt="MetaFruit"
-                             class="h-10 w-10 rounded-xl object-cover ring-2 ring-white/20 group-hover:ring-emerald-400/60 transition-all duration-300">
+                             class="brand-mark ring-2 ring-white/20 group-hover:ring-emerald-400/60 transition-all duration-300">
                         <div class="leading-tight">
                             <span class="text-xl font-extrabold tracking-tight text-white">Meta</span><span class="text-xl font-extrabold tracking-tight text-emerald-400">Fruit</span>
                             <div class="text-[10px] text-emerald-300/70 font-light tracking-widest uppercase">Premium Organic</div>
@@ -193,7 +193,7 @@
     <div id="ai-chat-bubble" onclick="toggleAiChat()" 
          class="fixed bottom-6 right-6 z-[999] w-14 h-14 bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-full flex items-center justify-center cursor-pointer shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group"
          title="Hỏi Trợ lý AI Tìm sản phẩm">
-        <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit Logo" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/25 animate-pulse">
+        <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit Logo" class="brand-mark brand-mark--sm ring-2 ring-white/25 animate-pulse">
         <span class="absolute -top-1 -right-1 flex h-4 w-4">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[9px] font-extrabold text-white items-center justify-center">AI</span>
@@ -207,7 +207,7 @@
         <div class="bg-gradient-to-r from-[#14532D] to-[#0f3d24] text-white p-4 flex items-center justify-between shadow-md">
             <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shadow-inner overflow-hidden">
-                    <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit Logo" class="w-6 h-6 rounded-md object-cover">
+                    <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit Logo" class="brand-mark brand-mark--sm object-cover">
                 </div>
                 <div>
                     <h4 class="font-bold text-sm leading-tight">Trợ lý AI MetaFruit 🌿</h4>
@@ -248,11 +248,6 @@
             </button>
         </div>
     </div>
-
-    <style>
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
 
     <script>
         function toggleAiChat() {
@@ -410,8 +405,11 @@
         }
 
         function getAiCsrfToken() {
+            if (typeof window.getCsrfToken === 'function') {
+                return window.getCsrfToken();
+            }
             const csrfInput = document.querySelector('input[name="_csrf"]');
-            return window.csrfToken || (csrfInput ? csrfInput.value : '');
+            return (window.csrfToken || (csrfInput ? csrfInput.value : '') || '').trim();
         }
 
         async function sendAiChatMessage() {
@@ -450,17 +448,21 @@
 
                 // Gửi token cả qua query string lẫn header để CsrfFilter luôn đọc được,
                 // kể cả khi proxy / browser / cache làm rơi custom headers.
-                const apiUrl = contextPath + '/api/ai/search?_csrf=' + encodeURIComponent(csrfToken);
+                const apiUrl = contextPath + '/api/ai/search';
+                const body = new URLSearchParams({
+                    message: message,
+                    _csrf: csrfToken
+                });
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-Token': csrfToken,
                         'X-XSRF-TOKEN': csrfToken
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ message: message })
+                    body: body.toString()
                 });
                 const responseText = await response.text();
                 let data = {};
@@ -487,6 +489,10 @@
                         : (Array.isArray(data.suggestedProductIds) ? data.suggestedProductIds : []);
                     appendMessage('ai', reply, products, suggestedProductIds);
                 } else {
+                    if (response.status === 403) {
+                        appendMessage('ai', 'Phiên bảo mật đã thay đổi hoặc hết hạn. Hãy tải lại trang rồi thử lại.');
+                        return;
+                    }
                     appendMessage('ai', data.error || data.message || aiFallbackMessage);
                 }
             } catch (error) {

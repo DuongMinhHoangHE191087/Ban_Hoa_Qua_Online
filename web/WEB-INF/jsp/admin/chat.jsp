@@ -10,32 +10,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-<style>
-    body { font-family: 'Lexend', sans-serif; }
-    .glass-panel {
-        background-color: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-    }
-    .chat-layout { height: calc(100vh - 120px); min-height: 550px; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .session-item.active { background: rgba(224, 231, 255, 0.7); border-color: #3730a3; }
-    
-    .ws-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; }
-    .ws-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .ws-dot.connected { background: #22c55e; animation: pulse 2s infinite; }
-    .ws-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
-    .ws-dot.disconnected { background: #ef4444; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    
-    .badge-shop  { background: #dcfce7; color: #166534; }
-    .badge-admin { background: #e0e7ff; color: #3730a3; }
-</style>
-
 <main class="flex-1 overflow-hidden bg-slate-50 text-slate-800 flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 40%);">
     
     <!-- Left Column: Chat List -->

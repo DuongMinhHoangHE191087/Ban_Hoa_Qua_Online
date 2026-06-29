@@ -6,7 +6,7 @@
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>${shopProfile.shopName} - Trang Cửa Hàng | Verdant Market</title>
+    <title>${shopProfile.shopName} - Trang Cửa Hàng | MetaFruit</title>
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
     <!-- Fonts & Icons -->
@@ -50,22 +50,6 @@
         }
     </script>
 
-    <style>
-        body { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 30%, #f0fdf4 60%, #ecfdf5 100%); min-height: 100vh; }
-        .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px -4px rgba(20,83,45,0.08); }
-        .glass-subtle { background: rgba(255,255,255,0.5); backdrop-filter: blur(8px); }
-        .shop-banner { position: relative; height: 260px; overflow: hidden; border-radius: 1.5rem; }
-        @media (min-width: 768px) { .shop-banner { height: 320px; } }
-        .shop-banner img { width: 100%; height: 100%; object-fit: cover; }
-        .shop-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 60%, transparent 100%); }
-        .avatar-ring { border: 4px solid white; box-shadow: 0 0 0 3px #14532D, 0 8px 24px rgba(20,83,45,0.2); }
-        .tab-item { transition: all 0.2s; border-bottom: 3px solid transparent; padding-bottom: 10px; cursor: pointer; color: #44483b; font-size: 14px; white-space: nowrap; }
-        .tab-item:hover, .tab-item.active { color: #14532D; font-weight: 600; border-bottom-color: #14532D; }
-        .product-card { overflow: hidden; border-radius: 1rem; background: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.6); transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
-        .product-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px -8px rgba(20,83,45,0.18); border-color: #d9f99d; }
-        .product-card img { transition: transform 0.4s ease; }
-        .product-card:hover img { transform: scale(1.06); }
-    </style>
 </head>
 <body class="text-on-surface">
 

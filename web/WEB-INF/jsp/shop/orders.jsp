@@ -8,13 +8,15 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Quản lý Đơn hàng | Kênh Người Bán</title>
+                <title>Quản lý Đơn hàng | MetaFruit</title>
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
                 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
                 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
                 <script>
@@ -31,52 +33,6 @@
                         }
                     }
                 </script>
-                <style>
-                    body {
-                        background-color: #f4fbf7;
-                        font-family: 'Lexend', sans-serif;
-                    }
-
-                    .glass-card {
-                        background: #ffffff;
-                        border: 1px solid #e2ece7;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 4px 16px -4px rgba(20, 83, 45, .06);
-                    }
-
-                    .modal-overlay {
-                        display: none;
-                        position: fixed;
-                        inset: 0;
-                        z-index: 1000;
-                        background: rgba(0, 0, 0, 0.45);
-                        backdrop-filter: blur(4px);
-                        align-items: center;
-                        justify-content: center;
-                    }
-
-                    .modal-overlay.active {
-                        display: flex;
-                    }
-                    .pagination-wrapper { padding: 0 !important; }
-                    .pagination { gap: 0.375rem !important; margin: 0 !important; display: flex; list-style: none; }
-                    .pagination .page-link {
-                        display: inline-flex; align-items: center; justify-content: center;
-                        min-width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;
-                        font-size: 0.75rem; font-weight: 600;
-                        border: 1px solid #e2ece7; background: #fff;
-                        color: #374151; cursor: pointer; transition: all 0.15s;
-                        text-decoration: none;
-                    }
-                    .pagination .page-item.active .page-link {
-                        background: #4d661c; border-color: #4d661c; color: #fff;
-                    }
-                    .pagination .page-item.disabled .page-link {
-                        color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-                    }
-                    .pagination .page-item .page-link:hover:not(.disabled) {
-                        background: #f1f5f9; border-color: #9ca3af;
-                    }
-                </style>
             </head>
 
             <body class="antialiased text-[#0f172a]">

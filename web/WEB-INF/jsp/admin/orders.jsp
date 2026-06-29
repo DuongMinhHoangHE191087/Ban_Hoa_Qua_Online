@@ -8,12 +8,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giám sát đơn hàng - Admin Verdant Market</title>
+    <title>Giám sát đơn hàng - Admin MetaFruit</title>
     <!-- Google Fonts & Tailwind CSS -->
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
     
     <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
@@ -38,34 +39,6 @@
         }
     </script>
     
-    <style>
-        .premium-glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(77, 102, 28, 0.08);
-            box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.03);
-        }
-        .pagination-wrapper { padding: 0 !important; }
-        .pagination { gap: 0.375rem !important; margin: 0 !important; }
-        .pagination .page-link {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
-            font-size: 0.75rem; font-weight: 600;
-            border: 1px solid #e2ece7; background: #fff;
-            color: #374151; cursor: pointer; transition: all 0.15s;
-            text-decoration: none;
-        }
-        .pagination .page-item.active .page-link {
-            background: #4d661c; border-color: #4d661c; color: #fff;
-        }
-        .pagination .page-item.disabled .page-link {
-            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-        }
-        .pagination .page-item .page-link:hover:not(.disabled) {
-            background: #f1f5f9; border-color: #9ca3af;
-        }
-    </style>
 </head>
 <body class="bg-bg text-text-primary">
     <div class="admin-layout flex min-h-screen">
@@ -83,7 +56,7 @@
                 </div>
                 <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
                     <i class="fa-solid fa-leaf text-[#84cc16]"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Verdant Market Live</span>
+                    <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
                 </div>
             </div>
 

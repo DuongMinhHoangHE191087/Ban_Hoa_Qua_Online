@@ -3,66 +3,6 @@
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quản lý yêu cầu đổi trả (Admin)"/></jsp:include>
 
-<style>
-    .admin-container {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 0 15px;
-    }
-    .panel-card {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        border: 1px solid #eef2f3;
-        padding: 30px;
-    }
-    .panel-title {
-        font-family: 'Lexend', sans-serif;
-        font-weight: 700;
-        color: #1e3a8a;
-        margin-bottom: 25px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .status-badge {
-        font-weight: 600;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.85em;
-    }
-    .status-requested { background: #fff3e0; color: #e65100; }
-    .status-approved { background: #e8f5e9; color: #1b5e20; }
-    .status-rejected { background: #ffebee; color: #c62828; }
-    
-    .table-custom th {
-        background-color: #f8fafc;
-        color: #475569;
-        font-weight: 600;
-        border-bottom: 2px solid #e2e8f0;
-    }
-    .table-custom td {
-        vertical-align: middle;
-    }
-    .modal-custom {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-content-custom {
-        background: #fff;
-        padding: 30px;
-        border-radius: 12px;
-        width: 100%;
-        max-width: 500px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-</style>
-
 <div class="admin-container">
     <div class="panel-card">
         <h2 class="panel-title"><i class="fa-solid fa-list-check"></i> Quản lý Yêu cầu Đổi trả hàng (Admin)</h2>

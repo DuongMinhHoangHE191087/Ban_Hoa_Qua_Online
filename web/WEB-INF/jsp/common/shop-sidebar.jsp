@@ -10,7 +10,7 @@
     <!-- Logo Brand -->
     <div class="p-5 border-b border-[#e2ece7] flex items-center gap-3">
         <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit"
-             class="h-9 w-9 rounded-lg object-cover shadow-sm"
+             class="brand-mark"
              onerror="this.src='https://images.unsplash.com/photo-1610832958506-ee5633619144?w=100'">
         <div>
             <div class="text-base font-extrabold text-[#4d661c] leading-tight">Meta<span class="text-[#84cc16]">Fruit</span></div>

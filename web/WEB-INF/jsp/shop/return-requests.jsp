@@ -7,7 +7,7 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Theo dõi yêu cầu đổi trả | Kênh Người Bán</title>
+                <title>Theo dõi yêu cầu đổi trả | MetaFruit</title>
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
                 <!-- Google Fonts & Icons -->

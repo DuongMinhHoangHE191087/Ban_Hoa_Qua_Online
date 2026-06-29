@@ -6,7 +6,7 @@
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <c:if test="${not empty sessionScope.flashMsg}">
-    <div id="flash-alert" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-[9999] w-11/12 max-w-lg flex items-center gap-3 p-4 rounded-xl border-l-4 shadow-2xl text-sm font-semibold animate-bounce
+    <div id="flash-alert" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-[9999] w-11/12 max-w-lg flex items-center gap-3 p-4 rounded-xl border shadow-2xl text-sm font-semibold
          ${sessionScope.flashType == 'error' ? 'bg-red-50 border-red-500 text-red-800' : 
            (sessionScope.flashType == 'warning' ? 'bg-amber-50 border-amber-500 text-amber-800' : 'bg-emerald-50 border-emerald-500 text-emerald-800')}" role="alert">
         <i class="fa-solid ${sessionScope.flashType == 'error' ? 'fa-circle-exclamation text-red-600' : 

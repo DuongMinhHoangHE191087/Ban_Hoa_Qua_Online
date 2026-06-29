@@ -100,9 +100,20 @@ public class InventoryService {
         return inventoryDAO.findByOwner(ownerId);
     }
 
+    /**
+     * Lấy danh sách lô hàng nhập kho còn hiệu lực (chưa hết hạn / chưa bị đánh dấu expired).
+     * Dùng cho bảng quản lý lô hàng / ngày hết hạn trên trang Tồn kho.
+     */
+    public List<InventoryLog> getActiveBatches(int ownerId) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("Owner ID không hợp lệ.");
+        }
+        return inventoryDAO.findActiveBatchesByOwner(ownerId);
+    }
+
     public void reserve(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
-        
+
         // Trực tiếp cập nhật nguyên tử tồn kho và lấy ra tồn kho mới sau cập nhật
         int stockAfter;
         try {
@@ -119,7 +130,7 @@ public class InventoryService {
         logEntry.setQuantityAfter(stockAfter);
         logEntry.setNote("Giữ hàng cho đơn hàng #" + orderId);
         logEntry.setChangedAt(LocalDateTime.now());
-        
+
         inventoryDAO.save(conn, logEntry);
         checkAndSendLowStockAlert(conn, variantId, stockAfter);
     }
@@ -242,7 +253,7 @@ public class InventoryService {
                 java.util.Map<String, Object> info = productVariantDAO.getVariantAndProductName(conn, variantId);
                 String sku = (String) info.get("sku");
                 String productName = (String) info.get("name");
-                
+
                 service.chat.NotificationService notificationService = new service.chat.NotificationService();
                 String title = "Cảnh báo tồn kho thấp";
                 String message = "Sản phẩm \"" + productName + "\" (SKU: " + sku + ") sắp hết hàng. Chỉ còn " + stockAfter + " sản phẩm trong kho.";

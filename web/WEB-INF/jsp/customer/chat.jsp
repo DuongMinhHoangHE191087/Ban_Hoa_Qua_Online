@@ -3,38 +3,12 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Tin nhắn - Verdant Market" />
+    <jsp:param name="pageTitle" value="Tin nhắn - MetaFruit" />
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-
-<style>
-    body { font-family: 'Lexend', sans-serif; }
-    .glass-panel { background-color: rgba(255,255,255,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4); }
-    .chat-layout { height: calc(100vh - 120px); min-height: 550px; }
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #c5c8b7; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #75796a; }
-    .session-item.active { background: rgba(217,249,157,0.6); border-color: #4d661c; }
-    .ws-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; }
-    .ws-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .ws-dot.connected { background: #22c55e; animation: pulse-dot 2s infinite; }
-    .ws-dot.connecting { background: #f59e0b; animation: pulse-dot 1s infinite; }
-    .ws-dot.disconnected { background: #ef4444; }
-    .ws-dot.offline { background: #94a3b8; }
-    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .msg-link { color: #3b82f6; text-decoration: underline; word-break: break-all; }
-    .unread-badge { background:#ef4444; color:white; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; line-height:1; }
-    #infoPanel { transition: width .25s ease, opacity .25s ease; overflow: hidden; }
-    #infoPanel.collapsed { width: 0 !important; opacity: 0; pointer-events: none; }
-    .msg-status { font-size: 10px; color: #94a3b8; margin-top: 2px; display: flex; align-items: center; gap: 2px; }
-    .msg-status.seen { color: #3b82f6; }
-    .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: skeleton-shine 1.2s infinite; border-radius: 12px; }
-    @keyframes skeleton-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-</style>
 
 <main class="flex-1 overflow-hidden bg-[#eaffea] text-[#00210d] flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(217,249,157,0.15), transparent 40%);">
     

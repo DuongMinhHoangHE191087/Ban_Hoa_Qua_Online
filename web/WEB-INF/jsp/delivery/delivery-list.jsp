@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Lịch sử giao hàng"/>
+    <jsp:param name="pageTitle" value="MetaFruit | Lịch sử giao hàng"/>
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms"></script>
@@ -44,7 +44,7 @@ body { background: #F0FDF4; }
         </div>
         <a href="${pageContext.request.contextPath}/delivery/dashboard"
            class="text-primary hover:text-primary-hover text-sm font-bold flex items-center gap-1.5">
-            <i class="fa-solid fa-gauge-high"></i> Dashboard
+            <i class="fa-solid fa-gauge-high"></i> Tổng quan
         </a>
     </div>
 

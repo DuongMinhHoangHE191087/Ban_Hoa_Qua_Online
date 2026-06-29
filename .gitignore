@@ -50,3 +50,4 @@ tomcat_config.ini
 docker-compose.override.yml
 *.log
 .obsidian/
+/node_modules

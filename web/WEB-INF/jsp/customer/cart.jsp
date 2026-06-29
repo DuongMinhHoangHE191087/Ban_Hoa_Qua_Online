@@ -106,17 +106,6 @@
     }
 </script>
 
-<style>
-    /* Continuous Curvature Squircle shadows */
-    .premium-glass-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: 0 8px 32px rgba(20, 83, 45, 0.05);
-    }
-</style>
-
 <main class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-body-md text-on-background">
     <div class="flex items-baseline justify-between mb-lg border-b border-surface-container-high pb-4">
         <h1 class="font-display-lg text-display-lg text-inverse-surface font-bold tracking-tight">Giỏ hàng của bạn</h1>
@@ -178,7 +167,7 @@
                 </button>
                 
                 <p class="font-label-sm text-label-sm text-on-surface-variant text-center mt-sm opacity-80">
-                    Thanh toán an toàn bảo mật bởi Verdant Market.
+                    Thanh toán an toàn bảo mật bởi MetaFruit.
                 </p>
             </div>
         </aside>

@@ -7,7 +7,7 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Kênh Người Bán | Tổng Quan Cửa Hàng</title>
+                <title>MetaFruit | Tổng Quan Cửa Hàng</title>
 
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
@@ -15,9 +15,11 @@
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link
-                    href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+                        href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
                 <!-- Core Tailwind and SweetAlert -->
                 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
@@ -40,7 +42,7 @@
                                     'txt-3': '#94a3b8',
                                 },
                                 fontFamily: {
-                                    sans: ['Segoe UI', 'Lexend', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                                    sans: ['Lexend', 'Segoe UI', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
                                 },
                                 boxShadow: {
                                     card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
@@ -50,59 +52,6 @@
                     }
                 </script>
 
-                <style>
-                    body {
-                        background-color: #f4faf6;
-                        font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif;
-                    }
-
-                    .glass-card {
-                        background: rgba(255, 255, 255, 0.95);
-                        backdrop-filter: blur(12px);
-                        border: 1px solid rgba(226, 236, 231, 0.8);
-                        box-shadow: 0 10px 30px -10px rgba(77, 102, 28, 0.05), 0 1px 3px rgba(0, 0, 0, .02);
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    }
-
-                    .glass-card:hover {
-                        transform: translateY(-4px);
-                        box-shadow: 0 20px 40px -15px rgba(77, 102, 28, 0.12), 0 0 0 1px rgba(77, 102, 28, 0.1);
-                    }
-
-                    .pulse-live {
-                        position: relative;
-                    }
-
-                    .pulse-live::after {
-                        content: '';
-                        position: absolute;
-                        width: 8px;
-                        height: 8px;
-                        background-color: #22c55e;
-                        border-radius: 50%;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        right: -14px;
-                        animation: pulse-animation 1.5s infinite;
-                    }
-
-                    @keyframes pulse-animation {
-                        0% {
-                            transform: translateY(-50%) scale(0.95);
-                            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-                        }
-
-                        70% {
-                            transform: translateY(-50%) scale(1);
-                            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
-                        }
-
-                        100% {
-                            transform: translateY(-50%) scale(0.95);
-                            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-                        }
-                    }
-                </style>
             </head>
 
             <body class="antialiased text-[#0f172a]" data-user-id="${sessionScope.currentUser.userId}">

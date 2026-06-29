@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Chi tiết giao hàng #${delivery.deliveryId}"/>
+    <jsp:param name="pageTitle" value="MetaFruit | Chi tiết giao hàng #${delivery.deliveryId}"/>
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms"></script>
@@ -36,7 +36,7 @@ body { background: #F0FDF4; }
     <div class="mb-7">
         <a href="${pageContext.request.contextPath}/delivery/dashboard"
            class="text-primary hover:text-primary-hover text-sm font-bold flex items-center gap-1.5 mb-3 w-fit">
-            <i class="fa-solid fa-arrow-left"></i> Quay lại Dashboard
+            <i class="fa-solid fa-arrow-left"></i> Quay lại tổng quan
         </a>
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3">

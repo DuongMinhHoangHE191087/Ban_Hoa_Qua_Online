@@ -1,433 +1,341 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-        <%-- SweetAlert2: offline local asset --%>
-            <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-            <script>
-                /* Global native-alert override → SweetAlert2 premium */
-                window.alert = function (msg) {
-                    Swal.fire({
-                        icon: 'info', title: 'Thông báo', text: msg,
-                        confirmButtonText: 'Đồng ý', confirmButtonColor: '#4D661C',
-                        background: '#fff', borderRadius: '12px'
-                    });
-                };
-            </script>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- SweetAlert2: offline local asset --%>
+<script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+<script>
+    /* Global native-alert override → SweetAlert2 premium */
+    window.alert = function(msg) {
+        Swal.fire({ icon:'info', title:'Thông báo', text:msg,
+            confirmButtonText:'Đồng ý', confirmButtonColor:'#4D661C',
+            background:'#fff', borderRadius:'12px' });
+    };
+</script>
 
-            <%--============================================================ADMIN SIDEBAR — Light Premium + Tailwind Sử
-                dụng inline <style> vì đây là fragment được include, không phải full page
-                Tailwind CDN được load bởi trang cha (page-level)
-                ============================================================ --%>
-                <style>
-                    /* Root layout */
-                    .admin-layout {
-                        display: flex;
-                        min-height: 100vh;
-                    }
+<%-- ============================================================
+     ADMIN SIDEBAR — Light Premium + Tailwind
+     Sử dụng inline <style> vì đây là fragment được include, không phải full page
+     Tailwind CDN được load bởi trang cha (page-level)
+============================================================ --%>
+<style>
+    /* Root layout */
+    .admin-layout { display:flex; min-height:100vh; }
 
-                    /* Sidebar base */
-                    #admin-sidebar {
-                        width: 256px;
-                        min-width: 256px;
-                        background: linear-gradient(180deg, #ffffff 65%, #f4fbf7 100%);
-                        display: flex;
-                        flex-direction: column;
-                        position: sticky;
-                        top: 0;
-                        height: 100vh;
-                        overflow-y: auto;
-                        overflow-x: hidden;
-                        border-right: 1px solid #e2ece7;
-                        box-shadow: 2px 0 12px rgba(20, 83, 45, .04);
-                        z-index: 100;
-                        scrollbar-width: thin;
-                        scrollbar-color: #cbd5e1 transparent;
-                    }
+    /* Sidebar base */
+    #admin-sidebar {
+        width:256px; min-width:256px;
+        background:linear-gradient(180deg, #ffffff 65%, #f4fbf7 100%);
+        display:flex; flex-direction:column;
+        position:sticky; top:0; height:100vh;
+        overflow-y:auto; overflow-x:hidden;
+        border-right:1px solid #e2ece7;
+        box-shadow:2px 0 12px rgba(20,83,45,.04);
+        z-index:100;
+        scrollbar-width:thin;
+        scrollbar-color:#cbd5e1 transparent;
+    }
+    #admin-sidebar::-webkit-scrollbar { width:4px; }
+    #admin-sidebar::-webkit-scrollbar-track { background:transparent; }
+    #admin-sidebar::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
 
-                    #admin-sidebar::-webkit-scrollbar {
-                        width: 4px;
-                    }
+    /* Logo */
+    .sb-logo {
+        padding:1.25rem 1.25rem 1rem;
+        border-bottom:1px solid #e2ece7;
+        flex-shrink:0;
+    }
+    .sb-logo a {
+        display:flex; align-items:center; gap:.625rem;
+        text-decoration:none;
+        transition: opacity 0.15s ease;
+    }
+    .sb-logo a:hover {
+        opacity: 0.9;
+        text-decoration:none;
+    }
+    .sb-logo-text {
+        font-family:'Lexend', 'Segoe UI', -apple-system, sans-serif;
+        font-size:1.2rem;
+        font-weight:800;
+        color:#4d661c;
+        letter-spacing:-0.5px;
+    }
+    .sb-logo-text span { color:#84cc16; }
 
-                    #admin-sidebar::-webkit-scrollbar-track {
-                        background: transparent;
-                    }
+    /* Nav section label */
+    .sb-section-label {
+        font-size:.65rem; font-weight:700; letter-spacing:.1em;
+        text-transform:uppercase; color:#94a3b8;
+        padding:.75rem 1.25rem .3rem;
+        flex-shrink:0;
+    }
 
-                    #admin-sidebar::-webkit-scrollbar-thumb {
-                        background: #cbd5e1;
-                        border-radius: 4px;
-                    }
+    /* Nav */
+    .sb-nav { flex:1; padding:.5rem 0; overflow-y:auto; }
+    .sb-nav-list { list-style:none; margin:0; padding:0; }
+    .sb-nav-item { margin:.1rem .625rem; }
+    .sb-nav-link {
+        display:flex; align-items:center; gap:.65rem;
+        padding:.6rem .875rem;
+        color:#475569;
+        font-size:.84rem; font-weight:500;
+        text-decoration:none;
+        border-radius:.625rem;
+        transition:background .15s,color .15s;
+        position:relative;
+        cursor:pointer;
+    }
+    .sb-nav-link .sb-icon {
+        width:18px; display:flex; align-items:center; justify-content:center;
+        flex-shrink:0; font-size:.9rem; color:#64748b;
+    }
+    .sb-nav-link:hover {
+        background:#f4fbf7;
+        color:#4d661c;
+        text-decoration:none;
+    }
+    .sb-nav-link.active {
+        background:#edf7f2;
+        color:#364e03;
+        font-weight:700;
+        box-shadow:inset 3px 0 0 #4d661c;
+    }
+    .sb-nav-link.active .sb-icon { color:#4d661c; }
 
-                    /* Logo */
-                    .sb-logo {
-                        padding: 1.25rem 1.25rem 1rem;
-                        border-bottom: 1px solid #e2ece7;
-                        flex-shrink: 0;
-                    }
+    /* Sidebar footer */
+    .sb-footer {
+        padding:.875rem 1rem 1rem;
+        border-top:1px solid #e2ece7;
+        display:flex; flex-direction:column; gap:.5rem;
+        flex-shrink:0;
+    }
+    .sb-footer-btn {
+        display:flex; align-items:center; justify-content:center; gap:.5rem;
+        padding:.5rem .75rem; border-radius:.625rem;
+        font-size:.8rem; font-weight:600; cursor:pointer;
+        text-decoration:none; transition:background .15s;
+        border:none; width:100%;
+    }
+    .sb-btn-home {
+        background:#f1f5f9;
+        color:#475569;
+    }
+    .sb-btn-home:hover { background:#e2e8f0; color:#0f172a; text-decoration:none; }
+    .sb-btn-logout {
+        background:#fee2e2;
+        color:#ef4444;
+        border:1px solid #fecaca;
+    }
+    .sb-btn-logout:hover { background:#fecaca; color:#991b1b; text-decoration:none; }
 
-                    .sb-logo a {
-                        display: flex;
-                        align-items: center;
-                        gap: .625rem;
-                        text-decoration: none;
-                        transition: opacity 0.15s ease;
-                    }
+    /* Main content area — set by sidebar */
+    .admin-main { flex:1; display:flex; flex-direction:column; overflow-x:hidden; min-width:0; }
+</style>
 
-                    .sb-logo a:hover {
-                        opacity: 0.9;
-                        text-decoration: none;
-                    }
+<aside id="admin-sidebar">
+    <%-- Logo --%>
+    <div class="sb-logo">
+        <a href="${pageContext.request.contextPath}/admin/dashboard" class="brand-lockup">
+            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="brand-mark">
+            <div class="sb-logo-text">Meta<span>Fruit</span></div>
+        </a>
+    </div>
 
-                    .sb-logo-text {
-                        font-family: 'Lexend', 'Segoe UI', -apple-system, sans-serif;
-                        font-size: 1.2rem;
-                        font-weight: 800;
-                        color: #4d661c;
-                        letter-spacing: -0.5px;
-                    }
+    <%-- Navigation --%>
+    <nav class="sb-nav">
+        <div class="sb-section-label">Quản trị hệ thống</div>
+        <ul class="sb-nav-list">
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/dashboard"
+                   class="sb-nav-link ${param.activeMenu == 'dashboard' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-chart-pie"></i></span>
+                    <span>Tổng quan</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/users"
+                   class="sb-nav-link ${param.activeMenu == 'users' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-users"></i></span>
+                    <span>Quản lý người dùng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/chat"
+                   class="sb-nav-link ${param.activeMenu == 'chat' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-comments"></i></span>
+                    <span>Chat Hỗ trợ</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/reports"
+                   class="sb-nav-link ${param.activeMenu == 'reports' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-chart-column"></i></span>
+                    <span>Báo cáo thống kê</span>
+                </a>
+            </li>
+        </ul>
 
-                    .sb-logo-text span {
-                        color: #84cc16;
-                    }
+        <div class="sb-section-label">Thương mại</div>
+        <ul class="sb-nav-list">
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/shops"
+                   class="sb-nav-link ${param.activeMenu == 'shops' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-store-slash"></i></span>
+                    <span>Phê duyệt Cửa hàng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/shops/manage"
+                   class="sb-nav-link ${param.activeMenu == 'manage-shops' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-store"></i></span>
+                    <span>Quản lý Cửa hàng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/products"
+                   class="sb-nav-link ${param.activeMenu == 'admin-products' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-clipboard-check"></i></span>
+                    <span>Phê duyệt Sản phẩm</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/categories"
+                   class="sb-nav-link ${param.activeMenu == 'categories' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-tags"></i></span>
+                    <span>Danh mục Sản phẩm</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/orders"
+                   class="sb-nav-link ${param.activeMenu == 'orders' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-box-open"></i></span>
+                    <span>Giám sát Đơn hàng</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/promotions"
+                   class="sb-nav-link ${param.activeMenu == 'promotions' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-tags"></i></span>
+                    <span>Voucher sàn</span>
+                </a>
+            </li>
+        </ul>
 
-                    /* Nav section label */
-                    .sb-section-label {
-                        font-size: .65rem;
-                        font-weight: 700;
-                        letter-spacing: .1em;
-                        text-transform: uppercase;
-                        color: #94a3b8;
-                        padding: .75rem 1.25rem .3rem;
-                        flex-shrink: 0;
-                    }
+        <div class="sb-section-label">Tài chính</div>
+        <ul class="sb-nav-list">
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/settlements"
+                   class="sb-nav-link ${param.activeMenu == 'settlements' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+                    <span>Đối soát Thanh toán</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/payments"
+                   class="sb-nav-link ${param.activeMenu == 'payments' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-credit-card"></i></span>
+                    <span>Giám sát Thanh toán</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/refunds"
+                   class="sb-nav-link ${param.activeMenu == 'returns' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-rotate-left"></i></span>
+                    <span>Yêu cầu Đổi trả</span>
+                </a>
+            </li>
+        </ul>
 
-                    /* Nav */
-                    .sb-nav {
-                        flex: 1;
-                        padding: .5rem 0;
-                        overflow-y: auto;
-                    }
+        <div class="sb-section-label">Nội dung</div>
+        <ul class="sb-nav-list">
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/reviews"
+                   class="sb-nav-link ${param.activeMenu == 'reviews' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-star"></i></span>
+                    <span>Kiểm duyệt Đánh giá</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/notifications"
+                   class="sb-nav-link ${param.activeMenu == 'notifications' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-bell"></i></span>
+                    <span>Gửi Thông báo</span>
+                </a>
+            </li>
+        </ul>
+        <div class="sb-section-label">Hệ thống</div>
+        <ul class="sb-nav-list">
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/config"
+                   class="sb-nav-link ${param.activeMenu == 'config' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-cogs"></i></span>
+                    <span>Cấu hình Hệ thống</span>
+                </a>
+            </li>
+            <li class="sb-nav-item">
+                <a href="${pageContext.request.contextPath}/admin/profile"
+                   class="sb-nav-link ${param.activeMenu == 'profile' ? 'active' : ''}">
+                    <span class="sb-icon"><i class="fa-solid fa-user-shield"></i></span>
+                    <span>Hồ sơ Cá nhân</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
 
-                    .sb-nav-list {
-                        list-style: none;
-                        margin: 0;
-                        padding: 0;
-                    }
+    <%-- Footer --%>
+    <div class="sb-footer">
+        <div class="flex items-center gap-2 px-2 py-1 mb-1">
+            <div class="w-7 h-7 rounded-full bg-[#edf7f2] text-[#4d661c] flex items-center justify-center text-xs font-bold shrink-0">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-[#0f172a] truncate" style="margin: 0;"><c:out value="${sessionScope.currentUser.fullName}"/></p>
+                <p class="text-[10px] text-gray-400 truncate" style="margin: 0;">Quản trị viên</p>
+            </div>
+        </div>
+        <a href="${pageContext.request.contextPath}/" class="sb-footer-btn sb-btn-home">
+            <i class="fa-solid fa-house"></i> Về trang chủ
+        </a>
+        <a href="${pageContext.request.contextPath}/auth/logout" class="sb-footer-btn sb-btn-logout">
+            <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+        </a>
+    </div>
+</aside>
 
-                    .sb-nav-item {
-                        margin: .1rem .625rem;
-                    }
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    if (window.innerWidth <= 768) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'sidebarMobileToggle';
+        btn.className = 'sidebar-mobile-toggle';
+        btn.innerHTML = '<i class="fa-solid fa-angles-right"></i>';
 
-                    .sb-nav-link {
-                        display: flex;
-                        align-items: center;
-                        gap: .65rem;
-                        padding: .6rem .875rem;
-                        color: #475569;
-                        font-size: .84rem;
-                        font-weight: 500;
-                        text-decoration: none;
-                        border-radius: .625rem;
-                        transition: background .15s, color .15s;
-                        position: relative;
-                        cursor: pointer;
-                    }
+        const sidebar = document.getElementById('admin-sidebar');
+        if (sidebar) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('active');
+                const icon = btn.querySelector('i');
+                if (sidebar.classList.contains('active')) {
+                    icon.className = 'fa-solid fa-angles-left';
+                    btn.style.left = '270px';
+                } else {
+                    icon.className = 'fa-solid fa-angles-right';
+                    btn.style.left = '20px';
+                }
+            });
 
-                    .sb-nav-link .sb-icon {
-                        width: 18px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                        font-size: .9rem;
-                        color: #64748b;
-                    }
+            document.addEventListener('click', function(ev) {
+                if (sidebar.classList.contains('active') && !sidebar.contains(ev.target) && ev.target !== btn) {
+                    sidebar.classList.remove('active');
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-angles-right';
+                    btn.style.left = '20px';
+                }
+            });
 
-                    .sb-nav-link:hover {
-                        background: #f4fbf7;
-                        color: #4d661c;
-                        text-decoration: none;
-                    }
-
-                    .sb-nav-link.active {
-                        background: #edf7f2;
-                        color: #364e03;
-                        font-weight: 700;
-                        box-shadow: inset 3px 0 0 #4d661c;
-                    }
-
-                    .sb-nav-link.active .sb-icon {
-                        color: #4d661c;
-                    }
-
-                    /* Sidebar footer */
-                    .sb-footer {
-                        padding: .875rem 1rem 1rem;
-                        border-top: 1px solid #e2ece7;
-                        display: flex;
-                        flex-direction: column;
-                        gap: .5rem;
-                        flex-shrink: 0;
-                    }
-
-                    .sb-footer-btn {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: .5rem;
-                        padding: .5rem .75rem;
-                        border-radius: .625rem;
-                        font-size: .8rem;
-                        font-weight: 600;
-                        cursor: pointer;
-                        text-decoration: none;
-                        transition: background .15s;
-                        border: none;
-                        width: 100%;
-                    }
-
-                    .sb-btn-home {
-                        background: #f1f5f9;
-                        color: #475569;
-                    }
-
-                    .sb-btn-home:hover {
-                        background: #e2e8f0;
-                        color: #0f172a;
-                        text-decoration: none;
-                    }
-
-                    .sb-btn-logout {
-                        background: #fee2e2;
-                        color: #ef4444;
-                        border: 1px solid #fecaca;
-                    }
-
-                    .sb-btn-logout:hover {
-                        background: #fecaca;
-                        color: #991b1b;
-                        text-decoration: none;
-                    }
-
-                    /* Main content area — set by sidebar */
-                    .admin-main {
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        overflow-x: hidden;
-                        min-width: 0;
-                    }
-                </style>
-
-                <aside id="admin-sidebar">
-                    <%-- Logo --%>
-                        <div class="sb-logo">
-                            <a href="${pageContext.request.contextPath}/admin/dashboard">
-                                <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit"
-                                    style="height: 38px; width: 38px; border-radius: 8px; object-fit: cover; box-shadow: 0 2px 8px rgba(77,102,28,.15);">
-                                <div class="sb-logo-text">Meta<span>Fruit</span></div>
-                            </a>
-                        </div>
-
-                        <%-- Navigation --%>
-                            <nav class="sb-nav">
-                                <div class="sb-section-label">Quản trị hệ thống</div>
-                                <ul class="sb-nav-list">
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/dashboard"
-                                            class="sb-nav-link ${param.activeMenu == 'dashboard' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-chart-pie"></i></span>
-                                            <span>Tổng quan</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/users"
-                                            class="sb-nav-link ${param.activeMenu == 'users' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-users"></i></span>
-                                            <span>Quản lý người dùng</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/chat"
-                                            class="sb-nav-link ${param.activeMenu == 'chat' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-comments"></i></span>
-                                            <span>Chat Hỗ trợ</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/reports"
-                                            class="sb-nav-link ${param.activeMenu == 'reports' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-chart-column"></i></span>
-                                            <span>Báo cáo thống kê</span>
-                                        </a>
-                                    </li>
-                                </ul>
-
-                                <div class="sb-section-label">Thương mại</div>
-                                <ul class="sb-nav-list">
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/shops"
-                                            class="sb-nav-link ${param.activeMenu == 'shops' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-store-slash"></i></span>
-                                            <span>Phê duyệt Cửa hàng</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/shops/manage"
-                                            class="sb-nav-link ${param.activeMenu == 'manage-shops' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-store"></i></span>
-                                            <span>Quản lý Cửa hàng</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/products"
-                                            class="sb-nav-link ${param.activeMenu == 'admin-products' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-clipboard-check"></i></span>
-                                            <span>Phê duyệt Sản phẩm</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/categories"
-                                            class="sb-nav-link ${param.activeMenu == 'categories' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-tags"></i></span>
-                                            <span>Danh mục Sản phẩm</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/orders"
-                                            class="sb-nav-link ${param.activeMenu == 'orders' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-box-open"></i></span>
-                                            <span>Giám sát Đơn hàng</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/promotions"
-                                            class="sb-nav-link ${param.activeMenu == 'promotions' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-tags"></i></span>
-                                            <span>Voucher sàn</span>
-                                        </a>
-                                    </li>
-                                </ul>
-
-                                <div class="sb-section-label">Tài chính</div>
-                                <ul class="sb-nav-list">
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/settlements"
-                                            class="sb-nav-link ${param.activeMenu == 'settlements' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
-                                            <span>Đối soát Thanh toán</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/payments"
-                                            class="sb-nav-link ${param.activeMenu == 'payments' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-credit-card"></i></span>
-                                            <span>Giám sát Thanh toán</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/refunds"
-                                            class="sb-nav-link ${param.activeMenu == 'returns' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-rotate-left"></i></span>
-                                            <span>Yêu cầu Đổi trả</span>
-                                        </a>
-                                    </li>
-                                </ul>
-
-                                <div class="sb-section-label">Nội dung</div>
-                                <ul class="sb-nav-list">
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/reviews"
-                                            class="sb-nav-link ${param.activeMenu == 'reviews' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-star"></i></span>
-                                            <span>Kiểm duyệt Đánh giá</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/notifications"
-                                            class="sb-nav-link ${param.activeMenu == 'notifications' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-bell"></i></span>
-                                            <span>Gửi Thông báo</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="sb-section-label">Hệ thống</div>
-                                <ul class="sb-nav-list">
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/config"
-                                            class="sb-nav-link ${param.activeMenu == 'config' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-cogs"></i></span>
-                                            <span>Cấu hình Hệ thống</span>
-                                        </a>
-                                    </li>
-                                    <li class="sb-nav-item">
-                                        <a href="${pageContext.request.contextPath}/admin/profile"
-                                            class="sb-nav-link ${param.activeMenu == 'profile' ? 'active' : ''}">
-                                            <span class="sb-icon"><i class="fa-solid fa-user-shield"></i></span>
-                                            <span>Hồ sơ Cá nhân</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-
-                            <%-- Footer --%>
-                                <div class="sb-footer">
-                                    <div class="flex items-center gap-2 px-2 py-1 mb-1">
-                                        <div
-                                            class="w-7 h-7 rounded-full bg-[#edf7f2] text-[#4d661c] flex items-center justify-center text-xs font-bold shrink-0">
-                                            <i class="fa-solid fa-user-shield"></i>
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-xs font-bold text-[#0f172a] truncate" style="margin: 0;">
-                                                <c:out value="${sessionScope.currentUser.fullName}" />
-                                            </p>
-                                            <p class="text-[10px] text-gray-400 truncate" style="margin: 0;">Quản trị
-                                                viên</p>
-                                        </div>
-                                    </div>
-                                    <a href="${pageContext.request.contextPath}/" class="sb-footer-btn sb-btn-home">
-                                        <i class="fa-solid fa-house"></i> Về trang chủ
-                                    </a>
-                                    <a href="${pageContext.request.contextPath}/auth/logout"
-                                        class="sb-footer-btn sb-btn-logout">
-                                        <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
-                                    </a>
-                                </div>
-                </aside>
-
-                <script>
-                    document.addEventListener("DOMContentLoaded", function () {
-                        if (window.innerWidth <= 768) {
-                            const btn = document.createElement('button');
-                            btn.type = 'button';
-                            btn.id = 'sidebarMobileToggle';
-                            btn.className = 'sidebar-mobile-toggle';
-                            btn.innerHTML = '<i class="fa-solid fa-angles-right"></i>';
-
-                            const sidebar = document.getElementById('admin-sidebar');
-                            if (sidebar) {
-                                btn.addEventListener('click', function (e) {
-                                    e.stopPropagation();
-                                    sidebar.classList.toggle('active');
-                                    const icon = btn.querySelector('i');
-                                    if (sidebar.classList.contains('active')) {
-                                        icon.className = 'fa-solid fa-angles-left';
-                                        btn.style.left = '270px';
-                                    } else {
-                                        icon.className = 'fa-solid fa-angles-right';
-                                        btn.style.left = '20px';
-                                    }
-                                });
-
-                                document.addEventListener('click', function (ev) {
-                                    if (sidebar.classList.contains('active') && !sidebar.contains(ev.target) && ev.target !== btn) {
-                                        sidebar.classList.remove('active');
-                                        const icon = btn.querySelector('i');
-                                        if (icon) icon.className = 'fa-solid fa-angles-right';
-                                        btn.style.left = '20px';
-                                    }
-                                });
-
-                                document.body.appendChild(btn);
-                            }
-                        }
-                    });
-                </script>
+            document.body.appendChild(btn);
+        }
+    }
+});
+</script>
