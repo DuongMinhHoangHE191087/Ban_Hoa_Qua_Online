@@ -1,7 +1,12 @@
 package service.system;
 
 import config.AppConfig;
+import model.entity.order.Order;
+import model.entity.order.OrderItem;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -78,23 +83,184 @@ public class EmailTemplateService {
 
     /** Template email thông báo đơn hàng. */
     public String buildOrderNotificationEmail(String fullName, String orderId, String status, String orderDetailUrl) {
-        String mainHtml = "<div style='background:#f0f8f3;border:1px solid #c8e2d0;border-radius:14px;"
-                + "padding:16px 20px;margin:16px 0;'>"
-                + "<p style='margin:0 0 8px;font-size:13px;color:#607166;'>Mã đơn hàng</p>"
-                + "<p style='margin:0;font-size:18px;font-weight:800;color:#14532d;letter-spacing:2px;'>"
-                + escapeHtml(orderId) + "</p>"
-                + "<p style='margin:8px 0 0;font-size:14px;color:#1f2937;'>Trạng thái: <strong>"
-                + escapeHtml(status) + "</strong></p>"
-                + "</div>";
+        // Load DB data dynamically
+        Order order = null;
+        List<OrderItem> items = null;
+        try {
+            int id = Integer.parseInt(orderId);
+            if (id > 0) {
+                dao.order.OrderDAO orderDAO = new dao.order.OrderDAO();
+                order = orderDAO.findOneById(id);
+                if (order != null) {
+                    items = orderDAO.findItemsByOrderId(id);
+                }
+            }
+        } catch (Exception e) {
+            // Keep order and items as null, fallback gracefully
+        }
 
-        String footerHtml = "Cảm ơn bạn đã tin tưởng " + escapeHtml(AppConfig.APP_NAME)
+        // Determine status styling
+        String badgeColor = "#059669"; // Green
+        String badgeBg = "#ecfdf5";
+        String statusText = status;
+
+        if (status.toLowerCase().contains("hủy") || status.toLowerCase().contains("cancelled") || status.toLowerCase().contains("failed") || status.toLowerCase().contains("thất bại")) {
+            badgeColor = "#dc2626"; // Red
+            badgeBg = "#fef2f2";
+        } else if (status.toLowerCase().contains("đang giao") || status.toLowerCase().contains("dispatched") || status.toLowerCase().contains("chờ") || status.toLowerCase().contains("pending")) {
+            badgeColor = "#d97706"; // Amber
+            badgeBg = "#fffbeb";
+        }
+
+        StringBuilder mainHtml = new StringBuilder();
+        
+        // Status & ID Box
+        mainHtml.append("<div style='background:#f9fafb; border:1px solid #e5e7eb; border-radius:16px; padding:20px; margin:20px 0;'>")
+                .append("<table role='presentation' style='width:100%; border-collapse:collapse;'>")
+                .append("<tr>")
+                .append("<td style='padding:0;'>")
+                .append("<div style='font-size:12px; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;'>Mã đơn hàng</div>")
+                .append("<div style='font-size:20px; font-weight:800; color:#111827; letter-spacing:1.5px;'>#").append(escapeHtml(orderId)).append("</div>")
+                .append("</td>")
+                .append("<td style='padding:0; text-align:right;'>")
+                .append("<span style='display:inline-block; padding:8px 16px; border-radius:30px; font-size:13px; font-weight:700; color:").append(badgeColor).append("; background:").append(badgeBg).append("; border:1px solid ").append(badgeColor).append(";'>")
+                .append(escapeHtml(statusText))
+                .append("</span>")
+                .append("</td>")
+                .append("</tr>")
+                .append("</table>")
+                .append("</div>");
+
+        // Order Items Table (Only if loaded successfully)
+        if (order != null && items != null && !items.isEmpty()) {
+            mainHtml.append("<div style='margin-bottom:24px;'>")
+                    .append("<div style='font-size:15px; font-weight:700; color:#1f2937; margin-bottom:12px; border-left:4px solid #14532d; padding-left:10px;'>Chi tiết sản phẩm</div>")
+                    .append("<table role='presentation' style='width:100%; border-collapse:collapse; font-size:14px;'>")
+                    .append("<thead>")
+                    .append("<tr style='border-bottom:2px solid #e5e7eb; color:#4b5563; font-weight:600;'>")
+                    .append("<th style='text-align:left; padding:8px 0; font-size:13px;'>Sản phẩm</th>")
+                    .append("<th style='text-align:center; padding:8px 8px; font-size:13px; width:60px;'>SL</th>")
+                    .append("<th style='text-align:right; padding:8px 0; font-size:13px; width:100px;'>Thành tiền</th>")
+                    .append("</tr>")
+                    .append("</thead>")
+                    .append("<tbody>");
+
+            for (OrderItem item : items) {
+                String variantLabel = item.getVariantLabelSnapshot();
+                String variantStr = (variantLabel != null && !variantLabel.trim().isEmpty()) ? " (" + variantLabel + ")" : "";
+                mainHtml.append("<tr style='border-bottom:1px solid #f3f4f6;'>")
+                        .append("<td style='padding:12px 0; vertical-align:middle;'>")
+                        .append("<div style='font-weight:600; color:#111827;'>").append(escapeHtml(item.getProductNameSnapshot())).append("</div>")
+                        .append("<div style='font-size:12px; color:#6b7280; margin-top:2px;'>Đơn giá: ").append(formatVND(item.getUnitPrice())).append(escapeHtml(variantStr)).append("</div>")
+                        .append("</td>")
+                        .append("<td style='padding:12px 8px; text-align:center; vertical-align:middle; color:#4b5563; font-weight:600;'>")
+                        .append(item.getQuantity())
+                        .append("</td>")
+                        .append("<td style='padding:12px 0; text-align:right; vertical-align:middle; font-weight:600; color:#111827;'>")
+                        .append(formatVND(item.getSubtotal()))
+                        .append("</td>")
+                        .append("</tr>");
+            }
+            mainHtml.append("</tbody>")
+                    .append("</table>")
+                    .append("</div>");
+
+            // Order Financial Calculation Box
+            mainHtml.append("<div style='background:#f9fafb; border:1px solid #e5e7eb; border-radius:14px; padding:16px 20px; margin-bottom:24px;'>")
+                    .append("<table role='presentation' style='width:100%; border-collapse:collapse; font-size:14px; line-height:1.8;'>")
+                    .append("<tr>")
+                    .append("<td style='color:#4b5563;'>Tạm tính:</td>")
+                    .append("<td style='text-align:right; color:#111827; font-weight:600;'>").append(formatVND(order.getTotalAmount())).append("</td>")
+                    .append("</tr>")
+                    .append("<tr>")
+                    .append("<td style='color:#4b5563;'>Phí vận chuyển:</td>")
+                    .append("<td style='text-align:right; color:#111827; font-weight:600;'>+ ").append(formatVND(order.getDeliveryFee())).append("</td>")
+                    .append("</tr>");
+            
+            if (order.getDiscountAmount() != null && order.getDiscountAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                mainHtml.append("<tr>")
+                        .append("<td style='color:#dc2626;'>Khuyến mãi:</td>")
+                        .append("<td style='text-align:right; color:#dc2626; font-weight:600;'>- ").append(formatVND(order.getDiscountAmount())).append("</td>")
+                        .append("</tr>");
+            }
+
+            mainHtml.append("<tr style='border-top:1px solid #e5e7eb;'>")
+                    .append("<td style='padding-top:10px; font-size:16px; font-weight:800; color:#111827;'>Tổng cộng:</td>")
+                    .append("<td style='padding-top:10px; text-align:right; font-size:18px; font-weight:800; color:#14532d;'>").append(formatVND(order.getFinalAmount())).append("</td>")
+                    .append("</tr>")
+                    .append("</table>")
+                    .append("</div>");
+        } else {
+            // Fallback (e.g. if parsed ORD-12345 or no order in DB)
+            mainHtml.append("<div style='background:#f0f8f3; border:1px solid #c8e2d0; border-radius:14px; padding:16px 20px; margin:16px 0;'>")
+                    .append("<p style='margin:0 0 8px; font-size:13px; color:#607166;'>Mã đơn hàng</p>")
+                    .append("<p style='margin:0; font-size:18px; font-weight:800; color:#14532d; letter-spacing:2px;'>")
+                    .append(escapeHtml(orderId)).append("</p>")
+                    .append("<p style='margin:8px 0 0; font-size:14px; color:#1f2937;'>Trạng thái: <strong>")
+                    .append(escapeHtml(status)).append("</strong></p>")
+                    .append("</div>");
+        }
+
+        // Shipping Information (Only if loaded successfully)
+        if (order != null) {
+            String paymentMethodLabel = "COD (Thanh toán khi nhận hàng)";
+            if ("CK".equalsIgnoreCase(order.getPaymentMethod())) {
+                paymentMethodLabel = "Chuyển khoản Ngân hàng (VietQR / SePay)";
+            }
+            
+            mainHtml.append("<div style='background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; padding:20px; margin-bottom:20px;'>")
+                    .append("<div style='font-size:15px; font-weight:700; color:#1f2937; margin-bottom:12px; border-left:4px solid #14532d; padding-left:10px;'>Thông tin nhận hàng</div>")
+                    .append("<table role='presentation' style='width:100%; border-collapse:collapse; font-size:13px; line-height:1.7;'>")
+                    .append("<tr>")
+                    .append("<td style='color:#6b7280; width:120px; padding:4px 0;'>Người nhận:</td>")
+                    .append("<td style='color:#111827; font-weight:600; padding:4px 0;'>").append(escapeHtml(order.getRecipientName() != null ? order.getRecipientName() : fullName)).append("</td>")
+                    .append("</tr>")
+                    .append("<tr>")
+                    .append("<td style='color:#6b7280; padding:4px 0;'>Số điện thoại:</td>")
+                    .append("<td style='color:#111827; font-weight:600; padding:4px 0;'>").append(escapeHtml(order.getRecipientPhone())).append("</td>")
+                    .append("</tr>")
+                    .append("<tr>")
+                    .append("<td style='color:#6b7280; padding:4px 0; vertical-align:top;'>Địa chỉ giao:</td>")
+                    .append("<td style='color:#111827; font-weight:600; padding:4px 0;'>").append(escapeHtml(order.getDeliveryAddress())).append("</td>")
+                    .append("</tr>");
+            
+            if (order.getDeliveryTimeSlot() != null && !order.getDeliveryTimeSlot().trim().isEmpty()) {
+                mainHtml.append("<tr>")
+                        .append("<td style='color:#6b7280; padding:4px 0;'>Thời gian nhận:</td>")
+                        .append("<td style='color:#111827; font-weight:600; padding:4px 0;'>").append(escapeHtml(order.getDeliveryTimeSlot())).append("</td>")
+                        .append("</tr>");
+            }
+            
+            mainHtml.append("<tr>")
+                    .append("<td style='color:#6b7280; padding:4px 0;'>Hình thức thanh toán:</td>")
+                    .append("<td style='color:#111827; font-weight:600; padding:4px 0;'>").append(escapeHtml(paymentMethodLabel)).append("</td>")
+                    .append("</tr>");
+            
+            if (order.getNotes() != null && !order.getNotes().trim().isEmpty()) {
+                mainHtml.append("<tr>")
+                        .append("<td style='color:#6b7280; padding:4px 0; vertical-align:top;'>Ghi chú:</td>")
+                        .append("<td style='color:#4b5563; font-style:italic; padding:4px 0;'>\"").append(escapeHtml(order.getNotes())).append("\"</td>")
+                        .append("</tr>");
+            }
+            
+            mainHtml.append("</table>")
+                    .append("</div>");
+        }
+
+        String introMsg = "Xin chào <strong>" + escapeHtml(fullName) + "</strong>, đơn hàng của bạn vừa được cập nhật.";
+        if (status.toLowerCase().contains("thanh toán thành công")) {
+            introMsg = "Xin chào <strong>" + escapeHtml(fullName) + "</strong>, chúng tôi đã nhận được thanh toán của bạn cho đơn hàng dưới đây.";
+        } else if (status.toLowerCase().contains("đặt hàng thành công")) {
+            introMsg = "Xin chào <strong>" + escapeHtml(fullName) + "</strong>, chúc mừng bạn đã đặt hàng thành công tại " + escapeHtml(AppConfig.APP_NAME) + ".";
+        }
+
+        String footerHtml = "Cảm ơn bạn đã tin tưởng mua sắm tại " + escapeHtml(AppConfig.APP_NAME)
                 + ".<br><br>Trân trọng,<br><strong>Đội ngũ " + escapeHtml(AppConfig.APP_NAME) + "</strong>";
 
         return buildBrandedEmail(
                 "Cập nhật đơn hàng",
-                "<p style='margin:0;'>Xin chào <strong>" + escapeHtml(fullName)
-                + "</strong>, đơn hàng của bạn vừa được cập nhật.</p>",
-                mainHtml,
+                introMsg,
+                mainHtml.toString(),
                 "Xem chi tiết đơn hàng",
                 orderDetailUrl,
                 footerHtml);
@@ -291,6 +457,14 @@ public class EmailTemplateService {
         }
         sb.append("</table>");
         return sb.toString();
+    }
+
+    private String formatVND(java.math.BigDecimal amount) {
+        if (amount == null) return "0 đ";
+        java.text.DecimalFormatSymbols symbols = new java.text.DecimalFormatSymbols();
+        symbols.setGroupingSeparator('.');
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", symbols);
+        return df.format(amount) + " đ";
     }
 
     public static String escapeHtml(String value) {

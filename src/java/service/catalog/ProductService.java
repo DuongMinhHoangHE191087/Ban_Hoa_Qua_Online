@@ -169,6 +169,10 @@ public class ProductService {
         return productDAO.findAllAdminProducts(page, pageSize, approvalStatus);
     }
 
+    public int countAllAdminProducts(String approvalStatus) throws SQLException {
+        return productDAO.countAllAdminProducts(approvalStatus);
+    }
+
     /**
      * Phê duyệt sản phẩm và đẩy lên sàn giao dịch công khai.
      * Admin có quyền đè danh mục và gắn mác Organic/Imported khi duyệt.

@@ -245,7 +245,7 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         public static final String SEPAY_BANK_ID      = getEnvOrDefault("SEPAY_BANK_ID",      "MBBank");
         public static final String SEPAY_ACCOUNT_NO   = getEnvOrDefault("SEPAY_ACCOUNT_NO",   "SBSEPAY3NHWA061W5V2");
-        public static final String SEPAY_ACCOUNT_NAME = getEnvOrDefault("SEPAY_ACCOUNT_NAME", "Duong Minh Hoang");
+        public static final String SEPAY_ACCOUNT_NAME = getEnvOrDefault("SEPAY_ACCOUNT_NAME", "CONG TY TNHH METAFRUIT");
         public static final String PAYMENT_REF_PREFIX  = "MF";
         /** Thời hạn hiệu lực của mã QR (phút). PAY-02 */
         public static final int    QR_EXPIRE_MINUTES   = 10;

@@ -64,6 +64,7 @@ public class ShopOrderServlet extends HttpServlet {
             PagedResultDTO dto = orderService.shopOrders(user.getUserId(), status, page);
             req.setAttribute("orders", dto.getItems());
             req.setAttribute("currentPage", page);
+            req.setAttribute("totalPages", dto.getTotalPages());
             req.setAttribute("status", status);
             req.getRequestDispatcher("/WEB-INF/jsp/shop/orders.jsp").forward(req, resp);
         } catch (Exception e) {

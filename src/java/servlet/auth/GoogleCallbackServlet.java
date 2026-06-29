@@ -4,6 +4,7 @@ import config.AppConfig;
 import model.entity.auth.User;
 import service.auth.AuthService;
 import util.JsonUtil;
+import util.ServletUtil;
 import util.SessionUtil;
 import util.TokenUtil;
 
@@ -69,7 +70,7 @@ public class GoogleCallbackServlet extends HttpServlet {
 
         try {
             // 2. Giao dịch mã authorization_code lấy access_token
-            Map<String, Object> tokenMap = exchangeCodeForToken(code);
+            Map<String, Object> tokenMap = exchangeCodeForToken(req, code);
             String accessToken = (String) tokenMap.get("access_token");
             if (accessToken == null) {
                 throw new Exception("Không tìm thấy access_token trong phản hồi của Google.");
@@ -129,13 +130,13 @@ public class GoogleCallbackServlet extends HttpServlet {
      * Trao đổi authorization_code lấy access_token bằng HttpClient (Java 25 Native)
      */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> exchangeCodeForToken(String code) throws Exception {
+    private Map<String, Object> exchangeCodeForToken(HttpServletRequest req, String code) throws Exception {
         HttpClient client = HttpClient.newHttpClient();
 
         String formBody = "code=" + URLEncoder.encode(code, StandardCharsets.UTF_8)
                 + "&client_id=" + URLEncoder.encode(AppConfig.GOOGLE_CLIENT_ID, StandardCharsets.UTF_8)
                 + "&client_secret=" + URLEncoder.encode(AppConfig.GOOGLE_CLIENT_SECRET, StandardCharsets.UTF_8)
-                + "&redirect_uri=" + URLEncoder.encode(AppConfig.GOOGLE_REDIRECT_URI, StandardCharsets.UTF_8)
+                + "&redirect_uri=" + URLEncoder.encode(ServletUtil.getGoogleRedirectUri(req), StandardCharsets.UTF_8)
                 + "&grant_type=" + URLEncoder.encode(AppConfig.GOOGLE_GRANT_TYPE, StandardCharsets.UTF_8);
 
         HttpRequest request = HttpRequest.newBuilder()

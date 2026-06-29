@@ -350,9 +350,8 @@
     /* Product Description Box */
     .product-desc-box {
         background: linear-gradient(135deg, rgba(240,253,244,0.8) 0%, rgba(220,252,231,0.5) 100%);
-        border: 1px solid rgba(34,197,94,0.2);
-        border-left: 3px solid #22c55e;
-        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        border: 1px solid rgba(34,197,94,0.3);
+        border-radius: var(--radius-md);
         padding: var(--space-4) var(--space-5);
         margin-bottom: var(--space-5);
         position: relative;
@@ -443,9 +442,12 @@
     }
     .stock-bar-fill {
         height: 100%;
+        width: 100%;
+        transform-origin: left;
         background: linear-gradient(90deg, #22c55e, #4ade80);
         border-radius: var(--radius-full);
-        transition: width 0.8s ease;
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: scaleX(0);
     }
 
     /* ============================================================
@@ -691,16 +693,16 @@
         transform: translateY(-50%);
         width: 0;
         height: 0;
-        border-top: 9px solid transparent;
-        border-bottom: 9px solid transparent;
-        border-left: 9px solid;
+        border-style: solid;
+        border-width: 9px 0 9px 9px;
+        border-color: transparent transparent transparent transparent;
     }
     .voucher-item.type-shop .voucher-ribbon { background: linear-gradient(180deg, #F59E0B, #D97706); }
-    .voucher-item.type-shop .voucher-ribbon::after { border-left-color: #D97706; }
+    .voucher-item.type-shop .voucher-ribbon::after { border-color: transparent transparent transparent #D97706; }
     .voucher-item.type-system .voucher-ribbon { background: linear-gradient(180deg, #22c55e, #16a34a); }
-    .voucher-item.type-system .voucher-ribbon::after { border-left-color: #16a34a; }
+    .voucher-item.type-system .voucher-ribbon::after { border-color: transparent transparent transparent #16a34a; }
     .voucher-item.type-product .voucher-ribbon { background: linear-gradient(180deg, #EF4444, #DC2626); }
-    .voucher-item.type-product .voucher-ribbon::after { border-left-color: #DC2626; }
+    .voucher-item.type-product .voucher-ribbon::after { border-color: transparent transparent transparent #DC2626; }
     .voucher-ribbon-icon { font-size: 1.2rem; margin-bottom: 3px; }
     .voucher-body {
         flex: 1;
@@ -865,9 +867,12 @@
     }
     .progress-bar-fill {
         height: 100%;
+        width: 100%;
+        transform-origin: left;
         background: #F59E0B;
         border-radius: var(--radius-full);
-        transition: width 0.6s ease;
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: scaleX(0);
     }
     .bar-count-percent { width: 45px; text-align: left; color: var(--color-text-secondary); font-weight: 600; }
 
@@ -1038,7 +1043,7 @@
         bottom: 30px; right: 30px;
         background: var(--color-primary-dark);
         color: #fff;
-        border-left: 5px solid var(--color-accent);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: var(--radius-md);
         padding: var(--space-4) var(--space-6);
         box-shadow: var(--shadow-lg);
@@ -1852,7 +1857,7 @@
 <div id="photo-viewer-modal" class="premium-modal" onclick="closePhotoModal()">
     <div class="modal-content-box" onclick="event.stopPropagation()">
         <button class="modal-close-btn" onclick="closePhotoModal()"><i class="fa-solid fa-xmark"></i></button>
-        <img id="modal-expanded-img" src="" alt="Expanded review photo">
+        <img id="modal-expanded-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Expanded review photo">
     </div>
 </div>
 
@@ -1985,7 +1990,7 @@
         const fillBar = document.getElementById('stock-bar-fill-indicator');
         if (fillBar) {
             const fillPercent = (stock * 100) / 200;
-            fillBar.style.width = Math.min(100, fillPercent) + '%';
+            fillBar.style.transform = 'scaleX(' + (Math.min(100, fillPercent) / 100) + ')';
         }
     }
 
@@ -2360,7 +2365,7 @@
         // Initialize star rating progress bars style
         document.querySelectorAll('.progress-bar-fill').forEach(el => {
             const pct = el.getAttribute('data-percent');
-            if (pct) el.style.width = pct + '%';
+            if (pct) el.style.transform = 'scaleX(' + (parseFloat(pct) / 100) + ')';
         });
 
         const fruitImages = {
@@ -2572,12 +2577,35 @@
                 paginationHtml += '<button onclick="changeReviewPage(' + (pagedResult.currentPage - 1) + ')" class="' + navButtonClass + '">Trước</button>';
             }
             
-            for (let i = 1; i <= pagedResult.totalPages; i++) {
-                const isActive = i === pagedResult.currentPage;
+            let pagesToShow = new Set();
+            pagesToShow.add(1);
+            if (pagedResult.totalPages > 1) {
+                pagesToShow.add(pagedResult.totalPages);
+                pagesToShow.add(pagedResult.totalPages - 1);
+            }
+            pagesToShow.add(pagedResult.currentPage);
+            if (pagedResult.currentPage > 1) {
+                pagesToShow.add(pagedResult.currentPage - 1);
+            }
+            if (pagedResult.currentPage < pagedResult.totalPages) {
+                pagesToShow.add(pagedResult.currentPage + 1);
+            }
+
+            let pagesList = Array.from(pagesToShow).sort((a, b) => a - b);
+            for (let idx = 0; idx < pagesList.length; idx++) {
+                let pageNum = pagesList[idx];
+                if (idx > 0) {
+                    let prevPage = pagesList[idx - 1];
+                    if (pageNum - prevPage > 1) {
+                        paginationHtml += '<button onclick="promptReviewPageJump(' + pagedResult.totalPages + ')" class="w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border border-gray-200 hover:bg-gray-50 bg-white" title="Nhảy đến trang...">...</button>';
+                    }
+                }
+                
+                const isActive = pageNum === pagedResult.currentPage;
                 const pageButtonClass = isActive
                     ? 'w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer bg-primary text-white border-none'
                     : 'w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border border-gray-200 hover:bg-gray-50 bg-white';
-                paginationHtml += '<button onclick="changeReviewPage(' + i + ')" class="' + pageButtonClass + '">' + i + '</button>';
+                paginationHtml += '<button onclick="changeReviewPage(' + pageNum + ')" class="' + pageButtonClass + '">' + pageNum + '</button>';
             }
             
             if (pagedResult.currentPage < pagedResult.totalPages) {
@@ -2589,6 +2617,39 @@
         
         wrapper.innerHTML = html;
     }
+
+    window.promptReviewPageJump = function(totalPages) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Chuyển đến trang',
+                text: 'Nhập số trang muốn đến (1 - ' + totalPages + '):',
+                input: 'number',
+                inputAttributes: { min: 1, max: totalPages, step: 1 },
+                showCancelButton: true,
+                confirmButtonText: 'Đến',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#4d661c',
+                inputValidator: (value) => {
+                    const page = parseInt(value);
+                    if (isNaN(page) || page < 1 || page > totalPages) {
+                        return 'Số trang phải từ 1 đến ' + totalPages + '!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    changeReviewPage(parseInt(result.value));
+                }
+            });
+        } else {
+            const targetPageStr = prompt('Nhập số trang bạn muốn chuyển đến (1 - ' + totalPages + '):');
+            if (targetPageStr) {
+                const targetPage = parseInt(targetPageStr);
+                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+                    changeReviewPage(targetPage);
+                }
+            }
+        }
+    };
 
     window.changeReviewPage = function(page) {
         currentReviewPage = page;
