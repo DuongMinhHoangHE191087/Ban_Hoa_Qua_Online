@@ -46,7 +46,7 @@
     <!-- Header -->
     <header class="flex justify-between items-center w-full px-6 md:px-12 py-4 z-50 fixed top-0 left-0 right-0 border-b border-white/30 bg-white/60 backdrop-blur-md shadow-sm">
         <a href="${pageContext.request.contextPath}/" class="flex items-center gap-2">
-            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
             <span class="text-2xl font-bold text-primary tracking-wide">MetaFruit</span>
         </a>
         <div class="flex items-center gap-3">

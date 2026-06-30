@@ -777,7 +777,7 @@ public class OrderDAO extends BaseDAO {
 
     public List<OrderItem> findItemsByOrderId(Connection conn, int orderId) throws SQLException {
         List<OrderItem> list = new ArrayList<>();
-        String sql = "SELECT oi.*, pi.file_path AS image_path "
+        String sql = "SELECT oi.*, pi.file_path AS image_path, pv.product_id AS product_id "
                    + "FROM order_items oi "
                    + "LEFT JOIN product_variants pv ON pv.variant_id = oi.variant_id "
                    + "LEFT JOIN product_images pi ON pi.product_id = pv.product_id AND pi.is_primary = 1 "
@@ -812,7 +812,7 @@ public class OrderDAO extends BaseDAO {
             placeholders.append("?");
         }
 
-        String sql = "SELECT oi.*, pi.file_path AS image_path "
+        String sql = "SELECT oi.*, pi.file_path AS image_path, pv.product_id AS product_id "
                    + "FROM order_items oi "
                    + "LEFT JOIN product_variants pv ON pv.variant_id = oi.variant_id "
                    + "LEFT JOIN product_images pi ON pi.product_id = pv.product_id AND pi.is_primary = 1 "
@@ -848,6 +848,8 @@ public class OrderDAO extends BaseDAO {
         item.setPackagingLabelSnapshot(rs.getString("packaging_label_snapshot"));
         item.setPackagingPriceSnapshot(rs.getBigDecimal("packaging_price_snapshot"));
         item.setImagePath(rs.getString("image_path"));
+        int pId = rs.getInt("product_id");
+        item.setProductId(rs.wasNull() ? null : pId);
         return item;
     }
 

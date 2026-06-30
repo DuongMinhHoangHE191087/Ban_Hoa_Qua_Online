@@ -250,7 +250,11 @@ test('Ban Hoa Qua Online Full E2E Flow', async ({ page, request }) => {
     }
   }
 
-  // Select Bank Transfer (CK) payment
+  // Submit Button locator
+  const submitBtn = page.locator('#submitBtn');
+  await expect(submitBtn).toBeVisible({ timeout: 10000 });
+
+  // Select Bank Transfer (CK) payment - now on Step 1
   const ckPaymentRadio = page.locator('input[name="paymentMethod"][value="CK"]');
   if (await ckPaymentRadio.isVisible({ timeout: 3000 })) {
     await ckPaymentRadio.check();
@@ -259,9 +263,13 @@ test('Ban Hoa Qua Online Full E2E Flow', async ({ page, request }) => {
 
   // Delivery time slot: default "Giao hỏa tốc" is pre-selected, no change needed
 
-  // Submit the order
-  const submitBtn = page.locator('#submitBtn');
-  await expect(submitBtn).toBeVisible({ timeout: 10000 });
+  // Transition from Step 1 (Info + Payment + Voucher) to Step 2 (Confirmation)
+  console.log('[Step 4] Transitioning to Step 2 (Confirmation)...');
+  await submitBtn.click();
+  await page.waitForTimeout(600);
+
+  // Submit the order from Step 2 (Confirmation)
+  console.log('[Step 4] Submitting final order...');
   await submitBtn.click();
 
   // Wait for payment page (action=payment)

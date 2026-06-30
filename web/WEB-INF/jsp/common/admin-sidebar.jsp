@@ -11,131 +11,12 @@
     };
 </script>
 
-<%-- ============================================================
-     ADMIN SIDEBAR — Light Premium + Tailwind
-     Sử dụng inline <style> vì đây là fragment được include, không phải full page
-     Tailwind CDN được load bởi trang cha (page-level)
-============================================================ --%>
-<style>
-    /* Root layout */
-    .admin-layout { display:flex; min-height:100vh; }
-
-    /* Sidebar base */
-    #admin-sidebar {
-        width:256px; min-width:256px;
-        background:linear-gradient(180deg, #ffffff 65%, #f4fbf7 100%);
-        display:flex; flex-direction:column;
-        position:sticky; top:0; height:100vh;
-        overflow-y:auto; overflow-x:hidden;
-        border-right:1px solid #e2ece7;
-        box-shadow:2px 0 12px rgba(20,83,45,.04);
-        z-index:100;
-        scrollbar-width:thin;
-        scrollbar-color:#cbd5e1 transparent;
-    }
-    #admin-sidebar::-webkit-scrollbar { width:4px; }
-    #admin-sidebar::-webkit-scrollbar-track { background:transparent; }
-    #admin-sidebar::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
-
-    /* Logo */
-    .sb-logo {
-        padding:1.25rem 1.25rem 1rem;
-        border-bottom:1px solid #e2ece7;
-        flex-shrink:0;
-    }
-    .sb-logo a {
-        display:flex; align-items:center; gap:.625rem;
-        text-decoration:none;
-        transition: opacity 0.15s ease;
-    }
-    .sb-logo a:hover {
-        opacity: 0.9;
-        text-decoration:none;
-    }
-    .sb-logo-text {
-        font-family:'Lexend', 'Segoe UI', -apple-system, sans-serif;
-        font-size:1.2rem;
-        font-weight:800;
-        color:#4d661c;
-        letter-spacing:-0.5px;
-    }
-    .sb-logo-text span { color:#84cc16; }
-
-    /* Nav section label */
-    .sb-section-label {
-        font-size:.65rem; font-weight:700; letter-spacing:.1em;
-        text-transform:uppercase; color:#94a3b8;
-        padding:.75rem 1.25rem .3rem;
-        flex-shrink:0;
-    }
-
-    /* Nav */
-    .sb-nav { flex:1; padding:.5rem 0; overflow-y:auto; }
-    .sb-nav-list { list-style:none; margin:0; padding:0; }
-    .sb-nav-item { margin:.1rem .625rem; }
-    .sb-nav-link {
-        display:flex; align-items:center; gap:.65rem;
-        padding:.6rem .875rem;
-        color:#475569;
-        font-size:.84rem; font-weight:500;
-        text-decoration:none;
-        border-radius:.625rem;
-        transition:background .15s,color .15s;
-        position:relative;
-        cursor:pointer;
-    }
-    .sb-nav-link .sb-icon {
-        width:18px; display:flex; align-items:center; justify-content:center;
-        flex-shrink:0; font-size:.9rem; color:#64748b;
-    }
-    .sb-nav-link:hover {
-        background:#f4fbf7;
-        color:#4d661c;
-        text-decoration:none;
-    }
-    .sb-nav-link.active {
-        background:#edf7f2;
-        color:#364e03;
-        font-weight:700;
-        box-shadow:inset 3px 0 0 #4d661c;
-    }
-    .sb-nav-link.active .sb-icon { color:#4d661c; }
-
-    /* Sidebar footer */
-    .sb-footer {
-        padding:.875rem 1rem 1rem;
-        border-top:1px solid #e2ece7;
-        display:flex; flex-direction:column; gap:.5rem;
-        flex-shrink:0;
-    }
-    .sb-footer-btn {
-        display:flex; align-items:center; justify-content:center; gap:.5rem;
-        padding:.5rem .75rem; border-radius:.625rem;
-        font-size:.8rem; font-weight:600; cursor:pointer;
-        text-decoration:none; transition:background .15s;
-        border:none; width:100%;
-    }
-    .sb-btn-home {
-        background:#f1f5f9;
-        color:#475569;
-    }
-    .sb-btn-home:hover { background:#e2e8f0; color:#0f172a; text-decoration:none; }
-    .sb-btn-logout {
-        background:#fee2e2;
-        color:#ef4444;
-        border:1px solid #fecaca;
-    }
-    .sb-btn-logout:hover { background:#fecaca; color:#991b1b; text-decoration:none; }
-
-    /* Main content area — set by sidebar */
-    .admin-main { flex:1; display:flex; flex-direction:column; overflow-x:hidden; min-width:0; }
-</style>
 
 <aside id="admin-sidebar">
     <%-- Logo --%>
     <div class="sb-logo">
         <a href="${pageContext.request.contextPath}/admin/dashboard" class="brand-lockup">
-            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="brand-mark">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="brand-mark">
             <div class="sb-logo-text">Meta<span>Fruit</span></div>
         </a>
     </div>
@@ -288,8 +169,8 @@
                 <i class="fa-solid fa-user-shield"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="text-xs font-bold text-[#0f172a] truncate" style="margin: 0;"><c:out value="${sessionScope.currentUser.fullName}"/></p>
-                <p class="text-[10px] text-gray-400 truncate" style="margin: 0;">Quản trị viên</p>
+                <p class="m-0 text-xs font-bold text-[#0f172a] truncate"><c:out value="${sessionScope.currentUser.fullName}"/></p>
+                <p class="m-0 text-[10px] text-gray-400 truncate">Quản trị viên</p>
             </div>
         </div>
         <a href="${pageContext.request.contextPath}/" class="sb-footer-btn sb-btn-home">

@@ -93,7 +93,7 @@
                                             class="text-xs text-on-surface-variant flex items-center gap-2 font-semibold">
                                             <img src="${pageContext.request.contextPath}/assets/images/logo_light.png"
                                                 alt="MetaFruit"
-                                                style="height: 18px; width: 18px; border-radius: 4px; object-fit: cover;">
+                                                class="h-[18px] w-[18px] rounded-[4px] object-cover">
                                             AI gợi ý:
                                         </span>
                                         <button onclick="applyAiPrompt('sầu riêng chín ngọt béo ngậy')"
@@ -257,11 +257,9 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -359,8 +357,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-red-50/50 border border-red-200/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-red-600 transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-red-600 group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-red-600 group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả deal sốc</span>
@@ -422,11 +419,9 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -499,8 +494,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả bán chạy</span>
@@ -562,11 +556,9 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -639,8 +631,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả theo mùa</span>
@@ -695,10 +686,8 @@
                                                     </div>
                                                 </c:if>
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -762,8 +751,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả hữu cơ</span>
@@ -817,10 +805,8 @@
                                                     </div>
                                                 </c:if>
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -884,8 +870,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả nhập khẩu</span>
@@ -987,10 +972,9 @@
 
                                             <!-- Clickable Product Area -->
                                             <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                class="block group/link" style="text-decoration: none; color: inherit;">
+                                                class="block group/link no-underline text-inherit">
                                                 <!-- High Resolution Image with Zoom Scale on Hover -->
-                                                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50"
-                                                    style="aspect-ratio: 4/3;">
+                                                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                                                     <img src="${item.image}" alt="${item.name}"
                                                         onerror="handleImageError(this)"
                                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -1061,8 +1045,7 @@
                                 <!-- View All Products Button -->
                                 <div class="flex justify-center mt-8">
                                     <a href="${pageContext.request.contextPath}/products"
-                                        class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-                                        style="text-decoration: none;">
+                                        class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer no-underline">
                                         <span class="material-symbols-outlined text-[18px]">grid_view</span>
                                         <span>Xem tất cả sản phẩm</span>
                                     </a>
@@ -1751,7 +1734,7 @@
                 <div id="cart-added-toast" class="premium-toast font-sans">
                     <span class="premium-toast-icon"><i class="fa-solid fa-circle-check"></i></span>
                     <div>
-                        <strong style="display: block; font-weight: 700;">Thành công!</strong>
+                        <strong class="block font-bold">Thành công!</strong>
                         <span class="text-xs" id="toast-message">Đã thêm sản phẩm vào giỏ hàng.</span>
                     </div>
                 </div>
@@ -1911,8 +1894,8 @@
                                 html += `
                                     <article data-product-id="\${item.productId}"
                                         class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
-                                        <a href="\${ctx}/products/detail?id=\${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
-                                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                        <a href="\${ctx}/products/detail?id=\${item.productId}" class="block group/link no-underline text-inherit">
+                                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                                                 <img src="\${escapeHtml(item.image || '')}" alt="\${escapeHtml(item.name || '')}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                                 <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-\${item.productId}">Đã thêm 0</div>
                                                 <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">Nông sản sạch</div>
@@ -2001,7 +1984,7 @@
                             // View All button
                             html += `
                                 <div class="flex justify-center mt-8">
-                                    <a href="\${ctx}/products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer" style="text-decoration: none;">
+                                    <a href="\${ctx}/products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer no-underline">
                                         <span class="material-symbols-outlined text-[18px]">grid_view</span>
                                         <span>Xem tất cả sản phẩm</span>
                                     </a>

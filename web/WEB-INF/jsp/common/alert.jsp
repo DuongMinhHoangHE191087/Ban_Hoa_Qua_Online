@@ -12,7 +12,7 @@
         <i class="fa-solid ${sessionScope.flashType == 'error' ? 'fa-circle-exclamation text-red-600' : 
                              (sessionScope.flashType == 'warning' ? 'fa-triangle-exclamation text-amber-600' : 'fa-circle-check text-emerald-600')}"></i>
         <span class="flex-1"><c:out value="${sessionScope.flashMsg}"/></span>
-        <button onclick="document.getElementById('flash-alert').remove()" class="opacity-60 hover:opacity-100 transition-opacity" style="background:none; border:none; cursor:pointer;">
+        <button onclick="document.getElementById('flash-alert').remove()" class="appearance-none border-0 bg-transparent p-0 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>

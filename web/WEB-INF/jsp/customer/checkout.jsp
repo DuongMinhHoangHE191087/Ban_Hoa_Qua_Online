@@ -4,7 +4,7 @@
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Thanh toán - MetaFruit"/></jsp:include>
 
-<div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
+<div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto font-sans antialiased text-on-background min-h-screen animate-fade-in-up opacity-0">
     
     <c:choose>
         <%-- MÀN HÌNH ĐẶT HÀNG THÀNH CÔNG --%>
@@ -93,14 +93,13 @@
 
         <%-- FORM THANH TOÁN chuẩn mẫu Check_Out_UI.html --%>
         <c:otherwise>
-            <div class="mb-8 flex items-baseline justify-between border-b border-[#b1f2be] pb-4">
+            <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8 animate-fade-in-up">
                 <div>
-                    <h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">Hoàn tất đơn hàng</h1>
-                    <p class="font-body-md text-body-md text-on-surface-variant">Vui lòng kiểm tra lại thông tin và xác nhận thanh toán.</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Hoàn Tất Đơn Hàng</h1>
+                    <p class="text-txt-2 text-xs md:text-sm mt-1">Vui lòng kiểm tra lại thông tin giao nhận, hình thức thanh toán và xác nhận đặt hàng.</p>
                 </div>
-                <a href="${pageContext.request.contextPath}/cart" class="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
-                    <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Quay lại giỏ hàng
+                <a href="${pageContext.request.contextPath}/cart" class="bg-white border border-border hover:bg-slate-50 text-primary hover:text-primary-dk font-bold px-4 py-2.5 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 active:scale-95 text-decoration-none">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span> Quay lại giỏ hàng
                 </a>
             </div>
 
@@ -110,235 +109,375 @@
 
                 <!-- LEFT COLUMN: Forms -->
                 <div class="lg:col-span-8 flex flex-col gap-8">
-                    <!-- Section 1: Delivery Info -->
-                    <section class="glass-card rounded-xl p-6 md:p-8">
-                        <div class="flex items-center gap-3 mb-6 text-primary border-b border-[#b1f2be] pb-3">
-                            <span class="material-symbols-outlined text-2xl">local_shipping</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">Thông tin giao hàng</h2>
+                    <!-- Step Progress Indicator -->
+                    <div class="bg-white border border-emerald-100 rounded-2xl p-6 shadow-sm animate-fade-in-up">
+                        <div class="flex items-center justify-between relative max-w-xs mx-auto">
+                            <!-- Connecting Line -->
+                            <div class="absolute left-0 right-0 top-4 h-0.5 bg-slate-100 -translate-y-1/2 z-0"></div>
+                            <div id="stepLineProgress" class="absolute left-0 top-4 h-0.5 bg-primary -translate-y-1/2 z-0 transition-all duration-300" style="width: 0%;"></div>
+
+                            <!-- Step 1 -->
+                            <div class="z-10 flex flex-col items-center gap-1.5 cursor-pointer" onclick="goToStep(1)">
+                                <div id="stepCircle-1" class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs transition-all shadow-sm">1</div>
+                                <span id="stepTitle-1" class="text-[11px] font-bold text-primary">Nhập thông tin</span>
+                            </div>
+                            <!-- Step 2 -->
+                            <div class="z-10 flex flex-col items-center gap-1.5 cursor-pointer" onclick="goToStep(2)">
+                                <div id="stepCircle-2" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs transition-all">2</div>
+                                <span id="stepTitle-2" class="text-[11px] font-semibold text-slate-400">Xác nhận</span>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <%-- Shopee/TikTok Style Address Selector --%>
-                            <div class="flex flex-col gap-2 md:col-span-2 mb-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold">Địa chỉ nhận hàng</label>
-                                
-                                <!-- 1. Selected Address Display Card -->
-                                <div id="selectedAddressCard" class="bg-white border border-[#bcfdc9] rounded-xl p-4 shadow-sm flex items-start justify-between gap-4 transition-all duration-200">
-                                    <div class="flex-grow space-y-1">
-                                        <div class="flex items-center gap-2 flex-wrap">
-                                            <span id="displayRecipientName" class="font-bold text-sm text-slate-800"></span>
-                                            <span class="text-gray-300">|</span>
-                                            <span id="displayRecipientPhone" class="text-xs text-slate-600 font-semibold"></span>
-                                            <span id="defaultBadge" class="hidden px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full border border-red-200">Mặc định</span>
+                    </div>
+
+                    <!-- Step 1 Container: Delivery Info, Payment & Voucher -->
+                    <div id="step-1-container" class="flex flex-col gap-6 animate-fade-in-up">
+                        <!-- Section 1: Delivery Info -->
+                        <section class="glass-card rounded-xl p-6 md:p-8">
+                            <div class="flex items-center gap-3 mb-6 text-primary border-b border-[#b1f2be] pb-3">
+                                <span class="material-symbols-outlined text-2xl">local_shipping</span>
+                                <h2 class="font-headline-md text-headline-md font-bold">Thông tin giao hàng</h2>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <%-- Shopee/TikTok Style Address Selector --%>
+                                <div class="flex flex-col gap-2 md:col-span-2 mb-2">
+                                    <label class="font-label-md text-label-md text-[#14532D] font-bold">Địa chỉ nhận hàng</label>
+                                    
+                                    <!-- 1. Selected Address Display Card -->
+                                    <div id="selectedAddressCard" class="bg-white border border-[#bcfdc9] rounded-xl p-4 shadow-sm flex items-start justify-between gap-4 transition-all duration-200">
+                                        <div class="flex-grow space-y-1">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span id="displayRecipientName" class="font-bold text-sm text-slate-800"></span>
+                                                <span class="text-gray-300">|</span>
+                                                <span id="displayRecipientPhone" class="text-xs text-slate-600 font-semibold"></span>
+                                                <span id="defaultBadge" class="hidden px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-bold rounded-full border border-red-200">Mặc định</span>
+                                            </div>
+                                            <p id="displayAddressDetail" class="text-xs text-slate-600 leading-relaxed"></p>
                                         </div>
-                                        <p id="displayAddressDetail" class="text-xs text-slate-600 leading-relaxed"></p>
+                                        <button type="button" onclick="toggleAddressSelectionList()" class="text-primary hover:underline font-bold text-xs flex items-center gap-0.5 shrink-0 cursor-pointer">
+                                            Thay đổi <span class="material-symbols-outlined text-[16px] transition-transform duration-200" id="expandIcon">expand_more</span>
+                                        </button>
                                     </div>
-                                    <button type="button" onclick="toggleAddressSelectionList()" class="text-primary hover:underline font-bold text-xs flex items-center gap-0.5 shrink-0 cursor-pointer">
-                                        Thay đổi <span class="material-symbols-outlined text-[16px] transition-transform duration-200" id="expandIcon">expand_more</span>
+
+                                    <!-- 2. Collapsible Address List -->
+                                    <div id="addressSelectionList" class="hidden mt-3 space-y-3 bg-[#d1ffd8]/20 border border-[#bcfdc9]/40 rounded-xl p-4 transition-all duration-300">
+                                        <div class="text-[10px] font-bold uppercase tracking-wider text-[#31694b] mb-2">Chọn địa chỉ nhận hàng khác</div>
+                                        <div id="addressOptionsContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                            <!-- Rendered dynamically by JS -->
+                                        </div>
+                                        <div class="flex justify-between items-center border-t border-emerald-100/50 pt-3 mt-3">
+                                            <button type="button" onclick="showInlineAddressForm('add')" class="text-primary hover:underline text-xs font-bold flex items-center gap-0.5 cursor-pointer">
+                                                <span class="material-symbols-outlined text-[16px]">add</span> Thêm địa chỉ mới
+                                            </button>
+                                            <button type="button" onclick="toggleAddressSelectionList()" class="text-slate-500 hover:text-slate-700 text-xs font-bold cursor-pointer">
+                                                Đóng
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. Collapsible Inline Form -->
+                                    <div id="inlineAddressForm" class="hidden overflow-hidden transition-all duration-300 border-t border-emerald-100 pt-4 mt-4 space-y-4">
+                                        <div class="text-xs font-bold text-[#14532D]" id="inlineFormTitle">Thêm địa chỉ nhận hàng mới</div>
+                                        <input type="hidden" id="inlineAddressId" value="">
+                                        <input type="hidden" id="inlineAction" value="add">
+                                        
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div class="flex flex-col gap-1.5">
+                                                <label class="text-[10px] font-bold text-slate-700" for="mRecipientName">Họ và tên người nhận *</label>
+                                                <input type="text" id="mRecipientName" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
+                                            </div>
+                                            <div class="flex flex-col gap-1.5">
+                                                <label class="text-[10px] font-bold text-slate-700" for="mRecipientPhone">Số điện thoại nhận hàng *</label>
+                                                <input type="text" id="mRecipientPhone" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
+                                            </div>
+                                            <div class="flex flex-col gap-1.5 md:col-span-2">
+                                                <label class="text-[10px] font-bold text-slate-700" for="mAddressDetail">Địa chỉ chi tiết *</label>
+                                                <textarea id="mAddressDetail" rows="2" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."
+                                                          class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] resize-none bg-white"></textarea>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" id="mIsDefault" class="rounded text-[#14532D] focus:ring-[#14532D] h-4 w-4 cursor-pointer">
+                                            <label for="mIsDefault" class="text-[10px] text-slate-700 font-bold cursor-pointer select-none">Đặt làm địa chỉ nhận hàng mặc định</label>
+                                        </div>
+                                        
+                                        <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                                            <button type="button" id="btnCancelInlineAddress" onclick="hideInlineAddressForm()" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[10px] font-bold text-slate-600 rounded-lg transition-colors bg-white cursor-pointer">Hủy bỏ</button>
+                                            <button type="button" id="btnSaveCheckoutAddress" onclick="handleInlineAddressSubmit()" class="px-4 py-2 bg-[#14532D] text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer hover:bg-opacity-95">Lưu địa chỉ</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Hidden inputs to be posted to the servlet -->
+                                <input type="hidden" id="fullName" name="fullName">
+                                <input type="hidden" id="phone" name="phone">
+                                <input type="hidden" id="deliveryAddress" name="deliveryAddress">
+                                <input type="hidden" id="saveAddressToBook" name="saveAddressToBook" value="false">
+                                <div class="flex flex-col gap-2 md:col-span-2">
+                                    <label class="font-label-md text-label-md text-[#14532D] font-bold" for="deliveryTimeSlot">Khung giờ nhận hàng *</label>
+                                    <select class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full bg-white border border-[#bcfdc9] focus:outline-none focus:border-[#14532D]" id="deliveryTimeSlot" name="deliveryTimeSlot">
+                                        <option value="08:00-12:00">08:00 - 12:00 (Buổi sáng)</option>
+                                        <option value="12:00-16:00">12:00 - 16:00 (Buổi chiều)</option>
+                                        <option value="16:00-20:00">16:00 - 20:00 (Buổi tối)</option>
+                                        <option value="Giao hỏa tốc" selected>Giao hỏa tốc (Trong vòng 2 giờ)</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col gap-2 md:col-span-2">
+                                    <label class="font-label-md text-label-md text-[#14532D]" for="notes">Ghi chú (Tuỳ chọn)</label>
+                                    <textarea class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="notes" name="notes" placeholder="Ghi chú thêm cho người giao hàng..." rows="3"></textarea>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Section 2: Payment Methods -->
+                        <section class="glass-card rounded-xl p-6 md:p-8">
+                            <div class="flex items-center gap-3 mb-6 text-primary border-b border-[#b1f2be] pb-3">
+                                <span class="material-symbols-outlined text-2xl">payments</span>
+                                <h2 class="font-headline-md text-headline-md font-bold">Phương thức thanh toán</h2>
+                            </div>
+                            <div class="flex flex-col gap-4">
+                                <!-- Option 1: COD -->
+                                <label class="flex items-start gap-4 p-4 rounded-lg border border-outline-variant hover:border-primary bg-white/40 cursor-pointer transition-colors">
+                                    <div class="flex items-center h-6">
+                                        <input checked="" class="custom-radio w-5 h-5 text-primary focus:ring-primary border-[#14532D]" name="paymentMethod" type="radio" value="COD">
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="font-label-md text-label-md text-on-surface font-bold">Thanh toán khi nhận hàng (COD)</span>
+                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Thanh toán bằng tiền mặt khi giao hàng tận nơi.</span>
+                                    </div>
+                                    <span class="material-symbols-outlined ml-auto text-primary opacity-70">local_atm</span>
+                                </label>
+                                
+                                <!-- Option 2: Bank QR -->
+                                <label class="flex items-start gap-4 p-4 rounded-lg border border-outline-variant hover:border-primary bg-white/40 cursor-pointer transition-colors">
+                                    <div class="flex items-center h-6">
+                                        <input class="custom-radio w-5 h-5 text-primary focus:ring-primary border-[#14532D]" name="paymentMethod" type="radio" value="CK">
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="font-label-md text-label-md text-on-surface font-bold">Chuyển khoản QR ngân hàng</span>
+                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Thông tin và mã QR chuyển khoản sẽ hiển thị sau khi đặt hàng.</span>
+                                    </div>
+                                    <span class="material-symbols-outlined ml-auto text-primary opacity-70">account_balance</span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <!-- Section 3: Mã Giảm Giá -->
+                        <section class="glass-card rounded-xl p-6 md:p-8" id="coupon-section">
+                            <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
+                                <span class="material-symbols-outlined text-2xl">loyalty</span>
+                                <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sàn</h2>
+                            </div>
+                            <!-- Một ô nhập mã giảm giá duy nhất -->
+                            <div>
+                                <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã voucher shop hoặc voucher sàn</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="couponInput" placeholder="Nhập mã voucher (VD: SHOP10, SAAN5, SALE20)"
+                                        class="form-input rounded-lg px-3 py-2.5 text-sm flex-1 uppercase font-semibold tracking-wider"
+                                        style="text-transform:uppercase"/>
+                                    <button type="button" onclick="applyCoupon()"
+                                        class="bg-[#14532D] text-white font-bold px-5 py-2.5 rounded-lg text-sm hover:bg-opacity-90 transition-all cursor-pointer flex-shrink-0 active:scale-95 duration-150 shadow-md">
+                                        Áp dụng
                                     </button>
                                 </div>
-
-                                <!-- 2. Collapsible Address List -->
-                                <div id="addressSelectionList" class="hidden mt-3 space-y-3 bg-[#d1ffd8]/20 border border-[#bcfdc9]/40 rounded-xl p-4 transition-all duration-300">
-                                    <div class="text-[10px] font-bold uppercase tracking-wider text-[#31694b] mb-2">Chọn địa chỉ nhận hàng khác</div>
-                                    <div id="addressOptionsContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                                        <!-- Rendered dynamically by JS -->
-                                    </div>
-                                    <div class="flex justify-between items-center border-t border-emerald-100/50 pt-3 mt-3">
-                                        <button type="button" onclick="showInlineAddressForm('add')" class="text-primary hover:underline text-xs font-bold flex items-center gap-0.5 cursor-pointer">
-                                            <span class="material-symbols-outlined text-[16px]">add</span> Thêm địa chỉ mới
-                                        </button>
-                                        <button type="button" onclick="toggleAddressSelectionList()" class="text-slate-500 hover:text-slate-700 text-xs font-bold cursor-pointer">
-                                            Đóng
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- 3. Collapsible Inline Form -->
-                                <div id="inlineAddressForm" class="hidden overflow-hidden transition-all duration-300 border-t border-emerald-100 pt-4 mt-4 space-y-4">
-                                    <div class="text-xs font-bold text-[#14532D]" id="inlineFormTitle">Thêm địa chỉ nhận hàng mới</div>
-                                    <input type="hidden" id="inlineAddressId" value="">
-                                    <input type="hidden" id="inlineAction" value="add">
-                                    
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div class="flex flex-col gap-1.5">
-                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientName">Họ và tên người nhận *</label>
-                                            <input type="text" id="mRecipientName" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
-                                        </div>
-                                        <div class="flex flex-col gap-1.5">
-                                            <label class="text-[10px] font-bold text-slate-700" for="mRecipientPhone">Số điện thoại nhận hàng *</label>
-                                            <input type="text" id="mRecipientPhone" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] bg-white">
-                                        </div>
-                                        <div class="flex flex-col gap-1.5 md:col-span-2">
-                                            <label class="text-[10px] font-bold text-slate-700" for="mAddressDetail">Địa chỉ chi tiết *</label>
-                                            <textarea id="mAddressDetail" rows="2" placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."
-                                                      class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#14532D] resize-none bg-white"></textarea>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-center gap-2">
-                                        <input type="checkbox" id="mIsDefault" class="rounded text-[#14532D] focus:ring-[#14532D] h-4 w-4 cursor-pointer">
-                                        <label for="mIsDefault" class="text-[10px] text-slate-700 font-bold cursor-pointer select-none">Đặt làm địa chỉ nhận hàng mặc định</label>
-                                    </div>
-                                    
-                                    <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
-                                        <button type="button" id="btnCancelInlineAddress" onclick="hideInlineAddressForm()" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[10px] font-bold text-slate-600 rounded-lg transition-colors bg-white cursor-pointer">Hủy bỏ</button>
-                                        <button type="button" id="btnSaveCheckoutAddress" onclick="handleInlineAddressSubmit()" class="px-4 py-2 bg-[#14532D] text-white text-[10px] font-bold rounded-lg transition-colors border-0 cursor-pointer hover:bg-opacity-95">Lưu địa chỉ</button>
-                                    </div>
-                                </div>
+                                <p id="couponMsg" class="text-xs mt-2 hidden"></p>
                             </div>
-
-                            <!-- Hidden inputs to be posted to the servlet -->
-                            <input type="hidden" id="fullName" name="fullName">
-                            <input type="hidden" id="phone" name="phone">
-                            <input type="hidden" id="deliveryAddress" name="deliveryAddress">
-                            <input type="hidden" id="saveAddressToBook" name="saveAddressToBook" value="false">
-                            <div class="flex flex-col gap-2 md:col-span-2">
-                                <label class="font-label-md text-label-md text-[#14532D] font-bold" for="deliveryTimeSlot">Khung giờ nhận hàng *</label>
-                                <select class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full bg-white border border-[#bcfdc9] focus:outline-none focus:border-[#14532D]" id="deliveryTimeSlot" name="deliveryTimeSlot">
-                                    <option value="08:00-12:00">08:00 - 12:00 (Buổi sáng)</option>
-                                    <option value="12:00-16:00">12:00 - 16:00 (Buổi chiều)</option>
-                                    <option value="16:00-20:00">16:00 - 20:00 (Buổi tối)</option>
-                                    <option value="Giao hỏa tốc" selected>Giao hỏa tốc (Trong vòng 2 giờ)</option>
-                                </select>
-                            </div>
-                            <div class="flex flex-col gap-2 md:col-span-2">
-                                <label class="font-label-md text-label-md text-[#14532D]" for="notes">Ghi chú (Tuỳ chọn)</label>
-                                <textarea class="form-input rounded-lg px-4 py-3 font-body-md text-body-md w-full" id="notes" name="notes" placeholder="Ghi chú thêm cho người giao hàng..." rows="3"></textarea>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Section 2: Payment Methods -->
-                    <section class="glass-card rounded-xl p-6 md:p-8">
-                        <div class="flex items-center gap-3 mb-6 text-primary border-b border-[#b1f2be] pb-3">
-                            <span class="material-symbols-outlined text-2xl">payments</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">Phương thức thanh toán</h2>
-                        </div>
-                        <div class="flex flex-col gap-4">
-                            <!-- Option 1: COD -->
-                            <label class="flex items-start gap-4 p-4 rounded-lg border border-outline-variant hover:border-primary bg-white/40 cursor-pointer transition-colors">
-                                <div class="flex items-center h-6">
-                                    <input checked="" class="custom-radio w-5 h-5 text-primary focus:ring-primary border-[#14532D]" name="paymentMethod" type="radio" value="COD">
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="font-label-md text-label-md text-on-surface font-bold">Thanh toán khi nhận hàng (COD)</span>
-                                    <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Thanh toán bằng tiền mặt khi giao hàng tận nơi.</span>
-                                </div>
-                                <span class="material-symbols-outlined ml-auto text-primary opacity-70">local_atm</span>
-                            </label>
                             
-                            <!-- Option 2: Bank QR -->
-                            <label class="flex items-start gap-4 p-4 rounded-lg border border-outline-variant hover:border-primary bg-white/40 cursor-pointer transition-colors">
-                                <div class="flex items-center h-6">
-                                    <input class="custom-radio w-5 h-5 text-primary focus:ring-primary border-[#14532D]" name="paymentMethod" type="radio" value="CK">
+                            <!-- Container hiển thị các mã đã áp dụng -->
+                            <div id="appliedCouponsContainer" class="mt-4 hidden border-t border-dashed border-emerald-200 pt-3">
+                                <span class="text-xs font-bold text-on-surface-variant block mb-2">Mã đã áp dụng:</span>
+                                <div id="appliedCouponsList" class="flex flex-col gap-2">
+                                    <!-- Rendered dynamically via JS -->
                                 </div>
-                                <div class="flex flex-col">
-                                    <span class="font-label-md text-label-md text-on-surface font-bold">Chuyển khoản QR ngân hàng</span>
-                                    <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Thông tin và mã QR chuyển khoản sẽ hiển thị sau khi đặt hàng.</span>
+                            </div>
+
+                            <!-- Hidden inputs để gửi lên Servlet khi Submit -->
+                            <input type="hidden" name="shopCouponCode" id="shopCouponCode"/>
+                            <input type="hidden" name="systemCouponCode" id="systemCouponCode"/>
+                        </section>
+
+                        <!-- Navigation for Step 1 -->
+                        <div class="flex justify-end mt-4">
+                            <button type="button" onclick="goToStep(2)" class="bg-[#14532D] text-white font-bold py-3 px-6 rounded-xl hover:bg-opacity-95 transition-all shadow-sm active:scale-95 text-xs flex items-center gap-1.5 cursor-pointer">
+                                Tiếp tục xác nhận <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 Container: Confirmation - Order Items List Grouped by Shop -->
+                    <div id="step-2-container" class="hidden flex flex-col gap-6">
+                        <!-- Confirmation: Delivery & Payment Summary -->
+                        <section class="glass-card rounded-xl p-6 md:p-8 border-l-4 border-primary">
+                            <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
+                                <span class="material-symbols-outlined text-2xl">task_alt</span>
+                                <h2 class="font-headline-md text-headline-md font-bold">Xác nhận thông tin đơn hàng</h2>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                <!-- Delivery Info -->
+                                <div class="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 space-y-1.5" id="confirm-delivery-card">
+                                    <div class="flex items-center gap-1.5 text-primary font-bold text-[11px] uppercase tracking-wider mb-2">
+                                        <span class="material-symbols-outlined text-sm">local_shipping</span> Giao hàng đến
+                                    </div>
+                                    <p id="confirm-name" class="font-bold text-slate-800"></p>
+                                    <p id="confirm-phone" class="text-slate-600"></p>
+                                    <p id="confirm-address" class="text-slate-500 leading-relaxed"></p>
+                                    <p id="confirm-timeslot" class="text-primary font-semibold mt-1"></p>
                                 </div>
-                                <span class="material-symbols-outlined ml-auto text-primary opacity-70">account_balance</span>
-                            </label>
-                        </div>
-                    </section>
-
-                    <!-- Section 3: Mã Giảm Giá -->
-                    <section class="glass-card rounded-xl p-6 md:p-8" id="coupon-section">
-                        <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
-                            <span class="material-symbols-outlined text-2xl">loyalty</span>
-                            <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sàn</h2>
-                        </div>
-                        <!-- Một ô nhập mã giảm giá duy nhất -->
-                        <div>
-                            <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã voucher shop hoặc voucher sàn</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="couponInput" placeholder="Nhập mã voucher (VD: SHOP10, SAAN5, SALE20)"
-                                    class="form-input rounded-lg px-3 py-2.5 text-sm flex-1 uppercase font-semibold tracking-wider"
-                                    style="text-transform:uppercase"/>
-                                <button type="button" onclick="applyCoupon()"
-                                    class="bg-[#14532D] text-white font-bold px-5 py-2.5 rounded-lg text-sm hover:bg-opacity-90 transition-all cursor-pointer flex-shrink-0 active:scale-95 duration-150 shadow-md">
-                                    Áp dụng
-                                </button>
+                                <!-- Payment Info -->
+                                <div class="bg-blue-50/60 border border-blue-100 rounded-xl p-4 space-y-1.5" id="confirm-payment-card">
+                                    <div class="flex items-center gap-1.5 text-blue-700 font-bold text-[11px] uppercase tracking-wider mb-2">
+                                        Thanh toán
+                                    </div>
+                                    <p id="confirm-payment-method" class="font-bold text-slate-800"></p>
+                                    <div id="confirm-coupon-info" class="hidden mt-2 space-y-1"></div>
+                                </div>
                             </div>
-                            <p id="couponMsg" class="text-xs mt-2 hidden"></p>
-                        </div>
-                        
-                        <!-- Container hiển thị các mã đã áp dụng -->
-                        <div id="appliedCouponsContainer" class="mt-4 hidden border-t border-dashed border-emerald-200 pt-3">
-                            <span class="text-xs font-bold text-on-surface-variant block mb-2">Mã đã áp dụng:</span>
-                            <div id="appliedCouponsList" class="flex flex-col gap-2">
-                                <!-- Rendered dynamically via JS -->
-                            </div>
-                        </div>
+                        </section>
 
-                        <!-- Hidden inputs để gửi lên Servlet khi Submit -->
-                        <input type="hidden" name="shopCouponCode" id="shopCouponCode"/>
-                        <input type="hidden" name="systemCouponCode" id="systemCouponCode"/>
-
-                    </section>
-
-                    <!-- Section 4: Order Items List -->
-                    <section class="glass-card rounded-xl p-6 md:p-8">
+                        <!-- Section 4: Order Items List Grouped by Shop -->
+                        <section class="glass-card rounded-xl p-6 md:p-8">
                         <div class="flex items-center justify-between mb-6 border-b border-[#b1f2be] pb-3">
                             <div class="flex items-center gap-3 text-primary">
                                 <span class="material-symbols-outlined text-2xl">shopping_basket</span>
-                                <h2 class="font-headline-md text-headline-md font-bold">Sản phẩm trong đơn</h2>
+                                <h2 class="font-headline-md text-headline-md font-bold">Chi tiết sản phẩm theo Cửa hàng</h2>
                             </div>
                             <a class="font-label-md text-label-md text-primary hover:underline flex items-center gap-1 font-semibold text-sm" href="${pageContext.request.contextPath}/cart">
-                                Sửa giỏ hàng <span class="material-symbols-outlined text-sm">edit</span>
+                                Sửa giỏ hàng
                             </a>
                         </div>
-                        <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-6">
+                            <%-- BƯỚC 1: Tìm danh sách các shopId duy nhất (dùng JSTL string concat) --%>
+                            <c:set var="uniqueShopIds" value="," />
                             <c:forEach var="item" items="${cartSummary.items}">
-                                <div class="flex items-center gap-4 py-4 border-b border-[#BBF7D0] last:border-0">
-                                    <div class="w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-emerald-100/50">
-                                        <c:choose>
-                                            <c:when test="${not empty item.imagePath}">
-                                                <c:set var="itemImg" value="${item.imagePath}"/>
+                                <c:set var="shopIdStr" value=",${item.shopId}," />
+                                <c:if test="${not fn:contains(uniqueShopIds, shopIdStr)}">
+                                    <c:set var="uniqueShopIds" value="${uniqueShopIds}${item.shopId}," />
+                                </c:if>
+                            </c:forEach>
+
+                            <%-- BƯỚC 2: Duyệt qua từng shopId và hiển thị --%>
+                            <c:forEach var="sId" items="${fn:split(uniqueShopIds, ',')}">
+                                <c:if test="${not empty sId}">
+                                    <c:set var="sName" value="" />
+                                    <c:set var="shopSubtotal" value="0" />
+                                    <c:forEach var="item" items="${cartSummary.items}">
+                                        <c:if test="${item.shopId == sId}">
+                                            <c:set var="sName" value="${item.shopName}" />
+                                            <c:set var="itemCost" value="${(item.price + item.packagingPriceAdd) * item.quantity}" />
+                                            <c:set var="shopSubtotal" value="${shopSubtotal + itemCost}" />
+                                        </c:if>
+                                    </c:forEach>
+
+                                    <%-- Card của từng Shop --%>
+                                    <div class="bg-surface-container-lowest/80 border border-emerald-100 rounded-2xl p-5 hover:shadow-md transition-all">
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-emerald-100/50 pb-3 mb-4 gap-2">
+                                            <div class="flex items-center gap-2 text-primary-dark font-bold text-sm">
+                                                <span class="material-symbols-outlined text-lg text-primary">storefront</span>
                                                 <c:choose>
-                                                    <c:when test="${fn:startsWith(itemImg, 'http://') || fn:startsWith(itemImg, 'https://')}">
-                                                        <img src="${itemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                    <c:when test="${sId > 0}">
+                                                        <a href="${pageContext.request.contextPath}/shop-view?id=${sId}" class="hover:underline text-primary-dark transition-all">
+                                                            Cửa hàng: <c:out value="${sName != null ? sName : 'N/A'}"/>
+                                                        </a>
                                                     </c:when>
                                                     <c:otherwise>
-                                                        <c:set var="resolvedItemImg" value="${itemImg}"/>
-                                                        <c:if test="${!fn:startsWith(resolvedItemImg, '/')}">
-                                                            <c:set var="resolvedItemImg" value="/${resolvedItemImg}"/>
-                                                        </c:if>
-                                                        <img src="${pageContext.request.contextPath}${resolvedItemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                        <span>Cửa hàng: <c:out value="${sName != null ? sName : 'N/A'}"/></span>
                                                     </c:otherwise>
                                                 </c:choose>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <img src="${pageContext.request.contextPath}/assets/img/placeholder.png" alt="Placeholder" class="w-full h-full object-cover">
-                                            </c:otherwise>
-                                        </c:choose>
+                                            </div>
+                                            <div class="flex flex-wrap gap-3 text-[11px] text-txt-2 font-semibold">
+                                                <span class="bg-primary-lt text-primary px-2.5 py-1 rounded-lg border border-primary-fixed">Phí giao hàng: 15.000 đ</span>
+                                            </div>
+                                        </div>
+
+                                        <%-- Danh sách sản phẩm của Shop này --%>
+                                        <div class="divide-y divide-emerald-50/50">
+                                            <c:forEach var="item" items="${cartSummary.items}">
+                                                <c:if test="${item.shopId == sId}">
+                                                    <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+                                                        <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-emerald-100/30 bg-slate-50">
+                                                            <c:choose>
+                                                                <c:when test="${not empty item.imagePath}">
+                                                                    <c:set var="itemImg" value="${item.imagePath}"/>
+                                                                    <c:choose>
+                                                                        <c:when test="${fn:startsWith(itemImg, 'http://') || fn:startsWith(itemImg, 'https://')}">
+                                                                            <img src="${itemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                                        </c:when>
+                                                                        <c:otherwise>
+                                                                            <c:set var="resolvedItemImg" value="${itemImg}"/>
+                                                                            <c:if test="${!fn:startsWith(resolvedItemImg, '/')}">
+                                                                                <c:set var="resolvedItemImg" value="/${resolvedItemImg}"/>
+                                                                            </c:if>
+                                                                            <img src="${pageContext.request.contextPath}${resolvedItemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                                        </c:otherwise>
+                                                                    </c:choose>
+                                                                </c:when>
+                                                                <c:otherwise>
+                                                                    <img src="${pageContext.request.contextPath}/assets/img/placeholder.png" alt="Placeholder" class="w-full h-full object-cover">
+                                                                </c:otherwise>
+                                                            </c:choose>
+                                                        </div>
+                                                        <div class="flex-grow min-w-0">
+                                                            <h4 class="font-bold text-txt text-sm truncate">
+                                                                <c:choose>
+                                                                    <c:when test="${item.productId > 0}">
+                                                                        <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}" class="hover:underline hover:text-primary transition-all">
+                                                                            <c:out value="${item.productName}"/>
+                                                                        </a>
+                                                                    </c:when>
+                                                                    <c:otherwise>
+                                                                        <c:out value="${item.productName}"/>
+                                                                    </c:otherwise>
+                                                                </c:choose>
+                                                            </h4>
+                                                            <p class="text-[11px] text-txt-2 mt-1">Phân loại: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></p>
+                                                            <c:if test="${not empty item.packagingLabel}">
+                                                                <span class="inline-block mt-1 bg-primary-lt text-primary px-2 py-0.5 rounded text-[10px] font-semibold border border-primary-fixed/30">
+                                                                    Đóng gói: <c:out value="${item.packagingLabel}"/> (+<ft:currency value="${item.packagingPriceAdd}"/>)
+                                                                </span>
+                                                            </c:if>
+                                                        </div>
+                                                        <div class="text-right shrink-0">
+                                                            <span class="font-bold text-txt text-sm block">
+                                                                <ft:currency value="${item.price + item.packagingPriceAdd}"/>
+                                                            </span>
+                                                            <span class="text-[11px] text-txt-3 block font-medium">x<c:out value="${item.quantity}"/></span>
+                                                        </div>
+                                                    </div>
+                                                </c:if>
+                                            </c:forEach>
+                                        </div>
+                                        
+                                        <%-- Tóm tắt nhỏ cho từng Shop --%>
+                                        <div class="border-t border-emerald-100/50 pt-3 mt-3 flex justify-between items-center text-xs text-txt-2">
+                                            <c:set var="itemCount" value="0"/>
+                                            <c:forEach var="item" items="${cartSummary.items}">
+                                                <c:if test="${item.shopId == sId}">
+                                                    <c:set var="itemCount" value="${itemCount + item.quantity}"/>
+                                                </c:if>
+                                            </c:forEach>
+                                            <span>Tạm tính (${itemCount} sản phẩm):</span>
+                                            <span class="font-bold text-txt"><ft:currency value="${shopSubtotal}"/></span>
+                                        </div>
                                     </div>
-                                    <div class="flex flex-col flex-grow">
-                                        <span class="font-label-md text-label-md text-on-surface text-lg font-bold"><c:out value="${item.productName}"/></span>
-                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Phân loại: <strong class="text-primary"><c:out value="${item.variantLabel}"/></strong></span>
-                                        <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-0.5">Trọng lượng: <c:out value="${item.weightKg}"/> kg</span>
-                                        <c:if test="${not empty item.packagingLabel}">
-                                            <span class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 block">
-                                                Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold border border-[#BBF7D0]/40"><c:out value="${item.packagingLabel}"/> (+<ft:currency value="${item.packagingPriceAdd}"/>)</span>
-                                            </span>
-                                        </c:if>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="font-label-md text-label-md text-primary font-bold text-lg block">
-                                            <ft:currency value="${item.price + item.packagingPriceAdd}"/>
-                                        </span>
-                                        <c:if test="${item.packagingPriceAdd > 0}">
-                                            <span class="text-[10px] text-gray-400 block">Gồm đóng gói +<ft:currency value="${item.packagingPriceAdd}"/></span>
-                                        </c:if>
-                                        <span class="font-body-md text-body-md text-on-surface-variant text-sm font-semibold">SL: <c:out value="${item.quantity}"/></span>
-                                    </div>
-                                </div>
+                                </c:if>
                             </c:forEach>
                         </div>
                     </section>
-                </div>
 
-                <!-- RIGHT COLUMN: Sidebar Summary -->
-                <div class="lg:col-span-4">
+                    <!-- Navigation for Step 2: Back + Place Order -->
+                    <div class="flex justify-between items-center mt-4 gap-3">
+                        <button type="button" onclick="goToStep(1)" class="bg-white border border-border hover:bg-slate-50 text-slate-700 font-bold py-3 px-6 rounded-xl text-xs transition-all shadow-sm flex items-center gap-1.5 active:scale-95 cursor-pointer">
+                            <span class="material-symbols-outlined text-sm">arrow_back</span> Quay lại
+                        </button>
+                        <button type="submit" form="checkoutForm" class="bg-[#14532D] text-white font-bold py-3 px-8 rounded-xl hover:bg-opacity-90 transition-all shadow-md active:scale-95 text-xs flex items-center gap-1.5 cursor-pointer">
+                            <span class="material-symbols-outlined text-sm">shopping_bag</span> Đặt hàng ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Sidebar Summary -->
+            <div class="lg:col-span-4">
                     <div class="glass-card rounded-xl p-6 sticky top-24 border border-white/50 shadow-xl">
                         <h2 class="font-headline-md text-headline-md text-primary mb-6 font-bold border-b border-[#b1f2be] pb-3">Tổng kết đơn hàng</h2>
                         <div class="flex flex-col gap-4 font-body-md text-body-md text-on-surface mb-6">
@@ -395,6 +534,7 @@
 <input type="hidden" id="js-delivery" value="${cartSummary.deliveryFee}">
 <input type="hidden" id="js-ctx" value="${pageContext.request.contextPath}">
 <input type="hidden" id="js-owner-id" value="<c:out value='${shopOwnerId}' default='0'/>">
+<input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
 
 <!-- Hidden address elements for JS -->
 <c:forEach var="addr" items="${userAddresses}">
@@ -412,6 +552,7 @@ const SUBTOTAL    = parseFloat(document.getElementById('js-subtotal').value || '
 const DELIVERY    = parseFloat(document.getElementById('js-delivery').value || '0');
 const CTX         = document.getElementById('js-ctx').value;
 const OWNER_ID    = document.getElementById('js-owner-id').value;
+const CSRF_TOKEN  = document.getElementById('js-csrf').value;
 
 let shopCouponCode   = '';
 let shopDiscount     = 0;
@@ -531,8 +672,16 @@ function validateCouponAPI(code, scope) {
                 '&subtotal=' + currentSubtotal +
                 '&ownerId=' + OWNER_ID +
                 '&scope=' + scope;
-    return fetch(url)
-        .then(r => r.json())
+    return fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-Token': CSRF_TOKEN
+        }
+    })
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
         .then(normalizeCouponResponse);
 }
 
@@ -654,12 +803,15 @@ function updateSummary() {
 }
 
 // Enter key apply coupon
-document.getElementById('couponInput').addEventListener('keydown', e => { 
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        applyCoupon(); 
-    } 
-});
+const couponInputEl = document.getElementById('couponInput');
+if (couponInputEl) {
+    couponInputEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            applyCoupon();
+        }
+    });
+}
 
 // ─── Shopee/TikTok Style Address Widget Logic ──────────────────────
 let userAddresses = Array.from(document.querySelectorAll('.js-user-address-data')).map(el => ({
@@ -727,17 +879,17 @@ function renderAddressList() {
         const isSelected = (addr.addressId === selectedAddressId);
         
         const card = document.createElement('div');
-        card.className = `p-3 rounded-lg border text-xs flex items-start justify-between gap-3 cursor-pointer transition-all duration-150 ${isSelected ? 'bg-emerald-50/75 border-[#14532D]/40 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`;
+        card.className = `p-3 rounded-lg border text-xs flex items-start justify-between gap-3 cursor-pointer transition-all duration-150 \${isSelected ? 'bg-emerald-50/75 border-[#14532D]/40 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`;
         card.onclick = () => selectAddress(addr.addressId);
 
         card.innerHTML = `
             <div class="flex items-start gap-2.5 flex-grow">
-                <input type="radio" name="addrSelect" value="${addr.addressId}" ${isSelected ? 'checked' : ''} class="mt-0.5 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer">
+                <input type="radio" name="addrSelect" value="\${addr.addressId}" \${isSelected ? 'checked' : ''} class="mt-0.5 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer">
                 <div class="space-y-0.5 flex-grow">
                     <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="font-bold text-slate-800">${addr.recipientName}</span>
+                        <span class="font-bold text-slate-800">\${addr.recipientName}</span>
                         <span class="text-slate-300">|</span>
-                        <span class="text-slate-600 font-semibold">${addr.recipientPhone}</span>
+                        <span class="text-slate-600 font-semibold">\${addr.recipientPhone}</span>
                         \${addr.isDefault ? '<span class="px-1.5 py-0.2 bg-red-100 text-red-700 text-[8px] font-bold rounded border border-red-200">Mặc định</span>' : ''}
                     </div>
                     <p class="text-[11px] text-slate-500 leading-relaxed">\${addr.addressDetail}</p>
@@ -846,12 +998,16 @@ function handleInlineAddressSubmit() {
         recipientPhone: phone,
         addressDetail: detail,
         isDefault: isDefault ? 'true' : 'false',
-        _csrf: '${sessionScope._csrfToken}'
+        _csrf: CSRF_TOKEN
     });
 
-    fetch('${pageContext.request.contextPath}/api/address', {
+    fetch(CTX + '/api/address', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': CSRF_TOKEN,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         body: params.toString()
     })
     .then(r => r.json())
@@ -903,7 +1059,110 @@ function handleInlineAddressSubmit() {
     });
 }
 
+let currentStep = 1;
+
+function goToStep(step) {
+    if (step === 2) {
+        // Validate shipping address
+        const fullName = document.getElementById('fullName').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+        if (userAddresses.length === 0 || !fullName || !phone || !deliveryAddress) {
+            alert('Vui lòng chọn hoặc thêm địa chỉ nhận hàng trước khi tiếp tục.');
+            const list = document.getElementById('addressSelectionList');
+            if (list && list.classList.contains('hidden')) {
+                toggleAddressSelectionList();
+            }
+            return;
+        }
+    }
+    
+    currentStep = step;
+    updateStepUI();
+}
+
+function updateStepUI() {
+    // Hide all step containers
+    document.getElementById('step-1-container').classList.add('hidden');
+    document.getElementById('step-2-container').classList.add('hidden');
+    
+    // Show current step container with transition
+    const currentContainer = document.getElementById('step-' + currentStep + '-container');
+    currentContainer.classList.remove('hidden');
+    currentContainer.classList.add('animate-fade-in-up');
+    
+    // Update step progress indicator
+    const progressLine = document.getElementById('stepLineProgress');
+    if (progressLine) {
+        progressLine.style.width = ((currentStep - 1) * 100) + '%';
+    }
+    
+    for (let i = 1; i <= 2; i++) {
+        const circle = document.getElementById('stepCircle-' + i);
+        const title = document.getElementById('stepTitle-' + i);
+        if (i < currentStep) {
+            circle.className = 'w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs transition-all shadow-sm';
+            circle.innerHTML = '<span class="material-symbols-outlined text-sm font-bold">check</span>';
+            title.className = 'text-[11px] font-bold text-emerald-600';
+        } else if (i === currentStep) {
+            circle.className = 'w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs transition-all shadow-sm ring-4 ring-emerald-50';
+            circle.innerHTML = i;
+            title.className = 'text-[11px] font-bold text-primary';
+        } else {
+            circle.className = 'w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs transition-all';
+            circle.innerHTML = i;
+            title.className = 'text-[11px] font-semibold text-slate-400';
+        }
+    }
+    
+    // Update sidebar summary button text
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        if (currentStep === 1) {
+            submitBtn.innerHTML = 'Tiếp tục xác nhận <span class="material-symbols-outlined">arrow_forward</span>';
+        } else {
+            submitBtn.innerHTML = 'Đặt hàng ngay <span class="material-symbols-outlined">arrow_forward</span>';
+        }
+    }
+
+    // Populate confirmation info card when going to step 2
+    if (currentStep === 2) {
+        populateConfirmationCard();
+    }
+}
+
+function populateConfirmationCard() {
+    const name = document.getElementById('fullName').value;
+    const phone = document.getElementById('phone').value;
+    const address = document.getElementById('deliveryAddress').value;
+    const timeslot = document.getElementById('deliveryTimeSlot')?.value || '';
+    const paymentEl = document.querySelector('input[name="paymentMethod"]:checked');
+    const paymentLabel = paymentEl?.value === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản QR ngân hàng';
+
+    const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    setEl('confirm-name', name);
+    setEl('confirm-phone', phone);
+    setEl('confirm-address', address);
+    setEl('confirm-timeslot', '🕐 ' + (timeslot || 'Giao hỏa tốc'));
+    setEl('confirm-payment-method', paymentLabel);
+
+    // Coupon info
+    const couponContainer = document.getElementById('confirm-coupon-info');
+    if (couponContainer) {
+        let html = '';
+        if (shopCouponCode) html += `<p class="text-emerald-700 font-semibold">🏷️ Voucher Shop: ${shopCouponCode}</p>`;
+        if (systemCouponCode) html += `<p class="text-emerald-700 font-semibold">🎟️ Voucher Sàn: ${systemCouponCode}</p>`;
+        couponContainer.innerHTML = html;
+        couponContainer.classList.toggle('hidden', !html);
+    }
+}
+
 function validateCheckoutForm() {
+    if (currentStep < 2) {
+        goToStep(2);
+        return false;
+    }
+
     const fullName = document.getElementById('fullName').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
@@ -931,6 +1190,7 @@ function validateCheckoutForm() {
 // Prefill default address on load if available
 document.addEventListener('DOMContentLoaded', () => {
     initAddressWidget();
+    updateStepUI(); // Initialize wizard step indicators on load
 });
 </script>
 

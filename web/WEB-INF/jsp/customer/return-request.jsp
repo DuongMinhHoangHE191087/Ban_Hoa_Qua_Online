@@ -81,16 +81,6 @@
     }
 </script>
 
-<style>
-    .premium-glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.05);
-    }
-</style>
-
 <main class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-on-background">
     <!-- Header -->
     <div class="mb-lg border-b border-surface-container-high pb-4">

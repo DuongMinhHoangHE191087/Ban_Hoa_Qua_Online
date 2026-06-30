@@ -21,15 +21,6 @@ tailwind.config = {
 }
 </script>
 
-<style>
-body { background: #F0FDF4; }
-.glass-card { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); border: 1px solid rgba(187,247,208,0.6); box-shadow: 0 4px 24px -6px rgba(22,163,74,0.08); }
-.info-row { display: flex; flex-direction: column; gap: 2px; }
-.info-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; }
-.info-value { font-size: 14px; font-weight: 600; color: #0F172A; }
-.status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:9999px; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
-</style>
-
 <main class="max-w-4xl mx-auto px-4 md:px-8 py-10 font-sans text-txt">
 
     <%-- Back Button + Title --%>

@@ -4,6 +4,12 @@
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<!DOCTYPE html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,35 +17,11 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
 <div class="admin-layout">
     <%-- Sidebar --%>
@@ -48,22 +30,21 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản Lý Người Dùng</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Tìm kiếm thành viên, phân cấp vai trò và kiểm soát trạng thái hoạt động tài khoản.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Quản Lý Người Dùng</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Tìm kiếm thành viên, phân cấp vai trò và kiểm soát trạng thái hoạt động tài khoản.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                <i class="fa-solid fa-users text-[#84cc16]"></i>
+            <div class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
+                <i class="fa-solid fa-users text-primary"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">Thành Viên</span>
             </div>
         </div>
 
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
-
         <%-- Filter and Lists Card --%>
         <div class="glass-card">
             <%-- Filter bar --%>

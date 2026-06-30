@@ -9,49 +9,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giám sát thanh toán - Admin MetaFruit</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface: '#ffffff',
-                        'surface-2': '#f8fafc',
-                        border: '#e2ece7',
-                        txt: '#0f172a',
-                        'txt-2': '#475569',
-                        'txt-3': '#94a3b8'
-                    },
-                    fontFamily: {
-                        sans: ['Lexend', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body>
-<div class="admin-layout">
+<body class="antialiased text-txt bg-background">
+<div class="admin-layout flex h-screen overflow-hidden">
+    <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="payments"/>
     </jsp:include>
 
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+    <%-- Main --%>
+    <main class="admin-main flex-1 overflow-y-auto p-6 md:p-8 animate-fade-in-up opacity-0">
+
+        <%-- Page header --%>
+        <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Giám Sát Thanh Toán Toàn Sàn</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Theo dõi giao dịch, trạng thái thanh toán và dấu vết đối soát của toàn hệ thống.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Giám Sát Thanh Toán Toàn Sàn</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Theo dõi giao dịch, trạng thái thanh toán và dấu vết đối soát của toàn hệ thống.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                <i class="fa-solid fa-credit-card text-amber-500"></i>
+            <div class="hidden md:flex items-center gap-2 bg-primary-lt text-primary px-4 py-2 rounded-xl border border-primary-fixed font-bold">
+                <i class="fa-solid fa-credit-card text-primary"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">Payments</span>
             </div>
         </div>

@@ -761,12 +761,12 @@ const CartPage = {
             return;
         }
 
-        // Group items by shopName
+        // Group items strictly by shopId (if valid), otherwise group by shopName (no merging for different shopIds)
         const groups = {};
         summary.items.forEach(item => {
-            const shopName = item.shopName || "Cửa hàng Verdant";
-            const shopId = item.shopId || 0;
-            const key = `${shopId}_${shopName}`;
+            const shopName = (item.shopName || "Cửa hàng Verdant").trim();
+            const shopId = parseInt(item.shopId, 10) || 0;
+            const key = shopId > 0 ? shopId : shopName;
             if (!groups[key]) {
                 groups[key] = {
                     shopId: shopId,
@@ -779,13 +779,18 @@ const CartPage = {
 
         let html = '';
         Object.values(groups).forEach(group => {
+            // Clickable shop link if shopId is valid (>0)
+            const shopLinkHtml = group.shopId > 0 
+                ? `<a href="${this.contextPath}/shop-view?id=${group.shopId}" class="font-semibold text-inverse-surface text-sm hover:underline hover:text-primary transition-all">${group.shopName}</a>`
+                : `<span class="font-semibold text-inverse-surface text-sm">${group.shopName}</span>`;
+
             html += `
                 <section class="bg-white/70 backdrop-blur-[12px] border border-white/40 shadow-[0_4px_12px_rgba(20,83,45,0.05)] rounded-2xl p-4 flex flex-col gap-4 mb-4 shop-group" data-shop-id="${group.shopId}">
                     <!-- Tiêu đề Shop -->
                     <div class="flex items-center gap-3 select-none pb-2 border-b border-surface-container/30">
                         <input type="checkbox" class="chk-shop rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer" data-shop-id="${group.shopId}" checked>
                         <span class="material-symbols-outlined text-primary text-xl">storefront</span>
-                        <span class="font-semibold text-inverse-surface text-sm">${group.shopName}</span>
+                        ${shopLinkHtml}
                     </div>
                     
                     <div class="flex flex-col gap-md">
@@ -808,6 +813,10 @@ const CartPage = {
                 const variantLabel = item.variantLabel || (item.name ? item.name.split(' - ')[1] : 'Mặc định');
                 const weightKg = parseFloat(item.weightKg) || 1.0;
 
+                const productLinkHtml = item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== ''
+                    ? `<a href="${this.contextPath}/products/detail?id=${item.productId}" class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark hover:underline hover:text-primary transition-all">${productName}</a>`
+                    : `${productName}`;
+
                 html += `
                     <article class="flex flex-row gap-md items-center cart-item-row" data-item-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}" data-shop-id="${group.shopId}">
                         <!-- Checkbox từng mặt hàng -->
@@ -819,7 +828,7 @@ const CartPage = {
                         <div class="flex-grow flex flex-col gap-xs w-full">
                             <div class="flex justify-between items-start w-full">
                                 <div>
-                                    <h3 class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark">${productName}</h3>
+                                    <h3 class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark">${productLinkHtml}</h3>
                                     <p class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">
                                         Phân loại: 
                                         ${item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== '' ? `

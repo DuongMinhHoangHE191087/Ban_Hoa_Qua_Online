@@ -19,40 +19,13 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
     <!-- Core Tailwind and SweetAlert -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
     <!-- Chart.js Secure CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-hover': '#364e03',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Lexend', 'Segoe UI', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
-
 </head>
-<body class="antialiased text-[#0f172a]">
+<body class="antialiased text-txt bg-background">
     <div class="flex min-h-screen">
         <!-- Shared Sidebar -->
         <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
@@ -60,15 +33,15 @@
         </jsp:include>
 
         <!-- Main Content Area -->
-        <main class="flex-grow p-6 md:p-8 overflow-y-auto">
+        <main class="flex-grow p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
             <!-- Header Section -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#f0faf3] via-[#e6f4ea] to-[#dcfce7] border border-[#bbf7d0]/80 p-6 rounded-3xl shadow-sm mb-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-3xl shadow-sm mb-8">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight font-sans">Thống Kê & Báo Cáo Doanh Thu</h1>
-                    <p class="text-[#475569] text-xs md:text-sm mt-1">Phân tích chuyên sâu về doanh thu cửa hàng, tình trạng đơn hàng và hành vi mua sắm.</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight font-sans">Thống Kê & Báo Cáo Doanh Thu</h1>
+                    <p class="text-txt-2 text-xs md:text-sm mt-1">Phân tích chuyên sâu về doanh thu cửa hàng, tình trạng đơn hàng và hành vi mua sắm.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="exportToCSV()" class="bg-[#4d661c] hover:bg-[#364e03] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer border-none">
+                    <button onclick="exportToCSV()" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer border-none">
                         <i class="fa-solid fa-file-csv text-sm"></i> Xuất dữ liệu (CSV)
                     </button>
                 </div>

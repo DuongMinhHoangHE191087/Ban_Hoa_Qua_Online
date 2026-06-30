@@ -8,6 +8,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>${shopProfile.shopName} - Trang Cửa Hàng | MetaFruit</title>
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,48 +16,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-
     <!-- Tailwind & SweetAlert -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#14532D',
-                        'primary-hover': '#166534',
-                        'primary-light': '#4d661c',
-                        'primary-container': '#d9f99d',
-                        'on-primary-container': '#597428',
-                        secondary: '#31694b',
-                        'secondary-container': '#b4f0c9',
-                        tertiary: '#486554',
-                        'tertiary-container': '#d5f5e0',
-                        surface: '#eaffea',
-                        'on-surface': '#00210d',
-                        'on-surface-variant': '#44483b',
-                        outline: '#75796a',
-                        'outline-variant': '#c5c8b7',
-                        background: '#f0fdf4',
-                        error: '#ba1a1a',
-                        amber: '#f59e0b',
-                        orange: '#ea580c',
-                    },
-                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
 </head>
-<body class="text-on-surface">
+<body class="antialiased text-txt bg-background">
 
 <!-- Include Header / Navbar -->
 <jsp:include page="/WEB-INF/jsp/common/header.jsp" />
 
-<div class="max-w-[1280px] mx-auto px-4 md:px-6 pt-24 pb-20">
+<div class="max-w-[1280px] mx-auto px-4 md:px-6 pt-24 pb-20 animate-fade-in-up opacity-0">
 
     <!-- ===== SHOP PROFILE BAR & BANNER ===== -->
     <div class="relative mb-6">
@@ -186,11 +156,11 @@
 
                                     <div class="flex items-center gap-1 mb-1.5">
                                         <div class="flex text-amber">
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
                                         </div>
                                         <span class="text-[9px] text-on-surface-variant font-semibold">(${p.rating})</span>
                                     </div>
@@ -279,11 +249,11 @@
                     <div class="text-center">
                         <div class="text-4xl md:text-5xl font-extrabold text-primary">${shopProfile.rating}</div>
                         <div class="flex text-amber my-2 justify-center">
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
                         </div>
                         <div class="text-xs text-on-surface-variant font-medium">Đánh giá trung bình</div>
                     </div>
@@ -292,35 +262,35 @@
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">5 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 85%"></div>
+                                <div class="bg-primary h-full rounded-full w-[85%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">85%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">4 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 10%"></div>
+                                <div class="bg-primary h-full rounded-full w-[10%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">10%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">3 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 4%"></div>
+                                <div class="bg-primary h-full rounded-full w-[4%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">4%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">2 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 1%"></div>
+                                <div class="bg-primary h-full rounded-full w-[1%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">1%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">1 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-red-400 h-full rounded-full" style="width: 0%"></div>
+                                <div class="bg-red-400 h-full rounded-full w-[0%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">0%</span>
                         </div>
@@ -338,11 +308,11 @@
                                 <span class="text-[10px] text-on-surface-variant">04-06-2026</span>
                             </div>
                             <div class="flex text-amber">
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
                             </div>
                             <p class="text-xs text-on-surface-variant leading-relaxed font-medium">Trái cây cực kỳ ngon ngọt và tươi mới, đóng gói rất cẩn thận, an tâm khi giao hàng xa.</p>
                         </div>
@@ -357,11 +327,11 @@
                                 <span class="text-[10px] text-on-surface-variant">02-06-2026</span>
                             </div>
                             <div class="flex text-amber">
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
                             </div>
                             <p class="text-xs text-on-surface-variant leading-relaxed font-medium">Dưa hấu chín mọng nước, ngọt lịm không hạt, đúng chuẩn VietGAP hữu cơ ngon sạch.</p>
                         </div>

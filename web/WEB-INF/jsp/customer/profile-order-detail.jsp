@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -250,7 +250,18 @@
                     </div>
                     <p class="font-semibold text-on-surface">
                         <c:choose>
-                            <c:when test="${not empty shopName}"><c:out value="${shopName}"/></c:when>
+                            <c:when test="${not empty shopName}">
+                                <c:choose>
+                                    <c:when test="${order.ownerId > 0}">
+                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                            <c:out value="${shopName}"/>
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <c:out value="${shopName}"/>
+                                    </c:otherwise>
+                                </c:choose>
+                            </c:when>
                             <c:otherwise>Đơn tổng hợp nhiều cửa hàng</c:otherwise>
                         </c:choose>
                     </p>
@@ -351,7 +362,18 @@
                                 <div class="flex items-center gap-3">
                                     <span class="material-symbols-outlined text-primary">storefront</span>
                                     <div>
-                                        <p class="font-bold text-on-surface"><c:out value="${shopNamesMap[child.orderId]}"/></p>
+                                        <p class="font-bold text-on-surface">
+                                            <c:choose>
+                                                <c:when test="${child.ownerId > 0}">
+                                                    <a href="${pageContext.request.contextPath}/shop-view?id=${child.ownerId}" class="hover:underline text-primary transition-all">
+                                                        <c:out value="${shopNamesMap[child.orderId]}"/>
+                                                    </a>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <c:out value="${shopNamesMap[child.orderId]}"/>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </p>
                                         <p class="text-xs text-on-surface-variant">Đơn con #<c:out value="${child.orderId}"/></p>
                                     </div>
                                 </div>
@@ -393,7 +415,18 @@
                         <span class="material-symbols-outlined text-primary">shopping_basket</span>
                         Sản phẩm đã đặt
                         <c:if test="${not empty shopName}">
-                            <span class="text-sm text-on-surface-variant font-normal">—<c:out value="${shopName}"/></span>
+                            <span class="text-sm text-on-surface-variant font-normal">—
+                                <c:choose>
+                                    <c:when test="${order.ownerId > 0}">
+                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                            <c:out value="${shopName}"/>
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <c:out value="${shopName}"/>
+                                    </c:otherwise>
+                                </c:choose>
+                            </span>
                         </c:if>
                     </h3>
                 </div>

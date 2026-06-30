@@ -4,6 +4,8 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
+<!DOCTYPE html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,43 +13,28 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body>
-<div class="admin-layout">
+<body class="antialiased text-txt bg-background">
+<div class="admin-layout flex h-screen overflow-hidden">
+    <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="config"/>
     </jsp:include>
 
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <%-- Main --%>
+    <main class="admin-main flex-1 overflow-y-auto p-6 md:p-8 animate-fade-in-up opacity-0">
 
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <%-- Page header --%>
+        <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Cấu hình Hệ thống</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Thay đổi phí nền tảng, cấu hình logo, và các tham số vận hành chung của nền tảng.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Cấu hình Hệ thống</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Thay đổi phí nền tảng, cấu hình logo, và các tham số vận hành chung của nền tảng.</p>
             </div>
-            <div class="bg-white/60 px-4 py-2 rounded-xl border border-white/50 text-primary font-bold text-sm shadow-sm backdrop-blur-sm">
-                <i class="fa-solid fa-server mr-2 text-[#84cc16]"></i> Global Settings
+            <div class="bg-surface/60 px-4 py-2 rounded-xl border border-primary-fixed/50 text-primary-dark font-bold text-sm shadow-sm backdrop-blur-sm">
+                <i class="fa-solid fa-server mr-2 text-primary"></i> Global Settings
             </div>
         </div>
 

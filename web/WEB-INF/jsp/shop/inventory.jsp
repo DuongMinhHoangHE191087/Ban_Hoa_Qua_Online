@@ -9,6 +9,8 @@
     <title>Quản lý Tồn kho | MetaFruit</title>
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
+    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
     <!-- Google Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,30 +20,11 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
     <!-- Tailwind & SweetAlert -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:         '#4d661c',
-                        'primary-hover': '#364e03',
-                        'primary-lt':    '#f0f7e6',
-                        border:          '#e2ece7',
-                        'txt':           '#0f172a',
-                        'txt-2':         '#475569',
-                        'txt-3':         '#94a3b8',
-                    },
-                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
 </head>
-<body class="antialiased text-[#0f172a]">
+<body class="antialiased text-txt bg-background">
 <div class="flex min-h-screen">
 
     <!-- Shared Sidebar -->
@@ -50,15 +33,15 @@
     </jsp:include>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+    <main class="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <!-- Page Header -->
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Nhập hàng &amp; Tồn kho</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Nhập thêm hàng vào kho, xem lịch sử và số lượng phân loại hiện tại.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Nhập hàng &amp; Tồn kho</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Nhập thêm hàng vào kho, xem lịch sử và số lượng phân loại hiện tại.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-white/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+            <div class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
                 <i class="fa-solid fa-warehouse text-primary"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">Tồn kho</span>
             </div>

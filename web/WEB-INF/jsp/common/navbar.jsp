@@ -17,7 +17,7 @@
         <c:choose>
             <c:when test="${fn:contains(currentURI, '/products') and not fn:contains(currentURI, '/products/detail')}">
                 <!-- Hide header search to avoid duplicate search inputs on product list page -->
-                <div class="navbar__search opacity-0 pointer-events-none" style="visibility: hidden;"></div>
+                <div class="navbar__search opacity-0 pointer-events-none is-hidden"></div>
             </c:when>
             <c:otherwise>
                 <form action="${pageContext.request.contextPath}/products" method="get" class="navbar__search">
@@ -116,7 +116,7 @@
                     </li>
 
                     <!-- Notifications button with dropdown preview -->
-                    <li class="relative" style="position: relative;">
+                    <li class="relative">
                         <a href="javascript:void(0)" id="btnNotifDropdown" class="navbar__cart-btn" title="Thông báo của bạn">
                             <span class="cart-icon-wrapper">
                                 <i class="fa-solid fa-bell"></i>
@@ -156,20 +156,20 @@
                                 <c:when test="${not empty sessionScope.currentUser.avatarUrl}">
                                     <img src="${fn:startsWith(sessionScope.currentUser.avatarUrl, 'http') ? sessionScope.currentUser.avatarUrl : pageContext.request.contextPath.concat('/').concat(sessionScope.currentUser.avatarUrl)}" 
                                          alt="Avatar" 
-                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                    <div class="avatar-fallback" style="display: none;">
+                                         onerror="this.style.display='none'; this.nextElementSibling.classList.remove('is-hidden');">
+                                    <div class="avatar-fallback is-hidden">
                                         <c:out value="${fn:substring(sessionScope.currentUser.fullName, 0, 1)}"/>
                                     </div>
                                 </c:when>
                                 <c:otherwise>
-                                    <div class="avatar-fallback" style="display: flex;">
+                                    <div class="avatar-fallback">
                                         <c:out value="${fn:substring(sessionScope.currentUser.fullName, 0, 1)}"/>
                                     </div>
                                 </c:otherwise>
                             </c:choose>
                         </div>
                         <span class="user-greeting">
-                            Chào, <a href="${pageContext.request.contextPath}/profile" class="user-name text-decoration-none" style="color: var(--color-primary-dark);"><c:out value="${sessionScope.currentUser.fullName}"/></a>
+                            Chào, <a href="${pageContext.request.contextPath}/profile" class="user-name no-underline text-primary-dark"><c:out value="${sessionScope.currentUser.fullName}"/></a>
                         </span>
                         <a href="${pageContext.request.contextPath}/auth/logout" class="logout-btn" title="Đăng xuất">
                             <i class="fa-solid fa-right-from-bracket"></i>

@@ -20,7 +20,7 @@
                 <%-- Column 1: Brand --%>
                 <div class="space-y-5 lg:col-span-1">
                     <a href="${pageContext.request.contextPath}/home" class="brand-lockup group">
-                        <img src="${pageContext.request.contextPath}/assets/images/logo.png"
+                        <img src="${pageContext.request.contextPath}/assets/images/logo_light.png"
                              alt="MetaFruit"
                              class="brand-mark ring-2 ring-white/20 group-hover:ring-emerald-400/60 transition-all duration-300">
                         <div class="leading-tight">

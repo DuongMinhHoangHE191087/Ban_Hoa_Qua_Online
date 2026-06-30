@@ -15,35 +15,11 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Lexend', 'sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
@@ -51,19 +27,19 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8 gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8 gap-4">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Đối Soát &amp; Thanh Toán Shop</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Tính toán phí nền tảng, hoàn tiền, và chuyển khoản doanh thu cho chủ shop.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Đối Soát &amp; Thanh Toán Shop</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Tính toán phí nền tảng, hoàn tiền, và chuyển khoản doanh thu cho chủ shop.</p>
             </div>
             <div class="flex items-center gap-3">
                 <form action="${pageContext.request.contextPath}/admin/settlements" method="POST" class="inline">
                     <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                     <input type="hidden" name="action" value="triggerSettlement">
-                    <button type="submit" class="bg-primary hover:bg-[#364e03] text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+                    <button type="submit" class="bg-primary hover:bg-primary-dk text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-arrows-rotate"></i>
                         <span>Chạy Auto-Settlement</span>
                     </button>

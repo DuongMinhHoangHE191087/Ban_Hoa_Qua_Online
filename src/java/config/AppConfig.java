@@ -9,6 +9,73 @@ package config;
  * @author fruitmkt-team
  */
 public final class AppConfig {
+        static {
+                loadDotEnv();
+        }
+
+        private static void loadDotEnv() {
+                try {
+                        String classPath = AppConfig.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+                        java.io.File current = new java.io.File(classPath);
+                        while (current != null) {
+                                java.io.File envFile = new java.io.File(current, ".env");
+                                if (envFile.exists() && envFile.isFile()) {
+                                        loadEnvFile(envFile);
+                                        return;
+                                }
+                                current = current.getParentFile();
+                        }
+                        
+                        String userDir = System.getProperty("user.dir");
+                        if (userDir != null) {
+                                java.io.File currentDir = new java.io.File(userDir);
+                                while (currentDir != null) {
+                                        java.io.File envFile = new java.io.File(currentDir, ".env");
+                                        if (envFile.exists() && envFile.isFile()) {
+                                                loadEnvFile(envFile);
+                                                return;
+                                        }
+                                        currentDir = currentDir.getParentFile();
+                                }
+                        }
+                } catch (Exception e) {
+                        System.err.println("[AppConfig] Lỗi tìm file .env: " + e.getMessage());
+                }
+        }
+
+        private static void loadEnvFile(java.io.File file) {
+                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file, java.nio.charset.StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                                line = line.trim();
+                                if (line.isEmpty() || line.startsWith("#")) continue;
+                                int eq = line.indexOf('=');
+                                if (eq <= 0) continue;
+
+                                String key = line.substring(0, eq).trim();
+                                String value = line.substring(eq + 1).trim();
+                                value = stripQuotes(value);
+
+                                if (!key.isEmpty() && System.getenv(key) == null) {
+                                        System.setProperty(key, value);
+                                }
+                        }
+                } catch (Exception e) {
+                        System.err.println("[AppConfig] Lỗi đọc file .env: " + e.getMessage());
+                }
+        }
+
+        private static String stripQuotes(String value) {
+                if (value.length() >= 2) {
+                        char first = value.charAt(0);
+                        char last = value.charAt(value.length() - 1);
+                        if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                                return value.substring(1, value.length() - 1);
+                        }
+                }
+                return value;
+        }
+
         // ——————————————————————————————————————————————————————————————————
         // Database
         // ------------------------------------------------------------------
@@ -35,6 +102,7 @@ public final class AppConfig {
         public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "duongminhhoanginwork@gmail.com");
         public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", "jkhg przg aohf pwla");
         public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", "fruitmkt-super-secret-key-2026-secure-sha256");
+        public static final String GEMINI_API_KEY = getEnvOrDefault("GEMINI_API_KEY", "AIzaSyCjWjQGbdLd3btblCUwMxnkUMsYN8Yhq3I");
         public static final long ACCESS_TOKEN_EXPIRY_MS   = getLongEnvOrDefault("ACCESS_TOKEN_EXPIRY_MS",   1L * 60 * 1000); // Tạm chỉnh 1 phút để test
         public static final int  REFRESH_TOKEN_EXPIRY_SECS = getIntEnvOrDefault("REFRESH_TOKEN_EXPIRY_SECS",  7 * 24 * 60 * 60);
         public static final String APP_NAME = "MetaFruit";

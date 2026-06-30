@@ -28,10 +28,10 @@
                 <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
                 <div class="admin-panel">
-                    <form action="${pageContext.request.contextPath}/admin/order-monitor" method="get" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); gap: var(--space-2); flex-wrap: wrap;">
-                        <h2 style="font-size: var(--font-size-lg); margin:0;">Giám sát đơn hàng</h2>
-                        <div class="search-box" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
-                            <select name="status" class="form-select" style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                    <form action="${pageContext.request.contextPath}/admin/order-monitor" method="get" class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h2 class="m-0 text-lg">Giám sát đơn hàng</h2>
+                        <div class="search-box flex flex-wrap gap-2">
+                            <select name="status" class="form-select px-3 py-1.5 border border-border rounded-md">
                                 <option value="">Tất cả trạng thái</option>
                                 <option value="PENDING_PAYMENT" ${statusFilter == 'PENDING_PAYMENT' ? 'selected' : ''}>Chờ thanh toán</option>
                                 <option value="PENDING" ${statusFilter == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
@@ -40,12 +40,12 @@
                                 <option value="DELIVERED" ${statusFilter == 'DELIVERED' ? 'selected' : ''}>Đã giao</option>
                                 <option value="CANCELLED" ${statusFilter == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
                             </select>
-                            <select name="paymentMethod" class="form-select" style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                            <select name="paymentMethod" class="form-select px-3 py-1.5 border border-border rounded-md">
                                 <option value="">Tất cả phương thức TT</option>
                                 <option value="COD" ${paymentMethod == 'COD' ? 'selected' : ''}>COD</option>
                                 <option value="BANK_TRANSFER" ${paymentMethod == 'BANK_TRANSFER' ? 'selected' : ''}>Chuyển khoản</option>
                             </select>
-                            <select name="paymentStatus" class="form-select" style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                            <select name="paymentStatus" class="form-select px-3 py-1.5 border border-border rounded-md">
                                 <option value="">Tất cả trạng thái TT</option>
                                 <option value="PENDING" ${paymentStatus == 'PENDING' ? 'selected' : ''}>Chờ thanh toán</option>
                                 <option value="PAID" ${paymentStatus == 'PAID' ? 'selected' : ''}>Đã thanh toán</option>
@@ -100,13 +100,13 @@
                                                 <td>
                                                     <c:choose>
                                                         <c:when test="${order.paymentStatus == 'PAID'}">
-                                                            <span class="status-badge" style="background: #dcfce7; color: #166534;">Đã TT</span>
+                                                            <span class="status-badge status-badge-approved">Đã TT</span>
                                                         </c:when>
                                                         <c:when test="${order.paymentStatus == 'PENDING'}">
-                                                            <span class="status-badge" style="background: #fef3c7; color: #92400e;">Chờ TT</span>
+                                                            <span class="status-badge status-badge-pending">Chờ TT</span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="status-badge" style="background: #fee2e2; color: #991b1b;">Thất bại</span>
+                                                            <span class="status-badge status-badge-rejected">Thất bại</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
@@ -119,7 +119,7 @@
                     </div>
 
                     <c:if test="${pagedResult.totalPages > 1}">
-                        <div style="display: flex; justify-content: center; margin-top: var(--space-4);">
+                        <div class="flex justify-center mt-4">
                             <ft:pagination current="${pagedResult.currentPage}" total="${pagedResult.totalPages}" baseUrl="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}" />
                         </div>
                     </c:if>

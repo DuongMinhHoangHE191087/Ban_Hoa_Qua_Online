@@ -15,185 +15,26 @@
                     <link rel="preconnect" href="https://fonts.googleapis.com">
                     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                     <link
+                    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
+                    <!-- Google Fonts & Icons -->
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link
                         href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                         rel="stylesheet">
                     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+                    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
                     <link rel="stylesheet"
                         href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
 
                     <!-- Tailwind & SweetAlert -->
-                    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-
-                    <script>
-                        tailwind.config = {
-                            theme: {
-                                extend: {
-                                    colors: {
-                                        primary: '#4d661c',
-                                        'primary-hover': '#364e03',
-                                        'primary-lt': '#f0f7e6',
-                                        border: '#e2ece7',
-                                        'txt': '#0f172a',
-                                        'txt-2': '#475569',
-                                        'txt-3': '#94a3b8',
-                                    },
-                                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                                }
-                            }
-                        }
-                    </script>
-
-                    <style>
-                        body {
-                            background-color: #f4fbf7;
-                            font-family: 'Lexend', sans-serif;
-                        }
-
-                        .glass-card {
-                            background: #ffffff;
-                            border: 1px solid #e2ece7;
-                            box-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 4px 16px -4px rgba(20, 83, 45, .06);
-                        }
-
-                        .table-responsive {
-                            width: 100%;
-                            overflow-x: auto;
-                        }
-
-                        .table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            text-align: left;
-                        }
-
-                        .table th,
-                        .table td {
-                            padding: 1rem 1.25rem;
-                            border-bottom: 1px solid #e2ece7;
-                            font-size: 0.9rem;
-                        }
-
-                        .table th {
-                            background-color: #f8fcf9;
-                            font-weight: 600;
-                            color: #0f172a;
-                            text-transform: uppercase;
-                            letter-spacing: 0.05em;
-                            font-size: 0.8rem;
-                        }
-
-                        .table tr:hover {
-                            background-color: rgba(77, 102, 28, 0.015);
-                        }
-
-                        .row-fadeout {
-                            transition: all 0.5s ease-out;
-                            opacity: 0;
-                            transform: scale(0.95) translateY(10px);
-                        }
-
-                        .form-control-custom {
-                            width: 100%;
-                            padding: 0.65rem 0.85rem;
-                            border: 1.5px solid #e2ece7;
-                            border-radius: 0.75rem;
-                            font-size: 0.875rem;
-                            background-color: #ffffff;
-                            transition: all 0.2s;
-                            outline: none;
-                        }
-
-                        .form-control-custom:focus {
-                            border-color: #4d661c;
-                            box-shadow: 0 0 0 3px rgba(77, 102, 28, 0.1);
-                        }
-
-                        /* Image drag-drop styles */
-                        .img-card {
-                            cursor: grab;
-                            user-select: none;
-                            transition: transform 0.15s, box-shadow 0.15s;
-                        }
-
-                        .img-card.dragging {
-                            opacity: 0.45;
-                            transform: scale(0.97);
-                            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-                            cursor: grabbing;
-                        }
-
-                        .img-card.drag-over {
-                            outline: 2px dashed #4d661c;
-                            outline-offset: 2px;
-                            transform: scale(1.03);
-                        }
-
-                        .img-card-fadeout {
-                            transition: all 0.3s ease-out;
-                            opacity: 0;
-                            transform: scale(0.9);
-                        }
-
-                        /* New-upload file card */
-                        .new-img-card {
-                            position: relative;
-                            border-radius: 0.75rem;
-                            overflow: hidden;
-                            aspect-ratio: 1;
-                            border: 1px solid #e2ece7;
-                            background: #fff;
-                            box-shadow: 0 1px 4px rgba(0, 0, 0, .05);
-                        }
-
-                        .new-img-card .badge-primary {
-                            position: absolute;
-                            top: 6px;
-                            left: 6px;
-                            font-size: 8px;
-                            font-weight: 700;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            background: #4d661c;
-                            color: #fff;
-                        }
-
-                        .new-img-card .badge-secondary {
-                            position: absolute;
-                            top: 6px;
-                            left: 6px;
-                            font-size: 8px;
-                            font-weight: 700;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            background: rgba(0, 0, 0, 0.45);
-                            color: #fff;
-                        }
-
-                        .new-img-card .btn-rm {
-                            position: absolute;
-                            top: 5px;
-                            right: 5px;
-                            width: 22px;
-                            height: 22px;
-                            border-radius: 50%;
-                            background: #dc2626;
-                            color: #fff;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            cursor: pointer;
-                            border: none;
-                            font-size: 12px;
-                        }
-
-                        .new-img-card .btn-rm:hover {
-                            background: #b91c1c;
-                        }
-                    </style>
                 </head>
 
-                <body class="antialiased text-[#0f172a]">
+                <body class="antialiased text-txt bg-background">
                     <div class="flex min-h-screen">
 
                         <!-- Shared Sidebar -->
@@ -202,16 +43,14 @@
                         </jsp:include>
 
                         <!-- Main Content -->
-                        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+                        <main class="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
                             <!-- Page Header -->
                             <div
-                                class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+                                class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
                                 <div>
-                                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản lý
-                                        Sản phẩm</h1>
-                                    <p class="text-[#475569] text-xs md:text-sm mt-1">Xem, thêm mới, sửa thông tin,
-                                        ẩn/hiện hoặc xóa các sản phẩm hoa quả sạch của bạn.</p>
+                                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Quản lý Sản phẩm</h1>
+                                    <p class="text-txt-2 text-xs md:text-sm mt-1">Xem, thêm mới, sửa thông tin, ẩn/hiện hoặc xóa các sản phẩm hoa quả sạch của bạn.</p>
                                 </div>
 
                                 <button onclick="openCreateModal()"
@@ -1488,7 +1327,7 @@
                                     const fname = file.name;
                                     const badgeClass = isPrimary ? 'badge-primary' : 'badge-secondary';
                                     const badgeText = isPrimary ? '\u2b50 Ch\u00ednh' : 'Ph\u1ee5 ' + (index + 1);
-                                    card.innerHTML = '<img src="' + resultSrc + '" alt="' + fname + '" style="width:100%;height:100%;object-fit:cover;">'
+                                    card.innerHTML = '<img src="' + resultSrc + '" alt="' + fname + '" class="w-full h-full object-cover">'
                                         + '<span class="' + badgeClass + '">' + badgeText + '</span>'
                                         + '<button class="btn-rm" type="button" onclick="removeNewImage(' + index + ')" title="X\u00f3a \u1ea3nh n\u00e0y">\u2715</button>';
                                 };

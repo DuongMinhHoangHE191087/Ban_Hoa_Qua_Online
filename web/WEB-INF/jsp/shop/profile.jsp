@@ -18,114 +18,16 @@
                 <link rel="stylesheet"
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+                
                 <!-- Tailwind & SweetAlert -->
-                <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-                <script>
-                    tailwind.config = {
-                        theme: {
-                            extend: {
-                                colors: {
-                                    primary: '#14532D',
-                                    'primary-hover': '#166534',
-                                    'primary-light': '#4d661c',
-                                    'primary-container': '#d9f99d',
-                                    'on-primary-container': '#597428',
-                                    secondary: '#31694b',
-                                    'secondary-container': '#b4f0c9',
-                                    tertiary: '#486554',
-                                    'tertiary-container': '#d5f5e0',
-                                    surface: '#f0fdf4',
-                                    'on-surface': '#00210d',
-                                    'on-surface-variant': '#44483b',
-                                    outline: '#75796a',
-                                    'outline-variant': '#c5c8b7',
-                                    error: '#ba1a1a',
-                                    'error-container': '#ffdad6',
-                                    amber: '#f59e0b',
-                                    orange: '#ea580c',
-                                },
-                                fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                            }
-                        }
-                    }
-                </script>
-
-                <style>
-                    body {
-                        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 40%, #f0fdf4 80%);
-                        font-family: 'Lexend', sans-serif;
-                    }
-
-                    .glass {
-                        background: rgba(255, 255, 255, 0.78);
-                        backdrop-filter: blur(16px);
-                        -webkit-backdrop-filter: blur(16px);
-                        border: 1px solid rgba(255, 255, 255, 0.55);
-                        box-shadow: 0 4px 24px -4px rgba(20, 83, 45, 0.07);
-                    }
-
-                    .form-input {
-                        width: 100%;
-                        padding: 10px 14px;
-                        border: 1.5px solid #c5c8b7;
-                        border-radius: 10px;
-                        font-size: 14px;
-                        font-family: 'Lexend', sans-serif;
-                        background: rgba(255, 255, 255, 0.8);
-                        color: #00210d;
-                        outline: none;
-                        transition: all 0.2s;
-                    }
-
-                    .form-input:focus {
-                        border-color: #14532D;
-                        box-shadow: 0 0 0 3px rgba(20, 83, 45, 0.12);
-                        background: white;
-                    }
-
-                    .upload-zone {
-                        border: 2px dashed #c5c8b7;
-                        border-radius: 12px;
-                        background: rgba(255, 255, 255, 0.5);
-                        cursor: pointer;
-                        transition: all 0.25s;
-                    }
-
-                    .upload-zone:hover,
-                    .upload-zone.drag-over {
-                        border-color: #14532D;
-                        background: rgba(20, 83, 45, 0.05);
-                    }
-
-                    .img-overlay {
-                        position: absolute;
-                        inset: 0;
-                        background: rgba(0, 0, 0, 0.35);
-                        opacity: 0;
-                        transition: opacity 0.2s;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                        border-radius: inherit;
-                    }
-
-                    .img-wrap:hover .img-overlay {
-                        opacity: 1;
-                    }
-
-                    .img-wrap {
-                        position: relative;
-                        border-radius: inherit;
-                        cursor: pointer;
-                    }
-                </style>
             </head>
 
-            <body class="antialiased text-on-surface">
+            <body class="antialiased text-txt bg-background">
                 <div class="flex min-h-screen">
 
                     <!-- Shared Sidebar -->
@@ -134,22 +36,22 @@
                     </jsp:include>
 
                     <!-- Main Content -->
-                    <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+                    <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
                         <!-- Page Header -->
                         <div
-                            class="flex items-center justify-between bg-gradient-to-r from-[#e8fbe8] to-[#cbf7cb] border border-[#b7f7c3]/60 p-6 rounded-3xl shadow-sm mb-6">
+                            class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-3xl shadow-sm mb-6">
                             <div>
                                 <h1
-                                    class="text-xl md:text-2xl font-extrabold text-primary tracking-tight flex items-center gap-2">
+                                    class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight flex items-center gap-2">
                                     <span class="material-symbols-outlined text-2xl">storefront</span>
                                     Quản lý Gian Hàng
                                 </h1>
-                                <p class="text-on-surface-variant text-xs md:text-sm mt-1">Cập nhật hồ sơ thương hiệu,
+                                <p class="text-txt-2 text-xs md:text-sm mt-1">Cập nhật hồ sơ thương hiệu,
                                     logo, ảnh bìa và địa chỉ kho của bạn.</p>
                             </div>
                             <div
-                                class="hidden md:flex items-center gap-2 bg-white/80 border border-[#b7f7c3]/80 px-4 py-2 rounded-2xl text-primary shadow-sm">
+                                class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-2xl text-primary-dark shadow-sm">
                                 <span class="material-symbols-outlined text-base">verified</span>
                                 <span class="text-xs font-bold uppercase tracking-wider">Hồ sơ Seller</span>
                             </div>
@@ -190,11 +92,10 @@
                                             lệ 16:5</span>
                                     </div>
 
-                                    <div class="relative mb-4 img-wrap"
-                                        style="border-radius:12px; height:180px; overflow:hidden; background:#b7f7c3;">
+                                    <div class="relative mb-4 img-wrap rounded-[12px] h-[180px] overflow-hidden bg-[#b7f7c3]">
                                         <img id="banner-preview-img"
                                             src="${not empty shopProfile.coverUrl ? pageContext.request.contextPath.concat('/').concat(shopProfile.coverUrl) : pageContext.request.contextPath.concat('/assets/images/default-banner.png')}"
-                                            alt="Ảnh bìa" style="width:100%;height:100%;object-fit:cover;">
+                                            alt="Ảnh bìa" class="w-full h-full object-cover">
                                         <div class="img-overlay">
                                             <label for="banner-file-input"
                                                 class="bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold px-3 py-2 cursor-pointer">
@@ -237,11 +138,10 @@
                                     </div>
 
                                     <div class="flex gap-6 items-center">
-                                        <div class="img-wrap shrink-0"
-                                            style="width:96px;height:96px;border-radius:16px;overflow:hidden;border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+                                        <div class="img-wrap shrink-0 w-24 h-24 rounded-[16px] overflow-hidden border-[3px] border-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
                                             <img id="avatar-preview-img"
                                                 src="${not empty shopProfile.logoUrl ? pageContext.request.contextPath.concat('/').concat(shopProfile.logoUrl) : pageContext.request.contextPath.concat('/assets/images/default-logo.png')}"
-                                                alt="Logo" style="width:100%;height:100%;object-fit:cover;">
+                                                alt="Logo" class="w-full h-full object-cover">
                                             <div class="img-overlay">
                                                 <label for="logo-file-input" class="cursor-pointer">
                                                     <span
@@ -475,8 +375,8 @@
                                                 id="completeness-score">80%</span>
                                         </div>
                                         <div class="w-full bg-[#dcfce7] h-2 rounded-full overflow-hidden mb-4">
-                                            <div class="bg-gradient-to-r from-primary to-green-500 h-full rounded-full transition-all duration-500"
-                                                style="width: 80%;" id="completeness-bar"></div>
+                                            <div class="bg-gradient-to-r from-primary to-green-500 h-full rounded-full transition-all duration-500 w-4/5"
+                                                id="completeness-bar"></div>
                                         </div>
 
                                         <div class="space-y-2.5 text-xs text-on-surface-variant"

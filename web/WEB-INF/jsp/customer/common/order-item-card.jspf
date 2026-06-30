@@ -1,4 +1,4 @@
-﻿<%-- Shared order item card.
+<%-- Shared order item card.
      Expects a page-scoped `item` variable and JSTL fn/ft taglibs in the host JSP. --%>
 <c:set var="itemImageSrc" value="${pageContext.request.contextPath}/assets/img/placeholder.png" />
 <c:if test="${not empty item.imagePath}">
@@ -18,18 +18,40 @@
 </c:if>
 
 <div class="group flex flex-col sm:flex-row sm:items-start gap-4 rounded-2xl border border-white/70 bg-white/70 p-4 shadow-[0_12px_30px_-22px_rgba(20,83,45,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgba(20,83,45,0.55)]">
-    <div class="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/80 bg-gradient-to-br from-primary-container/60 via-surface-container/50 to-secondary-container/60">
-        <img src="${itemImageSrc}"
-             alt="${item.productNameSnapshot}"
-             class="w-full h-full object-cover"
-             loading="lazy"
-             onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/placeholder.png'">
-    </div>
+    <c:choose>
+        <c:when test="${item.productId > 0}">
+            <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}" class="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/80 bg-gradient-to-br from-primary-container/60 via-surface-container/50 to-secondary-container/60 block hover:opacity-95 transition-opacity duration-200">
+                <img src="${itemImageSrc}"
+                     alt="${item.productNameSnapshot}"
+                     class="w-full h-full object-cover"
+                     loading="lazy"
+                     onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/placeholder.png'">
+            </a>
+        </c:when>
+        <c:otherwise>
+            <div class="relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-white/80 bg-gradient-to-br from-primary-container/60 via-surface-container/50 to-secondary-container/60">
+                <img src="${itemImageSrc}"
+                     alt="${item.productNameSnapshot}"
+                     class="w-full h-full object-cover"
+                     loading="lazy"
+                     onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/assets/img/placeholder.png'">
+            </div>
+        </c:otherwise>
+    </c:choose>
     <div class="flex-1 min-w-0 space-y-3">
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div class="min-w-0">
                 <p class="font-semibold text-on-surface text-base leading-tight">
-                    <c:out value="${item.productNameSnapshot}"/>
+                    <c:choose>
+                        <c:when test="${item.productId > 0}">
+                            <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}" class="hover:underline hover:text-primary transition-all">
+                                <c:out value="${item.productNameSnapshot}"/>
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                            <c:out value="${item.productNameSnapshot}"/>
+                        </c:otherwise>
+                    </c:choose>
                 </p>
                 <c:if test="${not empty item.variantLabelSnapshot}">
                     <p class="text-xs text-on-surface-variant mt-1">

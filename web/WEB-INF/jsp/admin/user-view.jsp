@@ -4,44 +4,35 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chi tiết người dùng – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
-<div class="admin-layout">
+<div class="admin-layout flex h-screen overflow-hidden">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="users"/>
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main flex-1 overflow-y-auto p-6 md:p-8 animate-fade-in-up opacity-0">
         
         <div class="mb-6 flex items-center justify-between">
-            <a href="${pageContext.request.contextPath}/admin/users" class="text-primary hover:text-primary-dk font-bold flex items-center gap-2 transition-colors">
+            <a href="${pageContext.request.contextPath}/admin/users" class="text-primary hover:text-primary-dk font-bold flex items-center gap-2 transition-colors text-decoration-none">
                 <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
             </a>
             <h1 class="text-2xl font-extrabold text-txt">Chi Tiết Người Dùng</h1>

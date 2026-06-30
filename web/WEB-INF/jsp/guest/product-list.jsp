@@ -232,9 +232,9 @@
                                          class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                                     
                                     <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}"
-                                       class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
+                                       class="block group/link flex-grow no-underline text-inherit">
                                         <!-- Image Aspect Ratio block -->
-                                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                                             <img src="${p.image}" alt="${fn:escapeXml(p.name)}"
                                                  onerror="handleImageError(this)"
                                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -569,8 +569,8 @@
                          class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                     
                     <a href="\${detailUrl}"
-                       class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
-                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                       class="block group/link flex-grow no-underline text-inherit">
+                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                              <img src="\${escapeHtml(p.image || '')}" alt="\${escapeHtml(p.name)}"
                                  onerror="handleImageError(this)"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -661,7 +661,7 @@
                     const prevPage = pagesSorted[idx - 1];
                     if (pageNum - prevPage > 1) {
                         html += `
-                            <a href="javascript:void(0)" onclick="promptPageJumpForList(${total})" class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer" title="Nhảy đến trang...">...</a>
+                        <a href="javascript:void(0)" onclick="promptPageJumpForList(\${total})" class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer" title="Nhảy đến trang...">...</a>
                         `;
                     }
                 }
@@ -669,14 +669,14 @@
                 if (page === pageNum) {
                     html += `
                         <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                            ${pageNum}
+                            \${pageNum}
                         </span>
                     `;
                 } else {
                     html += `
-                        <button type="button" onclick="fetchProductsAjax(${pageNum})"
+                        <button type="button" onclick="fetchProductsAjax(\${pageNum})"
                            class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
-                            ${pageNum}
+                            \${pageNum}
                         </button>
                     `;
                 }

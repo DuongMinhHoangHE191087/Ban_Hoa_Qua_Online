@@ -16,16 +16,16 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Tổng Quan Hệ Thống</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Xem nhanh các chỉ số vận hành quan trọng và các thao tác nhanh.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Tổng Quan Hệ Thống</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Xem nhanh các chỉ số vận hành quan trọng và các thao tác nhanh.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                <i class="fa-solid fa-leaf text-[#84cc16]"></i>
+            <div class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
+                <i class="fa-solid fa-leaf text-primary"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
             </div>
         </div>

@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-<main class="flex-1 overflow-hidden bg-slate-50 text-slate-800 flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 40%);">
+<main class="flex-1 overflow-hidden bg-slate-50 text-slate-800 flex chat-layout relative bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.08),transparent_40%)]">
     
     <!-- Left Column: Chat List -->
     <aside class="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 flex flex-col border-r border-slate-200 glass-panel bg-white/40 relative z-10 hidden md:flex">
@@ -135,7 +135,7 @@
                         <textarea id="chatInput" class="flex-1 bg-transparent border-none resize-none focus:ring-0 text-slate-800 placeholder:text-slate-400 font-body-md text-sm py-2 px-1 max-h-32 min-h-[40px] border-transparent focus:border-transparent focus:outline-none" placeholder="Nhập câu trả lời hỗ trợ..." rows="1"></textarea>
                         
                         <button type="button" id="btnSendMessage" class="p-2 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mb-0.5">
-                            <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">send</span>
+                            <span class="material-symbols-outlined text-xl fill-1">send</span>
                         </button>
                     </div>
                 </div>
