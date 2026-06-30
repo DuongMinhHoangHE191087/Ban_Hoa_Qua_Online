@@ -14,7 +14,7 @@
     <jsp:param name="pageTitle" value="Chi tiết đơn hàng #${order.orderId}" />
 </jsp:include>
 
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -107,27 +107,7 @@
 
 <main class="max-w-7xl mx-auto px-4 md:px-8 py-10 font-body-md text-on-background">
 
-    <!-- Flash Notifications -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <c:choose>
-            <c:when test="${sessionScope.flashType == 'success'}">
-                <c:set var="flashCls" value="bg-[#dcfce7] border-[#bbf7d0] text-emerald-800"/>
-                <c:set var="flashIcon" value="check_circle"/>
-            </c:when>
-            <c:otherwise>
-                <c:set var="flashCls" value="bg-error-container border-[#ffdad6] text-[#93000a]"/>
-                <c:set var="flashIcon" value="error"/>
-            </c:otherwise>
-        </c:choose>
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${flashCls}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${flashIcon}</span>
-                <span class="font-semibold"><c:out value="${sessionScope.flashMsg}"/></span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- Top Navigation: back to profile orders tab -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-4 border-b border-surface-container-high gap-4">

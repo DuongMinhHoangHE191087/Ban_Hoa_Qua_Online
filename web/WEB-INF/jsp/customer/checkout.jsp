@@ -354,6 +354,13 @@
                                     <c:set var="uniqueShopIds" value="${uniqueShopIds}${item.shopId}," />
                                 </c:if>
                             </c:forEach>
+                            <c:set var="cleanOwnerIds" value="" />
+                            <c:forEach var="item" items="${cartSummary.items}">
+                                <c:set var="oId" value="${item.shopId}" />
+                                <c:if test="${not fn:contains(cleanOwnerIds, oId)}">
+                                    <c:set var="cleanOwnerIds" value="${cleanOwnerIds}${empty cleanOwnerIds ? '' : ','}${oId}" />
+                                </c:if>
+                            </c:forEach>
 
                             <%-- BƯỚC 2: Duyệt qua từng shopId và hiển thị --%>
                             <c:forEach var="sId" items="${fn:split(uniqueShopIds, ',')}">
@@ -388,34 +395,61 @@
                                                 <span class="bg-primary-lt text-primary px-2.5 py-1 rounded-lg border border-primary-fixed">Phí giao hàng: 15.000 đ</span>
                                             </div>
                                         </div>
-
                                         <%-- Danh sách sản phẩm của Shop này --%>
                                         <div class="divide-y divide-emerald-50/50">
                                             <c:forEach var="item" items="${cartSummary.items}">
                                                 <c:if test="${item.shopId == sId}">
-                                                    <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-                                                        <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-emerald-100/30 bg-slate-50">
-                                                            <c:choose>
-                                                                <c:when test="${not empty item.imagePath}">
-                                                                    <c:set var="itemImg" value="${item.imagePath}"/>
-                                                                    <c:choose>
-                                                                        <c:when test="${fn:startsWith(itemImg, 'http://') || fn:startsWith(itemImg, 'https://')}">
-                                                                            <img src="${itemImg}" alt="${item.productName}" class="w-full h-full object-cover">
-                                                                        </c:when>
-                                                                        <c:otherwise>
-                                                                            <c:set var="resolvedItemImg" value="${itemImg}"/>
-                                                                            <c:if test="${!fn:startsWith(resolvedItemImg, '/')}">
-                                                                                <c:set var="resolvedItemImg" value="/${resolvedItemImg}"/>
-                                                                            </c:if>
-                                                                            <img src="${pageContext.request.contextPath}${resolvedItemImg}" alt="${item.productName}" class="w-full h-full object-cover">
-                                                                        </c:otherwise>
-                                                                    </c:choose>
-                                                                </c:when>
-                                                                <c:otherwise>
-                                                                    <img src="${pageContext.request.contextPath}/assets/img/placeholder.png" alt="Placeholder" class="w-full h-full object-cover">
-                                                                </c:otherwise>
-                                                            </c:choose>
-                                                        </div>
+                                                     <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+                                                         <c:choose>
+                                                             <c:when test="${item.productId > 0}">
+                                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-emerald-100/30 bg-slate-50 block hover:opacity-90 transition-opacity">
+                                                                     <c:choose>
+                                                                         <c:when test="${not empty item.imagePath}">
+                                                                             <c:set var="itemImg" value="${item.imagePath}"/>
+                                                                             <c:choose>
+                                                                                 <c:when test="${fn:startsWith(itemImg, 'http://') || fn:startsWith(itemImg, 'https://')}">
+                                                                                     <img src="${itemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                                                 </c:when>
+                                                                                 <c:otherwise>
+                                                                                     <c:set var="resolvedItemImg" value="${itemImg}"/>
+                                                                                     <c:if test="${!fn:startsWith(resolvedItemImg, '/')}">
+                                                                                         <c:set var="resolvedItemImg" value="/${resolvedItemImg}"/>
+                                                                                     </c:if>
+                                                                                     <img src="${pageContext.request.contextPath}${resolvedItemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                                                 </c:otherwise>
+                                                                             </c:choose>
+                                                                         </c:when>
+                                                                         <c:otherwise>
+                                                                             <img src="${pageContext.request.contextPath}/assets/img/placeholder.png" alt="Placeholder" class="w-full h-full object-cover">
+                                                                         </c:otherwise>
+                                                                     </c:choose>
+                                                                 </a>
+                                                             </c:when>
+                                                             <c:otherwise>
+                                                                 <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-emerald-100/30 bg-slate-50">
+                                                                     <c:choose>
+                                                                         <c:when test="${not empty item.imagePath}">
+                                                                             <c:set var="itemImg" value="${item.imagePath}"/>
+                                                                             <c:choose>
+                                                                                 <c:when test="${fn:startsWith(itemImg, 'http://') || fn:startsWith(itemImg, 'https://')}">
+                                                                                     <img src="${itemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                                                 </c:when>
+                                                                                 <c:otherwise>
+                                                                                     <c:set var="resolvedItemImg" value="${itemImg}"/>
+                                                                                     <c:if test="${!fn:startsWith(resolvedItemImg, '/')}">
+                                                                                         <c:set var="resolvedItemImg" value="/${resolvedItemImg}"/>
+                                                                                     </c:if>
+                                                                                     <img src="${pageContext.request.contextPath}${resolvedItemImg}" alt="${item.productName}" class="w-full h-full object-cover">
+                                                                                 </c:otherwise>
+                                                                             </c:choose>
+                                                                         </c:when>
+                                                                         <c:otherwise>
+                                                                             <img src="${pageContext.request.contextPath}/assets/img/placeholder.png" alt="Placeholder" class="w-full h-full object-cover">
+                                                                         </c:otherwise>
+                                                                     </c:choose>
+                                                                 </div>
+                                                             </c:otherwise>
+                                                         </c:choose>
                                                         <div class="flex-grow min-w-0">
                                                             <h4 class="font-bold text-txt text-sm truncate">
                                                                 <c:choose>
@@ -533,7 +567,7 @@
 <input type="hidden" id="js-subtotal" value="${cartSummary.subtotal}">
 <input type="hidden" id="js-delivery" value="${cartSummary.deliveryFee}">
 <input type="hidden" id="js-ctx" value="${pageContext.request.contextPath}">
-<input type="hidden" id="js-owner-id" value="<c:out value='${shopOwnerId}' default='0'/>">
+<input type="hidden" id="js-owner-id" value="<c:out value='${shopOwnerId != null && shopOwnerId > 0 ? shopOwnerId : cleanOwnerIds}'/>">
 <input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
 
 <!-- Hidden address elements for JS -->
@@ -554,6 +588,9 @@ const CTX         = document.getElementById('js-ctx').value;
 const OWNER_ID    = document.getElementById('js-owner-id').value;
 const CSRF_TOKEN  = document.getElementById('js-csrf').value;
 
+let appliedShopCoupons = [];
+let appliedSystemCoupons = [];
+
 let shopCouponCode   = '';
 let shopDiscount     = 0;
 let systemCouponCode = '';
@@ -564,53 +601,81 @@ function applyCoupon() {
     const code = inputEl.value.trim().toUpperCase();
     if (!code) return;
 
-    // Check if coupon is already applied
-    if (code === shopCouponCode || code === systemCouponCode) {
+    if (appliedShopCoupons.some(c => c.code === code) || appliedSystemCoupons.some(c => c.code === code)) {
         showCouponMsg('Mã voucher này đã được áp dụng rồi.', 'text-red-600 font-bold');
         return;
     }
 
     showCouponMsg('Đang kiểm tra...', 'text-on-surface-variant');
 
-    // Step 1: Validate as SHOP coupon first
     validateCouponAPI(code, 'SHOP')
         .then(data => {
             if (data.valid) {
-                // Applied successfully as SHOP coupon!
-                shopCouponCode = code;
-                shopDiscount = data.discountAmount || 0;
-                document.getElementById('shopCouponCode').value = code;
+                const ownerId = data.ownerId;
+                const shopCouponsForThisOwner = appliedShopCoupons.filter(c => c.ownerId === ownerId);
+                if (shopCouponsForThisOwner.length >= 2) {
+                    showCouponMsg('Mỗi shop tối đa chỉ được dùng 2 voucher shop.', 'text-red-600 font-bold');
+                    return;
+                }
+                const hasExisting = appliedShopCoupons.length > 0 || appliedSystemCoupons.length > 0;
+                if (hasExisting) {
+                    const anyCannotStack = !data.canStack || 
+                        appliedShopCoupons.some(c => !c.canStack) || 
+                        appliedSystemCoupons.some(c => !c.canStack);
+                    if (anyCannotStack) {
+                        showCouponMsg('Mã voucher này không hỗ trợ cộng dồn với mã đã áp dụng.', 'text-red-600 font-bold');
+                        return;
+                    }
+                }
+
+                appliedShopCoupons.push({
+                    code: code,
+                    discountAmount: data.discountAmount || 0,
+                    canStack: data.canStack,
+                    ownerId: ownerId
+                });
+                
                 showCouponMsg('✔ ' + data.message + ' (Mã của Shop)', 'text-emerald-700 font-bold');
                 inputEl.value = '';
 
-                // Stacking adjustment: if we already have a system coupon, we must revalidate it 
-                // because the subtotal after shop coupon discount has changed!
-                if (systemCouponCode) {
-                    revalidateSystemCoupon().then(() => {
-                        updateSummary();
-                        renderAppliedCoupons();
-                    });
-                } else {
+                recalculateAllAppliedCoupons().then(() => {
                     updateSummary();
                     renderAppliedCoupons();
-                }
+                });
             } else {
-                // Step 2: If shop validation fails, try validating as SYSTEM coupon
                 return validateCouponAPI(code, 'SYSTEM')
                     .then(sysData => {
                         if (sysData.valid) {
-                            systemCouponCode = code;
-                            systemDiscount = sysData.discountAmount || 0;
-                            document.getElementById('systemCouponCode').value = code;
+                            if (appliedSystemCoupons.length >= 2) {
+                                showCouponMsg('Tối đa chỉ được dùng 2 voucher sàn.', 'text-red-600 font-bold');
+                                return;
+                            }
+                            const hasExisting = appliedShopCoupons.length > 0 || appliedSystemCoupons.length > 0;
+                            if (hasExisting) {
+                                const anyCannotStack = !sysData.canStack || 
+                                    appliedShopCoupons.some(c => !c.canStack) || 
+                                    appliedSystemCoupons.some(c => !c.canStack);
+                                if (anyCannotStack) {
+                                    showCouponMsg('Mã voucher này không hỗ trợ cộng dồn với mã đã áp dụng.', 'text-red-600 font-bold');
+                                    return;
+                                }
+                            }
+
+                            appliedSystemCoupons.push({
+                                code: code,
+                                discountAmount: sysData.discountAmount || 0,
+                                canStack: sysData.canStack
+                            });
+                            
                             showCouponMsg('✔ ' + sysData.message + ' (Mã của Sàn)', 'text-emerald-700 font-bold');
                             inputEl.value = '';
-                            updateSummary();
-                            renderAppliedCoupons();
+                            
+                            recalculateAllAppliedCoupons().then(() => {
+                                updateSummary();
+                                renderAppliedCoupons();
+                            });
                         } else {
-                            // If both failed, show error message
                             showCouponMsg('✘ ' + (sysData.message || data.message || 'Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.'), 'text-red-600 font-bold');
-                            console.log('[Coupon Log] Shop check error:', data.message);
-                            console.log('[Coupon Log] System check error:', sysData.message);
                         }
                     });
             }
@@ -621,55 +686,56 @@ function applyCoupon() {
         });
 }
 
-function normalizeCouponResponse(resp) {
-    if (!resp || typeof resp !== 'object') {
-        return {
-            valid: false,
-            discountAmount: 0,
-            message: 'Phản hồi mã giảm giá không hợp lệ.'
-        };
-    }
-
-    if (typeof resp.success === 'boolean') {
-        if (!resp.success) {
-            return {
-                valid: false,
-                discountAmount: 0,
-                message: resp.error || 'Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.'
-            };
-        }
-
-        const payload = resp.data || {};
-        return {
-            valid: true,
-            discountAmount: Number(payload.discountAmount ?? 0) || 0,
-            promoId: payload.promoId,
-            discountType: payload.discountType,
-            message: payload.message || 'Áp dụng thành công!'
-        };
-    }
-
-    if (typeof resp.valid === 'boolean') {
-        return {
-            valid: resp.valid,
-            discountAmount: Number(resp.discountAmount ?? 0) || 0,
-            promoId: resp.promoId,
-            discountType: resp.discountType,
-            message: resp.message || resp.error || ''
-        };
-    }
-
-    return {
-        valid: false,
-        discountAmount: 0,
-        message: resp.error || resp.message || 'Phản hồi mã giảm giá không hợp lệ.'
-    };
+function recalculateAllAppliedCoupons() {
+    let tempSubtotal = SUBTOTAL;
+    const shopPromises = appliedShopCoupons.map((c) => {
+        return validateCouponAPIWithSubtotal(c.code, 'SHOP', SUBTOTAL)
+            .then(data => {
+                if (data.valid) {
+                    c.discountAmount = data.discountAmount || 0;
+                    tempSubtotal = Math.max(0, tempSubtotal - c.discountAmount);
+                } else {
+                    c.discountAmount = 0;
+                }
+            });
+    });
+    
+    return Promise.all(shopPromises).then(() => {
+        let systemPromiseChain = Promise.resolve();
+        appliedSystemCoupons.forEach((c) => {
+            const currentSub = tempSubtotal;
+            systemPromiseChain = systemPromiseChain.then(() => {
+                return validateCouponAPIWithSubtotal(c.code, 'SYSTEM', currentSub)
+                    .then(data => {
+                        if (data.valid) {
+                            c.discountAmount = data.discountAmount || 0;
+                            tempSubtotal = Math.max(0, tempSubtotal - c.discountAmount);
+                        } else {
+                            c.discountAmount = 0;
+                        }
+                    });
+            });
+        });
+        return systemPromiseChain;
+    }).then(() => {
+        shopDiscount = appliedShopCoupons.reduce((sum, c) => sum + c.discountAmount, 0);
+        shopCouponCode = appliedShopCoupons.map(c => c.code).join(',');
+        document.getElementById('shopCouponCode').value = shopCouponCode;
+        
+        systemDiscount = appliedSystemCoupons.reduce((sum, c) => sum + c.discountAmount, 0);
+        systemCouponCode = appliedSystemCoupons.map(c => c.code).join(',');
+        document.getElementById('systemCouponCode').value = systemCouponCode;
+    });
 }
 
 function validateCouponAPI(code, scope) {
-    const currentSubtotal = scope === 'SYSTEM' ? (SUBTOTAL - shopDiscount) : SUBTOTAL;
+    const currentSubtotal = scope === 'SYSTEM' ? Math.max(0, SUBTOTAL - shopDiscount) : SUBTOTAL;
+    return validateCouponAPIWithSubtotal(code, scope, currentSubtotal);
+}
+
+function validateCouponAPIWithSubtotal(code, scope, subtotalAmt) {
     const url = CTX + '/api/coupon/validate?code=' + encodeURIComponent(code) +
-                '&subtotal=' + currentSubtotal +
+                '&subtotal=' + subtotalAmt +
                 '&ownerId=' + OWNER_ID +
                 '&scope=' + scope;
     return fetch(url, {
@@ -685,49 +751,47 @@ function validateCouponAPI(code, scope) {
         .then(normalizeCouponResponse);
 }
 
-function revalidateSystemCoupon() {
-    if (!systemCouponCode) return Promise.resolve();
-    
-    return validateCouponAPI(systemCouponCode, 'SYSTEM')
-        .then(data => {
-            if (data.valid) {
-                systemDiscount = data.discountAmount || 0;
-            } else {
-                console.warn('[Coupon Log] System coupon ' + systemCouponCode + ' became invalid after shop discount applied: ' + data.message);
-                systemCouponCode = '';
-                systemDiscount = 0;
-                document.getElementById('systemCouponCode').value = '';
-            }
-        })
-        .catch(err => {
-            console.error('[Coupon Log] Error revalidating system coupon:', err);
-        });
+function normalizeCouponResponse(resp) {
+    if (!resp || typeof resp !== 'object') {
+        return { valid: false, discountAmount: 0, message: 'Phản hồi mã giảm giá không hợp lệ.' };
+    }
+    if (typeof resp.success === 'boolean') {
+        if (!resp.success) {
+            return { valid: false, discountAmount: 0, message: resp.error || 'Không hợp lệ.' };
+        }
+        const payload = resp.data || {};
+        return {
+            valid: true,
+            discountAmount: Number(payload.discountAmount ?? 0) || 0,
+            promoId: payload.promoId,
+            discountType: payload.discountType,
+            canStack: payload.canStack ?? true,
+            message: payload.message || 'Áp dụng thành công!'
+        };
+    }
+    return {
+        valid: resp.valid ?? false,
+        discountAmount: Number(resp.discountAmount ?? 0) || 0,
+        promoId: resp.promoId,
+        discountType: resp.discountType,
+        canStack: resp.canStack ?? true,
+        message: resp.message || resp.error || ''
+    };
 }
 
-function removeCoupon(scope) {
+function removeCoupon(scope, code) {
     if (scope === 'SHOP') {
-        shopCouponCode = '';
-        shopDiscount = 0;
-        document.getElementById('shopCouponCode').value = '';
+        appliedShopCoupons = appliedShopCoupons.filter(c => c.code !== code);
         showCouponMsg('Đã xóa mã của Shop.', 'text-on-surface-variant');
-        
-        if (systemCouponCode) {
-            revalidateSystemCoupon().then(() => {
-                updateSummary();
-                renderAppliedCoupons();
-            });
-        } else {
-            updateSummary();
-            renderAppliedCoupons();
-        }
     } else if (scope === 'SYSTEM') {
-        systemCouponCode = '';
-        systemDiscount = 0;
-        document.getElementById('systemCouponCode').value = '';
+        appliedSystemCoupons = appliedSystemCoupons.filter(c => c.code !== code);
         showCouponMsg('Đã xóa mã của Sàn.', 'text-on-surface-variant');
+    }
+    
+    recalculateAllAppliedCoupons().then(() => {
         updateSummary();
         renderAppliedCoupons();
-    }
+    });
 }
 
 function showCouponMsg(text, className) {
@@ -745,31 +809,31 @@ function renderAppliedCoupons() {
     let hasCoupon = false;
     const fmt = (n) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(n);
     
-    if (shopCouponCode) {
+    appliedShopCoupons.forEach(c => {
         hasCoupon = true;
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
         item.innerHTML = '<div>' +
             '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">Voucher shop</span>' +
-            '<span class="font-bold text-on-surface">' + shopCouponCode + '</span>' +
-            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(shopDiscount) + ')</span>' +
+            '<span class="font-bold text-on-surface">' + c.code + '</span>' +
+            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(c.discountAmount) + ')</span>' +
             '</div>' +
-            '<button type="button" onclick="removeCoupon(\'SHOP\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
+            `<button type="button" onclick="removeCoupon('SHOP', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
         listEl.appendChild(item);
-    }
+    });
     
-    if (systemCouponCode) {
+    appliedSystemCoupons.forEach(c => {
         hasCoupon = true;
         const item = document.createElement('div');
         item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
         item.innerHTML = '<div>' +
             '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sàn</span>' +
-            '<span class="font-bold text-on-surface">' + systemCouponCode + '</span>' +
-            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(systemDiscount) + ')</span>' +
+            '<span class="font-bold text-on-surface">' + c.code + '</span>' +
+            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(c.discountAmount) + ')</span>' +
             '</div>' +
-            '<button type="button" onclick="removeCoupon(\'SYSTEM\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
+            `<button type="button" onclick="removeCoupon('SYSTEM', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
         listEl.appendChild(item);
-    }
+    });
     
     if (hasCoupon) {
         container.classList.remove('hidden');

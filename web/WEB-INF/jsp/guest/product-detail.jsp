@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
@@ -19,7 +19,7 @@
 </jsp:include>
 
 <!-- Load Tailwind CSS dynamically to sync container layout with Home page -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <script id="tailwind-config">
     tailwind.config = {
         theme: {

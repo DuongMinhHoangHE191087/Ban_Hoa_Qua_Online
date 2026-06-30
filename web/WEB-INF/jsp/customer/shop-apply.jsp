@@ -13,7 +13,7 @@
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -75,15 +75,7 @@
             </div>
 
             <!-- Flash Message -->
-            <c:if test="${not empty sessionScope.flashMsg}">
-                <c:set var="isError" value="${sessionScope.flashType == 'error'}"/>
-                <div class="mb-6 p-4 ${isError ? 'bg-red-50 border-error text-red-800' : 'bg-green-50 border-primary text-green-800'} border-l-4 rounded-r-xl flex items-center gap-3 shadow-sm glass-card">
-                    <span class="material-symbols-outlined ${isError ? 'text-error' : 'text-primary'}">${isError ? 'error' : 'check_circle'}</span>
-                    <span class="text-sm font-medium"><c:out value="${sessionScope.flashMsg}"/></span>
-                </div>
-                <c:remove var="flashMsg" scope="session"/>
-                <c:remove var="flashType" scope="session"/>
-            </c:if>
+            <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
             <!-- TRẠNG THÁI ĐÃ NỘP ĐƠN (nếu có) -->
             

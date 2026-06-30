@@ -1,10 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<!DOCTYPE html>
-<html lang="vi">
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -22,14 +16,14 @@
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
 <body class="antialiased text-txt bg-background">
-<div class="admin-layout flex h-screen overflow-hidden">
+<div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="notifications"/>
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main flex-1 overflow-y-auto p-6 md:p-8 animate-fade-in-up opacity-0">
+    <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
         <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">

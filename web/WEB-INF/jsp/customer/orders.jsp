@@ -90,17 +90,7 @@
         <p class="text-on-surface-variant font-medium">Theo dõi và quản lý các đơn đặt hàng trái cây sạch</p>
     </div>
 
-    <!-- Alert Flash message -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold">${sessionScope.flashMsg}</span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- Filter Tabs (DEL-03 và timeline status) -->
     <div class="flex flex-wrap gap-2 mb-8 bg-white/40 p-2 rounded-2xl border border-white/30 backdrop-blur-[8px]">

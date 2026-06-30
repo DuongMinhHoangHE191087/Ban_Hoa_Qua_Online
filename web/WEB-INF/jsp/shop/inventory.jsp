@@ -47,19 +47,7 @@
             </div>
         </div>
 
-        <!-- Flash Message -->
-        <c:if test="${not empty sessionScope.flashMsg}">
-            <div id="flash-alert" class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 shadow-sm text-sm font-semibold
-                 ${sessionScope.flashType == 'error' ? 'bg-red-50 border-red-500 text-red-800' : 'bg-emerald-50 border-emerald-500 text-emerald-800'}">
-                <i class="fa-solid ${sessionScope.flashType == 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i>
-                <span class="flex-1"><c:out value="${sessionScope.flashMsg}"/></span>
-                <button onclick="document.getElementById('flash-alert').remove()" class="opacity-60 hover:opacity-100 transition-opacity">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <c:remove var="flashMsg" scope="session"/>
-            <c:remove var="flashType" scope="session"/>
-        </c:if>
+
 
         <!-- Database Schema Error -->
         <c:if test="${not empty inventoryError}">

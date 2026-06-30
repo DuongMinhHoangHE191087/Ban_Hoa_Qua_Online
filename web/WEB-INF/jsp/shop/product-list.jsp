@@ -60,27 +60,7 @@
                                 </button>
                             </div>
 
-                            <!-- Dynamic Flash Message Alert -->
-                            <c:if test="${not empty sessionScope.flashMsg}">
-                                <div id="flash-alert-container"
-                                    class="mb-6 p-4 rounded-2xl glass-card flex items-center gap-3 border-l-4 ${sessionScope.flashType == 'success' ? 'border-primary text-primary' : 'border-red-500 text-red-700'} shadow-sm">
-                                    <span class="material-symbols-outlined text-[24px]">
-                                        <c:choose>
-                                            <c:when test="${sessionScope.flashType == 'success'}">check_circle</c:when>
-                                            <c:otherwise>error</c:otherwise>
-                                        </c:choose>
-                                    </span>
-                                    <div class="flex-grow font-semibold text-sm">
-                                        <c:out value="${sessionScope.flashMsg}" />
-                                    </div>
-                                    <button onclick="document.getElementById('flash-alert-container').remove();"
-                                        class="text-txt-2 hover:text-txt cursor-pointer">
-                                        <span class="material-symbols-outlined text-[18px]">close</span>
-                                    </button>
-                                </div>
-                                <c:remove var="flashMsg" scope="session" />
-                                <c:remove var="flashType" scope="session" />
-                            </c:if>
+
 
                             <!-- Search and Filter Bar -->
                             <div class="glass-card rounded-2xl p-6 mb-6">

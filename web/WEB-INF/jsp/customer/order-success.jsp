@@ -1,11 +1,11 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Đặt hàng thành công - MetaFruit"/></jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">

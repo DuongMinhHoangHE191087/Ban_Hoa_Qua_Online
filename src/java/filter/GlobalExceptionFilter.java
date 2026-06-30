@@ -266,7 +266,6 @@ public class GlobalExceptionFilter implements Filter {
             return !"production".equalsIgnoreCase(env);
         }
 
-        String env = System.getenv("APP_ENV");
-        return env == null || !"production".equalsIgnoreCase(env);
+        return !"production".equalsIgnoreCase(config.AppConfig.APP_ENV);
     }
 }

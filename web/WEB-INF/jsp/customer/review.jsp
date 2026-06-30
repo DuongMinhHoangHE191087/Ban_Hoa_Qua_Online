@@ -6,7 +6,7 @@
 </jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -92,17 +92,7 @@
         <p class="text-on-surface-variant text-sm mt-1">Cảm ơn bạn đã lựa chọn MetaFruit. Phản hồi của bạn giúp chúng tôi cải thiện tốt hơn.</p>
     </div>
 
-    <!-- Alert Flash message -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold"><c:out value="${sessionScope.flashMsg}"/></span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- List of unreviewed items -->
     <c:if test="${not empty unreviewedItems}">

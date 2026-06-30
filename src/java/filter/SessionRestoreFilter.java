@@ -101,12 +101,6 @@ public class SessionRestoreFilter implements Filter {
             } catch (SQLException e) {
                 LoggerUtil.warn(log, "SessionRestoreFilter: Lỗi DB khi kiểm tra Refresh Token", e);
             }
-        } else {
-            // Không có cả Access Token và Refresh Token, nhưng có thể có session cũ rác
-            if (SessionUtil.isLoggedIn(session)) {
-                TokenUtil.clearTokens(req, resp);
-                session.invalidate();
-            }
         }
 
         // Đi tiếp sang các filter tiếp theo (CsrfFilter, AuthFilter...)

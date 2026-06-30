@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -9,19 +9,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giám sát thanh toán - Admin MetaFruit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
     <!-- Tailwind & SweetAlert -->
     <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
 <body class="antialiased text-txt bg-background">
-<div class="admin-layout flex h-screen overflow-hidden">
+<div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="payments"/>
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main flex-1 overflow-y-auto p-6 md:p-8 animate-fade-in-up opacity-0">
+    <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
         <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">

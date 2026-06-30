@@ -57,20 +57,7 @@
                             </div>
                         </div>
 
-                        <!-- Flash / Alert Message -->
-                        <c:if test="${not empty sessionScope.flashMsg}">
-                            <script>
-                                Swal.fire({
-                                    icon: '${sessionScope.flashType == "error" ? "error" : "success"}',
-                                    title: '${sessionScope.flashType == "error" ? "Thất bại" : "Thành công"}',
-                                    text: '${sessionScope.flashMsg}',
-                                    confirmButtonColor: '#14532D',
-                                    timer: 3000
-                                });
-                            </script>
-                            <c:remove var="flashMsg" scope="session" />
-                            <c:remove var="flashType" scope="session" />
-                        </c:if>
+
 
                         <!-- Main Layout: Form columns + Live preview -->
                         <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">

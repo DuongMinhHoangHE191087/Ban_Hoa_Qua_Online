@@ -17,7 +17,7 @@
             <link
                 href="${pageContext.request.contextPath}/assets/css/auth-overrides.css"
                 rel="stylesheet">
-            <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+            <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
             <script id="tailwind-config">
                 tailwind.config = {
                     darkMode: "class",

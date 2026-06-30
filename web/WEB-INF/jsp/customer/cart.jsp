@@ -4,7 +4,7 @@
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Giỏ hàng"/></jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined giống hệt file mẫu -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">

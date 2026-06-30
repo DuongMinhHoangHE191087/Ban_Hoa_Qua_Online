@@ -68,8 +68,8 @@ public class UploadsServlet extends HttpServlet {
         resp.setContentType(mimeType);
         resp.setContentLengthLong(file.length());
 
-        // Hỗ trợ browser caching
-        resp.setHeader("Cache-Control", "public, max-age=86400"); // 1 ngày
+        // Hỗ trợ browser caching (30 ngày để tối ưu hóa tốc độ tải ảnh tải lên)
+        resp.setHeader("Cache-Control", "public, max-age=2592000"); // 30 ngày
 
         // 5. Stream nội dung file
         try (FileInputStream in = new FileInputStream(file);

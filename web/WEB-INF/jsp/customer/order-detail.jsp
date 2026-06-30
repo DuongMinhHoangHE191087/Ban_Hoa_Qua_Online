@@ -84,17 +84,7 @@
 
 <main class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-on-background">
     
-    <!-- Flash Notifications -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold">${sessionScope.flashMsg}</span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- Top Navigation and Actions -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-lg pb-4 border-b border-surface-container-high gap-4">

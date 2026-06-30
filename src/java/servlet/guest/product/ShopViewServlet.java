@@ -11,7 +11,6 @@ import dao.catalog.ProductDAO;
 import dao.catalog.ProductImageDAO;
 import dao.catalog.ProductVariantDAO;
 
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -51,8 +50,16 @@ public class ShopViewServlet extends HttpServlet {
         }
 
         try {
-            int profileId = Integer.parseInt(idStr.trim());
-            ShopProfile profile = shopService.getShopById(profileId);
+            int parsedId = Integer.parseInt(idStr.trim());
+            // Ưu tiên tìm theo userId của chủ cửa hàng (owner_id) trước vì các liên kết từ giỏ hàng/đơn hàng truyền owner_id/userId
+            ShopProfile profile = shopService.getShopByUserId(parsedId);
+            if (profile == null || !"APPROVED".equals(profile.getApprovalStatus())) {
+                // Nếu không có hoặc chưa duyệt theo userId, thử tìm theo profileId
+                ShopProfile profileById = shopService.getShopById(parsedId);
+                if (profileById != null && "APPROVED".equals(profileById.getApprovalStatus())) {
+                    profile = profileById;
+                }
+            }
             if (profile == null || !"APPROVED".equals(profile.getApprovalStatus())) {
                 resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy gian hàng này hoặc gian hàng chưa được duyệt.");
                 return;

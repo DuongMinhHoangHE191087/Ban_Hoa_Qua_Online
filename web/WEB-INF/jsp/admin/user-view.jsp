@@ -1,10 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
@@ -22,14 +16,14 @@
 </head>
 <body class="antialiased text-txt bg-background">
 <input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
-<div class="admin-layout flex h-screen overflow-hidden">
+<div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="users"/>
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main flex-1 overflow-y-auto p-6 md:p-8 animate-fade-in-up opacity-0">
+    <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
         
         <div class="mb-6 flex items-center justify-between">
             <a href="${pageContext.request.contextPath}/admin/users" class="text-primary hover:text-primary-dk font-bold flex items-center gap-2 transition-colors text-decoration-none">

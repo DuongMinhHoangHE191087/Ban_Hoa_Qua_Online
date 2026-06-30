@@ -187,10 +187,11 @@ public class InventoryDAO extends BaseDAO {
     /**
      * Lấy danh sách lô hàng nhập kho còn hiệu lực (MANUAL_ADJUST, delta > 0, is_expired = 0)
      * kèm thông tin sản phẩm, phân loại và ngày hết hạn — dùng cho bảng Tồn kho của Shop Owner.
+     * Chỉ hiển thị lô chưa qua ngày hết hạn (expires_at > TODAY hoặc expires_at IS NULL).
      */
     public List<InventoryLog> findActiveBatchesByOwner(int ownerId) throws SQLException {
         List<InventoryLog> list = new ArrayList<>();
-        String sql = "SELECT il.log_id, il.variant_id, il.quantity_delta, il.quantity_after, "
+        String sql = "SELECT il.log_id, il.variant_id, il.change_type, il.quantity_delta, il.quantity_after, "
                 + "       il.expires_at, il.is_expired, il.changed_at, il.note, il.changed_by, "
                 + "       p.name AS product_name, pv.variant_label, u.full_name AS changed_by_name "
                 + "FROM inventory_logs il "
@@ -201,6 +202,7 @@ public class InventoryDAO extends BaseDAO {
                 + "  AND il.change_type = 'MANUAL_ADJUST' "
                 + "  AND il.quantity_delta > 0 "
                 + "  AND il.is_expired = 0 "
+                + "  AND (il.expires_at IS NULL OR il.expires_at > CAST(GETDATE() AS DATE)) "
                 + "ORDER BY il.expires_at ASC, il.changed_at DESC";
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -212,6 +214,52 @@ public class InventoryDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    /**
+     * Lấy shelf_life_days của sản phẩm thông qua variant_id.
+     * Trả về null nếu sản phẩm không cấu hình shelf_life_days.
+     */
+    public Integer getShelfLifeByVariantId(int variantId) throws SQLException {
+        String sql = "SELECT p.shelf_life_days "
+                + "FROM product_variants pv "
+                + "JOIN products p ON pv.product_id = p.product_id "
+                + "WHERE pv.variant_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int val = rs.getInt("shelf_life_days");
+                    return rs.wasNull() ? null : val;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Tìm lô nhập kho FIFO — lô có ngày hết hạn SỚM NHẤT (hoặc ngày nhập sớm nhất nếu không có HH)
+     * cho một variant cụ thể. Dùng để ghi audit trail khi bán hàng (ORDER_RESERVE).
+     */
+    public InventoryLog findOldestActiveBatchForVariant(Connection conn, int variantId) throws SQLException {
+        String sql = "SELECT TOP 1 * FROM inventory_logs "
+                + "WHERE variant_id = ? AND change_type = 'MANUAL_ADJUST' AND quantity_delta > 0 "
+                + "AND is_expired = 0 "
+                + "AND (expires_at IS NULL OR expires_at > CAST(GETDATE() AS DATE)) "
+                + "ORDER BY "
+                + "  CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END ASC, " // lô có HH lên trước
+                + "  expires_at ASC, "                                       // HH sớm nhất
+                + "  changed_at ASC";                                        // nhập sớm nhất nếu bằng nhau
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
     }
 
     /**

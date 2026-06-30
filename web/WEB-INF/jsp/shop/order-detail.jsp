@@ -15,13 +15,7 @@
 
     <h1 class="mb-4">Chi tiết đơn #${order.orderId}</h1>
 
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-4 rounded-xl border p-3 ${sessionScope.flashType == 'success' ? 'border-[#86efac] bg-[#dcfce7] text-[#166534]' : 'border-[#fca5a5] bg-[#fee2e2] text-[#991b1b]'}">
-            <strong>${sessionScope.flashMsg}</strong>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] mb-6">
         <section class="card overflow-hidden">
