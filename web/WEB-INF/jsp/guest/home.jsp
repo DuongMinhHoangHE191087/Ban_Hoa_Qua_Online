@@ -9,43 +9,6 @@
                         <jsp:param name="pageTitle" value="Trang chủ - MetaFruit" />
                     </jsp:include>
 
-                    <!-- Google Fonts Lexend & Material Icons for rich premium look -->
-                    <link href="https://fonts.googleapis.com" rel="preconnect">
-                    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-                    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap"
-                        rel="stylesheet">
-                    <link rel="stylesheet"
-                        href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
-
-                    <!-- Isolated Tailwind CSS Engine for dynamic layout -->
-                    <script
-                        src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-
-                    <!-- Overriding tailwind configurations to match HomeUI brand precisely -->
-                    <script>
-                        tailwind.config = {
-                            theme: {
-                                extend: {
-                                    colors: {
-                                        "primary": "#4d661c",          // Emerald Green
-                                        "primary-hover": "#364e03",
-                                        "primary-light": "#d9f99d",
-                                        "secondary": "#31694b",        // Deep Forest Green
-                                        "surface-bright": "#eaffea",   // Warm Mint Light
-                                        "surface-container-low": "#d1ffd8",
-                                        "on-surface": "#00210d",
-                                        "on-surface-variant": "#44483b",
-                                        "tertiary": "#486554",
-                                        "tertiary-container": "#d5f5e0"
-                                    },
-                                    fontFamily: {
-                                        sans: ["Lexend", "sans-serif"]
-                                    }
-                                }
-                            }
-                        }
-                    </script>
-
                     <script>
                         /**
                          * Handle image loading error by resolving context path casing mismatch or falling back.
@@ -63,73 +26,6 @@
                             }
                         };
                     </script>
-
-                    <!-- Embedded Premium Style overrides for glassy micro-interactions -->
-                    <style>
-                        /* Clean layout and glass effects overrides */
-                        .glass-panel {
-                            background: rgba(255, 255, 255, 0.75);
-                            backdrop-filter: blur(12px);
-                            -webkit-backdrop-filter: blur(12px);
-                            border: 1px solid rgba(255, 255, 255, 0.4);
-                        }
-
-                        .ambient-shadow {
-                            box-shadow: 0 10px 40px rgba(20, 83, 45, 0.06);
-                        }
-
-                        .flash-glow {
-                            box-shadow: 0 0 25px rgba(239, 68, 68, 0.15);
-                        }
-
-                        .hide-scrollbar::-webkit-scrollbar {
-                            display: none;
-                        }
-
-                        .hide-scrollbar {
-                            -ms-overflow-style: none;
-                            scrollbar-width: none;
-                        }
-
-                        /* Override navbar to have custom premium glassy layout */
-                        .navbar {
-                            background: rgba(255, 255, 255, 0.8) !important;
-                            backdrop-filter: blur(16px) !important;
-                            -webkit-backdrop-filter: blur(16px) !important;
-                            border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
-                            box-shadow: 0 4px 20px rgba(20, 83, 45, 0.03) !important;
-                            font-family: 'Lexend', sans-serif !important;
-                        }
-
-                        .navbar__logo {
-                            color: #4d661c !important;
-                            font-weight: 700 !important;
-                        }
-
-                        .btn-primary {
-                            background: #4d661c !important;
-                        }
-
-                        .btn-primary:hover {
-                            background: #364e03 !important;
-                        }
-
-                        .btn-secondary {
-                            border-color: #4d661c !important;
-                            color: #4d661c !important;
-                        }
-
-                        .navbar__search {
-                            display: none !important;
-                            /* Hide original small search as we have a massive hero search */
-                        }
-
-                        /* Active categories dynamic border */
-                        .cat-active {
-                            background-color: #4d661c !important;
-                            color: #ffffff !important;
-                        }
-                    </style>
 
                     <!-- Main Page Background Wrapping -->
                     <div
@@ -151,7 +47,7 @@
                                     <div
                                         class="inline-flex items-center gap-2 bg-emerald-100/80 border border-emerald-200/50 px-4 py-1.5 rounded-full mb-6 text-xs md:text-sm font-semibold text-primary shadow-sm animate-pulse">
                                         <span class="material-symbols-outlined text-[18px]">verified</span>
-                                        <span>MetaFrui - Nông sản 100% sạch</span>
+                                        <span>MetaFruit - Nông sản 100% sạch</span>
                                     </div>
 
                                     <h1 class="text-3xl md:text-5xl font-extrabold text-on-surface mb-6 leading-tight">
@@ -197,7 +93,7 @@
                                             class="text-xs text-on-surface-variant flex items-center gap-2 font-semibold">
                                             <img src="${pageContext.request.contextPath}/assets/images/logo_light.png"
                                                 alt="MetaFruit"
-                                                style="height: 18px; width: 18px; border-radius: 4px; object-fit: cover;">
+                                                class="h-[18px] w-[18px] rounded-[4px] object-cover">
                                             AI gợi ý:
                                         </span>
                                         <button onclick="applyAiPrompt('sầu riêng chín ngọt béo ngậy')"
@@ -277,6 +173,19 @@
 
                         <!-- FLASH SALE SECTION (Golden hour countdown) -->
                         <c:if test="${not empty flashSaleProducts}">
+                            <c:set var="minValidUntil" value="" />
+                            <c:forEach var="item" items="${flashSaleProducts}">
+                                <c:if test="${not empty item.validUntil}">
+                                    <c:if test="${empty minValidUntil || item.validUntil < minValidUntil}">
+                                        <c:set var="minValidUntil" value="${item.validUntil}" />
+                                    </c:if>
+                                </c:if>
+                            </c:forEach>
+                            <script>
+                                window.serverTime = <%= System.currentTimeMillis() %>;
+                                window.flashSaleEndTime = ${not empty minValidUntil ? minValidUntil : 'null'};
+                                window.clientTimeOffset = Date.now() - window.serverTime;
+                            </script>
                             <section class="px-6 md:px-12 max-w-7xl mx-auto mb-16">
                                 <div
                                     class="glass-panel flash-glow rounded-3xl p-6 md:p-8 border-red-200 bg-gradient-to-br from-red-50/95 via-rose-50/90 to-amber-50/90 shadow-[0_20px_50px_rgba(239,68,68,0.15)]">
@@ -338,7 +247,7 @@
                                         class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
                                         <c:forEach var="item" items="${flashSaleProducts}">
                                             <article data-product-id="${item.productId}"
-                                                class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start">
+                                                class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start ${item.stockRemaining == 0 ? 'opacity-75 saturate-50' : ''}">
                                                 <!-- Discount Tag Badge -->
                                                 <div
                                                     class="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm">
@@ -348,11 +257,9 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -361,6 +268,11 @@
                                                             id="badge-prod-${item.productId}">
                                                             Đã thêm 0
                                                         </div>
+                                                        <c:if test="${item.stockRemaining == 0}">
+                                                            <div class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 rounded-xl">
+                                                                <span class="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md uppercase tracking-wider animate-pulse">Hết hàng</span>
+                                                            </div>
+                                                        </c:if>
                                                     </div>
 
                                                     <!-- Content Section -->
@@ -420,13 +332,23 @@
                                                         </div>
                                                     </div>
 
-                                                    <button type="button"
-                                                        onclick="quickAddProduct(event, '${item.productId}')"
-                                                        class="w-full bg-red-50 border border-red-200 hover:bg-red-600 hover:text-white text-red-600 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
-                                                        <span
-                                                            class="material-symbols-outlined text-[16px]">shopping_cart</span>
-                                                        Mua ngay Deal sốc
-                                                    </button>
+                                                    <c:choose>
+                                                        <c:when test="${item.stockRemaining == 0}">
+                                                            <button type="button" disabled
+                                                                class="w-full bg-gray-100 border border-gray-200 text-gray-400 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-not-allowed">
+                                                                <span class="material-symbols-outlined text-[16px]">block</span>
+                                                                Hết hàng
+                                                            </button>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <button type="button"
+                                                                onclick="quickAddProduct(event, '${item.productId}')"
+                                                                class="w-full bg-red-50 border border-red-200 hover:bg-red-600 hover:text-white text-red-600 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer flash-buy-btn">
+                                                                <span class="material-symbols-outlined text-[16px]">shopping_cart</span>
+                                                                Mua ngay Deal sốc
+                                                            </button>
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                 </div>
                                             </article>
                                         </c:forEach>
@@ -435,8 +357,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-red-50/50 border border-red-200/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-red-600 transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-red-600 group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-red-600 group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả deal sốc</span>
@@ -498,11 +419,9 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -550,7 +469,7 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </a>
+                                                    </a>
 
                                                 <!-- Buy Actions -->
                                                 <div class="space-y-3 px-1 mt-3">
@@ -575,8 +494,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả bán chạy</span>
@@ -638,11 +556,9 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -715,8 +631,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả theo mùa</span>
@@ -771,10 +686,8 @@
                                                     </div>
                                                 </c:if>
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -838,8 +751,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả hữu cơ</span>
@@ -893,10 +805,8 @@
                                                     </div>
                                                 </c:if>
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between"
-                                                    style="text-decoration: none; color: inherit;">
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50"
-                                                        style="aspect-ratio: 4/3;">
+                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
                                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -960,8 +870,7 @@
                                         <div
                                             class="w-[220px] shrink-0 bg-emerald-50/50 border border-primary/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center group hover:bg-primary transition-all duration-300 snap-start cursor-pointer">
                                             <a href="${pageContext.request.contextPath}/products"
-                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white"
-                                                style="text-decoration: none;">
+                                                class="flex flex-col items-center justify-center gap-3 w-full h-full text-primary group-hover:text-white no-underline">
                                                 <span
                                                     class="material-symbols-outlined text-[40px] font-bold">arrow_forward_ios</span>
                                                 <span class="font-bold text-sm">Xem tất cả nhập khẩu</span>
@@ -1063,10 +972,9 @@
 
                                             <!-- Clickable Product Area -->
                                             <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                class="block group/link" style="text-decoration: none; color: inherit;">
+                                                class="block group/link no-underline text-inherit">
                                                 <!-- High Resolution Image with Zoom Scale on Hover -->
-                                                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50"
-                                                    style="aspect-ratio: 4/3;">
+                                                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                                                     <img src="${item.image}" alt="${item.name}"
                                                         onerror="handleImageError(this)"
                                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -1137,8 +1045,7 @@
                                 <!-- View All Products Button -->
                                 <div class="flex justify-center mt-8">
                                     <a href="${pageContext.request.contextPath}/products"
-                                        class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-                                        style="text-decoration: none;">
+                                        class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer no-underline">
                                         <span class="material-symbols-outlined text-[18px]">grid_view</span>
                                         <span>Xem tất cả sản phẩm</span>
                                     </a>
@@ -1279,31 +1186,113 @@
                          * Set high-end Flash Sale timer target.
                          */
                         function startFlashSaleTimer() {
-                            const now = new Date();
-                            const threeHours = 3 * 60 * 60 * 1000;
-                            const msPassedSinceMidnight = now.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-                            const intervalsPassed = Math.floor(msPassedSinceMidnight / threeHours);
-                            const nextIntervalTarget = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() + (intervalsPassed + 1) * threeHours;
+                            const getSyncedNow = () => {
+                                const offset = window.clientTimeOffset || 0;
+                                return Date.now() - offset;
+                            };
+
+                            let nextIntervalTarget;
+                            const syncedNowMs = getSyncedNow();
+                            const oneDay = 24 * 60 * 60 * 1000;
+                            const sevenDays = 7 * oneDay;
+
+                            const timeDiffToPromoEnd = window.flashSaleEndTime ? (window.flashSaleEndTime - syncedNowMs) : 0;
+
+                            if (window.flashSaleEndTime && timeDiffToPromoEnd > 0 && timeDiffToPromoEnd <= sevenDays) {
+                                nextIntervalTarget = window.flashSaleEndTime;
+                                console.log("[FruitMkt] Using server-defined Flash Sale end time: " + new Date(nextIntervalTarget).toLocaleString());
+                            } else {
+                                // Fallback to repeating 3-hour interval relative to synced server time
+                                const serverNow = new Date(syncedNowMs);
+                                const midnight = new Date(serverNow.getFullYear(), serverNow.getMonth(), serverNow.getDate()).getTime();
+                                const msPassedSinceMidnight = syncedNowMs - midnight;
+                                const threeHours = 3 * 60 * 60 * 1000;
+                                const intervalsPassed = Math.floor(msPassedSinceMidnight / threeHours);
+                                nextIntervalTarget = midnight + (intervalsPassed + 1) * threeHours;
+                                console.log("[FruitMkt] Fallback to rolling 3-hour interval target: " + new Date(nextIntervalTarget).toLocaleString());
+                            }
 
                             const hourBox = document.getElementById('hourBox');
                             const minuteBox = document.getElementById('minuteBox');
                             const secondBox = document.getElementById('secondBox');
 
                             function updateClock() {
-                                const timeDiff = nextIntervalTarget - new Date().getTime();
+                                const timeDiff = nextIntervalTarget - getSyncedNow();
+
                                 if (timeDiff <= 0) {
                                     clearInterval(clockInterval);
-                                    startFlashSaleTimer();
+                                    if (hourBox) hourBox.textContent = '00';
+                                    if (minuteBox) minuteBox.textContent = '00';
+                                    if (secondBox) secondBox.textContent = '00';
+
+                                    const dayBox = document.getElementById('dayBox');
+                                    if (dayBox) {
+                                        const colon = document.getElementById('dayColon');
+                                        if (colon) colon.remove();
+                                        dayBox.remove();
+                                    }
+
+                                    // Handle expired state: disable all buy buttons and set to expired
+                                    document.querySelectorAll('.flash-buy-btn').forEach(btn => {
+                                        btn.disabled = true;
+                                        btn.classList.remove('hover:bg-red-600', 'hover:text-white', 'active:scale-95');
+                                        btn.classList.add('bg-gray-100', 'border-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                                        btn.innerHTML = `<span class="material-symbols-outlined text-[16px]">block</span> Đã kết thúc`;
+                                    });
+                                    console.log("[FruitMkt] Flash Sale period has expired.");
                                     return;
                                 }
-                                const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+
+                                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                                 const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
                                 const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+
+                                // Dynamic days prepending
+                                let dayBox = document.getElementById('dayBox');
+                                if (days > 0) {
+                                    if (!dayBox) {
+                                        dayBox = document.createElement('span');
+                                        dayBox.id = 'dayBox';
+                                        dayBox.className = 'bg-red-600 text-white px-2.5 py-1 rounded-lg';
+
+                                        const colon = document.createElement('span');
+                                        colon.id = 'dayColon';
+                                        colon.className = 'mx-1 text-red-600 font-bold';
+                                        colon.textContent = ' ngày ';
+
+                                        hourBox.parentNode.insertBefore(dayBox, hourBox);
+                                        hourBox.parentNode.insertBefore(colon, hourBox);
+                                    }
+                                    dayBox.textContent = String(days).padStart(2, '0');
+                                } else {
+                                    if (dayBox) {
+                                        const colon = document.getElementById('dayColon');
+                                        if (colon) colon.remove();
+                                        dayBox.remove();
+                                    }
+                                }
 
                                 if (hourBox) hourBox.textContent = String(hours).padStart(2, '0');
                                 if (minuteBox) minuteBox.textContent = String(minutes).padStart(2, '0');
                                 if (secondBox) secondBox.textContent = String(seconds).padStart(2, '0');
+
+                                // Dynamic urgency styling: less than 10 minutes remaining
+                                if (timeDiff < 10 * 60 * 1000) {
+                                    const allBoxes = [dayBox, hourBox, minuteBox, secondBox].filter(Boolean);
+                                    allBoxes.forEach(box => {
+                                        box.classList.remove('bg-red-600');
+                                        box.classList.add('bg-gradient-to-r', 'from-red-600', 'to-orange-500', 'animate-pulse');
+                                    });
+                                } else {
+                                    const allBoxes = [dayBox, hourBox, minuteBox, secondBox].filter(Boolean);
+                                    allBoxes.forEach(box => {
+                                        box.classList.remove('bg-gradient-to-r', 'from-red-600', 'to-orange-500', 'animate-pulse');
+                                        box.classList.add('bg-red-600');
+                                    });
+                                }
                             }
+
                             updateClock();
                             const clockInterval = setInterval(updateClock, 1000);
                         }
@@ -1745,7 +1734,7 @@
                 <div id="cart-added-toast" class="premium-toast font-sans">
                     <span class="premium-toast-icon"><i class="fa-solid fa-circle-check"></i></span>
                     <div>
-                        <strong style="display: block; font-weight: 700;">Thành công!</strong>
+                        <strong class="block font-bold">Thành công!</strong>
                         <span class="text-xs" id="toast-message">Đã thêm sản phẩm vào giỏ hàng.</span>
                     </div>
                 </div>
@@ -1905,8 +1894,8 @@
                                 html += `
                                     <article data-product-id="\${item.productId}"
                                         class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
-                                        <a href="\${ctx}/products/detail?id=\${item.productId}" class="block group/link" style="text-decoration: none; color: inherit;">
-                                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                        <a href="\${ctx}/products/detail?id=\${item.productId}" class="block group/link no-underline text-inherit">
+                                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                                                 <img src="\${escapeHtml(item.image || '')}" alt="\${escapeHtml(item.name || '')}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                                 <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-\${item.productId}">Đã thêm 0</div>
                                                 <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">Nông sản sạch</div>
@@ -1995,7 +1984,7 @@
                             // View All button
                             html += `
                                 <div class="flex justify-center mt-8">
-                                    <a href="\${ctx}/products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer" style="text-decoration: none;">
+                                    <a href="\${ctx}/products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary text-white font-bold text-sm px-8 py-3.5 rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer no-underline">
                                         <span class="material-symbols-outlined text-[18px]">grid_view</span>
                                         <span>Xem tất cả sản phẩm</span>
                                     </a>

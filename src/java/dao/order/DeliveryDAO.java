@@ -57,6 +57,12 @@ public class DeliveryDAO extends BaseDAO {
     }
 
     public void updateStatusAndProof(int deliveryId, String status, String failureReason, String proofImageUrl) throws SQLException {
+        try (Connection conn = getConnection()) {
+            updateStatusAndProof(conn, deliveryId, status, failureReason, proofImageUrl);
+        }
+    }
+
+    public void updateStatusAndProof(Connection conn, int deliveryId, String status, String failureReason, String proofImageUrl) throws SQLException {
         // B3 Fix: added space before WHERE to prevent SQL syntax error
         String sql = "UPDATE deliveries SET status = ?, failure_reason = ?, proof_image_url = ?, updated_at = GETDATE() ";
         if ("PICKED_UP".equals(status)) {
@@ -66,8 +72,7 @@ public class DeliveryDAO extends BaseDAO {
         }
         sql += " WHERE delivery_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, status);
             ps.setString(2, failureReason);
             ps.setString(3, proofImageUrl);

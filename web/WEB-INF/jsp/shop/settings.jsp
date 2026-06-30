@@ -7,7 +7,13 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Kênh Người Bán | Cài Đặt Cửa Hàng</title>
+                <title>MetaFruit | Cài Đặt Cửa Hàng</title>
+                <meta name="description"
+                    content="Cài đặt ngưỡng cảnh báo tồn kho thấp và số ngày cảnh báo trước khi lô hàng hết hạn.">
+                <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
+                <!-- Google Fonts & Icons -->
+                <link rel="preconnect" href="https://fonts.googleapis.com">
                 <meta name="description"
                     content="Cài đặt ngưỡng cảnh báo tồn kho thấp và số ngày cảnh báo trước khi lô hàng hết hạn.">
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
@@ -16,140 +22,19 @@
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link
-                    href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+                    href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
                 <!-- Core Tailwind and SweetAlert -->
-                <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-                <script>
-                    tailwind.config = {
-                        theme: {
-                            extend: {
-                                colors: {
-                                    primary: '#4d661c',
-                                    'primary-hover': '#364e03',
-                                    'primary-dk': '#364e03',
-                                    'primary-lt': '#f0f7e6',
-                                    surface: '#ffffff',
-                                    'surface-2': '#f8fafc',
-                                    border: '#e2ece7',
-                                    'txt': '#0f172a',
-                                    'txt-2': '#475569',
-                                    'txt-3': '#94a3b8',
-                                },
-                                fontFamily: {
-                                    sans: ['Lexend', 'Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                                },
-                                boxShadow: {
-                                    card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                                }
-                            }
-                        }
-                    }
-                </script>
 
-                <style>
-                    body {
-                        background-color: #f4fbf7;
-                        font-family: 'Lexend', 'Plus Jakarta Sans', -apple-system, sans-serif;
-                    }
-
-                    .glass-card {
-                        background: #ffffff;
-                        border: 1px solid #e2ece7;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 4px 16px -4px rgba(20, 83, 45, .06);
-                    }
-
-                    .form-input {
-                        width: 100%;
-                        padding: 10px 14px;
-                        border: 1.5px solid #e2ece7;
-                        border-radius: 10px;
-                        font-size: 14px;
-                        font-family: 'Lexend', sans-serif;
-                        background: #fff;
-                        color: #0f172a;
-                        outline: none;
-                        transition: all 0.2s;
-                    }
-
-                    .form-input:focus {
-                        border-color: #4d661c;
-                        box-shadow: 0 0 0 3px rgba(77, 102, 28, 0.12);
-                    }
-
-                    .range-track {
-                        -webkit-appearance: none;
-                        appearance: none;
-                        height: 6px;
-                        background: linear-gradient(to right, #4d661c var(--pct, 50%), #e2ece7 var(--pct, 50%));
-                        border-radius: 9999px;
-                        outline: none;
-                        cursor: pointer;
-                    }
-
-                    .range-track::-webkit-slider-thumb {
-                        -webkit-appearance: none;
-                        width: 20px;
-                        height: 20px;
-                        background: #4d661c;
-                        border-radius: 50%;
-                        box-shadow: 0 2px 6px rgba(77, 102, 28, .3);
-                        transition: transform .15s;
-                    }
-
-                    .range-track::-webkit-slider-thumb:hover {
-                        transform: scale(1.15);
-                    }
-
-                    .toggle-wrapper {
-                        position: relative;
-                        width: 44px;
-                        height: 24px;
-                    }
-
-                    .toggle-wrapper input {
-                        opacity: 0;
-                        width: 0;
-                        height: 0;
-                    }
-
-                    .toggle-slider {
-                        position: absolute;
-                        cursor: pointer;
-                        inset: 0;
-                        background: #cbd5e1;
-                        border-radius: 9999px;
-                        transition: background .2s;
-                    }
-
-                    .toggle-slider:before {
-                        content: '';
-                        position: absolute;
-                        width: 18px;
-                        height: 18px;
-                        left: 3px;
-                        bottom: 3px;
-                        background: #fff;
-                        border-radius: 50%;
-                        transition: transform .2s;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
-                    }
-
-                    .toggle-wrapper input:checked+.toggle-slider {
-                        background: #4d661c;
-                    }
-
-                    .toggle-wrapper input:checked+.toggle-slider:before {
-                        transform: translateX(20px);
-                    }
-                </style>
             </head>
-
-            <body class="antialiased text-[#0f172a]">
+            <body class="antialiased text-txt bg-background">
                 <div class="flex min-h-screen">
                     <!-- Shared Sidebar -->
                     <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
@@ -157,20 +42,20 @@
                     </jsp:include>
 
                     <!-- Main Content Area -->
-                    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+                    <main class="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
                         <!-- Page Header -->
                         <div
-                            class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+                            class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
                             <div>
-                                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Cài Đặt Cửa
+                                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Cài Đặt Cửa
                                     Hàng</h1>
-                                <p class="text-[#475569] text-xs md:text-sm mt-1">Tuỳ chỉnh ngưỡng cảnh báo tồn kho, lô
+                                <p class="text-txt-2 text-xs md:text-sm mt-1">Tuỳ chỉnh ngưỡng cảnh báo tồn kho, lô
                                     hàng sắp hết hạn và các tùy chọn thông báo.</p>
                             </div>
                             <div
-                                class="hidden md:flex items-center gap-2 bg-white/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                                <i class="fa-solid fa-sliders text-[#84cc16]"></i>
+                                class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
+                                <i class="fa-solid fa-sliders text-primary"></i>
                                 <span class="text-xs font-bold uppercase tracking-wider">Shop Settings</span>
                             </div>
                         </div>
@@ -224,10 +109,10 @@
                                                     class="form-input w-24 text-center font-bold text-lg"
                                                     value="${shopProfile.lowStockThreshold > 0 ? shopProfile.lowStockThreshold : 10}"
                                                     required min="1" max="1000" oninput="syncInput('lowStock')">
-                                                <span class="text-xs text-[#94a3b8] whitespace-nowrap">đơn vị</span>
+                                                <span class="text-xs text-txt-3 whitespace-nowrap">đơn vị</span>
                                             </div>
                                         </div>
-                                        <div class="flex justify-between text-[10px] text-[#94a3b8] mt-1 px-1">
+                                        <div class="flex justify-between text-[10px] text-txt-3 mt-1 px-1">
                                             <span>1</span><span>100</span><span>200</span><span>300</span><span>500</span>
                                         </div>
                                     </div>
@@ -244,7 +129,7 @@
                                 </div>
 
                                 <div
-                                    class="mt-4 p-3 bg-[#f0faf3] rounded-xl border border-[#bbf7d0]/60 text-xs text-[#364e03]">
+                                    class="mt-4 p-3 bg-primary-lt rounded-xl border border-primary-fixed/60 text-xs text-primary-dark">
                                     <i class="fa-solid fa-circle-info mr-1.5"></i>
                                     Khi bạn <strong>ẩn hoặc deactivate sản phẩm</strong>, phân loại đó sẽ <strong>tự
                                         động biến mất</strong> khỏi danh sách cảnh báo.
@@ -333,11 +218,12 @@
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-triangle-exclamation"></i></div>
+                                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                            </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-[#0f172a]">Cảnh báo tồn kho thấp
+                                                <p class="text-sm font-semibold text-txt">Cảnh báo tồn kho thấp
                                                 </p>
-                                                <p class="text-xs text-[#94a3b8]">Hiện thông báo khi có phân loại dưới
+                                                <p class="text-xs text-txt-3">Hiện thông báo khi có phân loại dưới
                                                     ngưỡng</p>
                                             </div>
                                         </div>
@@ -349,15 +235,16 @@
                                     </div>
 
                                     <div
-                                        class="flex items-center justify-between p-4 bg-[#f8fafc] rounded-xl border border-[#e2ece7] hover:border-[#4d661c]/30 transition-colors">
+                                        class="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border hover:border-primary/30 transition-colors">
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-calendar-xmark"></i></div>
+                                                <i class="fa-solid fa-calendar-xmark"></i>
+                                            </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-[#0f172a]">Cảnh báo lô hàng hết hạn
+                                                <p class="text-sm font-semibold text-txt">Cảnh báo lô hàng hết hạn
                                                 </p>
-                                                <p class="text-xs text-[#94a3b8]">Thông báo khi lô hàng sắp hết hạn theo
+                                                <p class="text-xs text-txt-3">Thông báo khi lô hàng sắp hết hạn theo
                                                     cài đặt</p>
                                             </div>
                                         </div>
@@ -369,14 +256,15 @@
                                     </div>
 
                                     <div
-                                        class="flex items-center justify-between p-4 bg-[#f8fafc] rounded-xl border border-[#e2ece7] hover:border-[#4d661c]/30 transition-colors">
+                                        class="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border hover:border-primary/30 transition-colors">
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-clipboard-list"></i></div>
+                                                <i class="fa-solid fa-clipboard-list"></i>
+                                            </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-[#0f172a]">Đơn hàng mới</p>
-                                                <p class="text-xs text-[#94a3b8]">Thông báo khi có đơn hàng cần xử lý
+                                                <p class="text-sm font-semibold text-txt">Đơn hàng mới</p>
+                                                <p class="text-xs text-txt-3">Thông báo khi có đơn hàng cần xử lý
                                                 </p>
                                             </div>
                                         </div>
@@ -388,14 +276,15 @@
                                     </div>
 
                                     <div
-                                        class="flex items-center justify-between p-4 bg-[#f8fafc] rounded-xl border border-[#e2ece7] hover:border-[#4d661c]/30 transition-colors">
+                                        class="flex items-center justify-between p-4 bg-surface-2 rounded-xl border border-border hover:border-primary/30 transition-colors">
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-9 h-9 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center text-sm">
-                                                <i class="fa-solid fa-rotate-left"></i></div>
+                                                <i class="fa-solid fa-rotate-left"></i>
+                                            </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-[#0f172a]">Yêu cầu hoàn trả</p>
-                                                <p class="text-xs text-[#94a3b8]">Thông báo khi khách yêu cầu đổi/hoàn
+                                                <p class="text-sm font-semibold text-txt">Yêu cầu hoàn trả</p>
+                                                <p class="text-xs text-txt-3">Thông báo khi khách yêu cầu đổi/hoàn
                                                     trả</p>
                                             </div>
                                         </div>
@@ -407,7 +296,7 @@
                                     </div>
                                 </div>
 
-                                <p class="text-[10px] text-[#94a3b8] mt-4 text-center">
+                                <p class="text-[10px] text-txt-3 mt-4 text-center">
                                     <i class="fa-solid fa-info-circle mr-1"></i>
                                     Tuỳ chọn thông báo lưu tại trình duyệt này. Thay đổi không ảnh hưởng các trình duyệt
                                     khác.
@@ -417,11 +306,11 @@
                             <!-- Submit -->
                             <div class="flex items-center gap-3">
                                 <button type="submit" id="save-btn"
-                                    class="flex items-center gap-2 bg-[#4d661c] hover:bg-[#364e03] text-white font-bold px-8 py-3 rounded-xl shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                                    class="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white font-bold px-8 py-3 rounded-xl shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
                                     <i class="fa-solid fa-floppy-disk"></i> Lưu cài đặt
                                 </button>
                                 <a href="${pageContext.request.contextPath}/shop/dashboard"
-                                    class="flex items-center gap-2 text-sm font-semibold text-[#475569] hover:text-[#4d661c] transition-colors px-4 py-3">
+                                    class="flex items-center gap-2 text-sm font-semibold text-txt-2 hover:text-primary transition-colors px-4 py-3">
                                     <i class="fa-solid fa-arrow-left text-xs"></i> Quay lại Dashboard
                                 </a>
                             </div>
@@ -491,6 +380,17 @@
                         var btn = document.getElementById('save-btn');
                         btn.disabled = true;
                         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+                    });
+
+                    // ===== Ctrl + S Keyboard Shortcut =====
+                    window.addEventListener('keydown', function (e) {
+                        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                            e.preventDefault();
+                            const form = document.getElementById('settings-form');
+                            if (form) {
+                                form.requestSubmit();
+                            }
+                        }
                     });
 
                     window.addEventListener('DOMContentLoaded', function () {

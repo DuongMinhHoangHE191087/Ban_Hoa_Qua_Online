@@ -71,19 +71,21 @@ public class AiSearchServlet extends HttpServlet {
             }
             List<Product> activeProductsForAI = productDAO.findAllActiveForAI();
 
-            // 2. Đọc câu hỏi/yêu cầu tìm kiếm của người dùng sớm để có thể fallback ngay khi cần.
-            byte[] bodyBytes = req.getInputStream().readAllBytes();
-            String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
-            Map<String, Object> requestData;
-            try {
-                requestData = mapper.readValue(jsonInput, Map.class);
-            } catch (Exception parseError) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
-                    "Nội dung tìm kiếm không hợp lệ."));
-                return;
+            // 2. Đọc câu hỏi/yêu cầu tìm kiếm sớm để có thể fallback ngay khi cần.
+            String userMessage = normalizeText(req.getParameter("message"));
+            if (userMessage == null) {
+                byte[] bodyBytes = req.getInputStream().readAllBytes();
+                String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
+                try {
+                    Map<String, Object> requestData = mapper.readValue(jsonInput, Map.class);
+                    userMessage = normalizeText(requestData.get("message"));
+                } catch (Exception parseError) {
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                            "Nội dung tìm kiếm không hợp lệ."));
+                    return;
+                }
             }
-            String userMessage = normalizeText(requestData.get("message"));
 
             if (userMessage == null || userMessage.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -91,16 +93,16 @@ public class AiSearchServlet extends HttpServlet {
                 return;
             }
 
-            // 3. Lấy API Key từ DB, biến môi trường, hoặc file .env trực tiếp
+            // 3. Lấy API Key từ DB, biến môi trường, hoặc AppConfig.GEMINI_API_KEY trực tiếp
             String apiKey = systemConfigDAO.getValue(AppConfig.CONFIG_GEMINI_API_KEY);
-            if (apiKey == null || apiKey.trim().isEmpty()) {
+            if (apiKey == null || apiKey.trim().isEmpty() || "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey.trim())) {
                 apiKey = System.getenv("GEMINI_API_KEY");
             }
-            if (apiKey == null || apiKey.trim().isEmpty()) {
-                apiKey = getApiKeyFromDotEnv();
+            if (apiKey == null || apiKey.trim().isEmpty() || "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey.trim())) {
+                apiKey = AppConfig.GEMINI_API_KEY;
             }
 
-            if (apiKey == null || apiKey.trim().isEmpty()) {
+            if (apiKey == null || apiKey.trim().isEmpty() || "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey.trim())) {
                 LoggerUtil.warn(log, "Gemini API key chưa được cấu hình, chuyển sang fallback nội bộ cho AI search.");
                 writeFallbackResponse(req, resp, userMessage, activeCategories, activeProductsForAI);
                 return;
@@ -346,75 +348,6 @@ public class AiSearchServlet extends HttpServlet {
                     "Lỗi hệ thống khi xử lý AI: " + e.getMessage(),
                     e);
         }
-    }
-
-    private String getApiKeyFromDotEnv() {
-        String[] paths = {
-            ".env",
-            "../.env",
-            "../../.env",
-            System.getProperty("user.dir") + "/.env",
-            System.getProperty("user.dir") + "/../.env"
-        };
-        for (String p : paths) {
-            java.io.File file = new java.io.File(p);
-            if (file.exists() && file.isFile()) {
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file, java.nio.charset.StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        line = line.trim();
-                        if (line.isEmpty() || line.startsWith("#")) continue;
-                        String[] parts = line.split("=", 2);
-                        if (parts.length == 2 && "GEMINI_API_KEY".equals(parts[0].trim())) {
-                            String val = parts[1].trim();
-                            if ((val.startsWith("\"") && val.endsWith("\"")) || (val.startsWith("'") && val.endsWith("'"))) {
-                                val = val.substring(1, val.length() - 1);
-                            }
-                            return val;
-                        }
-                    }
-                } catch (Exception e) {
-                    // Tiếp tục thử đường dẫn tiếp theo
-                }
-            }
-        }
-        // Thử tìm thêm bằng Real Path từ ServletContext nếu có
-        try {
-            String webappPath = getServletContext().getRealPath("/");
-            if (webappPath != null) {
-                String[] contextPaths = {
-                    webappPath + "/.env",
-                    webappPath + "/../.env",
-                    webappPath + "/../../.env",
-                    webappPath + "/../../../.env"
-                };
-                for (String p : contextPaths) {
-                    java.io.File file = new java.io.File(p);
-                    if (file.exists() && file.isFile()) {
-                        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file, java.nio.charset.StandardCharsets.UTF_8))) {
-                            String line;
-                            while ((line = reader.readLine()) != null) {
-                                line = line.trim();
-                                if (line.isEmpty() || line.startsWith("#")) continue;
-                                String[] parts = line.split("=", 2);
-                                if (parts.length == 2 && "GEMINI_API_KEY".equals(parts[0].trim())) {
-                                    String val = parts[1].trim();
-                                    if ((val.startsWith("\"") && val.endsWith("\"")) || (val.startsWith("'") && val.endsWith("'"))) {
-                                        val = val.substring(1, val.length() - 1);
-                                    }
-                                    return val;
-                                }
-                            }
-                        } catch (Exception e) {
-                            // Bỏ qua
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Bỏ qua nếu có lỗi ServletContext
-        }
-        return null;
     }
 
     private String normalizeText(Object value) {

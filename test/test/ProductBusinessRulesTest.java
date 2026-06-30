@@ -72,6 +72,18 @@ public class ProductBusinessRulesTest {
             "ACTIVE", 
             true
         );
+
+        // Tạo shop profile cho testOwnerId để sản phẩm hiển thị trong catalog
+        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
+        model.entity.shop.ShopProfile profile = new model.entity.shop.ShopProfile();
+        profile.setUserId(testOwnerId);
+        profile.setShopName("Rules Shop Test");
+        profile.setShopDescription("Rules test shop");
+        profile.setApprovalStatus("APPROVED");
+        profile.setDeliveryAddress("123 Rules Street");
+        profile.setRating(java.math.BigDecimal.ZERO);
+        profile.setBusinessEmail("rules_biz_" + testOwnerId + "_" + System.currentTimeMillis() + "@company.com");
+        shopProfileDAO.save(profile);
         testCustomerId = userDAO.saveNewCustomer(
             "Customer Junit Rules", 
             "cust_rules_" + System.currentTimeMillis() + "@test.com", 
@@ -127,6 +139,7 @@ public class ProductBusinessRulesTest {
                 categoryDAO.delete(testCategoryId);
             }
             if (testOwnerId != -1) {
+                new dao.shop.ShopProfileDAO().deleteByUserId(testOwnerId);
                 userDAO.deleteUser(testOwnerId);
             }
             if (testCustomerId != -1) {

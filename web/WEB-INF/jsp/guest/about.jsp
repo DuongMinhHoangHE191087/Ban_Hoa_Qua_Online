@@ -8,75 +8,6 @@
 </jsp:include>
 
 <%-- Page-specific styles (no Tailwind re-import — header.jsp already loaded it) --%>
-<style>
-    /* ── Glassmorphism card ── */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.72);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.55);
-    }
-
-    /* ── Hover lift animation ── */
-    .hover-lift {
-        transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-    }
-    .hover-lift:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 24px 48px rgba(77, 102, 28, 0.1);
-    }
-
-    /* ── FIXED text gradient ── */
-    .text-gradient {
-        background: linear-gradient(135deg, #4d661c 0%, #31694b 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        color: transparent;
-        display: inline;
-    }
-
-    /* ── Floating blob animations ── */
-    .blob-1 { animation: blob-float-1 14s ease-in-out infinite; }
-    .blob-2 { animation: blob-float-2 18s ease-in-out infinite; }
-    .blob-3 { animation: blob-float-3 11s ease-in-out infinite; }
-
-    @keyframes blob-float-1 {
-        0%, 100% { transform: translateY(0) scale(1); }
-        50% { transform: translateY(-24px) scale(1.08); }
-    }
-    @keyframes blob-float-2 {
-        0%, 100% { transform: translateY(0) scale(1.05); }
-        50% { transform: translateY(18px) scale(0.92); }
-    }
-    @keyframes blob-float-3 {
-        0%, 100% { transform: translateX(0) scale(1); }
-        50% { transform: translateX(-16px) scale(1.06); }
-    }
-
-    /* ── Timeline connector ── */
-    .step-connector::after {
-        content: '';
-        position: absolute;
-        left: 20px;
-        top: 48px;
-        bottom: -16px;
-        width: 2px;
-        background: linear-gradient(to bottom, #4d661c33, transparent);
-    }
-
-    /* ── Contact input focus ── */
-    .contact-input:focus {
-        outline: none;
-        border-color: #4d661c;
-        box-shadow: 0 0 0 3px rgba(77, 102, 28, 0.15);
-    }
-
-    /* ── Section divider ── */
-    .section-divider {
-        background: linear-gradient(90deg, transparent, rgba(77, 102, 28, 0.15), transparent);
-    }
-</style>
 
 <%-- ====================================================================
      MAIN PAGE WRAPPER
@@ -334,7 +265,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <%-- Card 1: Đà Lạt --%>
             <article class="bg-white rounded-3xl overflow-hidden shadow-sm border border-[#4d661c]/8 flex flex-col group hover-lift">
-                <div class="relative bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center" style="min-height:180px;">
+                <div class="relative bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center min-h-[180px]">
                     <span class="material-symbols-outlined text-[80px] text-red-300">local_florist</span>
                     <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md">Đà Lạt</span>
                 </div>
@@ -346,7 +277,7 @@
 
             <%-- Card 2: Bắc Giang --%>
             <article class="bg-white rounded-3xl overflow-hidden shadow-sm border border-[#4d661c]/8 flex flex-col group hover-lift">
-                <div class="relative bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center" style="min-height:180px;">
+                <div class="relative bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center min-h-[180px]">
                     <span class="material-symbols-outlined text-[80px] text-pink-300">spa</span>
                     <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md">Bắc Giang</span>
                 </div>
@@ -358,7 +289,7 @@
 
             <%-- Card 3: Miền Tây --%>
             <article class="bg-white rounded-3xl overflow-hidden shadow-sm border border-[#4d661c]/8 flex flex-col group hover-lift">
-                <div class="relative bg-gradient-to-br from-yellow-50 to-amber-100 flex items-center justify-center" style="min-height:180px;">
+                <div class="relative bg-gradient-to-br from-yellow-50 to-amber-100 flex items-center justify-center min-h-[180px]">
                     <span class="material-symbols-outlined text-[80px] text-amber-400">emoji_nature</span>
                     <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md">Miền Tây</span>
                 </div>
@@ -370,7 +301,7 @@
 
             <%-- Card 4: Ninh Thuận --%>
             <article class="bg-white rounded-3xl overflow-hidden shadow-sm border border-[#4d661c]/8 flex flex-col group hover-lift">
-                <div class="relative bg-gradient-to-br from-purple-50 to-violet-100 flex items-center justify-center" style="min-height:180px;">
+                <div class="relative bg-gradient-to-br from-purple-50 to-violet-100 flex items-center justify-center min-h-[180px]">
                     <span class="material-symbols-outlined text-[80px] text-purple-400">grocery</span>
                     <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-md">Ninh Thuận</span>
                 </div>

@@ -22,6 +22,8 @@ public class CartItem {
     private String imagePath;
     private int stockQuantity;
     private int productId;
+    private int shopId;
+    private String shopName;
 
     // Packaging option selection properties
     private Integer packagingId;
@@ -69,6 +71,12 @@ public class CartItem {
 
     public int getProductId() { return productId; }
     public void setProductId(int productId) { this.productId = productId; }
+
+    public int getShopId() { return shopId; }
+    public void setShopId(int shopId) { this.shopId = shopId; }
+
+    public String getShopName() { return shopName; }
+    public void setShopName(String shopName) { this.shopName = shopName; }
 
     public Integer getPackagingId() { return packagingId; }
     public void setPackagingId(Integer packagingId) { this.packagingId = packagingId; }

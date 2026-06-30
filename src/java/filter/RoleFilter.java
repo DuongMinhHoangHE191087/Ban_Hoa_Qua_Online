@@ -77,18 +77,22 @@ public class RoleFilter implements Filter {
         // 2. Kiểm tra quyền truy cập theo Vai trò (RBAC)
         boolean allowed = false;
         if (uri.equals(ctx + "/shop/status") || uri.startsWith(ctx + "/shop/status")) {
-            try {
-                ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
-                List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
-                if (!profiles.isEmpty()) {
-                    allowed = true;
-                } else {
-                    resp.sendRedirect(ctx + "/auth/register");
-                    return;
+            if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
+                allowed = true;
+            } else {
+                try {
+                    ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
+                    List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
+                    if (!profiles.isEmpty()) {
+                        allowed = true;
+                    } else {
+                        resp.sendRedirect(ctx + "/auth/register");
+                        return;
+                    }
+                } catch (Exception e) {
+                    LoggerUtil.error(log, "Lỗi kiểm tra quyền vào shop status", e);
+                    throw new ServletException("Không thể kiểm tra trạng thái shop", e);
                 }
-            } catch (Exception e) {
-                LoggerUtil.error(log, "Lỗi kiểm tra quyền vào shop status", e);
-                throw new ServletException("Không thể kiểm tra trạng thái shop", e);
             }
         } else if (uri.equals(ctx + "/admin") || uri.startsWith(ctx + "/admin/")) {
             allowed = AppConfig.ROLE_ADMIN.equals(user.getRole());

@@ -10,7 +10,10 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import static org.junit.Assert.*;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -302,8 +305,14 @@ public class UserAuthFlowTest {
     // Helper methods
     // =========================================================
 
-    /** Khóa tài khoản người dùng (simulate admin lock) */
+    /** Khóa tài khoản người dùng (simulate system lock) */
     private void lockUserAccount(int userId) throws SQLException {
-        userDAO.updateUserStatus(userId, "LOCKED");
+        try (Connection conn = userDAO.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE users SET status = 'LOCKED', locked_until = ? WHERE user_id = ?")) {
+            ps.setTimestamp(1, java.sql.Timestamp.valueOf(LocalDateTime.now().plusHours(1)));
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+        }
     }
 }

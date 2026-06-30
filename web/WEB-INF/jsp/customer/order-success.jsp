@@ -2,7 +2,7 @@
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Đặt hàng thành công - Verdant Market"/></jsp:include>
+<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Đặt hàng thành công - MetaFruit"/></jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
@@ -90,16 +90,6 @@
   }
 </script>
 
-<style>
-    .glass-card {
-        background-color: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 15px -3px rgba(20, 83, 45, 0.05), 0 4px 6px -2px rgba(20, 83, 45, 0.03);
-    }
-</style>
-
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-4xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
     
     <c:choose>
@@ -149,7 +139,12 @@
                     <div class="flex justify-between items-center py-1">
                         <span class="text-on-surface-variant font-medium">Trạng thái đơn hàng:</span>
                         <c:choose>
-                            <c:when test="${order.paymentMethod eq 'CK' and (order.status ne 'PENDING_PAYMENT' or (not empty paymentTx and paymentTx.status eq 'completed'))}">
+                            <c:when test="${order.status eq 'CANCELLED'}">
+                                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full font-bold text-xs">
+                                    Đã hủy
+                                </span>
+                            </c:when>
+                            <c:when test="${order.paymentMethod eq 'CK' and (order.status eq 'CONFIRMED' or order.status eq 'APPROVED' or order.status eq 'PREPARING' or order.status eq 'DISPATCHED' or order.status eq 'DELIVERED' or (not empty paymentTx and paymentTx.status eq 'completed'))}">
                                 <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
                                     Đã thanh toán
                                 </span>
@@ -184,6 +179,9 @@
                     <h4 class="text-sm font-bold text-[#14532D] flex items-center gap-1.5 mb-2">
                         <span class="material-symbols-outlined text-[18px]">info</span>
                         <c:choose>
+                            <c:when test="${order.status eq 'CANCELLED'}">
+                                Đơn hàng đã bị hủy:
+                            </c:when>
                             <c:when test="${order.paymentMethod eq 'CK' and order.status eq 'PENDING_PAYMENT' and (empty paymentTx or paymentTx.status eq 'pending')}">
                                 Hướng dẫn chặng tiếp theo:
                             </c:when>
@@ -199,6 +197,11 @@
                         </c:choose>
                     </h4>
                     <c:choose>
+                        <c:when test="${order.status eq 'CANCELLED'}">
+                            <p class="text-xs text-on-surface-variant leading-relaxed">
+                                Đơn hàng này đã bị hủy trước khi hoàn tất thanh toán hoặc xử lý tiếp theo. Nếu bạn đã chuyển khoản, hãy giữ lại thông tin giao dịch để đối soát với bộ phận hỗ trợ.
+                            </p>
+                        </c:when>
                         <c:when test="${order.paymentMethod eq 'CK' and order.status eq 'PENDING_PAYMENT' and (empty paymentTx or paymentTx.status eq 'pending')}">
                             <p class="text-xs text-on-surface-variant leading-relaxed">
                                 Bạn đã chọn phương thức <strong>Chuyển khoản QR ngân hàng</strong>. Để đơn hàng được xác nhận ngay lập tức và giữ chỗ tồn kho nông sản, vui lòng hoàn tất giao dịch thanh toán.
@@ -219,9 +222,18 @@
                             </p>
                         </c:when>
                         <c:when test="${order.paymentMethod eq 'CK'}">
-                            <p class="text-xs text-on-surface-variant leading-relaxed">
-                                Đơn hàng đã thanh toán. Shop sẽ sớm gửi đơn đi cho bạn. Bạn có thể theo dõi đơn hàng theo đường dẫn dưới đây.
-                            </p>
+                            <c:choose>
+                                <c:when test="${order.orderType eq 'PARENT'}">
+                                    <p class="text-xs text-on-surface-variant leading-relaxed">
+                                        Đơn cha đã được thanh toán. Các đơn con theo từng shop đã được tách riêng và shop sẽ sớm chuẩn bị hàng cho bạn.
+                                    </p>
+                                </c:when>
+                                <c:otherwise>
+                                    <p class="text-xs text-on-surface-variant leading-relaxed">
+                                        Đơn hàng đã thanh toán. Shop sẽ sớm gửi đơn đi cho bạn. Bạn có thể theo dõi đơn hàng theo đường dẫn dưới đây.
+                                    </p>
+                                </c:otherwise>
+                            </c:choose>
                         </c:when>
                         <c:otherwise>
                             <p class="text-xs text-on-surface-variant leading-relaxed">

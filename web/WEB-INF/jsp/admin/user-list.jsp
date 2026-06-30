@@ -4,91 +4,25 @@
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<!DOCTYPE html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý người dùng – Admin Verdant Market</title>
+    <title>Quản lý người dùng – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-        select {
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234d661c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 12px 8px;
-            padding-right: 2.25rem;
-        }
-        .page-btn {
-            display:inline-flex; align-items:center; gap:.3rem;
-            padding:.4rem .875rem; border-radius:.625rem;
-            font-size:.78rem; font-weight:600;
-            border:1px solid #d1d5db; background:#fff;
-            color:#374151; cursor:pointer; transition:all .15s;
-            text-decoration:none;
-        }
-        .page-btn:hover { background:#f1f5f9; border-color:#9ca3af; text-decoration:none; }
-        .page-btn-active { background:#4d661c; border-color:#4d661c; color:#fff; }
-        .page-btn-active:hover { background:#364e03; border-color:#364e03; color:#fff; }
-        .pagination-wrapper { padding: 0 !important; }
-        .pagination { gap: 0.375rem !important; margin: 0 !important; }
-        .pagination .page-link {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
-            font-size: 0.75rem; font-weight: 600;
-            border: 1px solid #e2ece7; background: #fff;
-            color: #374151; cursor: pointer; transition: all 0.15s;
-            text-decoration: none;
-        }
-        .pagination .page-item.active .page-link {
-            background: #4d661c; border-color: #4d661c; color: #fff;
-        }
-        .pagination .page-item.disabled .page-link {
-            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-        }
-        .pagination .page-item .page-link:hover:not(.disabled) {
-            background: #f1f5f9; border-color: #9ca3af;
-        }
-    </style>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
+<input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
 <div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
@@ -96,22 +30,21 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản Lý Người Dùng</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Tìm kiếm thành viên, phân cấp vai trò và kiểm soát trạng thái hoạt động tài khoản.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Quản Lý Người Dùng</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Tìm kiếm thành viên, phân cấp vai trò và kiểm soát trạng thái hoạt động tài khoản.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                <i class="fa-solid fa-users text-[#84cc16]"></i>
+            <div class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
+                <i class="fa-solid fa-users text-primary"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">Thành Viên</span>
             </div>
         </div>
 
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
-
         <%-- Filter and Lists Card --%>
         <div class="glass-card">
             <%-- Filter bar --%>
@@ -187,14 +120,24 @@
                                                             <i class="fa-solid fa-check text-[10px]"></i> ACTIVE
                                                         </span>
                                                     </c:when>
+                                                    <c:when test="${u.status == 'SUSPENDED'}">
+                                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold">
+                                                            <i class="fa-solid fa-ban text-[10px]"></i> SUSPENDED
+                                                        </span>
+                                                    </c:when>
                                                     <c:when test="${u.status == 'LOCKED'}">
                                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-red-800 text-xs font-bold">
                                                             <i class="fa-solid fa-lock text-[10px]"></i> LOCKED
                                                         </span>
                                                     </c:when>
+                                                    <c:when test="${u.status == 'INACTIVE'}">
+                                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold">
+                                                            <i class="fa-regular fa-hourglass-half text-[10px]"></i> INACTIVE
+                                                        </span>
+                                                    </c:when>
                                                     <c:otherwise>
                                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold">
-                                                            ${u.status}
+                                                            <c:out value="${u.status}"/>
                                                         </span>
                                                     </c:otherwise>
                                                 </c:choose>
@@ -209,16 +152,22 @@
                                                 </a>
                                                 <c:choose>
                                                     <c:when test="${u.role ne 'ADMIN'}">
-                                                        <button class="toggle-status-btn bg-white border border-slate-200 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${u.status == 'ACTIVE' ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}"
+                                                        <button class="toggle-status-btn bg-white border border-slate-200 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${u.status == 'ACTIVE' ? 'text-red-600 hover:bg-red-50' : u.status == 'SUSPENDED' ? 'text-emerald-600 hover:bg-emerald-50' : u.status == 'LOCKED' ? 'text-amber-600 hover:bg-amber-50' : 'text-sky-600 hover:bg-sky-50'}"
                                                                 data-id="${u.userId}"
                                                                 data-current="${u.status}"
                                                                 id="btn-toggle-${u.userId}">
                                                             <c:choose>
                                                                 <c:when test="${u.status == 'ACTIVE'}">
-                                                                    <i class="fa-solid fa-lock mr-0.5"></i> Khóa
+                                                                    <i class="fa-solid fa-ban mr-0.5"></i> Đình chỉ
+                                                                </c:when>
+                                                                <c:when test="${u.status == 'SUSPENDED'}">
+                                                                    <i class="fa-solid fa-rotate-left mr-0.5"></i> Khôi phục
+                                                                </c:when>
+                                                                <c:when test="${u.status == 'LOCKED'}">
+                                                                    <i class="fa-solid fa-unlock mr-0.5"></i> Mở khóa
                                                                 </c:when>
                                                                 <c:otherwise>
-                                                                    <i class="fa-solid fa-unlock mr-0.5"></i> Mở
+                                                                    <i class="fa-solid fa-user-check mr-0.5"></i> Kích hoạt
                                                                 </c:otherwise>
                                                             </c:choose>
                                                         </button>
@@ -278,25 +227,93 @@
         return response.json();
     }
 
+    function getStatusBadgeMeta(status) {
+        switch (status) {
+            case 'ACTIVE':
+                return {
+                    className: 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold',
+                    html: '<i class="fa-solid fa-check text-[10px]"></i> ACTIVE'
+                };
+            case 'SUSPENDED':
+                return {
+                    className: 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold',
+                    html: '<i class="fa-solid fa-ban text-[10px]"></i> SUSPENDED'
+                };
+            case 'LOCKED':
+                return {
+                    className: 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-red-800 text-xs font-bold',
+                    html: '<i class="fa-solid fa-lock text-[10px]"></i> LOCKED'
+                };
+            case 'INACTIVE':
+                return {
+                    className: 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold',
+                    html: '<i class="fa-regular fa-hourglass-half text-[10px]"></i> INACTIVE'
+                };
+            default:
+                return {
+                    className: 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold',
+                    html: status
+                };
+        }
+    }
+
+    function getStatusActionMeta(status) {
+        const baseClass = 'toggle-status-btn bg-white border border-slate-200 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer';
+        switch (status) {
+            case 'ACTIVE':
+                return {
+                    nextStatus: 'SUSPENDED',
+                    className: baseClass + ' text-red-600 hover:bg-red-50',
+                    html: '<i class="fa-solid fa-ban mr-0.5"></i> Đình chỉ'
+                };
+            case 'SUSPENDED':
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' text-emerald-600 hover:bg-emerald-50',
+                    html: '<i class="fa-solid fa-rotate-left mr-0.5"></i> Khôi phục'
+                };
+            case 'LOCKED':
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' text-amber-600 hover:bg-amber-50',
+                    html: '<i class="fa-solid fa-unlock mr-0.5"></i> Mở khóa'
+                };
+            case 'INACTIVE':
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' text-sky-600 hover:bg-sky-50',
+                    html: '<i class="fa-solid fa-user-check mr-0.5"></i> Kích hoạt'
+                };
+            default:
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' text-sky-600 hover:bg-sky-50',
+                    html: '<i class="fa-solid fa-user-check mr-0.5"></i> Kích hoạt'
+                };
+        }
+    }
+
     document.querySelectorAll('.toggle-status-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const userId = this.getAttribute('data-id');
             const currentStatus = this.getAttribute('data-current');
-            const newStatus = (currentStatus === 'ACTIVE') ? 'LOCKED' : 'ACTIVE';
+            const actionMeta = getStatusActionMeta(currentStatus);
+            const newStatus = actionMeta.nextStatus;
             
             this.disabled = true;
             const originalHtml = this.innerHTML;
             this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-0.5"></i>';
 
+            const CSRF = document.getElementById('js-csrf').value;
             fetch('${pageContext.request.contextPath}/admin/users/status', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-Token': '${sessionScope._csrfToken}'
+                    'X-CSRF-Token': CSRF
                 },
-                body: 'userId=' + userId + '&status=' + newStatus + '&_csrf=${sessionScope._csrfToken}'
+                body: 'userId=' + encodeURIComponent(userId) + '&status=' + encodeURIComponent(newStatus) + '&_csrf=' + encodeURIComponent(CSRF)
             })
             .then(handleJSONResponse)
             .then(data => {
@@ -305,18 +322,15 @@
                     Toast.fire({ icon: 'success', title: data.data || data.message || 'Cập nhật thành công' });
                     this.setAttribute('data-current', newStatus);
                     const badge = document.getElementById('status-badge-' + userId);
-                    
-                    if (newStatus === 'ACTIVE') {
-                        badge.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold';
-                        badge.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i> ACTIVE';
-                        this.className = 'toggle-status-btn bg-white border border-slate-200 text-red-600 hover:bg-red-50 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer';
-                        this.innerHTML = '<i class="fa-solid fa-lock mr-0.5"></i> Khóa';
-                    } else {
-                        badge.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-red-800 text-xs font-bold';
-                        badge.innerHTML = '<i class="fa-solid fa-lock text-[10px]"></i> LOCKED';
-                        this.className = 'toggle-status-btn bg-white border border-slate-200 text-emerald-600 hover:bg-emerald-50 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer';
-                        this.innerHTML = '<i class="fa-solid fa-unlock mr-0.5"></i> Mở';
+                    const badgeMeta = getStatusBadgeMeta(newStatus);
+                    const nextActionMeta = getStatusActionMeta(newStatus);
+
+                    if (badge) {
+                        badge.className = badgeMeta.className;
+                        badge.innerHTML = badgeMeta.html;
                     }
+                    this.className = nextActionMeta.className;
+                    this.innerHTML = nextActionMeta.html;
                 } else {
                     Toast.fire({ icon: 'error', title: data.error || data.message || 'Có lỗi xảy ra' });
                     this.innerHTML = originalHtml;
@@ -351,15 +365,16 @@
                     const originalHtml = this.innerHTML;
                     this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-0.5"></i>';
 
-            fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
+                    const CSRF = document.getElementById('js-csrf').value;
+                    fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
                         method: 'POST',
                         credentials: 'same-origin',
                         headers: { 
                             'Content-Type': 'application/x-www-form-urlencoded',
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-Token': '${sessionScope._csrfToken}'
+                            'X-CSRF-Token': CSRF
                         },
-                        body: 'userId=' + userId + '&_csrf=${sessionScope._csrfToken}'
+                        body: 'userId=' + encodeURIComponent(userId) + '&_csrf=' + encodeURIComponent(CSRF)
                     })
                     .then(handleJSONResponse)
                     .then(data => {

@@ -5,72 +5,25 @@
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<!DOCTYPE html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yêu cầu Đổi trả – Admin Verdant Market</title>
+    <title>Yêu cầu Đổi trả – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-        select {
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234d661c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 12px 8px;
-            padding-right: 2.25rem;
-        }
-        .page-btn {
-            display:inline-flex; align-items:center; gap:.3rem;
-            padding:.4rem .875rem; border-radius:.625rem;
-            font-size:.78rem; font-weight:600;
-            border:1px solid #d1d5db; background:#fff;
-            color:#374151; cursor:pointer; transition:all .15s;
-            text-decoration:none;
-        }
-        .page-btn:hover { background:#f1f5f9; border-color:#9ca3af; text-decoration:none; }
-        .page-btn-active { background:#4d661c; border-color:#4d661c; color:#fff; }
-        .page-btn-active:hover { background:#364e03; border-color:#364e03; color:#fff; }
-    </style>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
@@ -78,22 +31,21 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản Lý Đổi Trả / Hoàn Tiền</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Xử lý yêu cầu trả hàng, hoàn tiền từ khách hàng đối với các đơn lỗi.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Quản Lý Đổi Trả / Hoàn Tiền</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Xử lý yêu cầu trả hàng, hoàn tiền từ khách hàng đối với các đơn lỗi.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+            <div class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
                 <i class="fa-solid fa-rotate-left text-red-500"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">Đổi trả</span>
             </div>
         </div>
 
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
-
         <%-- Filter and Lists Card --%>
         <div class="glass-card">
             <%-- Filter bar --%>

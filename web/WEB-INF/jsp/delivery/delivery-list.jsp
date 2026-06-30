@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Lịch sử giao hàng"/>
+    <jsp:param name="pageTitle" value="MetaFruit | Lịch sử giao hàng"/>
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms"></script>
@@ -22,13 +22,6 @@ tailwind.config = {
 }
 </script>
 
-<style>
-body { background: #F0FDF4; }
-.glass-card { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); border: 1px solid rgba(187,247,208,0.6); box-shadow: 0 4px 24px -6px rgba(22,163,74,0.08); }
-.status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:9999px; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
-.tab-pill { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:9999px; font-size:12px; font-weight:700; transition:all .18s; cursor:pointer; text-decoration:none; }
-</style>
-
 <main class="max-w-7xl mx-auto px-4 md:px-8 py-10 font-sans text-txt">
 
     <%-- Header --%>
@@ -44,7 +37,7 @@ body { background: #F0FDF4; }
         </div>
         <a href="${pageContext.request.contextPath}/delivery/dashboard"
            class="text-primary hover:text-primary-hover text-sm font-bold flex items-center gap-1.5">
-            <i class="fa-solid fa-gauge-high"></i> Dashboard
+            <i class="fa-solid fa-gauge-high"></i> Tổng quan
         </a>
     </div>
 

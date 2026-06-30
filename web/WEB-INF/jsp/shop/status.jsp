@@ -13,65 +13,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Material Symbols Outlined -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
     <!-- Tailwind CSS -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#14532D",
-                        "primary-hover": "#166534",
-                        "primary-light": "#d1ffd8",
-                        "surface": "#eaffea",
-                        "on-surface": "#00210d",
-                        "on-surface-variant": "#44483b",
-                        "outline": "#75796a",
-                        "outline-variant": "#c5c8b7",
-                        "error": "#ba1a1a"
-                    },
-                    borderRadius: {
-                        "lg": "0.75rem",
-                        "xl": "1.25rem",
-                        "2xl": "1.5rem"
-                    },
-                    fontFamily: {
-                        sans: ["Lexend", "sans-serif"]
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Lexend', sans-serif;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 10px 30px rgba(20, 83, 45, 0.05);
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #14532D;
-            border-radius: 9999px;
-        }
-    </style>
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
 </head>
 <body class="bg-emerald-50/50 text-on-surface min-h-screen flex flex-col antialiased relative">
 
     <!-- Decorative Organic Background -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div class="absolute inset-0 bg-cover bg-center opacity-10 mix-blend-multiply" 
-             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24');">
+        <div class="absolute inset-0 bg-cover bg-center opacity-10 mix-blend-multiply bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24')]">
         </div>
         <div class="absolute inset-0 bg-gradient-to-br from-white/95 via-emerald-50/40 to-emerald-100/30 backdrop-blur-[2px]"></div>
     </div>
@@ -79,7 +30,7 @@
     <!-- Top AppBar Navigation Header -->
     <header class="flex justify-between items-center w-full px-6 md:px-12 py-4 z-50 fixed top-0 left-0 right-0 border-b border-white/20 bg-white/70 backdrop-blur-md shadow-[0_2px_15px_rgba(20,83,45,0.02)]">
         <div class="flex items-center gap-2">
-            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
             <div class="text-xl font-bold text-primary tracking-wide">
                 MetaFruit
             </div>
@@ -96,7 +47,7 @@
     </header>
 
     <!-- Main Content Container -->
-    <main class="flex-1 flex items-center justify-center pt-28 pb-16 px-4 md:px-8 relative z-10 w-full">
+    <main class="flex-1 flex items-center justify-center pt-28 pb-16 px-4 md:px-8 relative z-10 w-full animate-fade-in-up opacity-0">
         
         <div class="w-full max-w-5xl glass-card rounded-2xl p-6 md:p-10 transition-all duration-300">
             

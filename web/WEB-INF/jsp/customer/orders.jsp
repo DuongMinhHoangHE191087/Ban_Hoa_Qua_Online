@@ -83,35 +83,6 @@
     }
 </script>
 
-<style>
-    .premium-glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.05);
-    }
-    .pagination-wrapper { padding: 0 !important; }
-    .pagination { gap: 0.375rem !important; margin: 0.5rem 0 0 0 !important; display: flex; list-style: none; justify-content: center; }
-    .pagination .page-link {
-        display: inline-flex; align-items: center; justify-content: center;
-        min-width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;
-        font-size: 0.75rem; font-weight: 600;
-        border: 1px solid #e2ece7; background: #fff;
-        color: #374151; cursor: pointer; transition: all 0.15s;
-        text-decoration: none;
-    }
-    .pagination .page-item.active .page-link {
-        background: #4d661c; border-color: #4d661c; color: #fff;
-    }
-    .pagination .page-item.disabled .page-link {
-        color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-    }
-    .pagination .page-item .page-link:hover:not(.disabled) {
-        background: #f1f5f9; border-color: #9ca3af;
-    }
-</style>
-
 <main class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-on-background">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-baseline md:justify-between mb-lg border-b border-surface-container-high pb-4 gap-4">

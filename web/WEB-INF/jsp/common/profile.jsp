@@ -176,12 +176,12 @@
                                      src="${fn:startsWith(user.avatarUrl, 'http') ? user.avatarUrl : pageContext.request.contextPath.concat('/').concat(user.avatarUrl)}" 
                                      alt="Avatar"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                <div class="avatar-fallback" style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; text-transform: uppercase; border-radius: 50%;">
+                                <div class="avatar-fallback is-hidden bg-gradient-to-br from-[#14532d] to-[#166534] text-white font-bold text-[18px] uppercase rounded-full">
                                     <c:out value="${fn:substring(user.fullName, 0, 1)}"/>
                                 </div>
                             </c:when>
                             <c:otherwise>
-                                <div class="avatar-fallback" style="display: flex; width: 100%; height: 100%; background: linear-gradient(135deg, #14532d, #166534); color: white; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; text-transform: uppercase; border-radius: 50%;">
+                                <div class="avatar-fallback bg-gradient-to-br from-[#14532d] to-[#166534] text-white font-bold text-[18px] uppercase rounded-full">
                                     <c:out value="${fn:substring(user.fullName, 0, 1)}"/>
                                 </div>
                             </c:otherwise>

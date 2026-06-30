@@ -211,6 +211,10 @@ public class CheckoutServlet extends HttpServlet {
         } catch (Exception e) {
             LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
         }
+        if (AppConfig.ORDER_CANCELLED.equals(order.getStatus())) {
+            resp.sendRedirect(req.getContextPath() + "/profile/order-detail?orderId=" + order.getOrderId());
+            return;
+        }
         if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())
                 || (paymentTx != null && !"pending".equalsIgnoreCase(paymentTx.getStatus()))) {
             resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + order.getOrderId());

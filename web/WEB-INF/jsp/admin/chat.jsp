@@ -10,33 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-<style>
-    body { font-family: 'Lexend', sans-serif; }
-    .glass-panel {
-        background-color: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-    }
-    .chat-layout { height: calc(100vh - 120px); min-height: 550px; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .session-item.active { background: rgba(224, 231, 255, 0.7); border-color: #3730a3; }
-    
-    .ws-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; }
-    .ws-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .ws-dot.connected { background: #22c55e; animation: pulse 2s infinite; }
-    .ws-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
-    .ws-dot.disconnected { background: #ef4444; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    
-    .badge-shop  { background: #dcfce7; color: #166534; }
-    .badge-admin { background: #e0e7ff; color: #3730a3; }
-</style>
-
-<main class="flex-1 overflow-hidden bg-slate-50 text-slate-800 flex chat-layout relative" style="background-image: radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 40%);">
+<main class="flex-1 overflow-hidden bg-slate-50 text-slate-800 flex chat-layout relative bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.08),transparent_40%)]">
     
     <!-- Left Column: Chat List -->
     <aside class="w-full md:w-[320px] lg:w-[360px] flex-shrink-0 flex flex-col border-r border-slate-200 glass-panel bg-white/40 relative z-10 hidden md:flex">
@@ -161,7 +135,7 @@
                         <textarea id="chatInput" class="flex-1 bg-transparent border-none resize-none focus:ring-0 text-slate-800 placeholder:text-slate-400 font-body-md text-sm py-2 px-1 max-h-32 min-h-[40px] border-transparent focus:border-transparent focus:outline-none" placeholder="Nhập câu trả lời hỗ trợ..." rows="1"></textarea>
                         
                         <button type="button" id="btnSendMessage" class="p-2 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mb-0.5">
-                            <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">send</span>
+                            <span class="material-symbols-outlined text-xl fill-1">send</span>
                         </button>
                     </div>
                 </div>

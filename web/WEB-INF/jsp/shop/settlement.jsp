@@ -1,14 +1,19 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" isErrorPage="false" %>
-    <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-        <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-            <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
                 <!DOCTYPE html>
                 <html lang="vi">
 
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Kênh Người Bán | Đối Soát & Doanh Thu</title>
+                    <title>MetaFruit | Đối Soát & Doanh Thu</title>
+
+                    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
+                    <!-- Google Fonts & Icons -->
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
 
                     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
@@ -19,61 +24,16 @@
                         href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
                         rel="stylesheet">
                     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-
+                    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
                     <!-- Core Tailwind and SweetAlert -->
-                    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-                    <script>
-                        tailwind.config = {
-                            theme: {
-                                extend: {
-                                    colors: {
-                                        primary: '#4d661c',
-                                        'primary-hover': '#364e03',
-                                        'primary-dk': '#364e03',
-                                        'primary-lt': '#f0f7e6',
-                                        surface: '#ffffff',
-                                        'surface-2': '#f8fafc',
-                                        border: '#e2ece7',
-                                        'txt': '#0f172a',
-                                        'txt-2': '#475569',
-                                        'txt-3': '#94a3b8',
-                                    },
-                                    fontFamily: {
-                                        sans: ['Segoe UI', 'Lexend', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                                    },
-                                    boxShadow: {
-                                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                                    }
-                                }
-                            }
-                        }
-                    </script>
 
-                    <style>
-                        body {
-                            background-color: #f4fbf7;
-                            font-family: 'Segoe UI', 'Lexend', -apple-system, sans-serif;
-                        }
-
-                        .glass-card {
-                            background: #ffffff;
-                            border: 1px solid #e2ece7;
-                            box-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 4px 16px -4px rgba(20, 83, 45, .06);
-                        }
-
-                        tbody tr {
-                            transition: background .12s;
-                        }
-
-                        tbody tr:hover td {
-                            background: #f8fafc;
-                        }
-                    </style>
                 </head>
 
-                <body class="antialiased text-[#0f172a]">
+                <body class="antialiased text-txt bg-background">
                     <div class="flex min-h-screen">
                         <!-- Shared Sidebar -->
                         <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
@@ -81,19 +41,19 @@
                         </jsp:include>
 
                         <!-- Main Content Area -->
-                        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+                        <main class="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
                             <!-- Header Section -->
                             <div
-                                class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+                                class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
                                 <div>
-                                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Đối
+                                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Đối
                                         Soát & Doanh Thu</h1>
-                                    <p class="text-[#475569] text-xs md:text-sm mt-1">Theo dõi các kỳ đối soát tài
+                                    <p class="text-txt-2 text-xs md:text-sm mt-1">Theo dõi các kỳ đối soát tài
                                         chính, doanh thu thực nhận và phí hệ thống.</p>
                                 </div>
                                 <div
-                                    class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                                    <i class="fa-solid fa-wallet text-[#84cc16]"></i>
+                                    class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
+                                    <i class="fa-solid fa-wallet text-primary"></i>
                                     <span class="text-xs font-bold uppercase tracking-wider">Tài chính</span>
                                 </div>
                             </div>
@@ -251,13 +211,9 @@
                                                         </c:choose>
                                                     </td>
                                                     <td class="px-6 py-4 text-center">
-                                                        <fmt:formatDate var="startStr" value="${s.periodStartAsDate}"
-                                                            pattern="dd/MM/yyyy" />
-                                                        <fmt:formatDate var="endStr" value="${s.periodEndAsDate}"
-                                                            pattern="dd/MM/yyyy" />
-                                                        <button type="button"
-                                                            onclick="openDetails('${s.settlementId}', '${startStr} - ${endStr}')"
-                                                            class="inline-flex items-center gap-1 bg-primary hover:bg-primary-dk text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
+                                                        <fmt:formatDate var="startStr" value="${s.periodStartAsDate}" pattern="dd/MM/yyyy" />
+                                                        <fmt:formatDate var="endStr" value="${s.periodEndAsDate}" pattern="dd/MM/yyyy" />
+                                                        <button type="button" onclick="openDetails('${s.settlementId}', '${startStr} - ${endStr}')" class="inline-flex items-center gap-1 bg-primary hover:bg-primary-dk text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
                                                             <i class="fa-solid fa-magnifying-glass-chart"></i> Chi tiết
                                                         </button>
                                                     </td>
