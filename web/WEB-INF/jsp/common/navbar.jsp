@@ -126,7 +126,7 @@
                         </a>
                         
                         <!-- Dropdown Menu -->
-                        <div id="notifDropdown" class="hidden notif-dropdown">
+                        <div id="notifDropdown" class="notif-dropdown">
                             <div class="notif-dropdown__header flex justify-between items-center px-4 py-3 border-b border-slate-100">
                                 <span class="font-bold text-slate-800 text-sm">Thông báo mới</span>
                                 <button type="button" id="btnMarkAllReadAjax" class="text-xs font-semibold text-primary hover:text-primary-dark border-0 bg-transparent cursor-pointer">Đọc tất cả</button>
@@ -239,18 +239,18 @@
         if (btnNotifDropdown && notifDropdown) {
             btnNotifDropdown.addEventListener('click', function(e) {
                 e.stopPropagation();
-                const isHidden = notifDropdown.style.display === 'none' || notifDropdown.style.display === '';
-                if (isHidden) {
-                    notifDropdown.style.display = 'block';
+                const isShown = notifDropdown.classList.contains('show');
+                if (!isShown) {
+                    notifDropdown.classList.add('show');
                     loadRecentNotifications();
                 } else {
-                    notifDropdown.style.display = 'none';
+                    notifDropdown.classList.remove('show');
                 }
             });
 
             document.addEventListener('click', function(e) {
                 if (notifDropdown && !notifDropdown.contains(e.target) && e.target !== btnNotifDropdown) {
-                    notifDropdown.style.display = 'none';
+                    notifDropdown.classList.remove('show');
                 }
             });
         }
@@ -268,7 +268,7 @@
                         return;
                     }
                     if (notifDropdown) {
-                        notifDropdown.style.display = 'none';
+                        notifDropdown.classList.remove('show');
                     }
                     return NotificationAjax.refreshBadges().then(loadRecentNotifications);
                 })

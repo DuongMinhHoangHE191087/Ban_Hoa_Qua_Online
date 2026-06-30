@@ -37,8 +37,16 @@ public class InventoryService {
 
     /**
      * Nhập kho kèm theo ngày hết hạn (Expires At) tùy chọn.
+     * Nếu không cung cấp expiresAt và sản phẩm có shelf_life_days, sẽ tự tính:
+     *   expiresAt = today + shelf_life_days
+     * Validation:
+     *   - quantity > 0
+     *   - changedAt không được là ngày tương lai
+     *   - expiresAt (sau khi tính) không được trước changedAt
+     *   - expiresAt không được vượt quá today + shelf_life_days
      */
-    public void restockWithExpiry(int variantId, int quantity, String note, LocalDate changedAt, LocalDate expiresAt, int userId) throws SQLException {
+    public void restockWithExpiry(int variantId, int quantity, String note,
+                                   LocalDate changedAt, LocalDate expiresAt, int userId) throws SQLException {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Số lượng nhập kho phải lớn hơn 0.");
         }
@@ -48,8 +56,33 @@ public class InventoryService {
         if (changedAt.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Ngày nhập kho không thể là ngày trong tương lai.");
         }
-        if (expiresAt != null && expiresAt.isBefore(changedAt)) {
-            throw new IllegalArgumentException("Ngày hết hạn không thể trước ngày nhập kho.");
+
+        // Lấy shelf_life_days một lần cho cả auto-calc và validate
+        Integer shelfLifeDays = inventoryDAO.getShelfLifeByVariantId(variantId);
+        LocalDate maxExpiry = (shelfLifeDays != null && shelfLifeDays > 0)
+                ? LocalDate.now().plusDays(shelfLifeDays) : null;
+
+        // Tự động tính expiresAt = today + shelf_life_days nếu người dùng không nhập
+        if (expiresAt == null && maxExpiry != null) {
+            expiresAt = maxExpiry;
+            log.info("[Inventory] Auto-set expiresAt = " + expiresAt + " cho variant " + variantId);
+        }
+
+        // Validate expiresAt nếu có (kể cả sau khi auto-calc)
+        if (expiresAt != null) {
+            if (expiresAt.isBefore(changedAt)) {
+                throw new IllegalArgumentException("Ngày hết hạn không thể trước ngày nhập kho.");
+            }
+            if (expiresAt.isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException("Ngày hết hạn không được là ngày trong quá khứ.");
+            }
+            if (maxExpiry != null && expiresAt.isAfter(maxExpiry)) {
+                throw new IllegalArgumentException(
+                    "Ngày hết hạn không được vượt quá " + shelfLifeDays
+                    + " ngày kể từ hôm nay (tối đa: "
+                    + maxExpiry.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    + ").");
+            }
         }
 
         try (Connection conn = inventoryDAO.openConnection()) {
@@ -76,7 +109,7 @@ public class InventoryService {
                 // 3. Cập nhật tồn kho thực tế
                 productVariantDAO.updateStock(conn, variantId, quantity);
 
-                // 4. Lấy productId từ variantId và cập nhật ngày thu hoạch cùng trạng thái sản phẩm sang ACTIVE
+                // 4. Cập nhật ngày thu hoạch và trạng thái sản phẩm sang ACTIVE
                 int productId = productVariantDAO.getProductId(conn, variantId);
                 productDAO.updateHarvestDateAndStatus(conn, productId, changedAt, "ACTIVE");
 
@@ -101,6 +134,14 @@ public class InventoryService {
     }
 
     /**
+     * Lấy shelf_life_days của sản phẩm thông qua variant_id — dùng cho Servlet để truyền xuống JSP.
+     * Trả về null nếu không cấu hình.
+     */
+    public Integer getShelfLifeForVariant(int variantId) throws SQLException {
+        return inventoryDAO.getShelfLifeByVariantId(variantId);
+    }
+
+    /**
      * Lấy danh sách lô hàng nhập kho còn hiệu lực (chưa hết hạn / chưa bị đánh dấu expired).
      * Dùng cho bảng quản lý lô hàng / ngày hết hạn trên trang Tồn kho.
      */
@@ -113,6 +154,21 @@ public class InventoryService {
 
     public void reserve(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
+
+        // FIFO audit: tìm lô có ngày HH sớm nhất để ghi vào note
+        String fifoNote = "Giữ hàng cho đơn hàng #" + orderId;
+        try {
+            InventoryLog fifoLog = inventoryDAO.findOldestActiveBatchForVariant(conn, variantId);
+            if (fifoLog != null) {
+                fifoNote += " [FIFO: Lô #" + fifoLog.getLogId();
+                if (fifoLog.getExpiresAt() != null) {
+                    fifoNote += ", HH: " + fifoLog.getFormattedExpiresAt();
+                }
+                fifoNote += "]";
+            }
+        } catch (Exception ex) {
+            LoggerUtil.warn(log, "Không thể tra cứu FIFO batch cho variantId=" + variantId, ex);
+        }
 
         // Trực tiếp cập nhật nguyên tử tồn kho và lấy ra tồn kho mới sau cập nhật
         int stockAfter;
@@ -128,7 +184,7 @@ public class InventoryService {
         logEntry.setChangeType("ORDER_RESERVE");
         logEntry.setQuantityDelta(-qty);
         logEntry.setQuantityAfter(stockAfter);
-        logEntry.setNote("Giữ hàng cho đơn hàng #" + orderId);
+        logEntry.setNote(fifoNote);
         logEntry.setChangedAt(LocalDateTime.now());
 
         inventoryDAO.save(conn, logEntry);

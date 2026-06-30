@@ -6,7 +6,7 @@
     <jsp:param name="pageTitle" value="MetaFruit | Lịch sử giao hàng"/>
 </jsp:include>
 
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <script>
 tailwind.config = {
     theme: {
@@ -41,17 +41,7 @@ tailwind.config = {
         </a>
     </div>
 
-    <%-- Flash Message --%>
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div id="flash-alert" class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 text-sm font-semibold shadow-sm
-             ${sessionScope.flashType == 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-400 text-red-800'}">
-            <i class="fa-solid ${sessionScope.flashType == 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
-            <span class="flex-1"><c:out value="${sessionScope.flashMsg}"/></span>
-            <button onclick="document.getElementById('flash-alert').remove()" class="opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <%-- Status Filter Tabs --%>
     <div class="flex flex-wrap gap-2 mb-6 bg-white/60 border border-border-c p-2 rounded-2xl backdrop-blur">

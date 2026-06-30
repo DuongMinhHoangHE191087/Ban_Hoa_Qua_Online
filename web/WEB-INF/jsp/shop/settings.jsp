@@ -60,22 +60,7 @@
                             </div>
                         </div>
 
-                        <!-- Flash Messages -->
-                        <c:if test="${not empty sessionScope.flashMsg}">
-                            <script>
-                                window.addEventListener('DOMContentLoaded', function () {
-                                    Swal.fire({
-                                        icon: '${sessionScope.flashType == "error" ? "error" : "success"}',
-                                        title: '${sessionScope.flashType == "error" ? "Thất bại" : "Thành công"}',
-                                        text: '${sessionScope.flashMsg}',
-                                        confirmButtonColor: '#4d661c',
-                                        timer: 3000
-                                    });
-                                });
-                            </script>
-                            <c:remove var="flashMsg" scope="session" />
-                            <c:remove var="flashType" scope="session" />
-                        </c:if>
+
 
                         <form action="${pageContext.request.contextPath}/shop/settings" method="post" class="space-y-6"
                             id="settings-form">

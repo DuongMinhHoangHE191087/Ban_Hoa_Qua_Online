@@ -45,25 +45,6 @@
                             </div>
                         </div>
 
-                        <!-- Flash Message -->
-                        <c:if test="${not empty sessionScope.flashMsg}">
-                            <div id="flash-alert"
-                                class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 shadow-sm text-sm font-semibold
-                 ${sessionScope.flashType == 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-500 text-red-800'}">
-                                <i
-                                    class="fa-solid ${sessionScope.flashType == 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
-                                <span class="flex-1">
-                                    <c:out value="${sessionScope.flashMsg}" />
-                                </span>
-                                <button onclick="document.getElementById('flash-alert').remove()"
-                                    class="opacity-60 hover:opacity-100 transition-opacity">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </div>
-                            <c:remove var="flashMsg" scope="session" />
-                            <c:remove var="flashType" scope="session" />
-                        </c:if>
-
                         <!-- Status Filter Pills -->
                         <div class="flex flex-wrap gap-2 mb-6">
                             <a href="?status="

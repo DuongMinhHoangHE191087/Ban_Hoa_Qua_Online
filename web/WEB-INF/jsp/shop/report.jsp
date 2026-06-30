@@ -6,15 +6,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Báo cáo & Thống kê | MetaFruit</title>
+    <title>Báo cáo &amp; Thống kê | MetaFruit</title>
 
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
-    <!-- Google Fonts & Icons -->
+    <!-- Local Fonts & Icons (offline-safe) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
@@ -37,7 +37,7 @@
             <!-- Header Section -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-3xl shadow-sm mb-8">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight font-sans">Thống Kê & Báo Cáo Doanh Thu</h1>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight font-sans">Thống Kê &amp; Báo Cáo Doanh Thu</h1>
                     <p class="text-txt-2 text-xs md:text-sm mt-1">Phân tích chuyên sâu về doanh thu cửa hàng, tình trạng đơn hàng và hành vi mua sắm.</p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -198,25 +198,32 @@
 
             <%-- Fruit Usage Report Table --%>
             <div class="glass-card p-6 mb-8 rounded-2xl">
-                <div class="flex items-center justify-between mb-6 border-b border-border pb-4">
-                    <h3 class="text-base font-bold text-txt"><i class="fa-solid fa-basket-shopping text-amber-500 mr-1.5"></i>Báo cáo bán hàng & mức sử dụng trái cây cửa hàng</h3>
-                    <span class="text-xs text-txt-3 font-semibold">Bộ dữ liệu giai đoạn</span>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-border pb-4 gap-3">
+                    <h3 class="text-base font-bold text-txt"><i class="fa-solid fa-basket-shopping text-amber-500 mr-1.5"></i>Báo cáo bán hàng &amp; mức sử dụng trái cây cửa hàng</h3>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <i class="fa-solid fa-search text-txt-3 absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                            <input type="text" id="fruitSearch" placeholder="Tìm sản phẩm..."
+                                   class="pl-8 pr-4 py-1.5 border border-border rounded-xl text-xs focus:outline-none focus:border-primary bg-surface-2 w-44 transition-all">
+                        </div>
+                        <span class="text-xs text-txt-3 font-semibold whitespace-nowrap" id="fruitRowCount"></span>
+                    </div>
                 </div>
-                <div class="table-container overflow-x-auto">
+                <div class="overflow-x-auto overflow-y-auto max-h-[520px]">
                     <table class="w-full border-collapse text-left" id="fruitUsageTable">
-                        <thead>
-                            <tr class="border-b border-border text-xs font-bold text-txt-3 uppercase tracking-wider">
-                                <th class="pb-3 pr-4">Tên Trái Cây / Sản Phẩm</th>
-                                <th class="pb-3 px-4">Phân loại</th>
-                                <th class="pb-3 px-4 text-center">Số lượng đã bán</th>
-                                <th class="pb-3 px-4 text-right">Tổng doanh số</th>
-                                <th class="pb-3 pl-4 text-center">Số đơn hàng</th>
+                        <thead class="sticky top-0 z-10">
+                            <tr class="border-b border-border text-xs font-bold text-txt-3 uppercase tracking-wider bg-surface-2">
+                                <th class="py-3 px-3">Tên Trái Cây / Sản Phẩm</th>
+                                <th class="py-3 px-4">Phân loại</th>
+                                <th class="py-3 px-4 text-center">Số lượng đã bán</th>
+                                <th class="py-3 px-4 text-right">Tổng doanh số</th>
+                                <th class="py-3 px-4 text-center">Số đơn hàng</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-border text-sm text-txt-2">
+                        <tbody id="fruitTableBody" class="divide-y divide-border text-sm text-txt-2">
                             <c:forEach var="item" items="${fruitUsage}">
-                                <tr class="hover:bg-surface-2 transition-colors">
-                                    <td class="py-3.5 pr-4 font-bold text-txt"><c:out value="${item.productName}"/></td>
+                                <tr data-fruit-row class="hover:bg-surface-2 transition-colors">
+                                    <td class="py-3.5 px-3 font-bold text-txt"><c:out value="${item.productName}"/></td>
                                     <td class="py-3.5 px-4"><span class="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded-md"><c:out value="${item.variantLabel}"/></span></td>
                                     <td class="py-3.5 px-4 text-center font-semibold text-txt">${item.totalQuantity}</td>
                                     <td class="py-3.5 px-4 text-right font-bold text-primary"><ft:currency value="${item.totalAmount}" /></td>
@@ -301,7 +308,6 @@
 
         // B. Biểu đồ tỉ lệ đơn hàng theo trạng thái
         const statusCtx = document.getElementById('orderStatusChart').getContext('2d');
-        // Map status tiếng Anh sang tiếng Việt để hiển thị trực quan
         const statusLabelsVi = {
             'PENDING_PAYMENT': 'Chờ thanh toán',
             'APPROVED': 'Đã duyệt',
@@ -348,7 +354,7 @@
                 }]
             },
             options: {
-                indexAxis: 'y', // Biểu đồ cột nằm ngang
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
@@ -370,17 +376,35 @@
                 let month = '' + (date.getMonth() + 1);
                 let day = '' + date.getDate();
                 let year = date.getFullYear();
-
                 if (month.length < 2) month = '0' + month;
                 if (day.length < 2) day = '0' + day;
-
                 return [year, month, day].join('-');
-            }
+            };
 
             document.getElementsByName('startDate')[0].value = formatDate(start);
             document.getElementsByName('endDate')[0].value = formatDate(end);
             document.forms[0].submit();
         }
+
+        // Fruit table search filter
+        (function() {
+            const searchEl = document.getElementById('fruitSearch');
+            const countEl  = document.getElementById('fruitRowCount');
+            const tbody    = document.getElementById('fruitTableBody');
+            if (!searchEl || !tbody) return;
+            const allRows = Array.from(tbody.querySelectorAll('tr[data-fruit-row]'));
+            countEl.textContent = allRows.length + ' sản phẩm';
+            searchEl.addEventListener('input', function() {
+                const term = this.value.toLowerCase().trim();
+                let vis = 0;
+                allRows.forEach(function(row) {
+                    const match = term === '' || row.textContent.toLowerCase().includes(term);
+                    row.style.display = match ? '' : 'none';
+                    if (match) vis++;
+                });
+                countEl.textContent = (term === '' ? allRows.length : vis) + ' sản phẩm';
+            });
+        })();
 
         // Xuất báo cáo CSV phía client
         function exportToCSV() {
@@ -391,7 +415,6 @@
                 ["Ten San Pham", "Phien Ban", "So Luong Ban", "Doanh Thu (VND)", "So Don Hang"]
             ];
 
-            // Duyệt dòng dữ liệu trong bảng để xuất
             const jspData = [
                 <c:forEach var="item" items="${fruitUsage}">
                     [
@@ -411,12 +434,10 @@
 
             rows.push(...jspData);
 
-            // Chuyển mảng thành định dạng CSV
             let csvContent = "";
             rows.forEach(function(rowArray) {
                 let row = rowArray.map(val => {
                     if (typeof val === 'string') {
-                        // Escape double quotes
                         return '"' + val.replace(/"/g, '""') + '"';
                     }
                     return val;
@@ -424,7 +445,6 @@
                 csvContent += row + "\r\n";
             });
 
-            // Tạo tệp và tải xuống kèm BOM để hiển thị đúng Unicode Tiếng Việt trong Excel
             const BOM = "\uFEFF";
             const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");

@@ -57,17 +57,7 @@
                     <span class="text-sm font-medium"><c:out value="${requestScope.errorMsg}"/></span>
                 </div>
             </c:if>
-            <c:if test="${not empty sessionScope.flashMsg}">
-                <c:set var="isError" value="${sessionScope.flashType == 'error'}"/>
-                <div class="mb-6 p-4 ${isError ? 'bg-red-50 border-error text-red-800' : 'bg-green-50 border-primary text-green-800'} border-l-4 rounded-r-lg flex items-center gap-3 shadow-sm">
-                    <span class="material-symbols-outlined ${isError ? 'text-error' : 'text-primary'}">
-                        ${isError ? 'error' : 'check_circle'}
-                    </span>
-                    <span class="text-sm font-medium"><c:out value="${sessionScope.flashMsg}"/></span>
-                </div>
-                <c:remove var="flashMsg" scope="session"/>
-                <c:remove var="flashType" scope="session"/>
-            </c:if>
+            <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
             <c:set var="displayDocPaths" value="${not empty requestScope.shopStatusDraftDocPaths ? requestScope.shopStatusDraftDocPaths : requestScope.profileDocPaths}"/>
 

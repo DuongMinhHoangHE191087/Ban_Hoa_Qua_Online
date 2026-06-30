@@ -15,7 +15,7 @@
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/css/auth-overrides.css" rel="stylesheet">
     <!-- Tailwind CSS -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <!-- Tailwind Configuration -->
     <script id="tailwind-config">
         tailwind.config = {

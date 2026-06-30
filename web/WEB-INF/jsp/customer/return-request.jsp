@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
@@ -91,17 +91,7 @@
         <p class="text-on-surface-variant text-sm mt-1">Chúng tôi cam kết bảo vệ quyền lợi người tiêu dùng tối đa. Hồ sơ sẽ được giải quyết nhanh trong vòng 24h.</p>
     </div>
 
-    <!-- Alert Flash message -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold">${sessionScope.flashMsg}</span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- Order summary card -->
     <div class="premium-glass-card rounded-[1.5rem] p-6 mb-6">

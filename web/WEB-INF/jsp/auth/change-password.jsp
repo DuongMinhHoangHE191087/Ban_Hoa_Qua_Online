@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/css/auth-overrides.css" rel="stylesheet">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",

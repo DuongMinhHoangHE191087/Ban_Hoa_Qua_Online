@@ -1,30 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>${shopProfile.shopName} - Trang Cửa Hàng | MetaFruit</title>
-    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
-    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
-
-    <!-- Fonts & Icons -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <!-- Tailwind & SweetAlert -->
-    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
-    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-
-</head>
-<body class="antialiased text-txt bg-background">
-
-<!-- Include Header / Navbar -->
-<jsp:include page="/WEB-INF/jsp/common/header.jsp" />
+<jsp:include page="/WEB-INF/jsp/common/header.jsp">
+    <jsp:param name="pageTitle" value="${shopProfile.shopName} - Trang Cửa Hàng" />
+</jsp:include>
 
 <div class="max-w-[1280px] mx-auto px-4 md:px-6 pt-24 pb-20 animate-fade-in-up opacity-0">
 
@@ -660,5 +639,3 @@
         });
     }
 </script>
-</body>
-</html>

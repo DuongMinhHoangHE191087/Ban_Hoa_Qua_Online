@@ -103,17 +103,7 @@ public class ProductDetailServlet extends HttpServlet {
             boolean isExpiredProduct = "OUT_OF_SEASON".equals(product.getStatus());
             req.setAttribute("isExpiredProduct", isExpiredProduct);
 
-            int currentMonth = java.time.LocalDate.now().getMonthValue();
-            boolean isOutOfSeason = false;
-            if (product.getSeasonStartMonth() != null && product.getSeasonEndMonth() != null) {
-                int start = product.getSeasonStartMonth();
-                int end = product.getSeasonEndMonth();
-                if (start <= end) {
-                    isOutOfSeason = (currentMonth < start || currentMonth > end);
-                } else {
-                    isOutOfSeason = (currentMonth < start && currentMonth > end);
-                }
-            }
+            boolean isOutOfSeason = !product.isInSeason();
             req.setAttribute("isOutOfSeason", isOutOfSeason);
 
             boolean hasRequestedToday = false;

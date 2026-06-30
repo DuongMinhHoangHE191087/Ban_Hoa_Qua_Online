@@ -138,3 +138,4 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 </script>
+<jsp:include page="/WEB-INF/jsp/common/alert.jsp" />

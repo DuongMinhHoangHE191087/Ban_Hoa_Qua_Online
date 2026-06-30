@@ -48,18 +48,6 @@ tailwind.config = {
         </div>
     </div>
 
-    <%-- Flash Message --%>
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div id="flash-alert" class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 text-sm font-semibold shadow-sm
-             ${sessionScope.flashType == 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-400 text-red-800'}">
-            <i class="fa-solid ${sessionScope.flashType == 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
-            <span class="flex-1"><c:out value="${sessionScope.flashMsg}"/></span>
-            <button onclick="document.getElementById('flash-alert').remove()" class="opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
-
     <%-- Status Filter Tabs --%>
     <div class="flex flex-wrap gap-2 mb-8 bg-white/60 border border-border-c p-2 rounded-2xl backdrop-blur">
         <a href="${pageContext.request.contextPath}/delivery/dashboard" class="tab-pill ${empty filterStatus ? 'bg-primary text-white shadow-sm' : 'text-txt-2 hover:bg-primary-light hover:text-primary'}">
