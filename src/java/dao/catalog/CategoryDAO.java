@@ -108,11 +108,27 @@ public class CategoryDAO extends BaseDAO {
      * Xóa danh mục (Hard delete - Cần cẩn thận nếu có tham chiếu).
      */
     public void delete(int categoryId) throws SQLException {
-        String sql = "DELETE FROM categories WHERE category_id = ?";
+        String countSql = "SELECT COUNT(*) FROM products WHERE category_id = ?";
+        String deleteSql = "DELETE FROM categories WHERE category_id = ?";
+        String deactivateSql = "UPDATE categories SET is_active = 0 WHERE category_id = ?";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, categoryId);
-            ps.executeUpdate();
+             PreparedStatement countPs = conn.prepareStatement(countSql);
+             PreparedStatement deletePs = conn.prepareStatement(deleteSql);
+             PreparedStatement deactivatePs = conn.prepareStatement(deactivateSql)) {
+            countPs.setInt(1, categoryId);
+            try (ResultSet rs = countPs.executeQuery()) {
+                int productCount = 0;
+                if (rs.next()) {
+                    productCount = rs.getInt(1);
+                }
+                if (productCount > 0) {
+                    deactivatePs.setInt(1, categoryId);
+                    deactivatePs.executeUpdate();
+                } else {
+                    deletePs.setInt(1, categoryId);
+                    deletePs.executeUpdate();
+                }
+            }
         }
     }
 

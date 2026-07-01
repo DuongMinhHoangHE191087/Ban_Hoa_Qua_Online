@@ -17,7 +17,7 @@
 <body>
     <div class="admin-layout">
         <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
-            <jsp:param name="activeMenu" value="order-monitor"/>
+            <jsp:param name="activeMenu" value="orders"/>
         </jsp:include>
 
         <main class="admin-main">

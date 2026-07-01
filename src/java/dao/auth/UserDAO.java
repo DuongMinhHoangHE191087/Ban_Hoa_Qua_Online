@@ -505,22 +505,47 @@ public class UserDAO extends BaseDAO {
      * Xóa người dùng bằng ID (sử dụng khi đăng ký lỗi để đồng bộ).
      */
     public void deleteUser(int userId) throws SQLException {
-        // Kiểm tra xem user có đơn hàng nào không
-        String sqlCheck = "SELECT COUNT(*) FROM orders WHERE customer_id = ? OR owner_id = ?";
+        String sqlCheck =
+                "SELECT CASE WHEN " +
+                "EXISTS (SELECT 1 FROM orders WHERE customer_id = ? OR owner_id = ? OR cancelled_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM products WHERE owner_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM shop_owner_profiles WHERE user_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM cart WHERE customer_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM promotions WHERE created_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM inventory_logs WHERE changed_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM order_promotions WHERE customer_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM return_requests WHERE customer_id = ? OR decided_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM shop_settlements WHERE owner_id = ? OR created_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM delivery_trips WHERE shipper_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM deliveries WHERE staff_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM reviews WHERE customer_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM chat_sessions WHERE customer_id = ? OR owner_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM chat_messages WHERE sender_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM system_config WHERE changed_by = ?) " +
+                "THEN 1 ELSE 0 END AS has_refs";
         try (Connection conn = getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(sqlCheck)) {
-            checkStmt.setInt(1, userId);
-            checkStmt.setInt(2, userId);
+            int[] params = new int[] {
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId
+            };
+            for (int i = 0; i < params.length; i++) {
+                checkStmt.setInt(i + 1, params[i]);
+            }
             try (ResultSet rs = checkStmt.executeQuery()) {
                 if (rs.next() && rs.getInt(1) > 0) {
-                    // Nếu có đơn hàng, không xóa cứng mà chuyển trạng thái thành SUSPENDED
                     String sqlUpdate = "UPDATE users SET status = ?, failed_login_count = 0, locked_until = NULL, email_verification_code_hash = NULL, email_verification_expires_at = NULL, email_verification_resend_at = NULL, email_verification_sent_at = NULL, updated_at = GETDATE() WHERE user_id = ?";
                     try (PreparedStatement updateStmt = conn.prepareStatement(sqlUpdate)) {
                         updateStmt.setString(1, AppConfig.ACCOUNT_STATUS_SUSPENDED);
                         updateStmt.setInt(2, userId);
                         updateStmt.executeUpdate();
                     }
-                    throw new SQLException("Không thể xóa cứng người dùng vì đã có đơn hàng trong hệ thống. Trạng thái tài khoản đã được chuyển sang " + AppConfig.ACCOUNT_STATUS_SUSPENDED + ".");
+                    return;
                 }
             }
         }
@@ -532,7 +557,6 @@ public class UserDAO extends BaseDAO {
             stmt.executeUpdate();
         }
     }
-
     public List<User> findActiveShopOwners() throws SQLException {
         List<User> list = new ArrayList<>();
         String sql = "SELECT * FROM users WHERE role = 'SHOP_OWNER' AND status = 'ACTIVE'";

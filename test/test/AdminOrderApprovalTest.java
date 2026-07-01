@@ -263,14 +263,14 @@ public class AdminOrderApprovalTest {
 
     private void hardDeleteVariant(int variantId) throws SQLException {
         try (Connection conn = variantDAO.getConnection();
-             PreparedStatement ps = conn.prepareStatement("DELETE FROM product_variants WHERE variant_id = ?")) {
+             PreparedStatement ps = conn.prepareStatement("UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE variant_id = ?")) {
             ps.setInt(1, variantId); ps.executeUpdate();
         }
     }
 
     private void hardDeleteProduct(int productId) throws SQLException {
         try (Connection conn = productDAO.getConnection();
-             PreparedStatement ps = conn.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
+             PreparedStatement ps = conn.prepareStatement("UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
             ps.setInt(1, productId); ps.executeUpdate();
         }
     }

@@ -1,4 +1,4 @@
-SET NOCOUNT ON;
+﻿SET NOCOUNT ON;
 GO
 USE [master];
 GO
@@ -307,6 +307,8 @@ BEGIN
         discount_value DECIMAL(10,2) NOT NULL,
         min_order_value DECIMAL(14,2) NOT NULL CONSTRAINT DF_promotions_min_order_value DEFAULT 0,
         scope NVARCHAR(15) NOT NULL CONSTRAINT CK_promotions_scope CHECK (scope IN ('ORDER', 'PRODUCT')),
+        benefit_target NVARCHAR(20) NOT NULL CONSTRAINT DF_promotions_benefit_target DEFAULT N'MERCHANDISE'
+            CONSTRAINT CK_promotions_benefit_target CHECK (benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT')),
         product_id INT NULL,
         max_uses INT NULL,
         used_count INT NOT NULL CONSTRAINT DF_promotions_used_count DEFAULT 0,
@@ -322,6 +324,29 @@ BEGIN
         CONSTRAINT FK_promotions_users FOREIGN KEY (created_by) REFERENCES dbo.users(user_id)
     );
 END
+GO
+
+IF COL_LENGTH(N'dbo.promotions', N'benefit_target') IS NULL
+BEGIN
+    ALTER TABLE dbo.promotions
+    ADD benefit_target NVARCHAR(20) NOT NULL
+        CONSTRAINT DF_promotions_benefit_target_migration DEFAULT N'MERCHANDISE' WITH VALUES;
+
+    ALTER TABLE dbo.promotions
+    ADD CONSTRAINT CK_promotions_benefit_target_migration
+        CHECK (benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT'));
+END
+GO
+
+UPDATE dbo.promotions
+SET benefit_target = CASE
+        WHEN scope = N'PRODUCT' THEN N'PRODUCT'
+        WHEN benefit_target IS NULL OR LTRIM(RTRIM(benefit_target)) = N'' THEN N'MERCHANDISE'
+        ELSE benefit_target
+    END
+WHERE benefit_target IS NULL
+   OR LTRIM(RTRIM(benefit_target)) = N''
+   OR (scope = N'PRODUCT' AND benefit_target <> N'PRODUCT');
 GO
 
 IF OBJECT_ID(N'dbo.cart', N'U') IS NULL
@@ -545,12 +570,52 @@ BEGIN
         promo_id INT NOT NULL,
         customer_id INT NOT NULL,
         discount_applied DECIMAL(12,2) NOT NULL,
+        coupon_code NVARCHAR(50) NULL,
+        discount_scope NVARCHAR(50) NULL,
+        benefit_target NVARCHAR(20) NULL CONSTRAINT CK_order_promotions_benefit_target
+            CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT')),
         used_at DATETIME NOT NULL CONSTRAINT DF_order_promotions_used_at DEFAULT GETDATE(),
         CONSTRAINT FK_order_promotions_orders FOREIGN KEY (order_id) REFERENCES dbo.orders(order_id) ON DELETE CASCADE,
         CONSTRAINT FK_order_promotions_promotions FOREIGN KEY (promo_id) REFERENCES dbo.promotions(promo_id),
         CONSTRAINT FK_order_promotions_users FOREIGN KEY (customer_id) REFERENCES dbo.users(user_id)
     );
 END
+GO
+
+IF COL_LENGTH(N'dbo.order_promotions', N'coupon_code') IS NULL
+BEGIN
+    ALTER TABLE dbo.order_promotions ADD coupon_code NVARCHAR(50) NULL;
+END
+GO
+
+IF COL_LENGTH(N'dbo.order_promotions', N'discount_scope') IS NULL
+BEGIN
+    ALTER TABLE dbo.order_promotions ADD discount_scope NVARCHAR(50) NULL;
+END
+GO
+
+IF COL_LENGTH(N'dbo.order_promotions', N'benefit_target') IS NULL
+BEGIN
+    ALTER TABLE dbo.order_promotions
+    ADD benefit_target NVARCHAR(20) NULL
+        CONSTRAINT CK_order_promotions_benefit_target_migration
+        CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT'));
+END
+GO
+
+UPDATE op
+SET op.coupon_code = p.code,
+    op.discount_scope = p.discount_scope,
+    op.benefit_target = CASE
+        WHEN p.scope = N'PRODUCT' THEN N'PRODUCT'
+        WHEN p.benefit_target IS NULL OR LTRIM(RTRIM(p.benefit_target)) = N'' THEN N'MERCHANDISE'
+        ELSE p.benefit_target
+    END
+FROM dbo.order_promotions op
+JOIN dbo.promotions p ON p.promo_id = op.promo_id
+WHERE op.coupon_code IS NULL
+   OR op.discount_scope IS NULL
+   OR op.benefit_target IS NULL;
 GO
 
 IF OBJECT_ID(N'dbo.return_requests', N'U') IS NULL
@@ -1577,31 +1642,31 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.inventory_logs OFF;
 
     SET IDENTITY_INSERT dbo.promotions ON;
-    INSERT INTO dbo.promotions (promo_id, code, discount_type, discount_scope, discount_max, discount_value, min_order_value, scope, product_id, max_uses, used_count, can_stack, valid_from, valid_until, created_by, created_at, updated_at, is_deleted, is_active)
+    INSERT INTO dbo.promotions (promo_id, code, discount_type, discount_scope, discount_max, discount_value, min_order_value, scope, benefit_target, product_id, max_uses, used_count, can_stack, valid_from, valid_until, created_by, created_at, updated_at, is_deleted, is_active)
     VALUES
-        (1, N'FLASHSALE-DAUTAY', N'FIXED', N'ALL', 0.00, 30000.00, 100000.00, N'PRODUCT', 5, 200, 12, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:00:00', '2026-05-16T08:00:00', 0, 1),
-        (2, N'FLASHSALE-CHERRYCL', N'PERCENT', N'ALL', 100000.00, 20.00, 150000.00, N'PRODUCT', 8, 150, 8, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:05:00', '2026-05-16T08:00:00', 0, 1),
-        (3, N'FLASHSALE-DUAVUONG', N'PERCENT', N'ALL', 50000.00, 15.00, 200000.00, N'PRODUCT', 7, 100, 3, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:10:00', '2026-05-16T08:00:00', 0, 1),
-        (4, N'FLASHSALE-NHOMD', N'FIXED', N'ALL', 0.00, 50000.00, 150000.00, N'PRODUCT', 10, 120, 5, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:15:00', '2026-05-16T08:00:00', 0, 1),
-        (5, N'WELCOME10', N'PERCENT', N'ALL', 50000.00, 10.00, 120000.00, N'ORDER', NULL, 1000, 36, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:20:00', '2026-05-16T08:00:00', 0, 1),
-        (6, N'FREESHIP50', N'FIXED', N'ALL', 0.00, 20000.00, 300000.00, N'ORDER', NULL, 500, 45, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:25:00', '2026-05-16T08:00:00', 0, 1),
-        (7, N'FLASHSALE-CAMSANH', N'PERCENT', N'ALL', 20000.00, 20.00, 50000.00, N'PRODUCT', 1, 300, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:30:00', '2026-05-16T08:00:00', 0, 1),
-        (8, N'FLASHSALE-BUOI', N'FIXED', N'ALL', 0.00, 15000.00, 80000.00, N'PRODUCT', 2, 200, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:35:00', '2026-05-16T08:00:00', 0, 1),
-        (9, N'FLASHSALE-XOAI', N'PERCENT', N'ALL', 30000.00, 10.00, 100000.00, N'PRODUCT', 4, 150, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:40:00', '2026-05-16T08:00:00', 0, 1),
-        (10, N'FLASHSALE-TAOENVY', N'PERCENT', N'ALL', 40000.00, 15.00, 120000.00, N'PRODUCT', 16, 250, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:45:00', '2026-05-16T08:00:00', 0, 1),
-        (11, N'FLASHSALE-KIWI', N'FIXED', N'ALL', 0.00, 25000.00, 100000.00, N'PRODUCT', 17, 180, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:50:00', '2026-05-16T08:00:00', 0, 1),
+        (1, N'FLASHSALE-DAUTAY', N'FIXED', N'ALL', 0.00, 30000.00, 100000.00, N'PRODUCT', N'PRODUCT', 5, 200, 12, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:00:00', '2026-05-16T08:00:00', 0, 1),
+        (2, N'FLASHSALE-CHERRYCL', N'PERCENT', N'ALL', 100000.00, 20.00, 150000.00, N'PRODUCT', N'PRODUCT', 8, 150, 8, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:05:00', '2026-05-16T08:00:00', 0, 1),
+        (3, N'FLASHSALE-DUAVUONG', N'PERCENT', N'ALL', 50000.00, 15.00, 200000.00, N'PRODUCT', N'PRODUCT', 7, 100, 3, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:10:00', '2026-05-16T08:00:00', 0, 1),
+        (4, N'FLASHSALE-NHOMD', N'FIXED', N'ALL', 0.00, 50000.00, 150000.00, N'PRODUCT', N'PRODUCT', 10, 120, 5, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:15:00', '2026-05-16T08:00:00', 0, 1),
+        (5, N'WELCOME10', N'PERCENT', N'ALL', 50000.00, 10.00, 120000.00, N'ORDER', N'MERCHANDISE', NULL, 1000, 36, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:20:00', '2026-05-16T08:00:00', 0, 1),
+        (6, N'FREESHIP50', N'FIXED', N'ALL', 0.00, 20000.00, 300000.00, N'ORDER', N'SHIPPING', NULL, 500, 45, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:25:00', '2026-05-16T08:00:00', 0, 1),
+        (7, N'FLASHSALE-CAMSANH', N'PERCENT', N'ALL', 20000.00, 20.00, 50000.00, N'PRODUCT', N'PRODUCT', 1, 300, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:30:00', '2026-05-16T08:00:00', 0, 1),
+        (8, N'FLASHSALE-BUOI', N'FIXED', N'ALL', 0.00, 15000.00, 80000.00, N'PRODUCT', N'PRODUCT', 2, 200, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:35:00', '2026-05-16T08:00:00', 0, 1),
+        (9, N'FLASHSALE-XOAI', N'PERCENT', N'ALL', 30000.00, 10.00, 100000.00, N'PRODUCT', N'PRODUCT', 4, 150, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:40:00', '2026-05-16T08:00:00', 0, 1),
+        (10, N'FLASHSALE-TAOENVY', N'PERCENT', N'ALL', 40000.00, 15.00, 120000.00, N'PRODUCT', N'PRODUCT', 16, 250, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:45:00', '2026-05-16T08:00:00', 0, 1),
+        (11, N'FLASHSALE-KIWI', N'FIXED', N'ALL', 0.00, 25000.00, 100000.00, N'PRODUCT', N'PRODUCT', 17, 180, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, '2026-05-01T10:50:00', '2026-05-16T08:00:00', 0, 1),
         -- Voucher của Shop (discount_scope = 'SHOP') — hiển thị trên trang chi tiết sản phẩm
-        (12, N'ANPHU-GIAM30K', N'FIXED', N'SHOP', 0.00, 30000.00, 200000.00, N'ORDER', NULL, 500, 17, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 3, '2026-05-02T08:00:00', '2026-05-16T08:00:00', 0, 1),
-        (13, N'ANPHU-GIAM15P', N'PERCENT', N'SHOP', 50000.00, 15.00, 350000.00, N'ORDER', NULL, 300, 8, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 3, '2026-05-02T08:05:00', '2026-05-16T08:00:00', 0, 1),
-        (14, N'MEKONG-GIAM20K', N'FIXED', N'SHOP', 0.00, 20000.00, 150000.00, N'ORDER', NULL, 400, 12, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:00:00', '2026-05-16T08:00:00', 0, 1),
-        (15, N'MEKONG-GIAM10P', N'PERCENT', N'SHOP', 40000.00, 10.00, 250000.00, N'ORDER', NULL, 350, 5, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:05:00', '2026-05-16T08:00:00', 0, 1),
-        (16, N'KLEVER-GIAM50K', N'FIXED', N'SHOP', 0.00, 50000.00, 400000.00, N'ORDER', NULL, 250, 3, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:00:00', '2026-05-16T08:00:00', 0, 1),
-        (17, N'KLEVER-GIAM20P', N'PERCENT', N'SHOP', 80000.00, 20.00, 500000.00, N'ORDER', NULL, 200, 1, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:05:00', '2026-05-16T08:00:00', 0, 1),
-        (18, N'SHOP10', N'PERCENT', N'SHOP', 50000.00, 10.00, 100000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, GETDATE(), GETDATE(), 0, 1),
-        (19, N'SAAN5', N'FIXED', N'ALL', 0.00, 5000.00, 50000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
-        (20, N'SALE20', N'PERCENT', N'ALL', 100000.00, 20.00, 200000.00, N'ORDER', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
-        (21, N'METAFRUIT50', N'PERCENT', N'ALL', 150000.00, 15.00, 300000.00, N'ORDER', NULL, 500, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
-        (22, N'FREESHIPALL', N'FIXED', N'ALL', 0.00, 15000.00, 150000.00, N'ORDER', NULL, 2000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1);
+        (12, N'ANPHU-GIAM30K', N'FIXED', N'SHOP', 0.00, 30000.00, 200000.00, N'ORDER', N'MERCHANDISE', NULL, 500, 17, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 3, '2026-05-02T08:00:00', '2026-05-16T08:00:00', 0, 1),
+        (13, N'ANPHU-GIAM15P', N'PERCENT', N'SHOP', 50000.00, 15.00, 350000.00, N'ORDER', N'MERCHANDISE', NULL, 300, 8, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 3, '2026-05-02T08:05:00', '2026-05-16T08:00:00', 0, 1),
+        (14, N'MEKONG-GIAM20K', N'FIXED', N'SHOP', 0.00, 20000.00, 150000.00, N'ORDER', N'MERCHANDISE', NULL, 400, 12, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:00:00', '2026-05-16T08:00:00', 0, 1),
+        (15, N'MEKONG-GIAM10P', N'PERCENT', N'SHOP', 40000.00, 10.00, 250000.00, N'ORDER', N'MERCHANDISE', NULL, 350, 5, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 4, '2026-05-03T08:05:00', '2026-05-16T08:00:00', 0, 1),
+        (16, N'KLEVER-GIAM50K', N'FIXED', N'SHOP', 0.00, 50000.00, 400000.00, N'ORDER', N'MERCHANDISE', NULL, 250, 3, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:00:00', '2026-05-16T08:00:00', 0, 1),
+        (17, N'KLEVER-GIAM20P', N'PERCENT', N'SHOP', 80000.00, 20.00, 500000.00, N'ORDER', N'MERCHANDISE', NULL, 200, 1, 0, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, '2026-05-04T08:05:00', '2026-05-16T08:00:00', 0, 1),
+        (18, N'SHOP10', N'PERCENT', N'SHOP', 50000.00, 10.00, 100000.00, N'ORDER', N'MERCHANDISE', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 7, GETDATE(), GETDATE(), 0, 1),
+        (19, N'SAAN5', N'FIXED', N'ALL', 0.00, 5000.00, 50000.00, N'ORDER', N'MERCHANDISE', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (20, N'SALE20', N'PERCENT', N'ALL', 100000.00, 20.00, 200000.00, N'ORDER', N'MERCHANDISE', NULL, 1000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (21, N'METAFRUIT50', N'PERCENT', N'ALL', 150000.00, 15.00, 300000.00, N'ORDER', N'MERCHANDISE', NULL, 500, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1),
+        (22, N'FREESHIPALL', N'FIXED', N'ALL', 0.00, 15000.00, 150000.00, N'ORDER', N'SHIPPING', NULL, 2000, 0, 1, '2026-01-01T00:00:00', '2026-12-31T23:59:59', 1, GETDATE(), GETDATE(), 0, 1);
     SET IDENTITY_INSERT dbo.promotions OFF;
 
     -- Gieo dữ liệu đóng gói sản phẩm (product_packaging_options)
@@ -1685,11 +1750,11 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.order_items OFF;
 
     SET IDENTITY_INSERT dbo.order_promotions ON;
-    INSERT INTO dbo.order_promotions (usage_id, order_id, promo_id, customer_id, discount_applied, used_at)
+    INSERT INTO dbo.order_promotions (usage_id, order_id, promo_id, customer_id, discount_applied, coupon_code, discount_scope, benefit_target, used_at)
     VALUES
-        (1, 1, 5, 5, 13000.00, '2026-05-15T09:20:00'),
-        (2, 2, 1, 6, 15000.00, '2026-05-15T10:30:00'),
-        (3, 3, 5, 5, 14200.00, '2026-05-16T08:10:00');
+        (1, 1, 5, 5, 13000.00, N'WELCOME10', N'ALL', N'MERCHANDISE', '2026-05-15T09:20:00'),
+        (2, 2, 1, 6, 15000.00, N'FLASHSALE-DAUTAY', N'ALL', N'PRODUCT', '2026-05-15T10:30:00'),
+        (3, 3, 5, 5, 14200.00, N'WELCOME10', N'ALL', N'MERCHANDISE', '2026-05-16T08:10:00');
     SET IDENTITY_INSERT dbo.order_promotions OFF;
 
     SET IDENTITY_INSERT dbo.return_requests ON;
@@ -1993,3 +2058,373 @@ BEGIN
     END
 END
 GO
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+GO
+
+/*
+  Embedded extended test seed.
+  This block adds richer data for inventory and coupon testing.
+
+  benefit_target meaning:
+  - PRODUCT: discount applies to a specific product / product page sale
+  - MERCHANDISE: discount applies to merchandise subtotal in checkout
+  - SHIPPING: discount applies to shipping fee
+
+  product_variants.discount_price / discount_start / discount_end:
+  - Use these columns for time-based sale pricing on a variant.
+*/
+
+BEGIN TRY
+    BEGIN TRAN;
+
+    PRINT N'1/4 - Seeding extra product variants...';
+    SET IDENTITY_INSERT dbo.product_variants ON;
+    INSERT INTO dbo.product_variants (
+        variant_id,
+        product_id,
+        sku,
+        variant_label,
+        price,
+        stock_quantity,
+        is_active,
+        discount_price,
+        discount_start,
+        discount_end,
+        created_at,
+        updated_at
+    )
+    SELECT
+        src.variant_id,
+        src.product_id,
+        src.sku,
+        src.variant_label,
+        src.price,
+        src.stock_quantity,
+        src.is_active,
+        src.discount_price,
+        src.discount_start,
+        src.discount_end,
+        src.created_at,
+        src.updated_at
+    FROM (VALUES
+        (901, 16, N'TAO-ENVY-TET-1KG', N'Hộp 1kg Tết', 129000.00, 140, 1, 109000.00, DATEADD(day, -3, GETDATE()), DATEADD(day, 4, GETDATE()), DATEADD(day, -3, GETDATE()), GETDATE()),
+        (902, 16, N'TAO-ENVY-TET-2KG', N'Combo 2kg Tết', 249000.00, 70, 1, 219000.00, DATEADD(day, -2, GETDATE()), DATEADD(day, 5, GETDATE()), DATEADD(day, -2, GETDATE()), GETDATE()),
+        (903, 22, N'SAU-RIENG-RI6-CAO-CAP', N'Quả 3kg - 4kg', 390000.00, 42, 1, CAST(NULL AS DECIMAL(12,2)), CAST(NULL AS DATETIME), CAST(NULL AS DATETIME), DATEADD(day, -1, GETDATE()), GETDATE()),
+        (904, 41, N'DAU-TUYET-HOP-500G', N'Hộp 500g Premium', 420000.00, 28, 1, 369000.00, DATEADD(day, -1, GETDATE()), DATEADD(day, 2, GETDATE()), GETDATE(), GETDATE()),
+        (905, 51, N'NHO-MAU-DON-1KG', N'Hộp 1kg', 298000.00, 96, 1, CAST(NULL AS DECIMAL(12,2)), CAST(NULL AS DATETIME), CAST(NULL AS DATETIME), GETDATE(), GETDATE()),
+        (906, 58, N'NHO-SAPPHIRE-GIFT-1KG', N'Hộp 1kg Gift', 199000.00, 110, 1, 179000.00, DATEADD(day, -4, GETDATE()), DATEADD(day, 6, GETDATE()), GETDATE(), GETDATE()),
+        (907, 63, N'TAO-ROCKIT-HOP-6QT', N'Hộp 6 quả', 139000.00, 125, 1, 119000.00, DATEADD(day, -1, GETDATE()), DATEADD(day, 7, GETDATE()), DATEADD(day, -1, GETDATE()), GETDATE()),
+        (908, 70, N'VAI-THIEU-LN-5KG', N'Túi 5kg', 189000.00, 90, 1, CAST(NULL AS DECIMAL(12,2)), CAST(NULL AS DATETIME), CAST(NULL AS DATETIME), GETDATE(), GETDATE())
+    ) AS src (
+        variant_id,
+        product_id,
+        sku,
+        variant_label,
+        price,
+        stock_quantity,
+        is_active,
+        discount_price,
+        discount_start,
+        discount_end,
+        created_at,
+        updated_at
+    )
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM dbo.product_variants pv
+        WHERE pv.sku = src.sku
+    );
+    SET IDENTITY_INSERT dbo.product_variants OFF;
+
+    PRINT N'2/4 - Seeding inventory logs...';
+    SET IDENTITY_INSERT dbo.inventory_logs ON;
+    INSERT INTO dbo.inventory_logs (
+        log_id,
+        variant_id,
+        changed_by,
+        change_type,
+        quantity_delta,
+        quantity_after,
+        note,
+        expires_at,
+        is_expired,
+        changed_at
+    )
+    SELECT
+        src.log_id,
+        src.variant_id,
+        src.changed_by,
+        src.change_type,
+        src.quantity_delta,
+        src.quantity_after,
+        src.note,
+        src.expires_at,
+        src.is_expired,
+        src.changed_at
+    FROM (VALUES
+        (5001, 901, 3, N'MANUAL_ADJUST', 140, 140, N'Nhập kho lô Tết cho kênh online', CAST(DATEADD(day, 12, GETDATE()) AS date), 0, DATEADD(hour, -12, GETDATE())),
+        (5002, 901, 5, N'ORDER_RESERVE', -8, 132, N'Giữ hàng cho 8 đơn flash sale', CAST(DATEADD(day, 12, GETDATE()) AS date), 0, DATEADD(hour, -11, GETDATE())),
+        (5003, 901, 5, N'ORDER_CONFIRM', -8, 124, N'Xác nhận xuất kho cho 8 đơn', CAST(DATEADD(day, 12, GETDATE()) AS date), 0, DATEADD(hour, -10, GETDATE())),
+        (5004, 902, 3, N'MANUAL_ADJUST', 70, 70, N'Nhập bổ sung combo 2kg', CAST(DATEADD(day, 10, GETDATE()) AS date), 0, DATEADD(hour, -9, GETDATE())),
+        (5005, 902, 4, N'ORDER_RESERVE', -10, 60, N'Dự trữ 10 combo cho chiến dịch', CAST(DATEADD(day, 10, GETDATE()) AS date), 0, DATEADD(hour, -8, GETDATE())),
+        (5006, 902, 4, N'ORDER_RELEASE', 10, 70, N'Khách hủy 10 combo, trả lại kho', CAST(DATEADD(day, 10, GETDATE()) AS date), 0, DATEADD(hour, -7, GETDATE())),
+        (5007, 904, 4, N'MANUAL_ADJUST', 28, 28, N'Nhập hàng lạnh premium', CAST(DATEADD(day, 5, GETDATE()) AS date), 0, DATEADD(hour, -6, GETDATE())),
+        (5008, 904, 4, N'EXPIRED', -4, 24, N'Loại 4 hộp hết hạn lưu kho', CAST(DATEADD(day, -2, GETDATE()) AS date), 1, DATEADD(hour, -5, GETDATE())),
+        (5009, 906, 7, N'MANUAL_ADJUST', 110, 110, N'Nhập kho nho sapphire gift', CAST(DATEADD(day, 15, GETDATE()) AS date), 0, DATEADD(hour, -4, GETDATE())),
+        (5010, 906, 7, N'SPOILED', -3, 107, N'Loại bỏ 3 hộp bị dập mép', CAST(DATEADD(day, 15, GETDATE()) AS date), 0, DATEADD(hour, -3, GETDATE())),
+        (5011, 907, 3, N'MANUAL_ADJUST', 125, 125, N'Nhập kho táo Rockit hộp 6 quả', CAST(DATEADD(day, 8, GETDATE()) AS date), 0, DATEADD(hour, -2, GETDATE())),
+        (5012, 907, 5, N'ORDER_RESERVE', -15, 110, N'Dự trữ 15 hộp cho đặt trước', CAST(DATEADD(day, 8, GETDATE()) AS date), 0, DATEADD(hour, -1, GETDATE())),
+        (5013, 907, 5, N'ORDER_CONFIRM', -15, 95, N'Xuất kho đơn đặt trước đã xác nhận', CAST(DATEADD(day, 8, GETDATE()) AS date), 0, GETDATE()),
+        (5014, 908, 4, N'MANUAL_ADJUST', 90, 90, N'Nhập kho vải thiều Lục Ngạn', CAST(DATEADD(day, 6, GETDATE()) AS date), 0, GETDATE()),
+        (5015, 908, 4, N'RETURN', 2, 92, N'Nhận lại 2 túi từ đơn đổi trả', CAST(DATEADD(day, 6, GETDATE()) AS date), 0, DATEADD(minute, 10, GETDATE()))
+    ) AS src (
+        log_id,
+        variant_id,
+        changed_by,
+        change_type,
+        quantity_delta,
+        quantity_after,
+        note,
+        expires_at,
+        is_expired,
+        changed_at
+    )
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM dbo.inventory_logs il
+        WHERE il.log_id = src.log_id
+    );
+    SET IDENTITY_INSERT dbo.inventory_logs OFF;
+
+    PRINT N'3/4 - Seeding promotions...';
+    PRINT N'    benefit_target = PRODUCT / MERCHANDISE / SHIPPING';
+    SET IDENTITY_INSERT dbo.promotions ON;
+    INSERT INTO dbo.promotions (
+        promo_id,
+        code,
+        discount_type,
+        discount_scope,
+        discount_max,
+        discount_value,
+        min_order_value,
+        scope,
+        benefit_target,
+        product_id,
+        max_uses,
+        used_count,
+        can_stack,
+        valid_from,
+        valid_until,
+        created_by,
+        created_at,
+        updated_at,
+        is_deleted,
+        is_active
+    )
+    SELECT
+        src.promo_id,
+        src.code,
+        src.discount_type,
+        src.discount_scope,
+        src.discount_max,
+        src.discount_value,
+        src.min_order_value,
+        src.scope,
+        src.benefit_target,
+        src.product_id,
+        src.max_uses,
+        src.used_count,
+        src.can_stack,
+        src.valid_from,
+        src.valid_until,
+        src.created_by,
+        src.created_at,
+        src.updated_at,
+        src.is_deleted,
+        src.is_active
+    FROM (VALUES
+        (7001, N'TEST-ENVY-12P', N'PERCENT', N'ALL', 45000.00, 12.00, 30000.00, N'PRODUCT', N'PRODUCT', 16, 500, 12, 1, DATEADD(day, -30, GETDATE()), DATEADD(day, 60, GETDATE()), 3, DATEADD(day, -5, GETDATE()), DATEADD(day, -1, GETDATE()), 0, 1),
+        (7002, N'TEST-ROCKIT-20K', N'FIXED', N'ALL', 0.00, 20000.00, 30000.00, N'PRODUCT', N'PRODUCT', 63, 200, 20, 1, DATEADD(day, -20, GETDATE()), DATEADD(day, 45, GETDATE()), 3, DATEADD(day, -4, GETDATE()), GETDATE(), 0, 1),
+        (7003, N'TEST-DAU-TUYET-15P', N'PERCENT', N'ALL', 60000.00, 15.00, 50000.00, N'PRODUCT', N'PRODUCT', 41, 150, 9, 0, DATEADD(day, -15, GETDATE()), DATEADD(day, 30, GETDATE()), 4, DATEADD(day, -3, GETDATE()), GETDATE(), 0, 1),
+        (7004, N'TEST-MERCH-5P', N'PERCENT', N'SHOP', 70000.00, 5.00, 30000.00, N'ORDER', N'MERCHANDISE', NULL, 1000, 35, 0, DATEADD(day, -60, GETDATE()), DATEADD(day, 90, GETDATE()), 3, DATEADD(day, -8, GETDATE()), GETDATE(), 0, 1),
+        (7005, N'TEST-MERCH-35K', N'FIXED', N'ALL', 0.00, 35000.00, 50000.00, N'ORDER', N'MERCHANDISE', NULL, 600, 18, 1, DATEADD(day, -45, GETDATE()), DATEADD(day, 120, GETDATE()), 4, DATEADD(day, -7, GETDATE()), GETDATE(), 0, 1),
+        (7006, N'TEST-SHIP-20K', N'FIXED', N'ALL', 0.00, 20000.00, 30000.00, N'ORDER', N'SHIPPING', NULL, 400, 11, 0, DATEADD(day, -45, GETDATE()), DATEADD(day, 60, GETDATE()), 7, DATEADD(day, -6, GETDATE()), GETDATE(), 0, 1),
+        (7007, N'TEST-SHIP-FREE', N'FIXED', N'SHOP', 0.00, 30000.00, 50000.00, N'ORDER', N'SHIPPING', NULL, 250, 4, 0, DATEADD(day, -30, GETDATE()), DATEADD(day, 75, GETDATE()), 7, DATEADD(day, -5, GETDATE()), GETDATE(), 0, 1),
+        (7008, N'TEST-EXPIRED-ENVY', N'PERCENT', N'ALL', 50000.00, 18.00, 30000.00, N'PRODUCT', N'PRODUCT', 16, 50, 50, 0, DATEADD(day, -90, GETDATE()), DATEADD(day, -1, GETDATE()), 1, DATEADD(day, -60, GETDATE()), DATEADD(day, -1, GETDATE()), 0, 0),
+        (7009, N'TEST-STACK-10K', N'FIXED', N'ALL', 0.00, 10000.00, 30000.00, N'ORDER', N'MERCHANDISE', NULL, 1000, 0, 1, DATEADD(day, -10, GETDATE()), DATEADD(day, 120, GETDATE()), 1, DATEADD(day, -2, GETDATE()), GETDATE(), 0, 1),
+        (7010, N'TEST-SHIPPING-10P', N'PERCENT', N'ALL', 40000.00, 10.00, 50000.00, N'ORDER', N'SHIPPING', NULL, 300, 5, 1, DATEADD(day, -10, GETDATE()), DATEADD(day, 120, GETDATE()), 4, DATEADD(day, -2, GETDATE()), GETDATE(), 0, 1)
+    ) AS src (
+        promo_id,
+        code,
+        discount_type,
+        discount_scope,
+        discount_max,
+        discount_value,
+        min_order_value,
+        scope,
+        benefit_target,
+        product_id,
+        max_uses,
+        used_count,
+        can_stack,
+        valid_from,
+        valid_until,
+        created_by,
+        created_at,
+        updated_at,
+        is_deleted,
+        is_active
+    )
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM dbo.promotions p
+        WHERE p.code = src.code
+    );
+    SET IDENTITY_INSERT dbo.promotions OFF;
+
+    PRINT N'4/4 - Seeding coupon usage history...';
+    SET IDENTITY_INSERT dbo.order_promotions ON;
+    INSERT INTO dbo.order_promotions (
+        usage_id,
+        order_id,
+        promo_id,
+        customer_id,
+        discount_applied,
+        coupon_code,
+        discount_scope,
+        benefit_target,
+        used_at
+    )
+    SELECT
+        src.usage_id,
+        src.order_id,
+        src.promo_id,
+        src.customer_id,
+        src.discount_applied,
+        src.coupon_code,
+        src.discount_scope,
+        src.benefit_target,
+        src.used_at
+    FROM (VALUES
+        (8001, 10, 7004, 10, 5000.00, N'TEST-MERCH-5P', N'SHOP', N'MERCHANDISE', DATEADD(hour, -4, GETDATE())),
+        (8002, 11, 7006, 11, 15000.00, N'TEST-SHIP-20K', N'ALL', N'SHIPPING', DATEADD(hour, -3, GETDATE())),
+        (8003, 12, 7001, 12, 12000.00, N'TEST-ENVY-12P', N'ALL', N'PRODUCT', DATEADD(hour, -2, GETDATE())),
+        (8004, 13, 7005, 13, 35000.00, N'TEST-MERCH-35K', N'ALL', N'MERCHANDISE', DATEADD(hour, -1, GETDATE())),
+        (8005, 14, 7007, 14, 15000.00, N'TEST-SHIP-FREE', N'SHOP', N'SHIPPING', GETDATE()),
+        (8006, 15, 7002, 15, 20000.00, N'TEST-ROCKIT-20K', N'ALL', N'PRODUCT', DATEADD(minute, -30, GETDATE()))
+    ) AS src (
+        usage_id,
+        order_id,
+        promo_id,
+        customer_id,
+        discount_applied,
+        coupon_code,
+        discount_scope,
+        benefit_target,
+        used_at
+    )
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM dbo.order_promotions op
+        WHERE op.usage_id = src.usage_id
+    );
+    SET IDENTITY_INSERT dbo.order_promotions OFF;
+
+    COMMIT TRAN;
+    PRINT N'Extended test seed completed successfully.';
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0
+        ROLLBACK TRAN;
+
+    SET IDENTITY_INSERT dbo.product_variants OFF;
+    SET IDENTITY_INSERT dbo.inventory_logs OFF;
+    SET IDENTITY_INSERT dbo.promotions OFF;
+    SET IDENTITY_INSERT dbo.order_promotions OFF;
+
+    THROW;
+END CATCH;
+GO
+
+PRINT N'=== Copy-ready result sets ===';
+
+SELECT
+    N'product_variants' AS section,
+    variant_id,
+    product_id,
+    sku,
+    variant_label,
+    price,
+    stock_quantity,
+    discount_price,
+    discount_start,
+    discount_end,
+    is_active,
+    created_at,
+    updated_at
+FROM dbo.product_variants
+WHERE variant_id BETWEEN 901 AND 908
+ORDER BY variant_id;
+
+SELECT
+    N'inventory_logs' AS section,
+    log_id,
+    variant_id,
+    changed_by,
+    change_type,
+    quantity_delta,
+    quantity_after,
+    note,
+    expires_at,
+    is_expired,
+    changed_at
+FROM dbo.inventory_logs
+WHERE log_id BETWEEN 5001 AND 5015
+ORDER BY log_id;
+
+SELECT
+    N'promotions' AS section,
+    promo_id,
+    code,
+    discount_type,
+    discount_scope,
+    discount_max,
+    discount_value,
+    min_order_value,
+    scope,
+    benefit_target,
+    product_id,
+    max_uses,
+    used_count,
+    can_stack,
+    valid_from,
+    valid_until,
+    is_active
+FROM dbo.promotions
+WHERE promo_id BETWEEN 7001 AND 7010
+ORDER BY promo_id;
+
+SELECT
+    N'order_promotions' AS section,
+    usage_id,
+    order_id,
+    promo_id,
+    customer_id,
+    discount_applied,
+    coupon_code,
+    discount_scope,
+    benefit_target,
+    used_at
+FROM dbo.order_promotions
+WHERE usage_id BETWEEN 8001 AND 8006
+ORDER BY usage_id;
+
+SELECT
+    (SELECT COUNT(*) FROM dbo.product_variants WHERE variant_id BETWEEN 901 AND 908) AS seeded_product_variants,
+    (SELECT COUNT(*) FROM dbo.inventory_logs WHERE log_id BETWEEN 5001 AND 5015) AS seeded_inventory_logs,
+    (SELECT COUNT(*) FROM dbo.promotions WHERE promo_id BETWEEN 7001 AND 7010) AS seeded_promotions,
+    (SELECT COUNT(*) FROM dbo.order_promotions WHERE usage_id BETWEEN 8001 AND 8006) AS seeded_order_promotions;
+
+

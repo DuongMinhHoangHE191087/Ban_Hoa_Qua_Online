@@ -96,6 +96,19 @@ public class ProductService {
         return productDAO.findByOwner(ownerId);
     }
 
+    /**
+     * Lấy một số sản phẩm gần nhất của shop owner để render dashboard nhanh hơn.
+     */
+    public List<Product> getRecentProductsByOwner(int ownerId, int limit) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("ownerId không hợp lệ.");
+        }
+        if (limit <= 0) {
+            throw new IllegalArgumentException("limit không hợp lệ.");
+        }
+        return productDAO.findRecentByOwner(ownerId, limit);
+    }
+
 
 
     /**

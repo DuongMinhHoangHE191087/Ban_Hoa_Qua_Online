@@ -227,6 +227,26 @@ public class ProductDAO extends BaseDAO {
         return list;
     }
 
+    public List<Product> findRecentByOwner(int ownerId, int limit) throws SQLException {
+        List<Product> list = new ArrayList<>();
+        if (limit <= 0) {
+            return list;
+        }
+        String sql = "SELECT * FROM products WHERE owner_id = ? AND status != 'DELETED' "
+                + "ORDER BY product_id DESC OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     /**
      * Tìm kiếm sản phẩm của chủ cửa hàng theo tên hoặc mô tả.
      */
