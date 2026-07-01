@@ -8,7 +8,13 @@
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Quản lý sản phẩm | Kênh Người Bán</title>
+                    <title>Quản lý sản phẩm | MetaFruit</title>
+                    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
+                    <!-- Google Fonts & Icons -->
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link
                     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
                     <!-- Google Fonts & Icons -->
@@ -18,182 +24,17 @@
                         href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                         rel="stylesheet">
                     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+                    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
                     <link rel="stylesheet"
                         href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
 
                     <!-- Tailwind & SweetAlert -->
-                    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-
-                    <script>
-                        tailwind.config = {
-                            theme: {
-                                extend: {
-                                    colors: {
-                                        primary: '#4d661c',
-                                        'primary-hover': '#364e03',
-                                        'primary-lt': '#f0f7e6',
-                                        border: '#e2ece7',
-                                        'txt': '#0f172a',
-                                        'txt-2': '#475569',
-                                        'txt-3': '#94a3b8',
-                                    },
-                                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                                }
-                            }
-                        }
-                    </script>
-
-                    <style>
-                        body {
-                            background-color: #f4fbf7;
-                            font-family: 'Lexend', sans-serif;
-                        }
-
-                        .glass-card {
-                            background: #ffffff;
-                            border: 1px solid #e2ece7;
-                            box-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 4px 16px -4px rgba(20, 83, 45, .06);
-                        }
-
-                        .table-responsive {
-                            width: 100%;
-                            overflow-x: auto;
-                        }
-
-                        .table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            text-align: left;
-                        }
-
-                        .table th,
-                        .table td {
-                            padding: 1rem 1.25rem;
-                            border-bottom: 1px solid #e2ece7;
-                            font-size: 0.9rem;
-                        }
-
-                        .table th {
-                            background-color: #f8fcf9;
-                            font-weight: 600;
-                            color: #0f172a;
-                            text-transform: uppercase;
-                            letter-spacing: 0.05em;
-                            font-size: 0.8rem;
-                        }
-
-                        .table tr:hover {
-                            background-color: rgba(77, 102, 28, 0.015);
-                        }
-
-                        .row-fadeout {
-                            transition: all 0.5s ease-out;
-                            opacity: 0;
-                            transform: scale(0.95) translateY(10px);
-                        }
-
-                        .form-control-custom {
-                            width: 100%;
-                            padding: 0.65rem 0.85rem;
-                            border: 1.5px solid #e2ece7;
-                            border-radius: 0.75rem;
-                            font-size: 0.875rem;
-                            background-color: #ffffff;
-                            transition: all 0.2s;
-                            outline: none;
-                        }
-
-                        .form-control-custom:focus {
-                            border-color: #4d661c;
-                            box-shadow: 0 0 0 3px rgba(77, 102, 28, 0.1);
-                        }
-
-                        /* Image drag-drop styles */
-                        .img-card {
-                            cursor: grab;
-                            user-select: none;
-                            transition: transform 0.15s, box-shadow 0.15s;
-                        }
-
-                        .img-card.dragging {
-                            opacity: 0.45;
-                            transform: scale(0.97);
-                            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-                            cursor: grabbing;
-                        }
-
-                        .img-card.drag-over {
-                            outline: 2px dashed #4d661c;
-                            outline-offset: 2px;
-                            transform: scale(1.03);
-                        }
-
-                        .img-card-fadeout {
-                            transition: all 0.3s ease-out;
-                            opacity: 0;
-                            transform: scale(0.9);
-                        }
-
-                        /* New-upload file card */
-                        .new-img-card {
-                            position: relative;
-                            border-radius: 0.75rem;
-                            overflow: hidden;
-                            aspect-ratio: 1;
-                            border: 1px solid #e2ece7;
-                            background: #fff;
-                            box-shadow: 0 1px 4px rgba(0, 0, 0, .05);
-                        }
-
-                        .new-img-card .badge-primary {
-                            position: absolute;
-                            top: 6px;
-                            left: 6px;
-                            font-size: 8px;
-                            font-weight: 700;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            background: #4d661c;
-                            color: #fff;
-                        }
-
-                        .new-img-card .badge-secondary {
-                            position: absolute;
-                            top: 6px;
-                            left: 6px;
-                            font-size: 8px;
-                            font-weight: 700;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                            background: rgba(0, 0, 0, 0.45);
-                            color: #fff;
-                        }
-
-                        .new-img-card .btn-rm {
-                            position: absolute;
-                            top: 5px;
-                            right: 5px;
-                            width: 22px;
-                            height: 22px;
-                            border-radius: 50%;
-                            background: #dc2626;
-                            color: #fff;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            cursor: pointer;
-                            border: none;
-                            font-size: 12px;
-                        }
-
-                        .new-img-card .btn-rm:hover {
-                            background: #b91c1c;
-                        }
-                    </style>
                 </head>
 
-                <body class="antialiased text-[#0f172a]">
+                <body class="antialiased text-txt bg-background">
                     <div class="flex min-h-screen">
 
                         <!-- Shared Sidebar -->
@@ -202,16 +43,14 @@
                         </jsp:include>
 
                         <!-- Main Content -->
-                        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+                        <main class="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
                             <!-- Page Header -->
                             <div
-                                class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+                                class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
                                 <div>
-                                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản lý
-                                        Sản phẩm</h1>
-                                    <p class="text-[#475569] text-xs md:text-sm mt-1">Xem, thêm mới, sửa thông tin,
-                                        ẩn/hiện hoặc xóa các sản phẩm hoa quả sạch của bạn.</p>
+                                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Quản lý Sản phẩm</h1>
+                                    <p class="text-txt-2 text-xs md:text-sm mt-1">Xem, thêm mới, sửa thông tin, ẩn/hiện hoặc xóa các sản phẩm hoa quả sạch của bạn.</p>
                                 </div>
 
                                 <button onclick="openCreateModal()"
@@ -221,27 +60,7 @@
                                 </button>
                             </div>
 
-                            <!-- Dynamic Flash Message Alert -->
-                            <c:if test="${not empty sessionScope.flashMsg}">
-                                <div id="flash-alert-container"
-                                    class="mb-6 p-4 rounded-2xl glass-card flex items-center gap-3 border-l-4 ${sessionScope.flashType == 'success' ? 'border-primary text-primary' : 'border-red-500 text-red-700'} shadow-sm">
-                                    <span class="material-symbols-outlined text-[24px]">
-                                        <c:choose>
-                                            <c:when test="${sessionScope.flashType == 'success'}">check_circle</c:when>
-                                            <c:otherwise>error</c:otherwise>
-                                        </c:choose>
-                                    </span>
-                                    <div class="flex-grow font-semibold text-sm">
-                                        <c:out value="${sessionScope.flashMsg}" />
-                                    </div>
-                                    <button onclick="document.getElementById('flash-alert-container').remove();"
-                                        class="text-txt-2 hover:text-txt cursor-pointer">
-                                        <span class="material-symbols-outlined text-[18px]">close</span>
-                                    </button>
-                                </div>
-                                <c:remove var="flashMsg" scope="session" />
-                                <c:remove var="flashType" scope="session" />
-                            </c:if>
+
 
                             <!-- Search and Filter Bar -->
                             <div class="glass-card rounded-2xl p-6 mb-6">
@@ -1488,7 +1307,7 @@
                                     const fname = file.name;
                                     const badgeClass = isPrimary ? 'badge-primary' : 'badge-secondary';
                                     const badgeText = isPrimary ? '\u2b50 Ch\u00ednh' : 'Ph\u1ee5 ' + (index + 1);
-                                    card.innerHTML = '<img src="' + resultSrc + '" alt="' + fname + '" style="width:100%;height:100%;object-fit:cover;">'
+                                    card.innerHTML = '<img src="' + resultSrc + '" alt="' + fname + '" class="w-full h-full object-cover">'
                                         + '<span class="' + badgeClass + '">' + badgeText + '</span>'
                                         + '<button class="btn-rm" type="button" onclick="removeNewImage(' + index + ')" title="X\u00f3a \u1ea3nh n\u00e0y">\u2715</button>';
                                 };
@@ -1514,6 +1333,10 @@
                             let discountEnd = data.discountEnd !== undefined && data.discountEnd !== null ? data.discountEnd : '';
                             if (discountStart && discountStart.length > 16) discountStart = discountStart.substring(0, 16);
                             if (discountEnd && discountEnd.length > 16) discountEnd = discountEnd.substring(0, 16);
+
+                            const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                            let minStart = discountStart ? discountStart : nowLocal;
+                            let minEnd = discountStart ? discountStart : nowLocal;
 
                             row.innerHTML =
                                 '<input type="hidden" name="variantId" value="' + variantId + '">' +
@@ -1570,12 +1393,18 @@
                                 '<label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian bắt đầu</label>' +
                                 '<input type="datetime-local" name="variantDiscountStart" ' +
                                 'value="' + discountStart + '" ' +
+                                'data-original="' + discountStart + '" ' +
+                                'min="' + minStart + '" ' +
+                                'onchange="validateDiscountDateInput(this)" ' +
                                 'class="form-control-custom py-1 text-xs">' +
                                 '</div>' +
                                 '<div>' +
                                 '<label class="block text-[9px] font-bold text-txt-2 mb-1">Thời gian kết thúc</label>' +
                                 '<input type="datetime-local" name="variantDiscountEnd" ' +
                                 'value="' + discountEnd + '" ' +
+                                'data-original="' + discountEnd + '" ' +
+                                'min="' + minEnd + '" ' +
+                                'onchange="validateDiscountDateInput(this)" ' +
                                 'class="form-control-custom py-1 text-xs">' +
                                 '</div>' +
                                 '</div>' +
@@ -1710,6 +1539,92 @@
                         function submitProductForm(event) {
                             event.preventDefault();
                             const form = document.getElementById('productForm');
+
+                            // Client-side validation: Discount dates
+                            const variantRows = document.querySelectorAll('.variant-row');
+                            const now = new Date();
+                            const errors = [];
+
+                            variantRows.forEach((row, index) => {
+                                const labelInput = row.querySelector('[name="variantLabel"]');
+                                const label = (labelInput && labelInput.value.trim()) || `số ${index + 1}`;
+                                const priceInput = row.querySelector('[name="variantPrice"]');
+                                const price = parseFloat(priceInput.value) || 0;
+
+                                const dpInput = row.querySelector('[name="variantDiscountPrice"]');
+                                const dsInput = row.querySelector('[name="variantDiscountStart"]');
+                                const deInput = row.querySelector('[name="variantDiscountEnd"]');
+
+                                const dpVal = dpInput ? dpInput.value.trim() : '';
+                                const dsVal = dsInput ? dsInput.value.trim() : '';
+                                const deVal = deInput ? deInput.value.trim() : '';
+
+                                const hasDp = dpVal !== '';
+                                const hasDs = dsVal !== '';
+                                const hasDe = deVal !== '';
+
+                                if (hasDp || hasDs || hasDe) {
+                                    if (!hasDp || !hasDs || !hasDe) {
+                                        errors.push(`Phân loại "${label}": Cấu hình giảm giá phải điền đầy đủ cả giá khuyến mãi, ngày bắt đầu và ngày kết thúc.`);
+                                    } else {
+                                        const dp = parseFloat(dpVal) || 0;
+                                        if (dp < 0) {
+                                            errors.push(`Phân loại "${label}": Giá khuyến mãi không được âm.`);
+                                        }
+                                        if (dp >= price) {
+                                            errors.push(`Phân loại "${label}": Giá khuyến mãi phải nhỏ hơn giá gốc.`);
+                                        }
+
+                                        const ds = new Date(dsVal);
+                                        const de = new Date(deVal);
+
+                                        if (isNaN(ds.getTime())) {
+                                            errors.push(`Phân loại "${label}": Ngày bắt đầu giảm giá không hợp lệ.`);
+                                        }
+                                        if (isNaN(de.getTime())) {
+                                            errors.push(`Phân loại "${label}": Ngày kết thúc giảm giá không hợp lệ.`);
+                                        }
+
+                                        if (!isNaN(ds.getTime()) && !isNaN(de.getTime())) {
+                                            // Only check past date if it is changed or if it is a new variant
+                                            const originalDsVal = dsInput.dataset.original || '';
+                                            const originalDeVal = deInput.dataset.original || '';
+                                            const dsChanged = originalDsVal === '' || dsVal !== originalDsVal;
+                                            const deChanged = originalDeVal === '' || deVal !== originalDeVal;
+
+                                            // 5-minute grace period
+                                            const compareTime = new Date(now.getTime() - 5 * 60 * 1000);
+
+                                            if (dsChanged && ds < compareTime) {
+                                                errors.push(`Phân loại "${label}": Ngày bắt đầu giảm giá không được ở trong quá khứ.`);
+                                            }
+                                            if (deChanged && de < compareTime) {
+                                                errors.push(`Phân loại "${label}": Ngày kết thúc giảm giá không được ở trong quá khứ.`);
+                                            }
+                                            if (de <= ds) {
+                                                errors.push(`Phân loại "${label}": Ngày kết thúc giảm giá phải sau ngày bắt đầu.`);
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            if (errors.length > 0) {
+                                let errorHtml = '<ul class="list-disc list-inside text-left text-xs font-semibold text-red-600 space-y-1">';
+                                errors.forEach(err => {
+                                    errorHtml += '<li>' + err + '</li>';
+                                });
+                                errorHtml += '</ul>';
+
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Lỗi thông tin',
+                                    html: errorHtml,
+                                    confirmButtonColor: '#4d661c'
+                                });
+                                return;
+                            }
+
                             const formData = new FormData(form);
 
                             const productId = document.getElementById('modal-productId').value;
@@ -1771,6 +1686,67 @@
                                 .catch(err => {
                                     handleAjaxError(err, "Lỗi kết nối máy chủ khi lưu sản phẩm.");
                                 });
+                        }
+
+                        function validateDiscountDateInput(input) {
+                            const val = input.value.trim();
+                            if (val === '') return;
+
+                            const selectedDate = new Date(val);
+                            if (isNaN(selectedDate.getTime())) return;
+
+                            const originalVal = input.dataset.original || '';
+                            const isChanged = originalVal === '' || val !== originalVal;
+
+                            if (isChanged) {
+                                const now = new Date();
+                                // Grace period of 5 minutes to prevent normal delay alert issues
+                                const compareTime = new Date(now.getTime() - 5 * 60 * 1000);
+
+                                if (selectedDate < compareTime) {
+                                    const row = input.closest('.variant-row');
+                                    const labelInput = row ? row.querySelector('[name="variantLabel"]') : null;
+                                    const label = (labelInput && labelInput.value.trim()) || 'phân loại';
+                                    const fieldName = input.name === 'variantDiscountStart' ? 'bắt đầu' : 'kết thúc';
+
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Ngày không hợp lệ',
+                                        text: `Phân loại "${label}": Ngày ${fieldName} giảm giá không được ở trong quá khứ.`,
+                                        confirmButtonColor: '#4d661c'
+                                    });
+
+                                    input.value = originalVal;
+                                    return;
+                                }
+                            }
+
+                            // Verify that discount end date is after start date
+                            const row = input.closest('.variant-row');
+                            if (!row) return;
+                            const dsInput = row.querySelector('[name="variantDiscountStart"]');
+                            const deInput = row.querySelector('[name="variantDiscountEnd"]');
+
+                            // Dynamically update min of end date picker when start date is changed
+                            if (input.name === 'variantDiscountStart' && deInput) {
+                                deInput.min = input.value || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                            }
+
+                            if (dsInput && deInput && dsInput.value.trim() !== '' && deInput.value.trim() !== '') {
+                                const ds = new Date(dsInput.value.trim());
+                                const de = new Date(deInput.value.trim());
+                                if (!isNaN(ds.getTime()) && !isNaN(de.getTime()) && de <= ds) {
+                                    const labelInput = row.querySelector('[name="variantLabel"]');
+                                    const label = (labelInput && labelInput.value.trim()) || 'phân loại';
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Ngày không hợp lệ',
+                                        text: `Phân loại "${label}": Ngày kết thúc giảm giá phải sau ngày bắt đầu.`,
+                                        confirmButtonColor: '#4d661c'
+                                    });
+                                    input.value = originalVal;
+                                }
+                            }
                         }
                     </script>
                 </body>

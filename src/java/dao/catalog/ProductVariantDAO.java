@@ -120,6 +120,42 @@ public class ProductVariantDAO extends BaseDAO {
     }
 
     /**
+     * Batch load biến thể đang hoạt động theo danh sách variantId.
+     */
+    public Map<Integer, ProductVariant> findByIds(Collection<Integer> variantIds) throws SQLException {
+        Map<Integer, ProductVariant> map = new LinkedHashMap<>();
+        if (variantIds == null || variantIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new LinkedHashSet<>(variantIds);
+        StringBuilder placeholders = new StringBuilder();
+        int index = 0;
+        for (Integer ignored : distinctIds) {
+            if (index++ > 0) {
+                placeholders.append(",");
+            }
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT * FROM product_variants WHERE variant_id IN (" + placeholders + ") AND is_active = 1";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer variantId : distinctIds) {
+                ps.setInt(paramIndex++, variantId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ProductVariant variant = mapRow(rs);
+                    map.put(variant.getVariantId(), variant);
+                }
+            }
+        }
+        return map;
+    }
+
+    /**
      * Lưu một biến thể sản phẩm mới vào cơ sở dữ liệu.
      */
     public int save(ProductVariant variant) throws SQLException {
@@ -315,6 +351,63 @@ public class ProductVariantDAO extends BaseDAO {
         try (Connection conn = getConnection()) {
             return getProductOwnerId(conn, variantId);
         }
+    }
+
+    public List<Map<String, Object>> findVariantsWithOwnerDetails(int ownerId) throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT pv.variant_id, pv.variant_label, pv.stock_quantity, pv.sku, "
+                   + "       p.product_id, p.name AS product_name, p.shelf_life_days, "
+                   + "       p.season_start_month, p.season_end_month "
+                   + "FROM product_variants pv "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "WHERE p.owner_id = ? AND pv.is_active = 1 AND p.status != 'DELETED' "
+                   + "ORDER BY p.name ASC, pv.price ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("variantId", rs.getInt("variant_id"));
+                    map.put("variantLabel", rs.getString("variant_label"));
+                    map.put("stockQuantity", rs.getInt("stock_quantity"));
+                    map.put("sku", rs.getString("sku"));
+                    
+                    int productId = rs.getInt("product_id");
+                    map.put("productId", productId);
+                    map.put("productName", rs.getString("product_name"));
+                    
+                    int shelfLife = rs.getInt("shelf_life_days");
+                    if (rs.wasNull()) {
+                        map.put("shelfLifeDays", null);
+                    } else {
+                        map.put("shelfLifeDays", shelfLife);
+                    }
+                    
+                    model.entity.catalog.Product dummyProduct = new model.entity.catalog.Product();
+                    dummyProduct.setProductId(productId);
+                    dummyProduct.setName(rs.getString("product_name"));
+                    
+                    int startMonth = rs.getInt("season_start_month");
+                    boolean startNull = rs.wasNull();
+                    int endMonth = rs.getInt("season_end_month");
+                    boolean endNull = rs.wasNull();
+                    
+                    if (!startNull) {
+                        dummyProduct.setSeasonStartMonth(startMonth);
+                    }
+                    if (!endNull) {
+                        dummyProduct.setSeasonEndMonth(endMonth);
+                    }
+                    
+                    map.put("seasonLabel", dummyProduct.getSeasonLabel());
+                    map.put("inSeason", dummyProduct.isInSeason());
+                    
+                    list.add(map);
+                }
+            }
+        }
+        return list;
     }
 
     public Map<String, Object> getVariantAndProductName(Connection conn, int variantId) throws SQLException {

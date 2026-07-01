@@ -7,7 +7,12 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Kênh Người Bán | Tổng Quan Cửa Hàng</title>
+                <title>MetaFruit | Tổng Quan Cửa Hàng</title>
+
+                <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
+                <!-- Google Fonts & Icons -->
+                <link rel="preconnect" href="https://fonts.googleapis.com">
 
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
@@ -15,97 +20,19 @@
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link
-                    href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+                        href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
                 <!-- Core Tailwind and SweetAlert -->
-                <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-                <script>
-                    tailwind.config = {
-                        theme: {
-                            extend: {
-                                colors: {
-                                    primary: '#4d661c',
-                                    'primary-hover': '#364e03',
-                                    'primary-dk': '#364e03',
-                                    'primary-lt': '#f0f7e6',
-                                    surface: '#ffffff',
-                                    'surface-2': '#f8fafc',
-                                    border: '#e2ece7',
-                                    'txt': '#0f172a',
-                                    'txt-2': '#475569',
-                                    'txt-3': '#94a3b8',
-                                },
-                                fontFamily: {
-                                    sans: ['Segoe UI', 'Lexend', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                                },
-                                boxShadow: {
-                                    card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                                }
-                            }
-                        }
-                    }
-                </script>
-
-                <style>
-                    body {
-                        background-color: #f4faf6;
-                        font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif;
-                    }
-
-                    .glass-card {
-                        background: rgba(255, 255, 255, 0.95);
-                        backdrop-filter: blur(12px);
-                        border: 1px solid rgba(226, 236, 231, 0.8);
-                        box-shadow: 0 10px 30px -10px rgba(77, 102, 28, 0.05), 0 1px 3px rgba(0, 0, 0, .02);
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    }
-
-                    .glass-card:hover {
-                        transform: translateY(-4px);
-                        box-shadow: 0 20px 40px -15px rgba(77, 102, 28, 0.12), 0 0 0 1px rgba(77, 102, 28, 0.1);
-                    }
-
-                    .pulse-live {
-                        position: relative;
-                    }
-
-                    .pulse-live::after {
-                        content: '';
-                        position: absolute;
-                        width: 8px;
-                        height: 8px;
-                        background-color: #22c55e;
-                        border-radius: 50%;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        right: -14px;
-                        animation: pulse-animation 1.5s infinite;
-                    }
-
-                    @keyframes pulse-animation {
-                        0% {
-                            transform: translateY(-50%) scale(0.95);
-                            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-                        }
-
-                        70% {
-                            transform: translateY(-50%) scale(1);
-                            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
-                        }
-
-                        100% {
-                            transform: translateY(-50%) scale(0.95);
-                            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-                        }
-                    }
-                </style>
             </head>
 
-            <body class="antialiased text-[#0f172a]" data-user-id="${sessionScope.currentUser.userId}">
+            <body class="antialiased text-txt bg-background" data-user-id="${sessionScope.currentUser.userId}">
                 <div class="flex min-h-screen">
                     <!-- Shared Sidebar -->
                     <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
@@ -113,21 +40,18 @@
                     </jsp:include>
 
                     <!-- Main Content Area -->
-                    <main class="flex-grow p-6 md:p-8 overflow-y-auto">
+                    <main class="flex-grow p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
                         <!-- Header Section -->
                         <div
-                            class="flex items-center justify-between bg-gradient-to-r from-[#eef9f1] via-[#e2f5e8] to-[#d4f0dd] border border-[#bbf7d0]/80 p-6 rounded-3xl shadow-sm mb-8">
+                            class="flex items-center justify-between bg-gradient-to-r from-primary-lt via-primary-lt to-secondary-container/20 border border-primary-fixed/80 p-6 rounded-3xl shadow-sm mb-8">
                             <div>
-                                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Tổng Quan
-                                    Vận Hành</h1>
-                                <p class="text-[#475569] text-xs md:text-sm mt-1">Xem nhanh các chỉ số vận hành quan
-                                    trọng và các thao tác quản lý nhanh.</p>
+                                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Tổng Quan Vận Hành</h1>
+                                <p class="text-txt-2 text-xs md:text-sm mt-1">Xem nhanh các chỉ số vận hành quan trọng và các thao tác quản lý nhanh.</p>
                             </div>
                             <div
-                                class="hidden md:flex items-center gap-2 bg-[#ffffff]/90 border border-[#bbf7d0]/80 px-4 py-2.5 rounded-2xl text-[#364e03] shadow-sm">
-                                <i class="fa-solid fa-leaf text-[#84cc16]"></i>
-                                <span class="text-xs font-bold uppercase tracking-wider pulse-live pr-4">Vận hành
-                                    Live</span>
+                                class="hidden md:flex items-center gap-2 bg-surface/90 border border-primary-fixed/80 px-4 py-2.5 rounded-2xl text-primary-dark shadow-sm">
+                                <i class="fa-solid fa-leaf text-primary"></i>
+                                <span class="text-xs font-bold uppercase tracking-wider pulse-live pr-4">Vận hành Live</span>
                             </div>
                         </div>
 

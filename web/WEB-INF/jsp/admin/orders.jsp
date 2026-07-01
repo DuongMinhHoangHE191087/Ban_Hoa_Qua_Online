@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -8,87 +8,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giám sát đơn hàng - Admin Verdant Market</title>
-    <!-- Google Fonts & Tailwind CSS -->
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Giám sát đơn hàng - Admin MetaFruit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    
-    <script id="tailwind-config">
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#4d661c",
-                        "primary-dark": "#364e03",
-                        "primary-light": "#d9f99d",
-                        bg: "#f4fbf7",
-                        surface: "#ffffff",
-                        border: "#e2ece7",
-                        "text-primary": "#00210d",
-                        "text-secondary": "#44483b",
-                        "text-muted": "#8e9285",
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        .premium-glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(77, 102, 28, 0.08);
-            box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.03);
-        }
-        .pagination-wrapper { padding: 0 !important; }
-        .pagination { gap: 0.375rem !important; margin: 0 !important; }
-        .pagination .page-link {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
-            font-size: 0.75rem; font-weight: 600;
-            border: 1px solid #e2ece7; background: #fff;
-            color: #374151; cursor: pointer; transition: all 0.15s;
-            text-decoration: none;
-        }
-        .pagination .page-item.active .page-link {
-            background: #4d661c; border-color: #4d661c; color: #fff;
-        }
-        .pagination .page-item.disabled .page-link {
-            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-        }
-        .pagination .page-item .page-link:hover:not(.disabled) {
-            background: #f1f5f9; border-color: #9ca3af;
-        }
-    </style>
 </head>
-<body class="bg-bg text-text-primary">
-    <div class="admin-layout flex min-h-screen">
+<body class="antialiased text-txt bg-background">
+    <div class="admin-layout">
         <!-- Sidebar -->
         <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
             <jsp:param name="activeMenu" value="orders"/>
         </jsp:include>
 
         <!-- Main Content -->
-        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
-            <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
+            <%-- Page header --%>
+            <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Giám Sát Đơn Hàng</h1>
-                    <p class="text-[#475569] text-xs md:text-sm mt-1">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Giám Sát Đơn Hàng</h1>
+                    <p class="text-txt-2 text-xs md:text-sm mt-1">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
                 </div>
-                <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                    <i class="fa-solid fa-leaf text-[#84cc16]"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Verdant Market Live</span>
+                <div class="hidden md:flex items-center gap-2 bg-primary-lt text-primary px-4 py-2 rounded-xl border border-primary-fixed font-bold">
+                    <i class="fa-solid fa-leaf text-primary"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
                 </div>
             </div>
 
             <!-- Flash Message (PRG pattern support) -->
-            <%-- Dùng data-* attribute để tránh JS string injection khi message chứa ' hoặc \ --%>
             <c:if test="${not empty sessionScope.flashMsg}">
                 <div id="flashData" hidden
                      data-icon="<c:out value="${sessionScope.flashType == 'success' ? 'success' : 'error'}"/>"

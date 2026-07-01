@@ -4,6 +4,7 @@ import config.AppConfig;
 import dao.order.DeliveryDAO;
 import dao.order.DeliveryTripDAO;
 import dao.order.OrderDAO;
+import dao.shop.PaymentDAO;
 import exception.BusinessException;
 import model.entity.order.Delivery;
 import model.entity.order.Order;
@@ -11,6 +12,7 @@ import model.entity.auth.User;
 import dao.auth.UserDAO;
 import service.chat.NotificationService;
 import service.system.EmailService;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -57,6 +59,7 @@ public class DeliveryService {
     private final DeliveryDAO deliveryDAO = new DeliveryDAO();
     private final DeliveryTripDAO deliveryTripDAO = new DeliveryTripDAO();
     private final OrderDAO orderDAO = new OrderDAO();
+    private final PaymentDAO paymentDAO = new PaymentDAO();
     private final UserDAO userDAO = new UserDAO();
     private final NotificationService notificationService = new NotificationService();
     private final EmailService emailService = new EmailService();
@@ -137,7 +140,7 @@ public class DeliveryService {
         List<Order> orders = orderDAO.findById(orderId);
         Order order = orders.isEmpty() ? null : orders.get(0);
         if (order == null) {
-            throw new IllegalArgumentException("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng Ä‘á»ƒ táº¡o chuyáº¿n giao.");
+            throw new IllegalArgumentException("Không tìm thấy đơn hàng để tạo chuyến giao.");
         }
         int parentOrderId = order.getParentOrderId() != null ? order.getParentOrderId() : order.getOrderId();
         String tripStatus = staffId > 0 ? AppConfig.DELIVERY_TRIP_ASSIGNED : AppConfig.DELIVERY_TRIP_PLANNED;
@@ -192,7 +195,8 @@ public class DeliveryService {
     /**
      * Delivery staff xác nhận giao hàng thành công.
      * Cập nhật cả bảng deliveries và orders (DISPATCHED -> DELIVERED).
-     * B5 Fix: trước đây chỉ update deliveries, orders.status vẫn bị stale.
+     * COD: Ghi nhận payment_transaction completed.
+     * Cascade: Nếu toàn bộ đơn con của đơn cha đã DELIVERED thì update đơn cha.
      */
     public void markAsDelivered(int staffId, int deliveryId, String proofImageUrl) throws SQLException {
         Delivery del = deliveryDAO.findById(deliveryId);
@@ -205,26 +209,65 @@ public class DeliveryService {
         if (proofImageUrl == null || proofImageUrl.trim().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng cung cấp ảnh bằng chứng giao hàng!");
         }
-        // Update deliveries table
-        deliveryDAO.updateStatusAndProof(deliveryId, "DELIVERED", null, proofImageUrl);
-        // Sync orders table: DISPATCHED -> DELIVERED
-        orderDAO.updateStatus(del.getOrderId(), "DELIVERED");
 
-        // Gửi thông báo giao hàng thành công cho Customer
-        try {
-            List<Order> orders = orderDAO.findById(del.getOrderId());
-            if (!orders.isEmpty()) {
-                Order order = orders.get(0);
-                User customer = userDAO.findUserById(order.getCustomerId());
-                if (customer != null) {
-                    String customerMsg = "Đơn hàng #" + order.getOrderId() + " đã giao hàng thành công bởi người vận chuyển. Vui lòng xác nhận nhận hàng.";
-                    notificationService.send(customer.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thành công", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
-                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + order.getOrderId();
-                    emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(order.getOrderId()), "Giao hàng thành công", orderDetailUrl);
+        try (Connection conn = orderDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Update deliveries table
+                deliveryDAO.updateStatusAndProof(conn, deliveryId, "DELIVERED", null, proofImageUrl);
+
+                // 2. Update child order -> DELIVERED
+                orderDAO.updateStatus(conn, del.getOrderId(), "DELIVERED");
+
+                // 3. Load order to know payment method and parent
+                Order order = orderDAO.findOneById(conn, del.getOrderId());
+
+                if (order != null) {
+                    // 4. COD — tạo payment_transaction completed khi shipper thu tiền mặt
+                    if ("COD".equalsIgnoreCase(order.getPaymentMethod())) {
+                        BigDecimal amount = order.getFinalAmount();
+                        String note = "Shipper xác nhận thu tiền COD đơn #" + order.getOrderId();
+                        paymentDAO.initCodTransaction(conn, order.getOrderId(), amount, note);
+                        LoggerUtil.info(log, "[COD] Ghi nhận payment_transaction completed cho orderId=%d amount=%s",
+                                order.getOrderId(), amount);
+                    }
+
+                    // 5. Cascade: nếu đây là đơn CHILD, kiểm tra xem tất cả đơn anh em đã DELIVERED chưa
+                    Integer parentOrderId = orderDAO.getParentOrderIdByChildId(conn, order.getOrderId());
+                    if (parentOrderId != null) {
+                        int remaining = orderDAO.countNonDeliveredChildOrders(conn, parentOrderId);
+                        if (remaining == 0) {
+                            // Tất cả đơn con đã giao thành công -> update đơn cha
+                            orderDAO.updateStatus(conn, parentOrderId, "DELIVERED");
+                            LoggerUtil.info(log, "[Delivery] Cascade DELIVERED lên đơn cha parentOrderId=%d", parentOrderId);
+                        }
+                    }
                 }
+
+                conn.commit();
+
+                // 6. Gửi thông báo async (ngoài transaction)
+                if (order != null) {
+                    final Order finalOrder = order;
+                    try {
+                        User customer = userDAO.findUserById(finalOrder.getCustomerId());
+                        if (customer != null) {
+                            String customerMsg = "Đơn hàng #" + finalOrder.getOrderId() + " đã giao hàng thành công bởi người vận chuyển. Vui lòng xác nhận nhận hàng.";
+                            notificationService.send(customer.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thành công", customerMsg, "/orders/detail?orderId=" + finalOrder.getOrderId());
+                            String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + finalOrder.getOrderId();
+                            emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(finalOrder.getOrderId()), "Giao hàng thành công", orderDetailUrl);
+                        }
+                    } catch (Exception ex) {
+                        LoggerUtil.warn(log, "Không gửi được thông báo giao hàng thành công cho orderId=" + finalOrder.getOrderId(), ex);
+                    }
+                }
+
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
             }
-        } catch (Exception ex) {
-            LoggerUtil.warn(log, "Không gửi được thông báo giao hàng thành công cho orderId=" + del.getOrderId(), ex);
         }
     }
 

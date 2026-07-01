@@ -7,51 +7,17 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Monitor Đơn hàng - Admin Verdant Market</title>
+    <title>Monitor Đơn hàng - Admin MetaFruit</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <style>
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: var(--radius-full);
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-block;
-        }
-        .status-PENDING_PAYMENT, .status-PENDING { background: #fef3c7; color: #92400e; }
-        .status-PAID, .status-PROCESSING { background: #e0e7ff; color: #3730a3; }
-        .status-SHIPPED { background: #dcfce7; color: #166534; }
-        .status-DELIVERED { background: #dcfce7; color: #166534; }
-        .status-CANCELLED { background: #fee2e2; color: #991b1b; }
-        .payment-COD { background: #e5e7eb; color: #374151; }
-        .payment-BANK_TRANSFER { background: #dbeafe; color: #0c4a6e; }
-        .pagination-wrapper { padding: 0 !important; }
-        .pagination { gap: 0.375rem !important; margin: 0 !important; }
-        .pagination .page-link {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 2rem; height: 2rem; border-radius: 0.5rem;
-            font-size: 0.75rem; font-weight: 600;
-            border: 1px solid #e2ece7; background: #fff;
-            color: #374151; cursor: pointer; transition: all 0.15s;
-            text-decoration: none;
-        }
-        .pagination .page-item.active .page-link {
-            background: #4d661c; border-color: #4d661c; color: #fff;
-        }
-        .pagination .page-item.disabled .page-link {
-            color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-        }
-        .pagination .page-item .page-link:hover:not(.disabled) {
-            background: #f1f5f9; border-color: #9ca3af;
-        }
-    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 </head>
 <body>
     <div class="admin-layout">
         <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
-            <jsp:param name="activeMenu" value="order-monitor"/>
+            <jsp:param name="activeMenu" value="orders"/>
         </jsp:include>
 
         <main class="admin-main">
@@ -63,10 +29,10 @@
                 <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
                 <div class="admin-panel">
-                    <form action="${pageContext.request.contextPath}/admin/order-monitor" method="get" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); gap: var(--space-2); flex-wrap: wrap;">
-                        <h2 style="font-size: var(--font-size-lg); margin:0;">Giám sát đơn hàng</h2>
-                        <div class="search-box" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
-                            <select name="status" class="form-select" style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                    <form action="${pageContext.request.contextPath}/admin/order-monitor" method="get" class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h2 class="m-0 text-lg">Giám sát đơn hàng</h2>
+                        <div class="search-box flex flex-wrap gap-2">
+                            <select name="status" class="form-select px-3 py-1.5 border border-border rounded-md">
                                 <option value="">Tất cả trạng thái</option>
                                 <option value="PENDING_PAYMENT" ${statusFilter == 'PENDING_PAYMENT' ? 'selected' : ''}>Chờ thanh toán</option>
                                 <option value="PENDING" ${statusFilter == 'PENDING' ? 'selected' : ''}>Chờ xử lý</option>
@@ -75,12 +41,12 @@
                                 <option value="DELIVERED" ${statusFilter == 'DELIVERED' ? 'selected' : ''}>Đã giao</option>
                                 <option value="CANCELLED" ${statusFilter == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
                             </select>
-                            <select name="paymentMethod" class="form-select" style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                            <select name="paymentMethod" class="form-select px-3 py-1.5 border border-border rounded-md">
                                 <option value="">Tất cả phương thức TT</option>
                                 <option value="COD" ${paymentMethod == 'COD' ? 'selected' : ''}>COD</option>
                                 <option value="BANK_TRANSFER" ${paymentMethod == 'BANK_TRANSFER' ? 'selected' : ''}>Chuyển khoản</option>
                             </select>
-                            <select name="paymentStatus" class="form-select" style="padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                            <select name="paymentStatus" class="form-select px-3 py-1.5 border border-border rounded-md">
                                 <option value="">Tất cả trạng thái TT</option>
                                 <option value="PENDING" ${paymentStatus == 'PENDING' ? 'selected' : ''}>Chờ thanh toán</option>
                                 <option value="PAID" ${paymentStatus == 'PAID' ? 'selected' : ''}>Đã thanh toán</option>
@@ -135,13 +101,13 @@
                                                 <td>
                                                     <c:choose>
                                                         <c:when test="${order.paymentStatus == 'PAID'}">
-                                                            <span class="status-badge" style="background: #dcfce7; color: #166534;">Đã TT</span>
+                                                            <span class="status-badge status-badge-approved">Đã TT</span>
                                                         </c:when>
                                                         <c:when test="${order.paymentStatus == 'PENDING'}">
-                                                            <span class="status-badge" style="background: #fef3c7; color: #92400e;">Chờ TT</span>
+                                                            <span class="status-badge status-badge-pending">Chờ TT</span>
                                                         </c:when>
                                                         <c:otherwise>
-                                                            <span class="status-badge" style="background: #fee2e2; color: #991b1b;">Thất bại</span>
+                                                            <span class="status-badge status-badge-rejected">Thất bại</span>
                                                         </c:otherwise>
                                                     </c:choose>
                                                 </td>
@@ -154,7 +120,7 @@
                     </div>
 
                     <c:if test="${pagedResult.totalPages > 1}">
-                        <div style="display: flex; justify-content: center; margin-top: var(--space-4);">
+                        <div class="flex justify-center mt-4">
                             <ft:pagination current="${pagedResult.currentPage}" total="${pagedResult.totalPages}" baseUrl="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}" />
                         </div>
                     </c:if>

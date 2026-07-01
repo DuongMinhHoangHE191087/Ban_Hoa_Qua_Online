@@ -4,53 +4,53 @@
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Tổng quan khách hàng"/></jsp:include>
 
-<div class="container" style="padding: var(--space-6) 0;">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-6);">
+<div class="container py-6">
+    <div class="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2">
         <!-- Đơn hàng gần đây -->
-        <section class="card">
-            <div style="padding: var(--space-4); border-bottom: 1px solid var(--color-border);">
-                <h2 style="margin: 0; font-size: var(--font-size-lg);">
+        <section class="card overflow-hidden">
+            <div class="px-4 py-4 border-b border-border">
+                <h2 class="m-0 text-lg">
                     <i class="fa-solid fa-shopping-bag"></i> Đơn hàng gần đây
                 </h2>
             </div>
-            <div style="padding: var(--space-4);">
+            <div class="p-4">
                 <c:choose>
                     <c:when test="${empty recentOrders}">
-                        <p style="color: var(--color-muted); text-align: center; padding: var(--space-4);">
+                        <p class="py-4 text-center text-muted">
                             Bạn chưa có đơn hàng nào.
                         </p>
-                        <a href="${pageContext.request.contextPath}/products" class="btn btn-primary btn-sm" style="display: inline-block;">
+                        <a href="${pageContext.request.contextPath}/products" class="btn btn-primary btn-sm inline-flex items-center gap-2">
                             <i class="fa-solid fa-shop"></i> Mua sắm ngay
                         </a>
                     </c:when>
                     <c:otherwise>
-                        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                        <div class="flex flex-col gap-3">
                             <c:forEach var="order" items="${recentOrders}" begin="0" end="4">
-                                <div style="padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-light);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
+                                <div class="rounded-md border border-border bg-surface-light p-2">
+                                    <div class="mb-2 flex items-center justify-between">
                                         <strong>
-                                            <a href="${pageContext.request.contextPath}/orders?action=detail&orderId=${order.orderId}" style="color: inherit; text-decoration: none;">
+                                            <a href="${pageContext.request.contextPath}/orders?action=detail&orderId=${order.orderId}" class="no-underline text-inherit">
                                                 Đơn #${order.orderId}
                                             </a>
                                         </strong>
-                                        <span style="font-size: 0.85rem; color: var(--color-muted);">
+                                        <span class="text-sm text-muted">
                                             <fmt:formatDate value="${order.createdAtAsDate}" pattern="dd/MM/yyyy"/>
                                         </span>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="flex items-center justify-between">
                                         <div>
-                                            <span style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600;">
+                                            <span class="inline-flex items-center rounded-full bg-[#e0e7ff] px-2 py-0.5 text-[0.8rem] font-semibold text-[#3730a3]">
                                                 ${order.status}
                                             </span>
                                         </div>
-                                        <strong style="color: var(--color-danger);">
+                                        <strong class="text-danger">
                                             <fmt:formatNumber value="${order.finalAmount}" type="number"/> đ
                                         </strong>
                                     </div>
                                 </div>
                             </c:forEach>
                         </div>
-                        <a href="${pageContext.request.contextPath}/orders" class="btn btn-secondary btn-sm" style="display: inline-block; margin-top: var(--space-4);">
+                        <a href="${pageContext.request.contextPath}/orders" class="btn btn-secondary btn-sm inline-flex items-center gap-2 mt-4">
                             <i class="fa-solid fa-list"></i> Xem tất cả đơn hàng
                         </a>
                     </c:otherwise>
@@ -59,30 +59,30 @@
         </section>
 
         <!-- Mã giảm giá khả dụng -->
-        <section class="card">
-            <div style="padding: var(--space-4); border-bottom: 1px solid var(--color-border);">
-                <h2 style="margin: 0; font-size: var(--font-size-lg);">
+        <section class="card overflow-hidden">
+            <div class="px-4 py-4 border-b border-border">
+                <h2 class="m-0 text-lg">
                     <i class="fa-solid fa-ticket"></i> Mã giảm giá
                 </h2>
             </div>
-            <div style="padding: var(--space-4);">
+            <div class="p-4">
                 <c:choose>
                     <c:when test="${empty activeVouchers}">
-                        <p style="color: var(--color-muted); text-align: center; padding: var(--space-4);">
+                        <p class="py-4 text-center text-muted">
                             Hiện không có mã giảm giá nào.
                         </p>
                     </c:when>
                     <c:otherwise>
-                        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                        <div class="flex flex-col gap-3">
                             <c:forEach var="voucher" items="${activeVouchers}" begin="0" end="4">
-                                <div style="padding: var(--space-3); border: 2px solid var(--color-primary); border-radius: var(--radius-md); background: linear-gradient(135deg, #ede9fe 0%, #fce7f3 100%);">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2);">
+                                <div class="rounded-md border-2 border-primary bg-gradient-to-br from-[#ede9fe] to-[#fce7f3] p-3">
+                                    <div class="mb-2 flex items-start justify-between">
                                         <div>
-                                            <strong style="font-size: 1.1rem; color: var(--color-primary);">
+                                            <strong class="text-[1.1rem] text-primary">
                                                 ${voucher.code}
                                             </strong>
                                             <br>
-                                            <span style="font-size: 0.9rem; color: var(--color-muted);">
+                                            <span class="text-sm text-muted">
                                                 <c:choose>
                                                     <c:when test="${voucher.discountType == 'PERCENT'}">
                                                         Giảm ${voucher.discountValue}%
@@ -94,7 +94,7 @@
                                             </span>
                                         </div>
                                         <c:if test="${not empty voucher.validUntil}">
-                                            <span style="font-size: 0.8rem; background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: var(--radius-full);">
+                                            <span class="inline-flex items-center rounded-full bg-[#fee2e2] px-2 py-1 text-[0.8rem] font-semibold text-[#991b1b]">
                                                 HSD: <fmt:formatDate value="${voucher.validUntil}" pattern="dd/MM"/>
                                             </span>
                                         </c:if>
@@ -109,22 +109,22 @@
     </div>
 
     <!-- Quick links -->
-    <section style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); margin-top: var(--space-6);">
-        <a href="${pageContext.request.contextPath}/products" class="card" style="text-align: center; padding: var(--space-4); text-decoration: none; color: inherit; transition: transform 0.2s;">
-            <i class="fa-solid fa-shop" style="font-size: 2rem; color: var(--color-primary); margin-bottom: var(--space-2);"></i>
-            <h3 style="margin: 0; font-size: 0.95rem;">Mua sắm</h3>
+    <section class="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <a href="${pageContext.request.contextPath}/products" class="card text-inherit no-underline p-4 text-center transition-transform duration-200 hover:-translate-y-0.5">
+            <i class="fa-solid fa-shop mb-2 text-2xl text-primary"></i>
+            <h3 class="m-0 text-[0.95rem]">Mua sắm</h3>
         </a>
-        <a href="${pageContext.request.contextPath}/orders" class="card" style="text-align: center; padding: var(--space-4); text-decoration: none; color: inherit; transition: transform 0.2s;">
-            <i class="fa-solid fa-box" style="font-size: 2rem; color: #8b5cf6; margin-bottom: var(--space-2);"></i>
-            <h3 style="margin: 0; font-size: 0.95rem;">Đơn hàng</h3>
+        <a href="${pageContext.request.contextPath}/orders" class="card text-inherit no-underline p-4 text-center transition-transform duration-200 hover:-translate-y-0.5">
+            <i class="fa-solid fa-box mb-2 text-2xl text-[#8b5cf6]"></i>
+            <h3 class="m-0 text-[0.95rem]">Đơn hàng</h3>
         </a>
-        <a href="${pageContext.request.contextPath}/profile" class="card" style="text-align: center; padding: var(--space-4); text-decoration: none; color: inherit; transition: transform 0.2s;">
-            <i class="fa-solid fa-user" style="font-size: 2rem; color: #06b6d4; margin-bottom: var(--space-2);"></i>
-            <h3 style="margin: 0; font-size: 0.95rem;">Hồ sơ</h3>
+        <a href="${pageContext.request.contextPath}/profile" class="card text-inherit no-underline p-4 text-center transition-transform duration-200 hover:-translate-y-0.5">
+            <i class="fa-solid fa-user mb-2 text-2xl text-[#06b6d4]"></i>
+            <h3 class="m-0 text-[0.95rem]">Hồ sơ</h3>
         </a>
-        <a href="${pageContext.request.contextPath}/customer/shop-apply" class="card" style="text-align: center; padding: var(--space-4); text-decoration: none; color: inherit; transition: transform 0.2s;">
-            <i class="fa-solid fa-store" style="font-size: 2rem; color: #10b981; margin-bottom: var(--space-2);"></i>
-            <h3 style="margin: 0; font-size: 0.95rem;">Mở cửa hàng</h3>
+        <a href="${pageContext.request.contextPath}/customer/shop-apply" class="card text-inherit no-underline p-4 text-center transition-transform duration-200 hover:-translate-y-0.5">
+            <i class="fa-solid fa-store mb-2 text-2xl text-[#10b981]"></i>
+            <h3 class="m-0 text-[0.95rem]">Mở cửa hàng</h3>
         </a>
     </section>
 </div>

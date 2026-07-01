@@ -7,7 +7,10 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Theo dõi yêu cầu đổi trả | Kênh Người Bán</title>
+                <title>Theo dõi yêu cầu đổi trả | MetaFruit</title>
+                <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+
+                <!-- Google Fonts & Icons -->
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
 
                 <!-- Google Fonts & Icons -->
@@ -16,76 +19,16 @@
                 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
                 <!-- Tailwind & SweetAlert -->
-                <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 
-                <script>
-                    tailwind.config = {
-                        theme: {
-                            extend: {
-                                colors: {
-                                    primary: '#4d661c',
-                                    'primary-hover': '#364e03',
-                                    'primary-lt': '#f0f7e6',
-                                    border: '#e2ece7',
-                                    'txt': '#0f172a',
-                                    'txt-2': '#475569',
-                                    'txt-3': '#94a3b8',
-                                },
-                                fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                            }
-                        }
-                    }
-                </script>
-
-                <style>
-                    body {
-                        background-color: #f4fbf7;
-                        font-family: 'Lexend', sans-serif;
-                    }
-
-                    .glass-card {
-                        background: #ffffff;
-                        border: 1px solid #e2ece7;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 4px 16px -4px rgba(20, 83, 45, .06);
-                    }
-
-                    .table-responsive {
-                        width: 100%;
-                        overflow-x: auto;
-                    }
-
-                    .table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        text-align: left;
-                    }
-
-                    .table th,
-                    .table td {
-                        padding: 1rem 1.25rem;
-                        border-bottom: 1px solid #e2ece7;
-                        font-size: 0.9rem;
-                    }
-
-                    .table th {
-                        background-color: #f8fcf9;
-                        font-weight: 600;
-                        color: #0f172a;
-                        text-transform: uppercase;
-                        letter-spacing: 0.05em;
-                        font-size: 0.8rem;
-                    }
-
-                    .table tr:hover {
-                        background-color: rgba(77, 102, 28, 0.015);
-                    }
-                </style>
             </head>
 
-            <body class="antialiased text-[#0f172a]">
+            <body class="antialiased text-txt bg-background">
                 <div class="flex min-h-screen">
 
                     <!-- Shared Sidebar -->
@@ -94,19 +37,19 @@
                     </jsp:include>
 
                     <!-- Main Content -->
-                    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+                    <main class="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
                         <!-- Page Header -->
                         <div
-                            class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+                            class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
                             <div>
-                                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Yêu cầu Đổi
+                                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Yêu cầu Đổi
                                     trả hàng</h1>
-                                <p class="text-[#475569] text-xs md:text-sm mt-1">Quản lý và theo dõi các yêu cầu đổi
+                                <p class="text-txt-2 text-xs md:text-sm mt-1">Quản lý và theo dõi các yêu cầu đổi
                                     trả, hoàn tiền từ khách hàng.</p>
                             </div>
                             <div
-                                class="hidden md:flex items-center gap-2 bg-white/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                                class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
                                 <i class="fa-solid fa-rotate-left text-primary"></i>
                                 <span class="text-xs font-bold uppercase tracking-wider">Đổi trả</span>
                             </div>

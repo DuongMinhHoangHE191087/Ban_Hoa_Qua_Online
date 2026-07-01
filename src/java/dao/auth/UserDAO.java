@@ -18,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 
 /**
  * UserDAO — DAO cho entity User.
@@ -248,14 +249,24 @@ public class UserDAO extends BaseDAO {
         }
     }
 
-    /**
-     * Cập nhật trạng thái của User (Khóa/Mở khóa)
-     */
     public boolean updateUserStatus(int userId, String status) throws SQLException {
-        String sql = "UPDATE users SET status = ?, updated_at = GETDATE() WHERE user_id = ?";
+        if (status == null || status.trim().isEmpty()) {
+            throw new IllegalArgumentException("Trạng thái không được để trống.");
+        }
+
+        String normalizedStatus = status.trim().toUpperCase(Locale.ROOT);
+        String sql;
+        if (AppConfig.ACCOUNT_STATUS_ACTIVE.equals(normalizedStatus)) {
+            sql = "UPDATE users SET status = ?, failed_login_count = 0, locked_until = NULL, updated_at = GETDATE() WHERE user_id = ?";
+        } else if (AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(normalizedStatus)) {
+            sql = "UPDATE users SET status = ?, failed_login_count = 0, locked_until = NULL, email_verification_code_hash = NULL, email_verification_expires_at = NULL, email_verification_resend_at = NULL, email_verification_sent_at = NULL, updated_at = GETDATE() WHERE user_id = ?";
+        } else {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ. Chỉ chấp nhận ACTIVE hoặc SUSPENDED.");
+        }
+
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, status);
+            stmt.setString(1, normalizedStatus);
             stmt.setInt(2, userId);
             return stmt.executeUpdate() > 0;
         }
@@ -494,21 +505,47 @@ public class UserDAO extends BaseDAO {
      * Xóa người dùng bằng ID (sử dụng khi đăng ký lỗi để đồng bộ).
      */
     public void deleteUser(int userId) throws SQLException {
-        // Kiểm tra xem user có đơn hàng nào không
-        String sqlCheck = "SELECT COUNT(*) FROM orders WHERE customer_id = ? OR owner_id = ?";
+        String sqlCheck =
+                "SELECT CASE WHEN " +
+                "EXISTS (SELECT 1 FROM orders WHERE customer_id = ? OR owner_id = ? OR cancelled_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM products WHERE owner_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM shop_owner_profiles WHERE user_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM cart WHERE customer_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM promotions WHERE created_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM inventory_logs WHERE changed_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM order_promotions WHERE customer_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM return_requests WHERE customer_id = ? OR decided_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM shop_settlements WHERE owner_id = ? OR created_by = ?) " +
+                "OR EXISTS (SELECT 1 FROM delivery_trips WHERE shipper_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM deliveries WHERE staff_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM reviews WHERE customer_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM chat_sessions WHERE customer_id = ? OR owner_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM chat_messages WHERE sender_id = ?) " +
+                "OR EXISTS (SELECT 1 FROM system_config WHERE changed_by = ?) " +
+                "THEN 1 ELSE 0 END AS has_refs";
         try (Connection conn = getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(sqlCheck)) {
-            checkStmt.setInt(1, userId);
-            checkStmt.setInt(2, userId);
+            int[] params = new int[] {
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId, userId,
+                userId, userId
+            };
+            for (int i = 0; i < params.length; i++) {
+                checkStmt.setInt(i + 1, params[i]);
+            }
             try (ResultSet rs = checkStmt.executeQuery()) {
                 if (rs.next() && rs.getInt(1) > 0) {
-                    // Nếu có đơn hàng, không xóa cứng mà chuyển trạng thái thành SUSPENDED
-                    String sqlUpdate = "UPDATE users SET status = 'SUSPENDED', updated_at = GETDATE() WHERE user_id = ?";
+                    String sqlUpdate = "UPDATE users SET status = ?, failed_login_count = 0, locked_until = NULL, email_verification_code_hash = NULL, email_verification_expires_at = NULL, email_verification_resend_at = NULL, email_verification_sent_at = NULL, updated_at = GETDATE() WHERE user_id = ?";
                     try (PreparedStatement updateStmt = conn.prepareStatement(sqlUpdate)) {
-                        updateStmt.setInt(1, userId);
+                        updateStmt.setString(1, AppConfig.ACCOUNT_STATUS_SUSPENDED);
+                        updateStmt.setInt(2, userId);
                         updateStmt.executeUpdate();
                     }
-                    throw new SQLException("Không thể xóa cứng người dùng vì đã có đơn hàng trong hệ thống. Trạng thái tài khoản đã được chuyển sang SUSPENDED.");
+                    return;
                 }
             }
         }
@@ -520,7 +557,6 @@ public class UserDAO extends BaseDAO {
             stmt.executeUpdate();
         }
     }
-
     public List<User> findActiveShopOwners() throws SQLException {
         List<User> list = new ArrayList<>();
         String sql = "SELECT * FROM users WHERE role = 'SHOP_OWNER' AND status = 'ACTIVE'";

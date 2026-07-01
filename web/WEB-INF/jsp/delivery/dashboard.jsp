@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Dashboard Giao Hàng" />
+    <jsp:param name="pageTitle" value="MetaFruit | Tổng quan giao hàng" />
 </jsp:include>
 
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms"></script>
@@ -27,18 +27,6 @@ tailwind.config = {
 }
 </script>
 
-<style>
-body { background: #F0FDF4; }
-.glass-card {
-    background: rgba(255,255,255,0.88);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(187,247,208,0.6);
-    box-shadow: 0 4px 24px -6px rgba(22,163,74,0.08);
-}
-.status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:9999px; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
-.tab-pill { display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:9999px; font-size:12px; font-weight:700; transition:all .18s; cursor:pointer; }
-</style>
-
 <main class="max-w-7xl mx-auto px-4 md:px-8 py-10 font-sans text-txt">
 
     <%-- Header --%>
@@ -48,7 +36,7 @@ body { background: #F0FDF4; }
                 <div class="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md">
                     <i class="fa-solid fa-truck-fast text-white text-lg"></i>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-extrabold text-[#14532D] tracking-tight">Dashboard Giao Hàng</h1>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-[#14532D] tracking-tight">Tổng quan giao hàng</h1>
             </div>
             <p class="text-txt-2 text-sm ml-1">Quản lý và cập nhật trạng thái các đơn hàng được phân công</p>
         </div>
@@ -59,18 +47,6 @@ body { background: #F0FDF4; }
             </a>
         </div>
     </div>
-
-    <%-- Flash Message --%>
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div id="flash-alert" class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 text-sm font-semibold shadow-sm
-             ${sessionScope.flashType == 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-400 text-red-800'}">
-            <i class="fa-solid ${sessionScope.flashType == 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
-            <span class="flex-1"><c:out value="${sessionScope.flashMsg}"/></span>
-            <button onclick="document.getElementById('flash-alert').remove()" class="opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
 
     <%-- Status Filter Tabs --%>
     <div class="flex flex-wrap gap-2 mb-8 bg-white/60 border border-border-c p-2 rounded-2xl backdrop-blur">

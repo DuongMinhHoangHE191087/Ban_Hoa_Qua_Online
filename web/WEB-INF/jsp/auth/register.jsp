@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
@@ -13,8 +13,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Material Symbols Outlined -->
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/assets/css/auth-overrides.css" rel="stylesheet">
     <!-- Tailwind CSS -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <!-- Tailwind Configuration -->
     <script id="tailwind-config">
         tailwind.config = {
@@ -44,36 +45,12 @@
             }
         }
     </script>
-    <style>
-        body {
-            font-family: 'Lexend', sans-serif;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 20px 50px rgba(20, 83, 45, 0.12);
-        }
-        /* Custom scrollbar for beautiful experience */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #14532D;
-            border-radius: 9999px;
-        }
-    </style>
 </head>
 <body class="bg-emerald-50 text-on-surface min-h-screen flex flex-col antialiased relative">
 
     <!-- Decorative Organic Background -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-multiply" 
-             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24');">
+        <div class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-multiply bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24')]">
         </div>
         <!-- Gradient Overlay to ensure readability and glass effect -->
         <div class="absolute inset-0 bg-gradient-to-br from-white/90 via-emerald-50/70 to-emerald-100/90 backdrop-blur-[4px]"></div>
@@ -82,7 +59,7 @@
     <!-- Top AppBar Navigation Header -->
     <header class="flex justify-between items-center w-full px-6 md:px-12 py-4 z-50 fixed top-0 left-0 right-0 border-b border-white/30 bg-white/40 backdrop-blur-md shadow-[0_2px_15px_rgba(20,83,45,0.03)]">
         <div class="flex items-center gap-2">
-            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
             <div class="text-2xl font-bold text-primary tracking-wide">
                 MetaFruit
             </div>
@@ -483,12 +460,16 @@
                     shopFields.classList.add('hidden');
                     document.getElementById('storeName') && document.getElementById('storeName').removeAttribute('required');
                     document.getElementById('address') && document.getElementById('address').removeAttribute('required');
+                    document.getElementById('businessDocs') && document.getElementById('businessDocs').removeAttribute('required');
                 } else {
                     tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
                     tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
                     shopFields.classList.remove('hidden');
                     document.getElementById('storeName') && document.getElementById('storeName').setAttribute('required', 'required');
                     document.getElementById('address') && document.getElementById('address').setAttribute('required', 'required');
+                    if (!hasDraftDocs) {
+                        document.getElementById('businessDocs') && document.getElementById('businessDocs').setAttribute('required', 'required');
+                    }
                 }
             } else {
                 // Trường hợp prefilledUser, chỉ có tab shop được hiện và không có tab selector

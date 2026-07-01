@@ -177,8 +177,8 @@ public class PromotionDAO extends BaseDAO {
      * Lưu một khuyến mãi mới vào cơ sở dữ liệu.
      */
     public int save(Promotion promo) throws SQLException {
-        String sql = "INSERT INTO promotions (code, discount_type, discount_scope, discount_max, discount_value, min_order_value, scope, product_id, max_uses, used_count, can_stack, valid_from, valid_until, created_by, created_at, updated_at, is_deleted, is_active) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE(), 0, ?)";
+        String sql = "INSERT INTO promotions (code, discount_type, discount_scope, discount_max, discount_value, min_order_value, scope, benefit_target, product_id, max_uses, used_count, can_stack, valid_from, valid_until, created_by, created_at, updated_at, is_deleted, is_active) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE(), 0, ?)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, promo.getCode());
@@ -188,26 +188,27 @@ public class PromotionDAO extends BaseDAO {
             ps.setBigDecimal(5, promo.getDiscountValue());
             ps.setBigDecimal(6, promo.getMinOrderValue());
             ps.setString(7, promo.getScope());
+            ps.setString(8, promo.getBenefitTarget());
             
             if (promo.getProductId() != null) {
-                ps.setInt(8, promo.getProductId());
-            } else {
-                ps.setNull(8, Types.INTEGER);
-            }
-            
-            if (promo.getMaxUses() != null) {
-                ps.setInt(9, promo.getMaxUses());
+                ps.setInt(9, promo.getProductId());
             } else {
                 ps.setNull(9, Types.INTEGER);
             }
             
-            ps.setInt(10, promo.getUsedCount());
-            ps.setBoolean(11, promo.getCanStack());
+            if (promo.getMaxUses() != null) {
+                ps.setInt(10, promo.getMaxUses());
+            } else {
+                ps.setNull(10, Types.INTEGER);
+            }
             
-            ps.setTimestamp(12, Timestamp.valueOf(promo.getValidFrom()));
-            ps.setTimestamp(13, Timestamp.valueOf(promo.getValidUntil()));
-            ps.setInt(14, promo.getCreatedBy());
-            ps.setBoolean(15, promo.getIsActive());
+            ps.setInt(11, promo.getUsedCount());
+            ps.setBoolean(12, promo.getCanStack());
+            
+            ps.setTimestamp(13, Timestamp.valueOf(promo.getValidFrom()));
+            ps.setTimestamp(14, Timestamp.valueOf(promo.getValidUntil()));
+            ps.setInt(15, promo.getCreatedBy());
+            ps.setBoolean(16, promo.getIsActive());
             
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -223,7 +224,7 @@ public class PromotionDAO extends BaseDAO {
      * Cập nhật thông tin của khuyến mãi.
      */
     public void update(Promotion promo) throws SQLException {
-        String sql = "UPDATE promotions SET code = ?, discount_type = ?, discount_scope = ?, discount_max = ?, discount_value = ?, min_order_value = ?, scope = ?, product_id = ?, max_uses = ?, used_count = ?, can_stack = ?, valid_from = ?, valid_until = ?, is_active = ?, updated_at = GETDATE() WHERE promo_id = ?";
+        String sql = "UPDATE promotions SET code = ?, discount_type = ?, discount_scope = ?, discount_max = ?, discount_value = ?, min_order_value = ?, scope = ?, benefit_target = ?, product_id = ?, max_uses = ?, used_count = ?, can_stack = ?, valid_from = ?, valid_until = ?, is_active = ?, updated_at = GETDATE() WHERE promo_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, promo.getCode());
@@ -233,25 +234,26 @@ public class PromotionDAO extends BaseDAO {
             ps.setBigDecimal(5, promo.getDiscountValue());
             ps.setBigDecimal(6, promo.getMinOrderValue());
             ps.setString(7, promo.getScope());
+            ps.setString(8, promo.getBenefitTarget());
             
             if (promo.getProductId() != null) {
-                ps.setInt(8, promo.getProductId());
-            } else {
-                ps.setNull(8, Types.INTEGER);
-            }
-            
-            if (promo.getMaxUses() != null) {
-                ps.setInt(9, promo.getMaxUses());
+                ps.setInt(9, promo.getProductId());
             } else {
                 ps.setNull(9, Types.INTEGER);
             }
             
-            ps.setInt(10, promo.getUsedCount());
-            ps.setBoolean(11, promo.getCanStack());
-            ps.setTimestamp(12, Timestamp.valueOf(promo.getValidFrom()));
-            ps.setTimestamp(13, Timestamp.valueOf(promo.getValidUntil()));
-            ps.setBoolean(14, promo.getIsActive());
-            ps.setInt(15, promo.getPromoId());
+            if (promo.getMaxUses() != null) {
+                ps.setInt(10, promo.getMaxUses());
+            } else {
+                ps.setNull(10, Types.INTEGER);
+            }
+            
+            ps.setInt(11, promo.getUsedCount());
+            ps.setBoolean(12, promo.getCanStack());
+            ps.setTimestamp(13, Timestamp.valueOf(promo.getValidFrom()));
+            ps.setTimestamp(14, Timestamp.valueOf(promo.getValidUntil()));
+            ps.setBoolean(15, promo.getIsActive());
+            ps.setInt(16, promo.getPromoId());
             ps.executeUpdate();
         }
     }
@@ -414,14 +416,20 @@ public class PromotionDAO extends BaseDAO {
      */
     public void saveOrderPromotion(Connection conn, int orderId, int promoId,
                                    int customerId,
-                                   java.math.BigDecimal discountApplied) throws SQLException {
-        String sql = "INSERT INTO order_promotions (order_id, promo_id, customer_id, discount_applied, used_at) "
-                   + "VALUES (?, ?, ?, ?, GETDATE())";
+                                   java.math.BigDecimal discountApplied,
+                                   String couponCode,
+                                   String discountScope,
+                                   String benefitTarget) throws SQLException {
+        String sql = "INSERT INTO order_promotions (order_id, promo_id, customer_id, discount_applied, coupon_code, discount_scope, benefit_target, used_at) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE())";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, orderId);
             ps.setInt(2, promoId);
             ps.setInt(3, customerId);
             ps.setBigDecimal(4, discountApplied);
+            ps.setString(5, couponCode);
+            ps.setString(6, discountScope);
+            ps.setString(7, benefitTarget);
             ps.executeUpdate();
         }
     }
@@ -437,6 +445,7 @@ public class PromotionDAO extends BaseDAO {
         p.setDiscountValue(rs.getBigDecimal("discount_value"));
         p.setMinOrderValue(rs.getBigDecimal("min_order_value"));
         p.setScope(rs.getString("scope"));
+        p.setBenefitTarget(rs.getString("benefit_target"));
         
         int productId = rs.getInt("product_id");
         p.setProductId(rs.wasNull() ? null : productId);

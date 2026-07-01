@@ -91,6 +91,10 @@ public class CheckoutServletPricingRegressionTest {
         env = new MockHttpEnvironment();
         ownerAId = createUser("Checkout Owner A", "checkout_owner_a_" + System.currentTimeMillis() + "@test.com", "SHOP_OWNER", buildUniquePhone(1));
         ownerBId = createUser("Checkout Owner B", "checkout_owner_b_" + System.currentTimeMillis() + "@test.com", "SHOP_OWNER", buildUniquePhone(2));
+
+        createShopProfile(ownerAId, "Checkout Shop A");
+        createShopProfile(ownerBId, "Checkout Shop B");
+
         customerPhone = buildUniquePhone(3);
         customerId = createUser("Checkout Customer", "checkout_customer_" + System.currentTimeMillis() + "@test.com", "CUSTOMER", customerPhone);
         env.setCurrentUser(buildCustomer(customerId));
@@ -151,6 +155,12 @@ public class CheckoutServletPricingRegressionTest {
                     ps.setString(1, shopCouponCode);
                     ps.executeUpdate();
                 }
+            }
+            if (ownerAId > 0) {
+                new dao.shop.ShopProfileDAO().deleteByUserId(ownerAId);
+            }
+            if (ownerBId > 0) {
+                new dao.shop.ShopProfileDAO().deleteByUserId(ownerBId);
             }
             if (ownerAId > 0) {
                 userDAO.deleteUser(ownerAId);
@@ -475,6 +485,11 @@ public class CheckoutServletPricingRegressionTest {
 
         Order confirmedOrder = orderDAO.findById(createdOrderId).get(0);
         assertEquals(AppConfig.ORDER_CONFIRMED, confirmedOrder.getStatus());
+        List<Order> confirmedChildren = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, confirmedChildren.size());
+        for (Order child : confirmedChildren) {
+            assertEquals(AppConfig.ORDER_CONFIRMED, child.getStatus());
+        }
         PaymentTransaction updatedTransaction = paymentService.getPaymentByOrder(createdOrderId);
         assertNotNull(updatedTransaction);
         assertEquals("completed", updatedTransaction.getStatus());
@@ -483,7 +498,7 @@ public class CheckoutServletPricingRegressionTest {
         env.putParam("action", "payment");
         env.putParam("orderId", String.valueOf(createdOrderId));
         servlet.doGetPublic(env.request, env.response);
-        assertEquals("/checkout?action=success&orderId=" + createdOrderId, env.redirectLocation);
+        assertEquals("/ctx/checkout?action=success&orderId=" + createdOrderId, env.redirectLocation);
         assertNull(env.forwardedPath);
 
         env.clearRequestState();
@@ -494,6 +509,96 @@ public class CheckoutServletPricingRegressionTest {
         assertEquals("/WEB-INF/jsp/customer/order-success.jsp", env.forwardedPath);
         assertNotNull(env.requestAttributes.get("paymentTx"));
         assertEquals("completed", ((PaymentTransaction) env.requestAttributes.get("paymentTx")).getStatus());
+    }
+
+    @Test
+    public void adminApprovalCascadesParentAndChildrenToConfirmed() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "12:00-16:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_CK);
+        env.putParam("variantIds", variantAId + "," + variantBId);
+
+        servlet.doPostPublic(env.request, env.response);
+        assertNotNull(env.redirectLocation);
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        int adminId = createUser("Checkout Admin", "checkout_admin_" + System.currentTimeMillis() + "@test.com", "ADMIN", buildUniquePhone(4));
+        try {
+            paymentService.adminApprovePayment(createdOrderId, adminId);
+
+            Order confirmedOrder = orderDAO.findById(createdOrderId).get(0);
+            assertEquals(AppConfig.ORDER_CONFIRMED, confirmedOrder.getStatus());
+
+            List<Order> confirmedChildren = orderDAO.findChildrenByParentId(createdOrderId);
+            assertEquals(2, confirmedChildren.size());
+            for (Order child : confirmedChildren) {
+                assertEquals(AppConfig.ORDER_CONFIRMED, child.getStatus());
+            }
+
+            PaymentTransaction updatedTransaction = paymentService.getPaymentByOrder(createdOrderId);
+            assertNotNull(updatedTransaction);
+            assertEquals("completed", updatedTransaction.getStatus());
+        } finally {
+            userDAO.deleteUser(adminId);
+        }
+    }
+
+    @Test
+    public void reconcileCompletedPaymentsRepairsPendingChildOrders() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "12:00-16:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_CK);
+        env.putParam("variantIds", variantAId + "," + variantBId);
+
+        servlet.doPostPublic(env.request, env.response);
+        assertNotNull(env.redirectLocation);
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        PaymentTransaction paymentTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        assertNotNull(paymentTransaction);
+
+        String webhookPayload = "{"
+                + "\"id\":\"sepay-reconcile-" + System.currentTimeMillis() + "\","
+                + "\"code\":\"" + paymentTransaction.getSepayReference() + "\","
+                + "\"transferType\":\"in\","
+                + "\"transferAmount\":\"" + paymentTransaction.getAmount().setScale(0, java.math.RoundingMode.HALF_UP).toPlainString() + "\""
+                + "}";
+        paymentService.processWebhook(webhookPayload);
+
+        List<Order> confirmedChildren = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, confirmedChildren.size());
+        for (Order child : confirmedChildren) {
+            assertEquals(AppConfig.ORDER_CONFIRMED, child.getStatus());
+        }
+
+        for (Order child : confirmedChildren) {
+            forceOrderStatus(child.getOrderId(), AppConfig.ORDER_PENDING_PAYMENT);
+        }
+
+        int repaired = paymentService.reconcileCompletedPayments();
+        assertEquals(1, repaired);
+
+        Order confirmedOrder = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_CONFIRMED, confirmedOrder.getStatus());
+
+        List<Order> repairedChildren = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, repairedChildren.size());
+        for (Order child : repairedChildren) {
+            assertEquals(AppConfig.ORDER_CONFIRMED, child.getStatus());
+        }
+
+        PaymentTransaction updatedTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        assertNotNull(updatedTransaction);
+        assertEquals("completed", updatedTransaction.getStatus());
+        assertEquals(0, paymentService.reconcileCompletedPayments());
     }
 
     @Test
@@ -679,13 +784,27 @@ public class CheckoutServletPricingRegressionTest {
         }
     }
 
+    private void forceOrderStatus(int orderId, String status) throws SQLException {
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement("UPDATE orders SET status = ?, updated_at = GETDATE() WHERE order_id = ?")) {
+            ps.setString(1, status);
+            ps.setInt(2, orderId);
+            ps.executeUpdate();
+        }
+    }
+
     private void hardDeleteProduct(int productId) throws SQLException {
         try (Connection conn = productDAO.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM product_variants WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM inventory_logs WHERE variant_id IN (SELECT variant_id FROM product_variants WHERE product_id = ?)")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?")) {
+                ps.setInt(1, productId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
@@ -893,5 +1012,18 @@ public class CheckoutServletPricingRegressionTest {
             if (type == char.class) return '\0';
             return null;
         }
+    }
+
+    private void createShopProfile(int userId, String name) throws SQLException {
+        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
+        model.entity.shop.ShopProfile p = new model.entity.shop.ShopProfile();
+        p.setUserId(userId);
+        p.setShopName(name);
+        p.setShopDescription("Regression Test Shop Description");
+        p.setApprovalStatus("APPROVED");
+        p.setDeliveryAddress("123 Test Street");
+        p.setRating(java.math.BigDecimal.ZERO);
+        p.setBusinessEmail("reg_biz_" + userId + "_" + System.currentTimeMillis() + "@company.com");
+        shopProfileDAO.save(p);
     }
 }

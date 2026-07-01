@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -14,7 +14,7 @@
     <jsp:param name="pageTitle" value="Chi tiết đơn hàng #${order.orderId}" />
 </jsp:include>
 
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -107,27 +107,7 @@
 
 <main class="max-w-7xl mx-auto px-4 md:px-8 py-10 font-body-md text-on-background">
 
-    <!-- Flash Notifications -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <c:choose>
-            <c:when test="${sessionScope.flashType == 'success'}">
-                <c:set var="flashCls" value="bg-[#dcfce7] border-[#bbf7d0] text-emerald-800"/>
-                <c:set var="flashIcon" value="check_circle"/>
-            </c:when>
-            <c:otherwise>
-                <c:set var="flashCls" value="bg-error-container border-[#ffdad6] text-[#93000a]"/>
-                <c:set var="flashIcon" value="error"/>
-            </c:otherwise>
-        </c:choose>
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${flashCls}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${flashIcon}</span>
-                <span class="font-semibold"><c:out value="${sessionScope.flashMsg}"/></span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- Top Navigation: back to profile orders tab -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-4 border-b border-surface-container-high gap-4">
@@ -250,7 +230,18 @@
                     </div>
                     <p class="font-semibold text-on-surface">
                         <c:choose>
-                            <c:when test="${not empty shopName}"><c:out value="${shopName}"/></c:when>
+                            <c:when test="${not empty shopName}">
+                                <c:choose>
+                                    <c:when test="${order.ownerId > 0}">
+                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                            <c:out value="${shopName}"/>
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <c:out value="${shopName}"/>
+                                    </c:otherwise>
+                                </c:choose>
+                            </c:when>
                             <c:otherwise>Đơn tổng hợp nhiều cửa hàng</c:otherwise>
                         </c:choose>
                     </p>
@@ -308,7 +299,11 @@
                 <c:if test="${not empty paymentTx}">
                     <div class="mt-4 p-3 rounded-xl bg-surface-container-low border border-surface-container-high text-xs space-y-1">
                         <p class="font-bold text-on-surface mb-2 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm text-primary">verified</span> Giao dịch thanh toán
+                            <span class="material-symbols-outlined text-sm text-primary">verified</span>
+                            <c:choose>
+                                <c:when test="${order.orderType == 'PARENT'}">Giao dịch thanh toán của đơn cha</c:when>
+                                <c:otherwise>Giao dịch thanh toán</c:otherwise>
+                            </c:choose>
                         </p>
                         <div class="flex justify-between"><span class="text-outline">Trạng thái</span>
                             <c:choose>
@@ -347,7 +342,18 @@
                                 <div class="flex items-center gap-3">
                                     <span class="material-symbols-outlined text-primary">storefront</span>
                                     <div>
-                                        <p class="font-bold text-on-surface"><c:out value="${shopNamesMap[child.orderId]}"/></p>
+                                        <p class="font-bold text-on-surface">
+                                            <c:choose>
+                                                <c:when test="${child.ownerId > 0}">
+                                                    <a href="${pageContext.request.contextPath}/shop-view?id=${child.ownerId}" class="hover:underline text-primary transition-all">
+                                                        <c:out value="${shopNamesMap[child.orderId]}"/>
+                                                    </a>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <c:out value="${shopNamesMap[child.orderId]}"/>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </p>
                                         <p class="text-xs text-on-surface-variant">Đơn con #<c:out value="${child.orderId}"/></p>
                                     </div>
                                 </div>
@@ -389,7 +395,18 @@
                         <span class="material-symbols-outlined text-primary">shopping_basket</span>
                         Sản phẩm đã đặt
                         <c:if test="${not empty shopName}">
-                            <span class="text-sm text-on-surface-variant font-normal">—<c:out value="${shopName}"/></span>
+                            <span class="text-sm text-on-surface-variant font-normal">—
+                                <c:choose>
+                                    <c:when test="${order.ownerId > 0}">
+                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                            <c:out value="${shopName}"/>
+                                        </a>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <c:out value="${shopName}"/>
+                                    </c:otherwise>
+                                </c:choose>
+                            </span>
                         </c:if>
                     </h3>
                 </div>

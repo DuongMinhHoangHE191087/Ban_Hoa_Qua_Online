@@ -8,120 +8,42 @@
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Quản lý Đơn hàng | Kênh Người Bán</title>
+                <title>Quản lý Đơn hàng | MetaFruit</title>
+                <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
                 <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-                <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+                <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
                 <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-                <script>
-                    tailwind.config = {
-                        theme: {
-                            extend: {
-                                colors: {
-                                    primary: '#4d661c', 'primary-hover': '#364e03',
-                                    'primary-lt': '#f0f7e6', border: '#e2ece7',
-                                    txt: '#0f172a', 'txt-2': '#475569', 'txt-3': '#94a3b8',
-                                },
-                                fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                            }
-                        }
-                    }
-                </script>
-                <style>
-                    body {
-                        background-color: #f4fbf7;
-                        font-family: 'Lexend', sans-serif;
-                    }
-
-                    .glass-card {
-                        background: #ffffff;
-                        border: 1px solid #e2ece7;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, .05), 0 4px 16px -4px rgba(20, 83, 45, .06);
-                    }
-
-                    .modal-overlay {
-                        display: none;
-                        position: fixed;
-                        inset: 0;
-                        z-index: 1000;
-                        background: rgba(0, 0, 0, 0.45);
-                        backdrop-filter: blur(4px);
-                        align-items: center;
-                        justify-content: center;
-                    }
-
-                    .modal-overlay.active {
-                        display: flex;
-                    }
-                    .pagination-wrapper { padding: 0 !important; }
-                    .pagination { gap: 0.375rem !important; margin: 0 !important; display: flex; list-style: none; }
-                    .pagination .page-link {
-                        display: inline-flex; align-items: center; justify-content: center;
-                        min-width: 2.25rem; height: 2.25rem; border-radius: 0.5rem;
-                        font-size: 0.75rem; font-weight: 600;
-                        border: 1px solid #e2ece7; background: #fff;
-                        color: #374151; cursor: pointer; transition: all 0.15s;
-                        text-decoration: none;
-                    }
-                    .pagination .page-item.active .page-link {
-                        background: #4d661c; border-color: #4d661c; color: #fff;
-                    }
-                    .pagination .page-item.disabled .page-link {
-                        color: #94a3b8; border-color: #e2ece7; background: #f8fafc; cursor: not-allowed;
-                    }
-                    .pagination .page-item .page-link:hover:not(.disabled) {
-                        background: #f1f5f9; border-color: #9ca3af;
-                    }
-                </style>
             </head>
 
-            <body class="antialiased text-[#0f172a]">
+            <body class="antialiased text-txt bg-background">
                 <div class="flex min-h-screen">
 
                     <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
                         <jsp:param name="activePage" value="orders" />
                     </jsp:include>
 
-                    <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+                    <main class="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
                         <!-- Page Header -->
                         <div
-                            class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+                            class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
                             <div>
-                                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Quản lý Đơn
-                                    hàng</h1>
-                                <p class="text-[#475569] text-xs md:text-sm mt-1">Duyệt đơn, bàn giao vận chuyển, theo
-                                    dõi trạng thái đơn hàng.</p>
+                                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Quản lý Đơn hàng</h1>
+                                <p class="text-txt-2 text-xs md:text-sm mt-1">Duyệt đơn, bàn giao vận chuyển, theo dõi trạng thái đơn hàng.</p>
                             </div>
                             <div
-                                class="hidden md:flex items-center gap-2 bg-white/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+                                class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
                                 <i class="fa-solid fa-clipboard-list text-primary"></i>
                                 <span class="text-xs font-bold uppercase tracking-wider">Đơn hàng</span>
                             </div>
                         </div>
-
-                        <!-- Flash Message -->
-                        <c:if test="${not empty sessionScope.flashMsg}">
-                            <div id="flash-alert"
-                                class="flex items-center gap-3 p-4 mb-6 rounded-2xl border-l-4 shadow-sm text-sm font-semibold
-                 ${sessionScope.flashType == 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-500 text-red-800'}">
-                                <i
-                                    class="fa-solid ${sessionScope.flashType == 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
-                                <span class="flex-1">
-                                    <c:out value="${sessionScope.flashMsg}" />
-                                </span>
-                                <button onclick="document.getElementById('flash-alert').remove()"
-                                    class="opacity-60 hover:opacity-100 transition-opacity">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </div>
-                            <c:remove var="flashMsg" scope="session" />
-                            <c:remove var="flashType" scope="session" />
-                        </c:if>
 
                         <!-- Status Filter Pills -->
                         <div class="flex flex-wrap gap-2 mb-6">

@@ -76,6 +76,19 @@ public class ProductListServletSuggestedIdsRegressionTest {
         env = new MockHttpEnvironment("/products");
 
         ownerId = createUser("Suggested IDs Owner", "suggested_owner_" + System.currentTimeMillis() + "@test.com");
+        
+        // Tạo shop profile cho ownerId để sản phẩm hiển thị trong catalog
+        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
+        model.entity.shop.ShopProfile profile = new model.entity.shop.ShopProfile();
+        profile.setUserId(ownerId);
+        profile.setShopName("Suggested Shop Test");
+        profile.setShopDescription("Suggested test shop");
+        profile.setApprovalStatus("APPROVED");
+        profile.setDeliveryAddress("123 Suggested Street");
+        profile.setRating(java.math.BigDecimal.ZERO);
+        profile.setBusinessEmail("sug_biz_" + ownerId + "_" + System.currentTimeMillis() + "@company.com");
+        shopProfileDAO.save(profile);
+
         categoryId = createCategory("Suggested IDs " + System.currentTimeMillis());
 
         for (int i = 0; i < 4; i++) {
@@ -98,6 +111,7 @@ public class ProductListServletSuggestedIdsRegressionTest {
                 categoryDAO.delete(categoryId);
             }
             if (ownerId > 0) {
+                new dao.shop.ShopProfileDAO().deleteByUserId(ownerId);
                 userDAO.deleteUser(ownerId);
             }
         } catch (SQLException ignored) {
@@ -190,11 +204,11 @@ public class ProductListServletSuggestedIdsRegressionTest {
 
     private void deleteProductHard(int productId) throws SQLException {
         try (Connection conn = productDAO.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM product_variants WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }

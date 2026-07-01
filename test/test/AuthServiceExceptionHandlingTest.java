@@ -648,6 +648,42 @@ public class AuthServiceExceptionHandlingTest {
         }
     }
 
+    @Test
+    public void verifyEmailCode_inactiveAccount_succeeds() throws Exception {
+        String email = "verify_inactive_" + System.currentTimeMillis() + "@example.com";
+        String phone = uniqueValidPhone();
+        int userId = -1;
+        try {
+            userId = createUserWithVerificationCode(email, "password123", phone, "123456", false);
+
+            User verified = authService.verifyEmailCode(email, "123456");
+            assertNotNull(verified);
+            assertEquals(AppConfig.ACCOUNT_STATUS_ACTIVE, verified.getStatus());
+            assertTrue(verified.isEmailVerified());
+        } finally {
+            deleteUserQuietly(userId);
+        }
+    }
+
+    @Test
+    public void verifyEmailCode_suspendedAccount_throws() throws Exception {
+        String email = "verify_suspend_" + System.currentTimeMillis() + "@example.com";
+        String phone = uniqueValidPhone();
+        int userId = -1;
+        try {
+            userId = createUserWithVerificationCode(email, "password123", phone, "123456", false);
+            setStatus(userId, AppConfig.ACCOUNT_STATUS_SUSPENDED);
+
+            authService.verifyEmailCode(email, "123456");
+            fail("Should throw exception for suspended account");
+        } catch (Exception e) {
+            String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+            assertTrue(message.contains("đình chỉ") || message.contains("khóa"));
+        } finally {
+            deleteUserQuietly(userId);
+        }
+    }
+
     // ============= FORGOT PASSWORD CODE EXCEPTIONS =============
 
     @Test
@@ -739,6 +775,25 @@ public class AuthServiceExceptionHandlingTest {
         }
     }
 
+    @Test
+    public void resendVerificationCode_suspendedAccount_throws() throws Exception {
+        String email = "resend_suspend_" + System.currentTimeMillis() + "@example.com";
+        String phone = uniqueValidPhone();
+        int userId = -1;
+        try {
+            userId = createUserWithVerificationCode(email, "password123", phone, "123456", false);
+            setStatus(userId, AppConfig.ACCOUNT_STATUS_SUSPENDED);
+
+            authService.resendVerificationCode(email);
+            fail("Should throw exception for suspended account");
+        } catch (Exception e) {
+            String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+            assertTrue(message.contains("đình chỉ") || message.contains("khóa"));
+        } finally {
+            deleteUserQuietly(userId);
+        }
+    }
+
     // ============= OAUTH LOGIN EXCEPTIONS =============
 
     @Test
@@ -778,6 +833,42 @@ public class AuthServiceExceptionHandlingTest {
             fail("Should throw exception for blank full name");
         } catch (Exception e) {
             assertNotNull(e.getMessage());
+        }
+    }
+
+    @Test
+    public void processGoogleLogin_inactiveAccount_succeeds() throws Exception {
+        String email = "google_inactive_" + System.currentTimeMillis() + "@example.com";
+        String phone = uniqueValidPhone();
+        int userId = -1;
+        try {
+            userId = createUserWithVerificationCode(email, "password123", phone, "123456", false);
+
+            User loggedIn = authService.processGoogleLogin(email, "Google Inactive User", "https://example.com/avatar.png");
+            assertNotNull(loggedIn);
+            assertEquals(AppConfig.ACCOUNT_STATUS_ACTIVE, loggedIn.getStatus());
+            assertTrue(loggedIn.isEmailVerified());
+        } finally {
+            deleteUserQuietly(userId);
+        }
+    }
+
+    @Test
+    public void processGoogleLogin_suspendedAccount_throws() throws Exception {
+        String email = "google_suspend_" + System.currentTimeMillis() + "@example.com";
+        String phone = uniqueValidPhone();
+        int userId = -1;
+        try {
+            userId = createUserWithVerificationCode(email, "password123", phone, "123456", false);
+            setStatus(userId, AppConfig.ACCOUNT_STATUS_SUSPENDED);
+
+            authService.processGoogleLogin(email, "Google Suspended User", "https://example.com/avatar.png");
+            fail("Should throw exception for suspended account");
+        } catch (Exception e) {
+            String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+            assertTrue(message.contains("đình chỉ") || message.contains("khóa"));
+        } finally {
+            deleteUserQuietly(userId);
         }
     }
 
@@ -875,6 +966,17 @@ public class AuthServiceExceptionHandlingTest {
         java.sql.Timestamp resendAt = java.sql.Timestamp.valueOf(now.minusSeconds(1));
         userDAO.saveEmailVerificationCode(userId, HashUtil.hashPassword(code), expiresAt, resendAt);
         return userId;
+    }
+
+    private void setStatus(int userId, String status) throws SQLException {
+        UserDAO userDAO = new UserDAO();
+        try (java.sql.Connection conn = userDAO.getConnection();
+             java.sql.PreparedStatement stmt = conn.prepareStatement(
+                     "UPDATE users SET status = ? WHERE user_id = ?")) {
+            stmt.setString(1, status);
+            stmt.setInt(2, userId);
+            stmt.executeUpdate();
+        }
     }
 
     private void deleteUserQuietly(int userId) {

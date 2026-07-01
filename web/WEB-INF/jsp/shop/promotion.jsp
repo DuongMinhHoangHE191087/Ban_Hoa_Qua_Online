@@ -11,47 +11,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface: '#ffffff',
-                        'surface-2': '#f8fafc',
-                        border: '#e2ece7',
-                        txt: '#0f172a',
-                        'txt-2': '#475569',
-                        'txt-3': '#94a3b8'
-                    },
-                    fontFamily: {
-                        sans: ['Lexend', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Lexend', sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-        
-        /* Layout structures to support flex horizontal layout for both admin and shop sidebars */
-        .admin-layout { display: flex; min-height: 100vh; }
-        .admin-main { flex: 1; display: flex; flex-direction: column; overflow-x: hidden; min-width: 0; }
-    </style>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <div class="admin-layout">
     <c:choose>
         <c:when test="${promotionMode eq 'GLOBAL'}">
@@ -66,13 +31,13 @@
         </c:otherwise>
     </c:choose>
 
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
+        <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">${promotionTitle}</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">${promotionDescription}</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">${promotionTitle}</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">${promotionDescription}</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
+            <div class="hidden md:flex items-center gap-2 bg-surface/80 border border-primary-fixed/80 px-4 py-2 rounded-xl text-primary-dark shadow-sm">
                 <i class="fa-solid fa-ticket text-amber-500"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">${promotionBadge}</span>
             </div>
@@ -81,6 +46,7 @@
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <%-- Create / Edit Form --%>
             <div class="glass-card xl:col-span-1 p-6">
                 <h2 class="text-lg font-extrabold text-txt mb-5">
                     <c:choose>
@@ -220,15 +186,24 @@
                 </form>
             </div>
 
+            <%-- Voucher List Panel --%>
             <div class="glass-card xl:col-span-2 overflow-hidden">
-                <div class="px-6 py-4 border-b border-border bg-slate-50/50 flex items-center justify-between">
-                    <div>
-                        <h2 class="font-extrabold text-txt">Danh sách voucher</h2>
-                        <p class="text-xs text-txt-3 mt-1">Tổng số: ${promotions.size()}</p>
+                <div class="px-6 py-4 border-b border-border bg-slate-50/50">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-extrabold text-txt">Danh sách voucher</h2>
+                            <p class="text-xs text-txt-3 mt-1">Tổng số: <span id="voucherCount" data-total="${promotions.size()}">${promotions.size()}</span></p>
+                        </div>
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-search text-txt-3 absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                            <input type="text" id="voucherSearch"
+                                   placeholder="Tìm mã, kiểu giảm, trạng thái..."
+                                   class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all bg-white">
+                        </div>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto pb-24">
+                <div class="overflow-x-auto pb-6">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
                         <tr class="bg-slate-50/50">
@@ -240,7 +215,7 @@
                             <th class="p-3 border-b border-border font-semibold text-txt-2 text-center">Hành động</th>
                         </tr>
                         </thead>
-                        <tbody class="divide-y divide-border/60">
+                        <tbody id="voucherTableBody" class="divide-y divide-border/60">
                         <c:choose>
                             <c:when test="${empty promotions}">
                                 <tr>
@@ -249,7 +224,7 @@
                             </c:when>
                             <c:otherwise>
                                 <c:forEach var="p" items="${promotions}">
-                                    <tr class="hover:bg-primary-lt/20">
+                                    <tr data-voucher-row class="hover:bg-primary-lt/20">
                                         <td class="p-3">
                                             <div class="font-mono font-bold text-primary">${p.code}</div>
                                             <div class="text-[11px] text-txt-3">#${p.promoId}</div>
@@ -300,7 +275,7 @@
                                         </td>
                                         <td class="p-3 text-center">
                                             <div class="relative inline-block text-left dropdown">
-                                                <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.promoId}')" class="inline-flex justify-center w-8 h-8 rounded-full text-[#475569] hover:bg-slate-100 flex items-center justify-center transition-all border-0 bg-transparent cursor-pointer">
+                                                <button type="button" onclick="toggleDropdown(event, 'dropdown-${p.promoId}')" class="inline-flex justify-center w-8 h-8 rounded-full text-[#475569] hover:bg-slate-100 items-center transition-all border-0 bg-transparent cursor-pointer">
                                                     <i class="fa-solid fa-ellipsis-vertical"></i>
                                                 </button>
                                                 <div id="dropdown-${p.promoId}" class="origin-top-right absolute right-0 mt-1 w-32 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none hidden z-30 border border-border">
@@ -341,6 +316,25 @@
 </div>
 
 <script>
+    // Voucher search filter
+    const voucherSearchEl = document.getElementById('voucherSearch');
+    const voucherCountEl  = document.getElementById('voucherCount');
+    const totalVouchers   = parseInt(voucherCountEl ? voucherCountEl.dataset.total || '0' : '0', 10);
+
+    if (voucherSearchEl) {
+        voucherSearchEl.addEventListener('input', function () {
+            const term = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('#voucherTableBody tr[data-voucher-row]');
+            let visible = 0;
+            rows.forEach(function (row) {
+                const match = term === '' || row.textContent.toLowerCase().includes(term);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            voucherCountEl.textContent = term === '' ? totalVouchers : visible;
+        });
+    }
+
     function confirmDelete(event, code) {
         event.preventDefault();
         Swal.fire({
@@ -350,7 +344,7 @@
             showCancelButton: true,
             confirmButtonText: 'Xóa',
             cancelButtonText: 'Hủy'
-        }).then(r => {
+        }).then(function (r) {
             if (r.isConfirmed) {
                 event.target.submit();
             }
@@ -360,17 +354,14 @@
 
     function toggleDropdown(event, id) {
         event.stopPropagation();
-        // Close all other dropdowns
-        document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(function (el) {
             if (el.id !== id) el.classList.add('hidden');
         });
-        const dropdown = document.getElementById(id);
-        dropdown.classList.toggle('hidden');
+        document.getElementById(id).classList.toggle('hidden');
     }
 
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(event) {
-        document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+    document.addEventListener('click', function () {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(function (el) {
             el.classList.add('hidden');
         });
     });

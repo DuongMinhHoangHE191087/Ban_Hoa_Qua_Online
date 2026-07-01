@@ -103,17 +103,7 @@ public class ProductDetailServlet extends HttpServlet {
             boolean isExpiredProduct = "OUT_OF_SEASON".equals(product.getStatus());
             req.setAttribute("isExpiredProduct", isExpiredProduct);
 
-            int currentMonth = java.time.LocalDate.now().getMonthValue();
-            boolean isOutOfSeason = false;
-            if (product.getSeasonStartMonth() != null && product.getSeasonEndMonth() != null) {
-                int start = product.getSeasonStartMonth();
-                int end = product.getSeasonEndMonth();
-                if (start <= end) {
-                    isOutOfSeason = (currentMonth < start || currentMonth > end);
-                } else {
-                    isOutOfSeason = (currentMonth < start && currentMonth > end);
-                }
-            }
+            boolean isOutOfSeason = !product.isInSeason();
             req.setAttribute("isOutOfSeason", isOutOfSeason);
 
             boolean hasRequestedToday = false;
@@ -195,6 +185,12 @@ public class ProductDetailServlet extends HttpServlet {
                 productMap.put("description", product.getDescription() != null ? product.getDescription() : "");
                 productMap.put("imagePath", primaryImage != null ? primaryImage : "");
                 productMap.put("isOutOfSeason", isOutOfSeasonJson);
+                
+                // Fetch shop details for cart page / client display
+                ShopProfile shopProfile = shopProfileDAO.findOneByUserId(product.getOwnerId());
+                String shopName = (shopProfile != null) ? shopProfile.getShopName() : "Cửa hàng Verdant";
+                productMap.put("shopId", product.getOwnerId());
+                productMap.put("shopName", shopName);
 
                 List<Map<String, Object>> variantsMapList = new java.util.ArrayList<>();
                 List<Map<String, Object>> inStockVariants = new java.util.ArrayList<>();

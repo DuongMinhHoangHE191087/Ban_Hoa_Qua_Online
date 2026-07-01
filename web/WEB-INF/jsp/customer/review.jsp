@@ -6,7 +6,7 @@
 </jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -81,86 +81,6 @@
     }
 </script>
 
-<style>
-    .premium-glass-card {
-        background: rgba(255, 255, 255, 0.88);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1.5px solid rgba(134, 239, 172, 0.35);
-        box-shadow: 
-            0 20px 40px -15px rgba(34, 197, 94, 0.08),
-            0 1px 3px rgba(20, 83, 45, 0.05),
-            inset 0 1px 0 rgba(255, 255, 255, 0.95);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .premium-glass-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 
-            0 30px 60px -20px rgba(34, 197, 94, 0.15),
-            0 2px 8px rgba(20, 83, 45, 0.08);
-        border-color: rgba(134, 239, 172, 0.55);
-    }
-    .star-rating {
-        display: flex;
-        flex-direction: row-reverse;
-        justify-content: flex-end;
-        gap: 8px;
-    }
-    .star-rating input {
-        display: none;
-    }
-    .star-rating label {
-        font-size: 2.5rem;
-        color: #e2e8f0;
-        cursor: pointer;
-        transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        text-shadow: 0 2px 4px rgba(0,0,0,0.03);
-    }
-    .star-rating input:checked ~ label,
-    .star-rating label:hover,
-    .star-rating label:hover ~ label {
-        color: #fbbf24;
-        transform: scale(1.15) rotate(3deg);
-        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
-    }
-    .star-rating label:active {
-        transform: scale(0.9) rotate(-3deg);
-    }
-    .file-upload-box {
-        border: 2px dashed rgba(197, 200, 183, 0.6);
-        background: rgba(255, 255, 255, 0.6);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .file-upload-box:hover {
-        border-color: #4d661c;
-        background: rgba(240, 253, 244, 0.6);
-        box-shadow: 0 0 15px rgba(77, 102, 28, 0.08);
-    }
-    .textarea-premium {
-        border: 1px solid rgba(197, 200, 183, 0.6);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: rgba(255, 255, 255, 0.7);
-    }
-    .textarea-premium:focus {
-        border-color: #4d661c;
-        background: #ffffff;
-        box-shadow: 0 0 0 4px rgba(77, 102, 28, 0.12);
-        outline: none;
-    }
-    .btn-submit-premium {
-        background: linear-gradient(135deg, #4d661c 0%, #31694b 100%);
-        box-shadow: 0 4px 15px rgba(77, 102, 28, 0.3);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .btn-submit-premium:hover {
-        background: linear-gradient(135deg, #364e03 0%, #1e3f2d 100%);
-        box-shadow: 0 8px 25px rgba(77, 102, 28, 0.45);
-        transform: translateY(-1.5px);
-    }
-    .btn-submit-premium:active {
-        transform: translateY(0);
-    }
-</style>
 
 <main class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-on-background">
     <!-- Header -->
@@ -172,17 +92,7 @@
         <p class="text-on-surface-variant text-sm mt-1">Cảm ơn bạn đã lựa chọn MetaFruit. Phản hồi của bạn giúp chúng tôi cải thiện tốt hơn.</p>
     </div>
 
-    <!-- Alert Flash message -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold"><c:out value="${sessionScope.flashMsg}"/></span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- List of unreviewed items -->
     <c:if test="${not empty unreviewedItems}">

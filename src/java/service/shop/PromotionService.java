@@ -16,6 +16,10 @@ import java.util.List;
  */
 public class PromotionService {
 
+    public static final String BENEFIT_TARGET_MERCHANDISE = "MERCHANDISE";
+    public static final String BENEFIT_TARGET_SHIPPING = "SHIPPING";
+    public static final String BENEFIT_TARGET_PRODUCT = "PRODUCT";
+
     private final PromotionDAO promotionDAO = new PromotionDAO();
     private final ProductDAO productDAO = new ProductDAO();
 
@@ -42,6 +46,7 @@ public class PromotionService {
         if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
             return null;
         }
+        normalizeBenefitTarget(promo);
         return promo;
     }
 
@@ -66,6 +71,7 @@ public class PromotionService {
         if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
             return null;
         }
+        normalizeBenefitTarget(promo);
         return promo;
     }
 
@@ -102,28 +108,39 @@ public class PromotionService {
      * free-shipping vouchers are not in this schema, so any two ORDER-discount coupons are rejected).
      * Call this before saving the order to enforce server-side stacking rules.
      *
-     * Determination: if both shopPromo and systemPromo are non-null and BOTH have discountScope
-     * that reduces the merchandise price (SHOP or ALL with scope=ORDER), that is a double-discount
-     * stack and is rejected.
+     * Returns the DB record; never trusts a client-supplied discount value.
      *
-     * @throws BusinessException with code PRO-01 when illegal stack detected
+     * @throws BusinessException with code COUPON-SCOPE when scope mismatch is detected
      */
+    public void validateCouponStack(java.util.List<Promotion> shopPromos, java.util.List<Promotion> systemPromos) {
+        int totalCoupons = (shopPromos != null ? shopPromos.size() : 0) + (systemPromos != null ? systemPromos.size() : 0);
+        if (totalCoupons <= 1) {
+            normalizePromotionList(shopPromos);
+            normalizePromotionList(systemPromos);
+            return; // Single coupon is always allowed
+        }
+
+        normalizePromotionList(shopPromos);
+        normalizePromotionList(systemPromos);
+        validateExclusiveCoupons(shopPromos, systemPromos);
+        validatePerOwnerBenefitTargets(shopPromos);
+        validateSharedBenefitTargets(systemPromos, "voucher sàn");
+    }
+
     public void validateCouponStack(Promotion shopPromo, Promotion systemPromo) {
-        if (shopPromo == null || systemPromo == null) {
-            return; // single coupon — always allowed
-        }
-        // Both coupons present: only allowed if one is a free-shipping type.
-        // Current schema has no SHIPPING scope, so any two ORDER-scope coupons are a double-discount.
-        boolean shopIsDiscount = "ORDER".equalsIgnoreCase(shopPromo.getScope())
-                && ("SHOP".equalsIgnoreCase(shopPromo.getDiscountScope())
-                    || "ALL".equalsIgnoreCase(shopPromo.getDiscountScope()));
-        boolean systemIsDiscount = "ORDER".equalsIgnoreCase(systemPromo.getScope())
-                && "ALL".equalsIgnoreCase(systemPromo.getDiscountScope());
-        if (shopIsDiscount && systemIsDiscount
-                && !(shopPromo.getCanStack() && systemPromo.getCanStack())) {
-            throw new BusinessException("PRO-01",
-                    "Không thể dùng đồng thời hai mã giảm giá. Chỉ được kết hợp 1 mã giảm giá + 1 mã miễn phí vận chuyển.");
-        }
+        java.util.List<Promotion> shops = new java.util.ArrayList<>();
+        if (shopPromo != null) shops.add(shopPromo);
+        java.util.List<Promotion> systems = new java.util.ArrayList<>();
+        if (systemPromo != null) systems.add(systemPromo);
+        validateCouponStack(shops, systems);
+    }
+
+    public void validateCouponStack(Promotion shopPromo, Promotion systemPromo) {
+        java.util.List<Promotion> shops = new java.util.ArrayList<>();
+        if (shopPromo != null) shops.add(shopPromo);
+        java.util.List<Promotion> systems = new java.util.ArrayList<>();
+        if (systemPromo != null) systems.add(systemPromo);
+        validateCouponStack(shops, systems);
     }
 
     /**
@@ -145,6 +162,7 @@ public class PromotionService {
         if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
             throw new BusinessException("COUPON-SCOPE", "Mã giảm giá [" + code + "] đã hết lượt sử dụng.");
         }
+        normalizeBenefitTarget(promo);
         return promo;
     }
 
@@ -229,6 +247,7 @@ public class PromotionService {
                 && !"PRODUCT".equalsIgnoreCase(promo.getScope()))) {
             throw new IllegalArgumentException("Quy tắc áp dụng không hợp lệ.");
         }
+        normalizeBenefitTarget(promo);
         if (promo.getDiscountValue() == null
                 || promo.getDiscountValue().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Giá trị giảm giá phải lớn hơn 0.");
@@ -358,6 +377,7 @@ public class PromotionService {
         p.setDiscountType(discountType);
         p.setDiscountScope(discountScope);
         p.setScope(scope);
+        p.setBenefitTarget("PRODUCT".equalsIgnoreCase(scope) ? BENEFIT_TARGET_PRODUCT : BENEFIT_TARGET_MERCHANDISE);
         p.setDiscountValue(discountValue);
         p.setDiscountMax(discountMax);
         p.setMinOrderValue(minOrderValue);
@@ -367,5 +387,113 @@ public class PromotionService {
         p.setIsActive(true);
         p.setIsDeleted(false);
         return p;
+    }
+
+    public String resolveBenefitTarget(Promotion promo) {
+        if (promo == null) {
+            return BENEFIT_TARGET_MERCHANDISE;
+        }
+        normalizeBenefitTarget(promo);
+        return promo.getBenefitTarget();
+    }
+
+    public boolean isShippingBenefit(Promotion promo) {
+        return BENEFIT_TARGET_SHIPPING.equalsIgnoreCase(resolveBenefitTarget(promo));
+    }
+
+    public boolean isMerchandiseBenefit(Promotion promo) {
+        return BENEFIT_TARGET_MERCHANDISE.equalsIgnoreCase(resolveBenefitTarget(promo));
+    }
+
+    private void normalizePromotionList(List<Promotion> promos) {
+        if (promos == null) {
+            return;
+        }
+        for (Promotion promo : promos) {
+            normalizeBenefitTarget(promo);
+        }
+    }
+
+    private void normalizeBenefitTarget(Promotion promo) {
+        if (promo == null) {
+            return;
+        }
+        String scope = promo.getScope() != null ? promo.getScope().trim().toUpperCase() : "";
+        String target = promo.getBenefitTarget();
+        if (target != null) {
+            target = target.trim().toUpperCase();
+        }
+        if (target == null || target.isEmpty()) {
+            target = "PRODUCT".equals(scope) ? BENEFIT_TARGET_PRODUCT : BENEFIT_TARGET_MERCHANDISE;
+        }
+        if ("PRODUCT".equals(scope)) {
+            target = BENEFIT_TARGET_PRODUCT;
+        }
+        promo.setBenefitTarget(target);
+    }
+
+    private void validateExclusiveCoupons(List<Promotion> shopPromos, List<Promotion> systemPromos) {
+        List<Promotion> allPromos = new java.util.ArrayList<>();
+        if (shopPromos != null) {
+            allPromos.addAll(shopPromos);
+        }
+        if (systemPromos != null) {
+            allPromos.addAll(systemPromos);
+        }
+        if (allPromos.size() <= 1) {
+            return;
+        }
+        for (Promotion promo : allPromos) {
+            if (!promo.getCanStack()) {
+                throw new BusinessException("PRO-01",
+                        "Mã giảm giá [" + promo.getCode() + "] là voucher độc quyền và không được cộng dồn.");
+            }
+        }
+    }
+
+    private void validatePerOwnerBenefitTargets(List<Promotion> shopPromos) {
+        if (shopPromos == null || shopPromos.isEmpty()) {
+            return;
+        }
+        java.util.Map<Integer, java.util.Set<String>> benefitTargetsByOwner = new java.util.HashMap<>();
+        for (Promotion promo : shopPromos) {
+            String benefitTarget = resolveBenefitTarget(promo);
+            validateManualBenefitTarget(benefitTarget);
+            java.util.Set<String> targets = benefitTargetsByOwner.computeIfAbsent(
+                    promo.getCreatedBy(), ignored -> new java.util.LinkedHashSet<>());
+            if (!targets.add(benefitTarget)) {
+                throw new BusinessException("PRO-01",
+                        "Mỗi shop chỉ được tối đa 1 voucher " + humanizeBenefitTarget(benefitTarget) + ".");
+            }
+        }
+    }
+
+    private void validateSharedBenefitTargets(List<Promotion> promos, String label) {
+        if (promos == null || promos.isEmpty()) {
+            return;
+        }
+        java.util.Set<String> targets = new java.util.LinkedHashSet<>();
+        for (Promotion promo : promos) {
+            String benefitTarget = resolveBenefitTarget(promo);
+            validateManualBenefitTarget(benefitTarget);
+            if (!targets.add(benefitTarget)) {
+                throw new BusinessException("PRO-01",
+                        label + " chỉ được tối đa 1 voucher " + humanizeBenefitTarget(benefitTarget) + ".");
+            }
+        }
+    }
+
+    private void validateManualBenefitTarget(String benefitTarget) {
+        if (BENEFIT_TARGET_PRODUCT.equalsIgnoreCase(benefitTarget)) {
+            throw new BusinessException("PRO-01",
+                    "Khuyến mãi sản phẩm được áp tự động, không nhập tay tại bước checkout.");
+        }
+    }
+
+    private String humanizeBenefitTarget(String benefitTarget) {
+        if (BENEFIT_TARGET_SHIPPING.equalsIgnoreCase(benefitTarget)) {
+            return "giảm phí vận chuyển";
+        }
+        return "giảm tiền hàng";
     }
 }

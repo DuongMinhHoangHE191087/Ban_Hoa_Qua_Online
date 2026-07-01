@@ -35,6 +35,7 @@ import java.util.Map;
  *   4. Cảnh báo tồn kho & Yêu cầu nhập kho (Low Stock Alerts & Restock Management)
  */
 public class ProductBusinessRulesTest {
+    private static final java.util.concurrent.atomic.AtomicInteger PHONE_SEQUENCE = new java.util.concurrent.atomic.AtomicInteger();
 
     private ProductService productService;
     private ProductDAO productDAO;
@@ -52,6 +53,7 @@ public class ProductBusinessRulesTest {
     private int testVariantId2 = -1; // Biến thể có giảm giá hết hạn
     private int testPackagingId = -1; // Lựa chọn đóng gói
     private int testCartId = -1;
+    private String testRunSuffix;
 
     @Before
     public void setUp() throws SQLException {
@@ -61,22 +63,39 @@ public class ProductBusinessRulesTest {
         categoryDAO = new CategoryDAO();
         userDAO = new UserDAO();
         cartDAO = new CartDAO();
+        String phoneSuffix = String.format("%07d",
+                Math.abs((int) ((System.currentTimeMillis() + PHONE_SEQUENCE.getAndIncrement()) % 10_000_000L)));
+        String ownerPhone = "097" + phoneSuffix;
+        String customerPhone = "098" + phoneSuffix;
+        testRunSuffix = String.valueOf(System.currentTimeMillis()) + "-" + PHONE_SEQUENCE.getAndIncrement();
 
         // 1. Tạo tài khoản shop owner & customer giả lập
         testOwnerId = userDAO.saveNewCustomer(
             "Shop Rules Owner", 
             "shop_rules_" + System.currentTimeMillis() + "@test.com", 
             "hashed_pwd", 
-            "0971112222", 
+            ownerPhone, 
             "SHOP_OWNER", 
             "ACTIVE", 
             true
         );
+
+        // Tạo shop profile cho testOwnerId để sản phẩm hiển thị trong catalog
+        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
+        model.entity.shop.ShopProfile profile = new model.entity.shop.ShopProfile();
+        profile.setUserId(testOwnerId);
+        profile.setShopName("Rules Shop Test");
+        profile.setShopDescription("Rules test shop");
+        profile.setApprovalStatus("APPROVED");
+        profile.setDeliveryAddress("123 Rules Street");
+        profile.setRating(java.math.BigDecimal.ZERO);
+        profile.setBusinessEmail("rules_biz_" + testOwnerId + "_" + System.currentTimeMillis() + "@company.com");
+        shopProfileDAO.save(profile);
         testCustomerId = userDAO.saveNewCustomer(
             "Customer Junit Rules", 
             "cust_rules_" + System.currentTimeMillis() + "@test.com", 
             "hashed_pwd", 
-            "0972223333", 
+            customerPhone, 
             "CUSTOMER", 
             "ACTIVE", 
             true
@@ -127,6 +146,7 @@ public class ProductBusinessRulesTest {
                 categoryDAO.delete(testCategoryId);
             }
             if (testOwnerId != -1) {
+                new dao.shop.ShopProfileDAO().deleteByUserId(testOwnerId);
                 userDAO.deleteUser(testOwnerId);
             }
             if (testCustomerId != -1) {
@@ -139,7 +159,7 @@ public class ProductBusinessRulesTest {
 
     private void deleteProductHard(int productId) throws SQLException {
         try (Connection conn = productDAO.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM product_variants WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
@@ -147,7 +167,7 @@ public class ProductBusinessRulesTest {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
@@ -200,7 +220,7 @@ public class ProductBusinessRulesTest {
         // 1. Biến thể có chương trình giảm giá đang hoạt động
         ProductVariant varActive = new ProductVariant();
         varActive.setProductId(testProductId2);
-        varActive.setSku("NHO-ACTIVE-DISC");
+        varActive.setSku("NHO-ACTIVE-DISC-" + testRunSuffix);
         varActive.setVariantLabel("Hộp 500g");
         varActive.setPrice(new BigDecimal("200000.00"));
         varActive.setStockQuantity(50);
@@ -213,7 +233,7 @@ public class ProductBusinessRulesTest {
         // 2. Biến thể có chương trình giảm giá đã hết hạn
         ProductVariant varExpired = new ProductVariant();
         varExpired.setProductId(testProductId2);
-        varExpired.setSku("NHO-EXPIRED-DISC");
+        varExpired.setSku("NHO-EXPIRED-DISC-" + testRunSuffix);
         varExpired.setVariantLabel("Hộp 1kg");
         varExpired.setPrice(new BigDecimal("380000.00"));
         varExpired.setStockQuantity(30);
@@ -255,7 +275,7 @@ public class ProductBusinessRulesTest {
 
         ProductVariant variant = new ProductVariant();
         variant.setProductId(testProductId2);
-        variant.setSku("CAM-HOP-QUA");
+        variant.setSku("CAM-HOP-QUA-" + testRunSuffix);
         variant.setVariantLabel("Hộp tiêu chuẩn");
         variant.setPrice(new BigDecimal("50000.00"));
         variant.setStockQuantity(100);
@@ -314,7 +334,7 @@ public class ProductBusinessRulesTest {
 
         ProductVariant variant = new ProductVariant();
         variant.setProductId(testProductId2);
-        variant.setSku("NA-HOANG-DE");
+        variant.setSku("NA-HOANG-DE-" + testRunSuffix);
         variant.setVariantLabel("Hộp 1 quả");
         variant.setPrice(new BigDecimal("120000.00"));
         variant.setStockQuantity(1); // Tồn kho thấp cực hạn
@@ -327,7 +347,7 @@ public class ProductBusinessRulesTest {
 
         List<java.util.Map<String, Object>> lowStockList = productDAO.getLowStockVariantsByOwner(testOwnerId, 5);
         assertEquals(1, lowStockList.size());
-        assertEquals("NA-HOANG-DE", lowStockList.get(0).get("sku"));
+        assertTrue(String.valueOf(lowStockList.get(0).get("sku")).startsWith("NA-HOANG-DE-"));
 
         // 2. Khách hàng gửi yêu cầu nhập kho cho sản phẩm này
         assertFalse(productDAO.hasRequestedRestockToday(testOwnerId, testCustomerId, testProductId2));

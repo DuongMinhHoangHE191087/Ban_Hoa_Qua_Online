@@ -9,8 +9,8 @@
 <aside class="w-64 bg-gradient-to-b from-white to-[#f4fbf7] border-r border-[#e2ece7] flex flex-col h-screen sticky top-0 overflow-y-auto z-40 shrink-0 shadow-sm">
     <!-- Logo Brand -->
     <div class="p-5 border-b border-[#e2ece7] flex items-center gap-3">
-        <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit"
-             class="h-9 w-9 rounded-lg object-cover shadow-sm"
+        <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit"
+             class="brand-mark"
              onerror="this.src='https://images.unsplash.com/photo-1610832958506-ee5633619144?w=100'">
         <div>
             <div class="text-base font-extrabold text-[#4d661c] leading-tight">Meta<span class="text-[#84cc16]">Fruit</span></div>
@@ -138,3 +138,4 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 </script>
+<jsp:include page="/WEB-INF/jsp/common/alert.jsp" />

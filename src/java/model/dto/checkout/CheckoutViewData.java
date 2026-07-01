@@ -3,11 +3,13 @@ import model.dto.product.CartSummaryDTO;
 
 import model.entity.auth.UserAddress;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * DTO du lieu can hien thi tren trang checkout.
  */
+// Touched for IDE re-indexing
 public class CheckoutViewData {
 
     private CartSummaryDTO cartSummary;
@@ -15,6 +17,8 @@ public class CheckoutViewData {
     private Integer shopOwnerId;
     private int shopCount;
     private BigDecimal directSaleAmount;
+    private CheckoutQuoteDTO quote;
+    private List<CheckoutShopSummaryDTO> shopSummaries = new ArrayList<>();
 
     public CartSummaryDTO getCartSummary() {
         return cartSummary;
@@ -54,5 +58,21 @@ public class CheckoutViewData {
 
     public void setDirectSaleAmount(BigDecimal directSaleAmount) {
         this.directSaleAmount = directSaleAmount;
+    }
+
+    public CheckoutQuoteDTO getQuote() {
+        return quote;
+    }
+
+    public void setQuote(CheckoutQuoteDTO quote) {
+        this.quote = quote;
+    }
+
+    public List<CheckoutShopSummaryDTO> getShopSummaries() {
+        return shopSummaries;
+    }
+
+    public void setShopSummaries(List<CheckoutShopSummaryDTO> shopSummaries) {
+        this.shopSummaries = shopSummaries;
     }
 }

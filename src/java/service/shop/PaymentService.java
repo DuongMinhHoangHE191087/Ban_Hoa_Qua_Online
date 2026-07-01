@@ -5,6 +5,7 @@ import dao.order.OrderDAO;
 import dao.shop.PaymentDAO;
 import dao.auth.UserDAO;
 import com.fasterxml.jackson.databind.JsonNode;
+import model.dto.checkout.CheckoutPaymentSummaryDTO;
 import model.entity.order.Order;
 import model.entity.shop.PaymentTransaction;
 import model.entity.auth.User;
@@ -89,6 +90,27 @@ public class PaymentService {
         return paymentDAO.findOneByOrder(orderId);
     }
 
+    public CheckoutPaymentSummaryDTO getCustomerPaymentSummary(int orderId, int customerId) throws SQLException {
+        Order requestedOrder = orderDAO.findByIdForCustomer(orderId, customerId);
+        if (requestedOrder == null) {
+            return null;
+        }
+
+        Order rootOrder = requestedOrder;
+        if (requestedOrder.getParentOrderId() != null && requestedOrder.getParentOrderId() > 0) {
+            Order candidateRoot = orderDAO.findByIdForCustomer(requestedOrder.getParentOrderId(), customerId);
+            if (candidateRoot != null) {
+                rootOrder = candidateRoot;
+            }
+        }
+
+        List<Order> childOrders = AppConfig.ORDER_TYPE_PARENT.equals(rootOrder.getOrderType())
+                ? orderDAO.findChildrenByParentId(rootOrder.getOrderId())
+                : java.util.List.of(rootOrder);
+        PaymentTransaction paymentTx = getPaymentByOrder(rootOrder.getOrderId());
+        return buildPaymentSummary(requestedOrder, rootOrder, childOrders, paymentTx);
+    }
+
     public Map<Integer, PaymentTransaction> getPaymentMapByOrderIds(Collection<Integer> orderIds) throws SQLException {
         return paymentDAO.findByOrderIds(orderIds);
     }
@@ -114,25 +136,35 @@ public class PaymentService {
      * @return false nếu QR đã hết hạn
      */
     public boolean confirmManualPayment(int orderId, int customerId) throws SQLException {
-        if (orderId <= 0) {
-            throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
+        CheckoutPaymentSummaryDTO summary = getCustomerPaymentSummary(orderId, customerId);
+        if (summary == null) {
+            throw new SecurityException("Không có quyền truy cập đơn hàng #" + orderId);
         }
-        // Guard: đơn phải thuộc customer này
-        Order order = orderDAO.findByIdForCustomer(orderId, customerId);
-        if (order == null) throw new SecurityException("Không có quyền truy cập đơn hàng #" + orderId);
-        PaymentTransaction tx = getPaymentByOrder(orderId);
+        Order order = orderDAO.findByIdForCustomer(summary.getOrderId(), customerId);
+        if (order == null) {
+            throw new IllegalArgumentException("không tìm thấy đơn hàng #" + summary.getOrderId());
+        }
+        PaymentTransaction tx = getPaymentByOrder(summary.getOrderId());
         if (tx == null) {
-            throw new IllegalStateException("Không tìm thấy bản ghi thanh toán cho đơn #" + orderId);
+            throw new IllegalStateException("Không tìm thấy bản ghi thanh toán cho đơn #" + summary.getOrderId());
         }
 
-        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
+        if (!summary.getPendingPayment()) {
             throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
+        }
+        String currentTxStatus = tx.getStatus();
+        if (currentTxStatus != null
+                && !"pending".equalsIgnoreCase(currentTxStatus)
+                && !"processing".equalsIgnoreCase(currentTxStatus)) {
+            throw new IllegalStateException("Giao dịch thanh toán không còn ở trạng thái có thể xác nhận.");
         }
         // Kiểm tra QR còn hạn không
         if (tx.getExpiresAt() != null && LocalDateTime.now().isAfter(tx.getExpiresAt())) {
             return false; // QR hết hạn
         }
-        paymentDAO.updateStatus(tx.getTransactionId(), "processing");
+        if (!"processing".equalsIgnoreCase(currentTxStatus)) {
+            paymentDAO.updateStatus(tx.getTransactionId(), "processing");
+        }
         // Thông báo admin (NotificationService sẽ được mở rộng sau)
         LoggerUtil.info(log, "Customer #%d báo đã CK cho đơn #%d. Cần admin xác nhận.", customerId, orderId);
         return true;
@@ -150,35 +182,91 @@ public class PaymentService {
             throw new SecurityException("Bạn không có quyền thực hiện phê duyệt thanh toán này.");
         }
 
-        Order order = orderDAO.findOneById(orderId);
-        if (order == null) throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
+        try (Connection conn = paymentDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                Order order = orderDAO.findOneById(conn, orderId);
+                if (order == null) throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
 
-        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
-            throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
-        }
+                if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
+                    throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
+                }
 
-        PaymentTransaction tx = getPaymentByOrder(orderId);
-        if (tx == null) throw new IllegalStateException("Không tìm thấy bản ghi thanh toán.");
+                PaymentTransaction tx = paymentDAO.findOneByOrder(conn, orderId);
+                if (tx == null) throw new IllegalStateException("Không tìm thấy bản ghi thanh toán.");
 
-        // Cập nhật payment → completed
-        paymentDAO.updateStatus(tx.getTransactionId(), "completed",
-                                "ADMIN_MANUAL_" + adminId, null);
-        // Cập nhật order → CONFIRMED
-        orderDAO.updateStatus(orderId, AppConfig.ORDER_CONFIRMED);
-        LoggerUtil.info(log, "Admin #%d xác nhận thanh toán đơn #%d.", adminId, orderId);
-
-        // Gửi thông báo thanh toán thành công cho Customer
-        try {
-            User customer = userDAO.findUserById(order.getCustomerId());
-            if (customer != null) {
-                String customerMsg = "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công.";
-                notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + orderId);
-                String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
-                emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
+                finalizePaymentTree(conn, order, tx, "ADMIN_MANUAL_" + adminId, null);
+                conn.commit();
+                LoggerUtil.info(log, "Admin #%d xác nhận thanh toán đơn #%d%s.",
+                        adminId, orderId,
+                        AppConfig.ORDER_TYPE_PARENT.equals(order.getOrderType()) ? " và cascade đơn con" : "");
+                notifyPaymentSuccessAsync(orderId, order.getCustomerId(),
+                        "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công bởi quản trị viên.");
+                notifyOrdersReadyForFulfillmentAsync(order.getOrderId());
+                return;
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
             }
-        } catch (Exception ex) {
-            LoggerUtil.warn(log, "Không gửi được thông báo thanh toán cho orderId=" + orderId, ex);
         }
+    }
+
+    /**
+     * Reconcile các payment đã completed nhưng tree đơn vẫn còn lệch (ví dụ child order chưa được cascade CONFIRMED).
+     *
+     * @return số payment tree đã được kiểm tra và đồng bộ lại thành công
+     */
+    public int reconcileCompletedPayments() throws SQLException {
+        List<Integer> candidateOrderIds = paymentDAO.findCompletedOrderIdsForReconciliation();
+        if (candidateOrderIds.isEmpty()) {
+            return 0;
+        }
+
+        int repairedCount = 0;
+        for (Integer candidateOrderId : candidateOrderIds) {
+            if (candidateOrderId == null || candidateOrderId <= 0) {
+                continue;
+            }
+
+            try (Connection conn = paymentDAO.openConnection()) {
+                conn.setAutoCommit(false);
+                try {
+                    Order order = orderDAO.findOneById(conn, candidateOrderId);
+                    if (order == null) {
+                        LoggerUtil.warn(log, "[Reconcile] Không tìm thấy orderId=%d dù payment đã completed.", candidateOrderId);
+                        conn.rollback();
+                        continue;
+                    }
+
+                    PaymentTransaction tx = paymentDAO.findOneByOrder(conn, candidateOrderId);
+                    if (tx == null) {
+                        LoggerUtil.warn(log, "[Reconcile] Không tìm thấy payment transaction cho orderId=%d.", candidateOrderId);
+                        conn.rollback();
+                        continue;
+                    }
+
+                    boolean freshCompletion = AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus());
+                    finalizePaymentTree(conn, order, tx, tx.getSepayTransactionId(), tx.getProviderResponse());
+                    conn.commit();
+                    repairedCount++;
+                    LoggerUtil.info(log, "[Reconcile] Đồng bộ payment tree thành công cho orderId=%d.", candidateOrderId);
+
+                    if (freshCompletion) {
+                        notifyPaymentSuccessAsync(order.getOrderId(), order.getCustomerId(),
+                                "Đơn hàng #" + order.getOrderId() + " đã được xác nhận thanh toán thành công sau đối soát tự động.");
+                        notifyOrdersReadyForFulfillmentAsync(order.getOrderId());
+                    }
+                } catch (SQLException | RuntimeException ex) {
+                    conn.rollback();
+                    LoggerUtil.error(log, "[Reconcile] Lỗi khi đồng bộ payment tree cho orderId=" + candidateOrderId, ex);
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+            }
+        }
+        return repairedCount;
     }
 
     /**
@@ -233,15 +321,17 @@ public class PaymentService {
         public JsonNode referenceCode;
     }
 
-    private static final class WebhookProcessingResult {
+    public static final class WebhookProcessingResult {
+        private final String outcome;
         private final boolean duplicate;
         private final boolean notifyCustomer;
         private final int orderId;
         private final int customerId;
         private final String sepayTxId;
 
-        private WebhookProcessingResult(boolean duplicate, boolean notifyCustomer, int orderId,
+        private WebhookProcessingResult(String outcome, boolean duplicate, boolean notifyCustomer, int orderId,
                                         int customerId, String sepayTxId) {
+            this.outcome = outcome;
             this.duplicate = duplicate;
             this.notifyCustomer = notifyCustomer;
             this.orderId = orderId;
@@ -250,33 +340,70 @@ public class PaymentService {
         }
 
         static WebhookProcessingResult duplicate() {
-            return new WebhookProcessingResult(true, false, -1, -1, null);
+            return new WebhookProcessingResult("duplicate", true, false, -1, -1, null);
         }
 
         static WebhookProcessingResult handled(int orderId, int customerId, String sepayTxId) {
-            return new WebhookProcessingResult(false, true, orderId, customerId, sepayTxId);
+            return new WebhookProcessingResult("processed", false, true, orderId, customerId, sepayTxId);
         }
 
-        static WebhookProcessingResult skipped() {
-            return new WebhookProcessingResult(false, false, -1, -1, null);
+        static WebhookProcessingResult skipped(String outcome) {
+            return new WebhookProcessingResult(outcome, false, false, -1, -1, null);
         }
 
-        boolean isDuplicate() {
+        static WebhookProcessingResult invalidPayload() {
+            return skipped("invalid_payload");
+        }
+
+        public String getOutcome() {
+            return outcome;
+        }
+
+        public boolean isDuplicate() {
             return duplicate;
         }
 
-        boolean shouldNotifyCustomer() {
+        public boolean shouldNotifyCustomer() {
             return notifyCustomer;
+        }
+
+        public int getOrderId() {
+            return orderId;
+        }
+
+        public int getCustomerId() {
+            return customerId;
+        }
+
+        public String getSepayTxId() {
+            return sepayTxId;
+        }
+
+        public java.util.Map<String, Object> toResponseMap() {
+            java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+            payload.put("outcome", outcome);
+            payload.put("duplicate", duplicate);
+            payload.put("notifyCustomer", notifyCustomer);
+            if (orderId > 0) {
+                payload.put("orderId", orderId);
+            }
+            if (customerId > 0) {
+                payload.put("customerId", customerId);
+            }
+            if (sepayTxId != null) {
+                payload.put("sepayTxId", sepayTxId);
+            }
+            return payload;
         }
     }
 
-    public void processWebhook(String jsonPayload) throws SQLException {
+    public WebhookProcessingResult processWebhook(String jsonPayload) throws SQLException {
         SepayWebhookPayload payload;
         try {
             payload = JsonUtil.fromJson(jsonPayload, SepayWebhookPayload.class);
         } catch (Exception e) {
             LoggerUtil.warn(log, "[Webhook] Payload JSON không hợp lệ: " + jsonPayload, e);
-            return;
+            return WebhookProcessingResult.invalidPayload();
         }
 
         String sepayTxId = normalizeNodeText(payload != null ? payload.id : null);
@@ -291,7 +418,7 @@ public class PaymentService {
 
         if (sepayTxId == null || code == null) {
             LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: sepayTxId (id/referenceCode) hoặc code. Payload: %s", jsonPayload);
-            return;
+            return WebhookProcessingResult.invalidPayload();
         }
 
         WebhookProcessingResult result = null;
@@ -304,7 +431,7 @@ public class PaymentService {
                     result = processWebhook(conn, jsonPayload, sepayTxId, code, transferType, amountStr, subAccount, accountNumber);
                     if (result.isDuplicate()) {
                         conn.rollback();
-                        return;
+                        return result;
                     }
                     conn.commit();
                     break; // Success! Exit retry loop.
@@ -322,8 +449,11 @@ public class PaymentService {
         }
 
         if (result.shouldNotifyCustomer()) {
-            notifyWebhookSuccess(result.orderId, result.customerId, result.sepayTxId);
+            notifyPaymentSuccessAsync(result.orderId, result.customerId,
+                    "Đơn hàng #" + result.orderId + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.");
+            notifyOrdersReadyForFulfillmentAsync(result.orderId);
         }
+        return result;
     }
 
     private WebhookProcessingResult processWebhook(Connection conn, String jsonPayload, String sepayTxId,
@@ -335,7 +465,7 @@ public class PaymentService {
 
         if (!"in".equalsIgnoreCase(transferType)) {
             paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_not_in");
-            return WebhookProcessingResult.skipped();
+            return WebhookProcessingResult.skipped("skipped_not_in");
         }
 
         // Kiểm tra số tài khoản thụ hưởng nếu có gửi lên (sử dụng trong production)
@@ -356,7 +486,7 @@ public class PaymentService {
                 LoggerUtil.warn(log, "[Webhook] Số tài khoản nhận tiền không khớp: subAccount=%s, accountNumber=%s, config=%s. Bỏ qua.",
                     subAccount, accountNumber, expectedAccountNo);
                 paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_wrong_account");
-                return WebhookProcessingResult.skipped();
+                return WebhookProcessingResult.skipped("skipped_wrong_account");
             }
         }
 
@@ -364,7 +494,7 @@ public class PaymentService {
         if (tx == null) {
             LoggerUtil.warn(log, "[Webhook] Không tìm thấy payment_transaction với reference=%s", code);
             paymentDAO.updateDedupResult(conn, sepayTxId, "not_found");
-            return WebhookProcessingResult.skipped();
+            return WebhookProcessingResult.skipped("not_found");
         }
 
         Order order = orderDAO.findOneById(conn, tx.getOrderId());
@@ -373,7 +503,7 @@ public class PaymentService {
             LoggerUtil.warn(log, "[Webhook] orderId=%d không ở trạng thái PENDING_PAYMENT (hiện tại: %s) — bỏ qua.",
                 tx.getOrderId(), currentStatus);
             paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_wrong_status");
-            return WebhookProcessingResult.skipped();
+            return WebhookProcessingResult.skipped("skipped_wrong_status");
         }
 
         BigDecimal received;
@@ -381,25 +511,38 @@ public class PaymentService {
             received = amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO;
         } catch (NumberFormatException nfe) {
             LoggerUtil.warn(log, "[Webhook] Số tiền không hợp lệ: %s", amountStr);
-            paymentDAO.updateDedupResult(conn, sepayTxId, "invalid_amount");
-            return WebhookProcessingResult.skipped();
+            paymentDAO.updateDedupResult(conn, sepayTxId, "invalid_payload");
+            return WebhookProcessingResult.invalidPayload();
         }
 
         BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
         if (received.compareTo(expected) < 0) {
-            paymentDAO.updateStatusFailed(tx.getTransactionId(), "AMOUNT_MISMATCH",
+            paymentDAO.updateStatusFailed(conn, tx.getTransactionId(), "AMOUNT_MISMATCH",
                     "Số tiền nhận được thấp hơn số tiền đơn hàng.");
             paymentDAO.updateDedupResult(conn, sepayTxId, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
                 expected, received, tx.getOrderId());
-            return WebhookProcessingResult.skipped();
+            return WebhookProcessingResult.skipped("amount_mismatch");
         }
 
-        paymentDAO.updateStatus(conn, tx.getTransactionId(), "completed", sepayTxId, jsonPayload);
-        orderDAO.updateStatus(conn, tx.getOrderId(), AppConfig.ORDER_CONFIRMED);
+        finalizePaymentTree(conn, order, tx, sepayTxId, jsonPayload);
+
         paymentDAO.updateDedupResult(conn, sepayTxId, "processed");
-        LoggerUtil.info(log, "[Webhook] Thanh toán thành công orderId=%d sepayTxId=%s", tx.getOrderId(), sepayTxId);
+        LoggerUtil.info(log, "[Webhook] outcome=processed orderId=%d sepayTxId=%s%s",
+                tx.getOrderId(), sepayTxId,
+                AppConfig.ORDER_TYPE_PARENT.equals(order.getOrderType()) ? " parentCascade=true" : "");
         return WebhookProcessingResult.handled(order.getOrderId(), order.getCustomerId(), sepayTxId);
+    }
+
+    private void finalizePaymentTree(Connection conn, Order order, PaymentTransaction tx,
+                                     String sepayTransactionId, String providerResponse) throws SQLException {
+        paymentDAO.updateStatus(conn, tx.getTransactionId(), "completed", sepayTransactionId, providerResponse);
+        orderDAO.updateStatus(conn, order.getOrderId(), AppConfig.ORDER_CONFIRMED);
+
+        if (AppConfig.ORDER_TYPE_PARENT.equals(order.getOrderType())) {
+            orderDAO.updateStatusByParent(conn, order.getOrderId(), AppConfig.ORDER_CONFIRMED);
+            LoggerUtil.info(log, "[Payment] Cascade CONFIRMED cho tất cả đơn con của parentOrderId=%d", order.getOrderId());
+        }
     }
 
     private static final java.util.concurrent.ExecutorService notifierExecutor = 
@@ -409,21 +552,112 @@ public class PaymentService {
             return t;
         });
 
-    private void notifyWebhookSuccess(int orderId, int customerId, String sepayTxId) {
-        notifierExecutor.submit(() -> {
-            try {
-                LoggerUtil.info(log, "[Webhook] [Async] Gửi thông báo khách hàng cho orderId=%d sepayTxId=%s", orderId, sepayTxId);
-                User customer = userDAO.findUserById(customerId);
-                if (customer != null) {
-                    String customerMsg = "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.";
-                    notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMsg, "/orders/detail?orderId=" + orderId);
-                    String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
-                    emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
+    private void notifyPaymentSuccessAsync(int orderId, int customerId, String customerMessage) {
+        try {
+            notifierExecutor.submit(() -> {
+                try {
+                    LoggerUtil.info(log, "[Payment] [Async] Gửi thông báo khách hàng cho orderId=%d", orderId);
+                    User customer = userDAO.findUserById(customerId);
+                    if (customer != null) {
+                        notificationService.send(customer.getUserId(), AppConfig.NOTIF_PAYMENT, "Thanh toán thành công", customerMessage, "/orders/detail?orderId=" + orderId);
+                        String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+                        emailService.sendOrderNotificationEmail(customer.getEmail(), customer.getFullName(), String.valueOf(orderId), "Xác nhận thanh toán thành công", orderDetailUrl);
+                    }
+                } catch (Exception ex) {
+                    LoggerUtil.warn(log, "Không gửi được thông báo thanh toán cho orderId=" + orderId, ex);
                 }
-            } catch (Exception ex) {
-                LoggerUtil.warn(log, "Không gửi được thông báo thanh toán webhook cho orderId=" + orderId, ex);
+            });
+        } catch (RuntimeException ex) {
+            LoggerUtil.warn(log, "Không thể xếp hàng thông báo thanh toán cho orderId=" + orderId, ex);
+        }
+    }
+
+    private CheckoutPaymentSummaryDTO buildPaymentSummary(Order requestedOrder,
+                                                          Order rootOrder,
+                                                          List<Order> childOrders,
+                                                          PaymentTransaction paymentTx) {
+        CheckoutPaymentSummaryDTO summary = new CheckoutPaymentSummaryDTO();
+        summary.setRequestedOrderId(requestedOrder.getOrderId());
+        summary.setOrderId(rootOrder.getOrderId());
+        summary.setOrderType(rootOrder.getOrderType());
+        summary.setPaymentMethod(rootOrder.getPaymentMethod());
+        summary.setFinalAmount(rootOrder.getFinalAmount() != null ? rootOrder.getFinalAmount() : BigDecimal.ZERO);
+        summary.setPaymentRequired(AppConfig.PAYMENT_CK.equals(rootOrder.getPaymentMethod()));
+        summary.setCancelled(AppConfig.ORDER_CANCELLED.equals(rootOrder.getStatus()));
+
+        String paymentStatus = paymentTx != null ? paymentTx.getStatus() : null;
+        summary.setPaymentStatus(paymentStatus);
+        if (paymentTx != null) {
+            summary.setReference(paymentTx.getSepayReference());
+        }
+
+        String effectiveOrderStatus = rootOrder.getStatus();
+        boolean paid = "completed".equalsIgnoreCase(paymentStatus);
+        if (AppConfig.ORDER_PENDING_PAYMENT.equals(effectiveOrderStatus) && paid) {
+            effectiveOrderStatus = AppConfig.ORDER_CONFIRMED;
+        }
+        summary.setOrderStatus(effectiveOrderStatus);
+        summary.setPaid(paid);
+        summary.setPendingPayment(summary.getPaymentRequired()
+                && AppConfig.ORDER_PENDING_PAYMENT.equals(rootOrder.getStatus())
+                && !paid
+                && !summary.getCancelled());
+        summary.setCanConfirmPayment(summary.getPendingPayment()
+                && paymentTx != null
+                && ("pending".equalsIgnoreCase(paymentStatus) || "processing".equalsIgnoreCase(paymentStatus)));
+
+        List<Integer> childOrderIds = new java.util.ArrayList<>();
+        if (childOrders != null) {
+            for (Order childOrder : childOrders) {
+                if (childOrder != null && childOrder.getOrderId() != rootOrder.getOrderId()) {
+                    childOrderIds.add(childOrder.getOrderId());
+                }
             }
-        });
+        }
+        summary.setChildOrderIds(childOrderIds);
+        return summary;
+    }
+
+    private void notifyOrdersReadyForFulfillmentAsync(int orderId) {
+        try {
+            notifierExecutor.submit(() -> {
+                try {
+                    Order rootOrder = orderDAO.findOneById(orderId);
+                    if (rootOrder == null) {
+                        return;
+                    }
+                    if (AppConfig.ORDER_TYPE_PARENT.equals(rootOrder.getOrderType())) {
+                        for (Order childOrder : orderDAO.findChildrenByParentId(rootOrder.getOrderId())) {
+                            notifyShopOrderReady(childOrder);
+                        }
+                    } else {
+                        notifyShopOrderReady(rootOrder);
+                    }
+                } catch (Exception ex) {
+                    LoggerUtil.warn(log, "Không gửi được thông báo shop sau xác nhận thanh toán cho orderId=" + orderId, ex);
+                }
+            });
+        } catch (RuntimeException ex) {
+            LoggerUtil.warn(log, "Không thể xếp hàng thông báo shop cho orderId=" + orderId, ex);
+        }
+    }
+
+    private void notifyShopOrderReady(Order order) throws SQLException {
+        if (order == null || order.getOwnerId() <= 0) {
+            return;
+        }
+        String shopMsg = "Đơn hàng #" + order.getOrderId() + " đã thanh toán thành công và sẵn sàng để shop chuẩn bị.";
+        notificationService.send(order.getOwnerId(), AppConfig.NOTIF_ORDER_UPDATE,
+                "Có đơn hàng mới cần chuẩn bị", shopMsg, "/shop/orders");
+        User shopOwner = userDAO.findUserById(order.getOwnerId());
+        if (shopOwner != null) {
+            emailService.sendOrderNotificationEmail(
+                    shopOwner.getEmail(),
+                    shopOwner.getFullName(),
+                    String.valueOf(order.getOrderId()),
+                    "Có đơn hàng mới cần chuẩn bị",
+                    AppConfig.APP_BASE_URL + "/shop/orders");
+        }
     }
 
     private String normalizeNodeText(JsonNode node) {

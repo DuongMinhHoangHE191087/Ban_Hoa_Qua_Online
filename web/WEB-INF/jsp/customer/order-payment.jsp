@@ -1,10 +1,10 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quét mã QR Thanh toán - Verdant Market"/></jsp:include>
+<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quét mã QR Thanh toán - MetaFruit"/></jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -89,16 +89,6 @@
   }
 </script>
 
-<style>
-    .glass-card {
-        background-color: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 15px -3px rgba(20, 83, 45, 0.05), 0 4px 6px -2px rgba(20, 83, 45, 0.03);
-    }
-</style>
-
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
     <input type="hidden" id="js-qr-expire-min" value="${qrExpireMin != null ? qrExpireMin : 15}">
     <input type="hidden" id="js-order-id" value="<c:out value='${order.orderId}'/>">
@@ -159,14 +149,14 @@
             <div class="glass-card rounded-2xl p-5 border border-amber-200 bg-amber-50/40 text-xs">
                 <span class="font-bold text-amber-800 flex items-center gap-1 mb-2">
                     <span class="material-symbols-outlined text-sm">construction</span>
-                    DEVELOPMENT TESTING:
+                    DEVELOPMENT TESTING - Webhook SePay:
                 </span>
                 <p class="text-on-surface-variant mb-3 leading-relaxed">
-                    Bạn có thể mô phỏng SePay callback ghi nhận tiền về thành công để kiểm thử khả năng chuyển trang tự động của Polling script.
+                    Dùng nút này để mô phỏng webhook SePay. Trạng thái đơn chỉ được xem là hoàn tất khi polling nhận được trạng thái đơn hàng mới.
                 </p>
                 <div class="flex gap-2">
                     <button onclick="simulateSuccessRedirect()" class="bg-[#14532D] text-white px-3 py-1.5 rounded font-bold hover:bg-opacity-90 transition-all cursor-pointer">
-                        Mô phỏng Thanh toán Thành công
+                        Mô phỏng webhook SePay
                     </button>
                 </div>
             </div>
@@ -366,6 +356,7 @@
     const reference = document.getElementById('js-reference').value;
     const amountFormatted = document.getElementById('js-amount-formatted').value;
     const contextPath = document.getElementById('js-context-path').value;
+    const terminalPaidStatuses = new Set(['CONFIRMED', 'APPROVED', 'PREPARING', 'DISPATCHED', 'DELIVERED']);
 
     // Real-time Polling every 3 seconds to check order payment status
     const pollingUrl = contextPath + '/checkout?action=status&orderId=' + encodeURIComponent(orderId);
@@ -408,8 +399,15 @@
             .then(data => {
                 const orderStatus = data.data ? data.data.status : null;
                 console.log('[FruitMkt] Polling Order Status:', orderStatus);
-                // If order state updated to CONFIRMED (or preparing, dispatched etc. indicating payment complete)
-                if (orderStatus && orderStatus !== 'PENDING_PAYMENT' && orderStatus !== 'UNKNOWN') {
+                if (orderStatus === 'CANCELLED') {
+                    clearInterval(timerInterval);
+                    clearInterval(pollingInterval);
+                    alert('Đơn hàng đã bị hủy. Bạn sẽ được chuyển tới chi tiết đơn hàng.');
+                    window.location.href = contextPath + '/profile/order-detail?orderId=' + encodeURIComponent(orderId);
+                    return;
+                }
+                // If order state updated to a paid/fulfilled state, show success modal.
+                if (orderStatus && terminalPaidStatuses.has(orderStatus)) {
                     clearInterval(timerInterval);
                     clearInterval(pollingInterval);
                     showSuccessModal(successUrl);
@@ -436,13 +434,14 @@
             },
             body: JSON.stringify(payload)
         })
-        .then(res => res.json())
+        .then(handleJSONResponse)
         .then(data => {
-            if (data.success) {
-                console.log('[Dev Sim] Webhook simulation processed successfully:', data);
-                showSuccessModal(successUrl);
+            const outcome = data.data ? data.data.outcome : null;
+            if (outcome && outcome !== 'invalid_payload') {
+                console.log('[Dev Sim] Webhook simulation outcome:', outcome, data);
+                alert('Webhook mô phỏng đã được gửi. Trạng thái sẽ được xác nhận qua polling.');
             } else {
-                alert('Gửi webhook mô phỏng thất bại: ' + (data.message || 'Lỗi xử lý nội bộ'));
+                alert('Gửi webhook mô phỏng thất bại: ' + (data.error || data.message || 'Lỗi xử lý nội bộ'));
             }
         })
         .catch(err => {

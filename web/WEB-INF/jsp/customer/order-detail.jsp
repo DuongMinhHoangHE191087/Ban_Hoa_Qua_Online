@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -82,29 +82,9 @@
     }
 </script>
 
-<style>
-    .premium-glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.05);
-    }
-</style>
-
 <main class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-on-background">
     
-    <!-- Flash Notifications -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold">${sessionScope.flashMsg}</span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- Top Navigation and Actions -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-lg pb-4 border-b border-surface-container-high gap-4">
@@ -323,7 +303,7 @@
 
                 <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <div class="h-2 flex-1 overflow-hidden rounded-full bg-surface-container-high/70">
-                        <div class="h-full rounded-full bg-primary transition-all duration-500" style="width: ${timelinePercent}%"></div>
+                        <div class="order-timeline-fill h-full rounded-full bg-primary transition-all duration-500" data-progress="${timelinePercent}"></div>
                     </div>
                     <p class="text-xs text-on-surface-variant whitespace-nowrap">Cập nhật gần nhất: ${order.updatedAt}</p>
                 </div>
@@ -341,10 +321,20 @@
                 <div class="px-6 py-4 border-b border-outline-variant/30 flex items-center justify-between">
                 <h3 class="font-headline-md text-lg text-inverse-surface font-bold">Danh sách sản phẩm đã mua</h3>
                     <c:if test="${order.orderType != 'PARENT'}">
-                        <span class="text-xs font-bold text-primary bg-primary-container px-3 py-1 rounded-full flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[14px]">store</span>
-                            ${shopName}
-                        </span>
+                        <c:choose>
+                            <c:when test="${order.ownerId > 0}">
+                                <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="text-xs font-bold text-primary bg-primary-container hover:bg-primary hover:text-on-primary px-3 py-1 rounded-full flex items-center gap-1 transition-all">
+                                    <span class="material-symbols-outlined text-[14px]">store</span>
+                                    ${shopName}
+                                </a>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="text-xs font-bold text-primary bg-primary-container px-3 py-1 rounded-full flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">store</span>
+                                    ${shopName}
+                                </span>
+                            </c:otherwise>
+                        </c:choose>
                     </c:if>
                 </div>
                 
@@ -360,7 +350,16 @@
                                             <span class="material-symbols-outlined text-txt-2 transform transition-transform duration-300" id="arrow-${child.orderId}">expand_more</span>
                                             <div>
                                                 <h4 class="font-bold text-inverse-surface text-base flex items-center gap-2">
-                                                    <span>${shopNamesMap[child.orderId]}</span>
+                                                    <c:choose>
+                                                        <c:when test="${child.ownerId > 0}">
+                                                            <a href="${pageContext.request.contextPath}/shop-view?id=${child.ownerId}" class="hover:underline hover:text-primary transition-all" onclick="event.stopPropagation();">
+                                                                ${shopNamesMap[child.orderId]}
+                                                            </a>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span>${shopNamesMap[child.orderId]}</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                     <span class="text-xs font-normal text-on-surface-variant">(Đơn con #${child.orderId})</span>
                                                 </h4>
                                                 <div class="text-xs text-on-surface-variant mt-0.5">
@@ -448,7 +447,18 @@
                         </div>
                         <p class="font-semibold text-on-surface">
                             <c:choose>
-                                <c:when test="${not empty shopName}"><c:out value="${shopName}"/></c:when>
+                                <c:when test="${not empty shopName}">
+                                    <c:choose>
+                                        <c:when test="${order.ownerId > 0}">
+                                            <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                                <c:out value="${shopName}"/>
+                                            </a>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <c:out value="${shopName}"/>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </c:when>
                                 <c:otherwise>Đơn tổng hợp nhiều cửa hàng</c:otherwise>
                             </c:choose>
                         </p>
@@ -779,6 +789,19 @@
         const id = el.dataset.orderId;
         const list = document.getElementById('suborder-items-' + id);
         if (list) list.style.display = 'none';
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.order-timeline-fill[data-progress]').forEach(function(el) {
+            var value = parseFloat(el.getAttribute('data-progress') || '0');
+            if (isNaN(value)) {
+                value = 0;
+            }
+            value = Math.max(0, Math.min(100, value));
+            el.style.width = value + '%';
+        });
     });
 </script>
 

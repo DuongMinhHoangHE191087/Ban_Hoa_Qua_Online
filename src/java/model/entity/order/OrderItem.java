@@ -2,7 +2,6 @@ package model.entity.order;
 
 /**
  * OrderItem — Ánh xạ bảng DB tương ứng.
- * TODO: Tham khảo Schema.sql và SRS để hiểu ràng buộc của từng field.
  * @author fruitmkt-team
  */
 public class OrderItem {
@@ -18,6 +17,7 @@ public class OrderItem {
     private String packagingLabelSnapshot;
     private java.math.BigDecimal packagingPriceSnapshot;
     private String imagePath;
+    private Integer productId;
 
     public OrderItem() {}
 
@@ -53,5 +53,8 @@ public class OrderItem {
 
     public String getImagePath() { return imagePath; }
     public void setImagePath(String imagePath) { this.imagePath = imagePath; }
+
+    public Integer getProductId() { return productId; }
+    public void setProductId(Integer productId) { this.productId = productId; }
 
 }

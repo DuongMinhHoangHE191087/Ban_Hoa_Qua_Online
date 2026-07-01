@@ -21,10 +21,10 @@
 
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
     
-    <!-- Google Fonts: Lexend + Plus Jakarta Sans -->
+    <!-- Google Fonts: Lexend -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- FontAwesome Icons & Material Symbols -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
@@ -34,49 +34,9 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
 
     <%-- ── Tailwind CSS — Global shared design system ────────────────────────── --%>
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-    <script>
-        /**
-         * MetaFruit Global Tailwind Design System
-         * Shared across ALL pages. Pages may call tailwind.config = { theme: { extend: {...} } }
-         * after this header to add page-specific tokens without re-declaring the base palette.
-         */
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        /* Brand */
-                        "primary":               "#4d661c",
-                        "primary-hover":         "#364e03",
-                        "primary-light":         "#d9f99d",
-                        "primary-dark":          "#364e03",
-                        "secondary":             "#31694b",
-                        "tertiary":              "#486554",
-                        "tertiary-container":    "#d5f5e0",
-                        /* Surfaces */
-                        "surface-bright":        "#eaffea",
-                        "surface-container-low": "#d1ffd8",
-                        /* Text */
-                        "on-surface":            "#00210d",
-                        "on-surface-variant":    "#44483b",
-                        /* Outline */
-                        "outline":               "#75796a",
-                        "outline-variant":       "#c5c8b7",
-                        /* Semantic */
-                        "error":                 "#ba1a1a"
-                    },
-                    fontFamily: {
-                        sans: ["Lexend", "Plus Jakarta Sans", "sans-serif"]
-                    },
-                    borderRadius: {
-                        "2xl": "1rem",
-                        "3xl": "1.5rem",
-                        "4xl": "2rem"
-                    }
-                }
-            }
-        }
-    </script>
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
+    
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
 
     <!-- SweetAlert2 — premium modals -->
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
@@ -101,6 +61,10 @@
         window.isLoggedIn  = "${sessionScope.currentUser != null}" === "true";
         window.contextPath = '${pageContext.request.contextPath}';
         window.csrfToken   = '${sessionScope._csrfToken}';
+        window.getCsrfToken = function() {
+            const hidden = document.querySelector('input[name="_csrf"]');
+            return (window.csrfToken || (hidden ? hidden.value : '') || '').trim();
+        };
     </script>
 </head>
 <body>

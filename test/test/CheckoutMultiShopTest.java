@@ -70,6 +70,10 @@ public class CheckoutMultiShopTest {
         ownerBId = userDAO.saveNewCustomer("CMT OwnerB", "cmt_ob_" + ts + "@test.com",
                 HashUtil.hashPassword("TestPass@2026"), buildPhone(2),
                 AppConfig.ROLE_SHOP_OWNER, AppConfig.ACCOUNT_STATUS_ACTIVE, true);
+        
+        createShopProfile(ownerAId, "CMT Shop A");
+        createShopProfile(ownerBId, "CMT Shop B");
+
         customerPhone = buildPhone(3);
         customerId = userDAO.saveNewCustomer("CMT Customer", "cmt_cust_" + ts + "@test.com",
                 HashUtil.hashPassword("TestPass@2026"), customerPhone,
@@ -100,6 +104,8 @@ public class CheckoutMultiShopTest {
             if (productAId > 0) hardDeleteProduct(productAId);
             if (productBId > 0) hardDeleteProduct(productBId);
             if (categoryId > 0) categoryDAO.delete(categoryId);
+            if (ownerAId > 0)   new dao.shop.ShopProfileDAO().deleteByUserId(ownerAId);
+            if (ownerBId > 0)   new dao.shop.ShopProfileDAO().deleteByUserId(ownerBId);
             if (ownerAId > 0)   userDAO.deleteUser(ownerAId);
             if (ownerBId > 0)   userDAO.deleteUser(ownerBId);
             if (customerId > 0) userDAO.deleteUser(customerId);
@@ -276,14 +282,14 @@ public class CheckoutMultiShopTest {
 
     private void hardDeleteVariant(int vId) throws SQLException {
         try (Connection conn = variantDAO.getConnection();
-             PreparedStatement ps = conn.prepareStatement("DELETE FROM product_variants WHERE variant_id = ?")) {
+             PreparedStatement ps = conn.prepareStatement("UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE variant_id = ?")) {
             ps.setInt(1, vId); ps.executeUpdate();
         }
     }
 
     private void hardDeleteProduct(int pId) throws SQLException {
         try (Connection conn = productDAO.getConnection();
-             PreparedStatement ps = conn.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
+             PreparedStatement ps = conn.prepareStatement("UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
             ps.setInt(1, pId); ps.executeUpdate();
         }
     }
@@ -378,5 +384,18 @@ public class CheckoutMultiShopTest {
         public void doPostPublic(HttpServletRequest req, HttpServletResponse resp) throws Exception {
             doPost(req, resp);
         }
+    }
+
+    private void createShopProfile(int userId, String name) throws SQLException {
+        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
+        model.entity.shop.ShopProfile p = new model.entity.shop.ShopProfile();
+        p.setUserId(userId);
+        p.setShopName(name);
+        p.setShopDescription("CMT Test Shop Description");
+        p.setApprovalStatus("APPROVED");
+        p.setDeliveryAddress("123 Test Street");
+        p.setRating(java.math.BigDecimal.ZERO);
+        p.setBusinessEmail("cmt_biz_" + userId + "_" + System.currentTimeMillis() + "@company.com");
+        shopProfileDAO.save(p);
     }
 }

@@ -224,7 +224,7 @@ public class RoleFilterAccessControlTest {
     }
 
     // =========================================================
-    // TC-RF-09: Admin Ä‘Æ°á»£c phÃ©p truy cáº­p /notifications
+    // TC-RF-09: Admin được phép truy cập /notifications
     // =========================================================
 
     @Test
@@ -234,8 +234,8 @@ public class RoleFilterAccessControlTest {
         env.user = buildUser(adminId, AppConfig.ROLE_ADMIN);
 
         runFilter();
-        assertTrue("Admin pháº£i Ä‘Æ°á»£c truy cáº­p /notifications", env.chainCalled.get());
-        assertEquals("KhÃ´ng Ä‘Æ°á»£c tráº£ vá» lá»—i cho admin", 0, env.errorCode.get());
+        assertTrue("Admin phải được truy cập /notifications", env.chainCalled.get());
+        assertEquals("Không được trả về lỗi cho admin", 0, env.errorCode.get());
     }
 
     // =========================================================

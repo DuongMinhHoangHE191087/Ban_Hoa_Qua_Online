@@ -24,18 +24,10 @@ public class AppStartupListener implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        // Load .env TRƯỚC KHI AppConfig được class-loaded lần đầu.
-        // DotEnvLoader ghi vào System.setProperty() để AppConfig.getEnvOrDefault() đọc được.
+        // AppConfig tự động nạp .env qua static block khi khởi chạy.
         String realPath = sce.getServletContext().getRealPath("");
-        util.DotEnvLoader.load(realPath);
         Path logFile = LoggerUtil.configureFileLogging(realPath);
-        String appEnv = System.getenv("APP_ENV");
-        if (appEnv == null || appEnv.isBlank()) {
-            appEnv = System.getProperty("APP_ENV");
-        }
-        if (appEnv == null || appEnv.isBlank()) {
-            appEnv = "development";
-        }
+        String appEnv = AppConfig.APP_ENV;
         sce.getServletContext().setAttribute("appEnv", appEnv);
 
         Path effectiveLogFile = logFile != null ? logFile : LoggerUtil.getConfiguredLogFile();

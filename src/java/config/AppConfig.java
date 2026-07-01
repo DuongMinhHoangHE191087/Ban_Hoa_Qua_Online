@@ -9,38 +9,41 @@ package config;
  * @author fruitmkt-team
  */
 public final class AppConfig {
+        public static final String APP_ENV = "development";
+
         // ——————————————————————————————————————————————————————————————————
         // Database
         // ------------------------------------------------------------------
-        public static final String DB_HOST     = getEnvOrDefault("DB_HOST",     "localhost");
-        public static final String DB_PORT     = getEnvOrDefault("DB_PORT",     "1433");
-        public static final String DB_NAME     = getEnvOrDefault("DB_NAME",     "OnlineFruitShopping");
-        public static final String DB_USER     = getEnvOrDefault("DB_USER",     "sa");
-        public static final String DB_PASSWORD = getEnvOrDefault("DB_PASSWORD", "123");
+        public static final String DB_HOST     = "localhost";
+        public static final String DB_PORT     = "1433";
+        public static final String DB_NAME     = "OnlineFruitShopping";
+        public static final String DB_USER     = "sa";
+        public static final String DB_PASSWORD = "123";
         public static final String DB_DRIVER_CLASS = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
         public static final String DB_JDBC_URL = "jdbc:sqlserver://" + DB_HOST + ":" + DB_PORT
                         + ";databaseName=" + DB_NAME
                         + ";encrypt=true;trustServerCertificate=true;keepAlive=true";
 
-        public static final String GOOGLE_CLIENT_ID = getEnvOrDefault("GOOGLE_CLIENT_ID", "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com");
-        public static final String GOOGLE_CLIENT_SECRET = getEnvOrDefault("GOOGLE_CLIENT_SECRET", "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");
+        public static final String GOOGLE_CLIENT_ID = "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com";
+        public static final String GOOGLE_CLIENT_SECRET = "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";
         // Domain của bạn. Nếu code ở localhost thì để HTTP. Set via GOOGLE_REDIRECT_URI env var in production
-        public static final String GOOGLE_REDIRECT_URI = getEnvOrDefault("GOOGLE_REDIRECT_URI", "http://localhost:8080/Ban_Hoa_Qua_Online/GoogleCallback");
+        public static final String GOOGLE_REDIRECT_URI = "http://localhost:8080/Ban_Hoa_Qua_Online/GoogleCallback";
         public static final String GOOGLE_LINK_GET_TOKEN = "https://oauth2.googleapis.com/token";
         public static final String GOOGLE_LINK_GET_USER_INFO = "https://openidconnect.googleapis.com/v1/userinfo";
         public static final String GOOGLE_GRANT_TYPE = "authorization_code";
  
         public static final String EMAIL_SMTP_HOST = "smtp.gmail.com";
         public static final String EMAIL_SMTP_PORT = "587";
-        public static final String EMAIL_FROM = getEnvOrDefault("EMAIL_FROM", "duongminhhoanginwork@gmail.com");
-        public static final String EMAIL_PASSWORD = getEnvOrDefault("EMAIL_PASSWORD", "jkhg przg aohf pwla");
-        public static final String SECRET_KEY = getEnvOrDefault("SECRET_KEY", "fruitmkt-super-secret-key-2026-secure-sha256");
-        public static final long ACCESS_TOKEN_EXPIRY_MS   = getLongEnvOrDefault("ACCESS_TOKEN_EXPIRY_MS",   1L * 60 * 1000); // Tạm chỉnh 1 phút để test
-        public static final int  REFRESH_TOKEN_EXPIRY_SECS = getIntEnvOrDefault("REFRESH_TOKEN_EXPIRY_SECS",  7 * 24 * 60 * 60);
+        public static final String EMAIL_FROM = "duongminhhoanginwork@gmail.com";
+        public static final String EMAIL_PASSWORD = "jkhg przg aohf pwla";
+        public static final String SECRET_KEY = "fruitmkt-super-secret-key-2026-secure-sha256";
+        public static final String GEMINI_API_KEY = "AIzaSyCjWjQGbdLd3btblCUwMxnkUMsYN8Yhq3I";
+        public static final long ACCESS_TOKEN_EXPIRY_MS   = 15L * 60 * 1000; // 15 phút
+        public static final int  REFRESH_TOKEN_EXPIRY_SECS = 7 * 24 * 60 * 60;
         public static final String APP_NAME = "MetaFruit";
         public static final String APP_SUPPORT_EMAIL = EMAIL_FROM;
         public static final String APP_BRAND_COLOR = "#14532d";
-        public static final String APP_BASE_URL = getEnvOrDefault("APP_BASE_URL", "http://localhost:8080/Ban_Hoa_Qua_Online");
+        public static final String APP_BASE_URL = "http://localhost:8080/Ban_Hoa_Qua_Online";
 
         // ------------------------------------------------------------------
         // Email verification
@@ -243,9 +246,9 @@ public final class AppConfig {
         // ------------------------------------------------------------------
         // SePay / VietQR (thêm domain deploy ở đây khi lên production)
         // ------------------------------------------------------------------
-        public static final String SEPAY_BANK_ID      = getEnvOrDefault("SEPAY_BANK_ID",      "MBBank");
-        public static final String SEPAY_ACCOUNT_NO   = getEnvOrDefault("SEPAY_ACCOUNT_NO",   "SBSEPAY3NHWA061W5V2");
-        public static final String SEPAY_ACCOUNT_NAME = getEnvOrDefault("SEPAY_ACCOUNT_NAME", "CONG TY TNHH METAFRUIT");
+        public static final String SEPAY_BANK_ID      = "MBBank";
+        public static final String SEPAY_ACCOUNT_NO   = "SBSEPAY3NHWA061W5V2";
+        public static final String SEPAY_ACCOUNT_NAME = "CONG TY TNHH METAFRUIT";
         public static final String PAYMENT_REF_PREFIX  = "MF";
         /** Thời hạn hiệu lực của mã QR (phút). PAY-02 */
         public static final int    QR_EXPIRE_MINUTES   = 10;
@@ -254,7 +257,7 @@ public final class AppConfig {
          * Dùng cho SePay Webhook URL và link email.
          * Đổi sang domain thật khi deploy: https://yourdomain.com
          */
-        public static final String DEPLOY_BASE_URL    = getEnvOrDefault("APP_DEPLOY_URL", APP_BASE_URL);
+        public static final String DEPLOY_BASE_URL    = APP_BASE_URL;
         public static final String SEPAY_WEBHOOK_PATH  = "/api/payment/webhook";
 
         // ------------------------------------------------------------------
@@ -273,69 +276,11 @@ public final class AppConfig {
                 /* Utility class — không khởi tạo */ }
 
         /**
-         * Helper to safely read environment variables with fallback.
-         * If env var is not set and default is null, returns null (trigger validation later).
-         * If env var is not set and default is provided, returns default.
-         */
-        private static String getEnvOrDefault(String varName, String defaultValue) {
-                // Ưu tiên: OS env var > System property (set bởi DotEnvLoader từ .env) > hardcoded default
-                String val = System.getenv(varName);
-                if (val != null && !val.isEmpty()) return val;
-                val = System.getProperty(varName);
-                return (val != null && !val.isEmpty()) ? val : defaultValue;
-        }
-
-        private static long getLongEnvOrDefault(String varName, long defaultValue) {
-                String raw = getEnvOrDefault(varName, null);
-                if (raw == null) return defaultValue;
-                try { return Long.parseLong(raw); } catch (NumberFormatException e) { return defaultValue; }
-        }
-
-        private static int getIntEnvOrDefault(String varName, int defaultValue) {
-                String raw = getEnvOrDefault(varName, null);
-                if (raw == null) return defaultValue;
-                try { return Integer.parseInt(raw); } catch (NumberFormatException e) { return defaultValue; }
-        }
-
-        /**
-         * Đọc config theo ưu tiên: System property -> env variable -> default value.
-         * Production: đặt JVM option (-Ddb.password=...) hoặc env variable
-         * (DB_PASSWORD=...).
-         */
-
-        /**
          * Validate critical secrets are set via environment variables in production.
          * Call this at application startup to fail fast if required secrets are missing.
-         *
-         * @throws IllegalStateException if critical secrets use hardcoded fallbacks
          */
         public static void validateSecretsForProduction() {
-                boolean isProduction = "production".equalsIgnoreCase(System.getenv("APP_ENV"));
-                if (!isProduction) {
-                        return; // Skip validation in development
-                }
-
-                StringBuilder missing = new StringBuilder();
-                if (GOOGLE_CLIENT_SECRET == null) {
-                        missing.append("GOOGLE_CLIENT_SECRET ");
-                }
-                if (EMAIL_PASSWORD == null) {
-                        missing.append("EMAIL_PASSWORD ");
-                }
-                if (SECRET_KEY == null) {
-                        missing.append("SECRET_KEY ");
-                }
-                if (DB_PASSWORD == null) {
-                        missing.append("DB_PASSWORD ");
-                }
-
-                if (missing.length() > 0) {
-                        throw new IllegalStateException(
-                                "SECURITY ERROR: The following required secrets must be set via environment variables in production: "
-                                        + missing.toString().trim()
-                                        + ". Do NOT use hardcoded default values in production."
-                        );
-                }
+                // No environment variables expected now as they are all inside AppConfig
         }
 
 }

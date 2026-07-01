@@ -206,10 +206,12 @@ public class CartDAO extends BaseDAO {
         List<CartItem> list = new ArrayList<>();
         String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path, "
                    + "ppo.label AS packaging_label, ppo.price_add AS packaging_price_add, "
-                   + "pv.discount_price, pv.discount_start, pv.discount_end "
+                   + "pv.discount_price, pv.discount_start, pv.discount_end, "
+                   + "p.owner_id AS shop_id, sop.shop_name "
                    + "FROM cart_items ci "
                    + "JOIN product_variants pv ON ci.variant_id = pv.variant_id "
                    + "JOIN products p ON pv.product_id = p.product_id "
+                   + "LEFT JOIN shop_owner_profiles sop ON p.owner_id = sop.user_id "
                    + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id "
                    + "WHERE ci.cart_id = ? ORDER BY ci.added_at DESC";
@@ -245,10 +247,12 @@ public class CartDAO extends BaseDAO {
     public CartItem findItemById(int cartItemId) throws SQLException {
         String sql = "SELECT ci.*, pv.variant_label, pv.price, pv.stock_quantity, pv.weight_kg, pv.product_id, p.name AS product_name, pi.file_path AS image_path, "
                    + "ppo.label AS packaging_label, ppo.price_add AS packaging_price_add, "
-                   + "pv.discount_price, pv.discount_start, pv.discount_end "
+                   + "pv.discount_price, pv.discount_start, pv.discount_end, "
+                   + "p.owner_id AS shop_id, sop.shop_name "
                    + "FROM cart_items ci "
                    + "JOIN product_variants pv ON ci.variant_id = pv.variant_id "
                    + "JOIN products p ON pv.product_id = p.product_id "
+                   + "LEFT JOIN shop_owner_profiles sop ON p.owner_id = sop.user_id "
                    + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id "
                    + "WHERE ci.cart_item_id = ?";
@@ -331,6 +335,9 @@ public class CartDAO extends BaseDAO {
         ci.setProductName(rs.getString("product_name"));
         ci.setImagePath(rs.getString("image_path"));
         ci.setProductId(rs.getInt("product_id"));
+        ci.setShopId(rs.getInt("shop_id"));
+        String shopName = rs.getString("shop_name");
+        ci.setShopName(shopName != null ? shopName.trim() : "Cửa hàng Verdant");
         ci.setPackagingLabel(rs.getString("packaging_label"));
         ci.setPackagingPriceAdd(rs.getBigDecimal("packaging_price_add"));
         return ci;

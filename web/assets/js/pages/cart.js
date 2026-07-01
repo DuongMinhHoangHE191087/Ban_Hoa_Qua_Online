@@ -95,7 +95,9 @@ const CartPage = {
             stockQuantity: item.stockQuantity,
             packagingId: item.packagingId,
             packagingLabel: item.packagingLabel,
-            packagingPriceAdd: item.packagingPriceAdd
+            packagingPriceAdd: item.packagingPriceAdd,
+            shopId: item.shopId,
+            shopName: item.shopName
         }));
         localStorage.setItem(this.userCartKey, JSON.stringify(mappedItems));
         
@@ -165,6 +167,26 @@ const CartPage = {
             }
             chk.checked = selectedSet ? selectedSet.has(variantId) : true;
         });
+
+        // Cập nhật trạng thái checkbox cho từng Shop
+        const shopGroups = document.querySelectorAll('.shop-group');
+        shopGroups.forEach(group => {
+            const shopId = group.getAttribute('data-shop-id');
+            const shopCheckbox = group.querySelector('.chk-shop');
+            if (shopCheckbox) {
+                const itemsInShop = Array.from(group.querySelectorAll('.chk-item'));
+                const allChecked = itemsInShop.length > 0 && itemsInShop.every(chk => chk.checked);
+                shopCheckbox.checked = allChecked;
+            }
+        });
+
+        // Cập nhật chkSelectAll
+        const chkSelectAll = document.getElementById('chk-select-all');
+        if (chkSelectAll) {
+            const checkboxes = Array.from(document.querySelectorAll('.chk-item'));
+            const allChecked = checkboxes.length > 0 && checkboxes.every(chk => chk.checked);
+            chkSelectAll.checked = allChecked;
+        }
 
         const effectiveSelection = hasPersistedState
             ? persistedIds.filter(id => availableIds.has(id))
@@ -325,6 +347,10 @@ const CartPage = {
         const chkSelectAll = document.getElementById('chk-select-all');
         if (chkSelectAll) {
             chkSelectAll.addEventListener('change', () => {
+                const shopCheckboxes = document.querySelectorAll('.chk-shop');
+                shopCheckboxes.forEach(chk => {
+                    chk.checked = chkSelectAll.checked;
+                });
                 const checkboxes = document.querySelectorAll('.chk-item');
                 checkboxes.forEach(chk => {
                     chk.checked = chkSelectAll.checked;
@@ -334,13 +360,41 @@ const CartPage = {
             });
         }
 
+        // Bắt sự kiện check/uncheck của từng shop (delegated)
+        cartContainer.addEventListener('change', (e) => {
+            const target = e.target;
+            if (target.classList.contains('chk-shop')) {
+                const shopId = target.getAttribute('data-shop-id');
+                const itemsInShop = document.querySelectorAll(`.chk-item[data-shop-id="${shopId}"]`);
+                itemsInShop.forEach(chk => {
+                    chk.checked = target.checked;
+                });
+                
+                // Cập nhật chkSelectAll
+                const allShopCheckboxes = Array.from(document.querySelectorAll('.chk-shop'));
+                const allChecked = allShopCheckboxes.length > 0 && allShopCheckboxes.every(chk => chk.checked);
+                if (chkSelectAll) chkSelectAll.checked = allChecked;
+                
+                this.saveSelectedVariantIds(this.getCheckedVariantIdsFromDom());
+                this.recalculateClientSummary(this.getCurrentLocalItems());
+            }
+        });
+
         // Bắt sự kiện check từng dòng
         cartContainer.addEventListener('change', (e) => {
             const target = e.target;
             if (target.classList.contains('chk-item')) {
+                const shopId = target.getAttribute('data-shop-id');
+                const itemsInShop = Array.from(document.querySelectorAll(`.chk-item[data-shop-id="${shopId}"]`));
+                const allShopItemsChecked = itemsInShop.length > 0 && itemsInShop.every(chk => chk.checked);
+                
+                const shopCheckbox = document.querySelector(`.chk-shop[data-shop-id="${shopId}"]`);
+                if (shopCheckbox) shopCheckbox.checked = allShopItemsChecked;
+                
                 const checkboxes = Array.from(document.querySelectorAll('.chk-item'));
-                const allChecked = checkboxes.every(chk => chk.checked);
+                const allChecked = checkboxes.length > 0 && checkboxes.every(chk => chk.checked);
                 if (chkSelectAll) chkSelectAll.checked = allChecked;
+                
                 this.saveSelectedVariantIds(this.getCheckedVariantIdsFromDom());
                 this.recalculateClientSummary(this.getCurrentLocalItems());
             }
@@ -633,6 +687,7 @@ const CartPage = {
             }
         });
 
+        let hasUpdatedLocalCart = false;
         await Promise.all(Array.from(productIds).map(async (productId) => {
             if (this.productVariantsCache[productId]) return;
 
@@ -643,12 +698,41 @@ const CartPage = {
                     const payload = data.data;
                     if (payload && payload.variants) {
                         this.productVariantsCache[productId] = payload.variants;
+                        const sId = payload.product?.shopId || null;
+                        const sName = payload.product?.shopName || 'Cửa hàng Verdant';
+                        this.productVariantsCache[productId].shopId = sId;
+                        this.productVariantsCache[productId].shopName = sName;
+
+                        // Check and update local items missing shop info
+                        let localItems = this.getCurrentLocalItems();
+                        let updated = false;
+                        localItems.forEach(item => {
+                            if (item.productId == productId && (!item.shopId || !item.shopName)) {
+                                item.shopId = sId;
+                                item.shopName = sName;
+                                updated = true;
+                            }
+                        });
+
+                        if (updated) {
+                            if (this.isLoggedIn) {
+                                this.saveUserCartToLocal(localItems);
+                            } else {
+                                GuestCart.save(localItems);
+                            }
+                            hasUpdatedLocalCart = true;
+                        }
                     }
                 }
             } catch (err) {
                 console.warn(`[CartPage] Không thể lấy biến thể cho sản phẩm ${productId}:`, err);
             }
         }));
+
+        if (hasUpdatedLocalCart) {
+            this.renderCart({ items: this.getCurrentLocalItems() });
+            return;
+        }
 
         dropdowns.forEach(select => {
             const productId = select.getAttribute('data-product-id');
@@ -677,80 +761,123 @@ const CartPage = {
             return;
         }
 
-        let html = '';
+        // Group items strictly by shopId (if valid), otherwise group by shopName (no merging for different shopIds)
+        const groups = {};
         summary.items.forEach(item => {
-            let imgUrl = item.imagePath;
-            if (!imgUrl) {
-                imgUrl = `${this.contextPath}/assets/images/placeholder.png`;
-            } else if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
-                if (!imgUrl.startsWith('/')) imgUrl = '/' + imgUrl;
-                imgUrl = this.contextPath + imgUrl;
+            const shopName = (item.shopName || "Cửa hàng Verdant").trim();
+            const shopId = parseInt(item.shopId, 10) || 0;
+            const key = shopId > 0 ? shopId : shopName;
+            if (!groups[key]) {
+                groups[key] = {
+                    shopId: shopId,
+                    shopName: shopName,
+                    items: []
+                };
             }
+            groups[key].items.push(item);
+        });
 
-            const price = parseFloat(item.price) || 0;
-            const packagingPriceAdd = parseFloat(item.packagingPriceAdd) || 0;
-            const itemSubtotal = (price + packagingPriceAdd) * item.quantity;
-
-            // Fallback thông minh cho dữ liệu Local Storage của Guest để tránh lỗi undefined / NaN
-            const productName = item.productName || (item.name ? item.name.split(' - ')[0] : 'Sản phẩm');
-            const variantLabel = item.variantLabel || (item.name ? item.name.split(' - ')[1] : 'Mặc định');
-            const weightKg = parseFloat(item.weightKg) || 1.0;
+        let html = '';
+        Object.values(groups).forEach(group => {
+            // Clickable shop link if shopId is valid (>0)
+            const shopLinkHtml = group.shopId > 0 
+                ? `<a href="${this.contextPath}/shop-view?id=${group.shopId}" class="font-semibold text-inverse-surface text-sm hover:underline hover:text-primary transition-all">${group.shopName}</a>`
+                : `<span class="font-semibold text-inverse-surface text-sm">${group.shopName}</span>`;
 
             html += `
-                <article class="bg-white/70 backdrop-blur-[12px] border border-white/40 shadow-[0_4px_12px_rgba(20,83,45,0.05)] rounded-xl p-md flex flex-row gap-md items-center cart-item-row" data-item-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}">
-                    <!-- Checkbox từng mặt hàng -->
-                    <div class="flex items-center shrink-0 pr-2">
-                        <input type="checkbox" class="chk-item rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer" data-variant-id="${item.variantId}" data-item-id="${item.cartItemId || ''}" checked>
+                <section class="bg-white/70 backdrop-blur-[12px] border border-white/40 shadow-[0_4px_12px_rgba(20,83,45,0.05)] rounded-2xl p-4 flex flex-col gap-4 mb-4 shop-group" data-shop-id="${group.shopId}">
+                    <!-- Tiêu đề Shop -->
+                    <div class="flex items-center gap-3 select-none pb-2 border-b border-surface-container/30">
+                        <input type="checkbox" class="chk-shop rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer" data-shop-id="${group.shopId}" checked>
+                        <span class="material-symbols-outlined text-primary text-xl">storefront</span>
+                        ${shopLinkHtml}
                     </div>
                     
-                    <img alt="${productName}" class="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover flex-shrink-0 border border-white/30" src="${imgUrl}">
-                    <div class="flex-grow flex flex-col gap-xs w-full">
-                        <div class="flex justify-between items-start w-full">
-                            <div>
-                                <h3 class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark">${productName}</h3>
-                                <p class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">
-                                    Phân loại: 
-                                    ${item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== '' ? `
-                                    <span class="inline-block relative">
-                                        <select class="cart-variant-select bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-xs border border-secondary/20 font-semibold cursor-pointer focus:ring-1 focus:ring-primary outline-none py-0 pr-8" data-item-id="${item.cartItemId || ''}" data-current-variant-id="${item.variantId}" data-product-id="${item.productId}">
-                                            <option value="${item.variantId}" selected>${variantLabel} - ${CurrencyFmt.format(item.price)}</option>
-                                        </select>
-                                    </span>
-                                    ` : `<span class="bg-[#f3f4f6] text-[#374151] px-2 py-0.5 rounded text-xs font-semibold border border-slate-200">${variantLabel}</span>`}
-                                </p>
-                                <p class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 text-muted">Trọng lượng: <span class="fw-semibold text-dark">${weightKg.toFixed(3)} kg</span></p>
-                                ${item.packagingLabel ? `
-                                <p class="font-body-md text-body-md text-on-surface-variant text-[11px] mt-1 text-muted">
-                                    Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-semibold border border-[#BBF7D0]/40">${item.packagingLabel} (+${CurrencyFmt.format(packagingPriceAdd)})</span>
-                                </p>
-                                ` : ''}
-                            </div>
-                            <div class="flex flex-col items-end">
-                                <span class="font-headline-md text-headline-md text-primary font-bold text-lg text-success">${CurrencyFmt.format(price + packagingPriceAdd)}</span>
-                                ${packagingPriceAdd > 0 ? `<span class="text-[10px] text-gray-400">Gồm đóng gói +${CurrencyFmt.format(packagingPriceAdd)}</span>` : ''}
-                            </div>
+                    <div class="flex flex-col gap-md">
+            `;
+
+            group.items.forEach(item => {
+                let imgUrl = item.imagePath;
+                if (!imgUrl) {
+                    imgUrl = `${this.contextPath}/assets/images/placeholder.png`;
+                } else if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
+                    if (!imgUrl.startsWith('/')) imgUrl = '/' + imgUrl;
+                    imgUrl = this.contextPath + imgUrl;
+                }
+
+                const price = parseFloat(item.price) || 0;
+                const packagingPriceAdd = parseFloat(item.packagingPriceAdd) || 0;
+                const itemSubtotal = (price + packagingPriceAdd) * item.quantity;
+
+                const productName = item.productName || (item.name ? item.name.split(' - ')[0] : 'Sản phẩm');
+                const variantLabel = item.variantLabel || (item.name ? item.name.split(' - ')[1] : 'Mặc định');
+                const weightKg = parseFloat(item.weightKg) || 1.0;
+
+                const productLinkHtml = item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== ''
+                    ? `<a href="${this.contextPath}/products/detail?id=${item.productId}" class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark hover:underline hover:text-primary transition-all">${productName}</a>`
+                    : `${productName}`;
+
+                html += `
+                    <article class="flex flex-row gap-md items-center cart-item-row" data-item-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}" data-shop-id="${group.shopId}">
+                        <!-- Checkbox từng mặt hàng -->
+                        <div class="flex items-center shrink-0 pr-2">
+                            <input type="checkbox" class="chk-item rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer" data-variant-id="${item.variantId}" data-item-id="${item.cartItemId || ''}" data-shop-id="${group.shopId}" checked>
                         </div>
                         
-                        <div class="flex justify-between items-center mt-sm w-full">
-                            <!-- Bộ Spinner số lượng bo tròn cao cấp -->
-                            <div class="flex items-center bg-surface-container-low border border-surface-container-highest rounded-full p-1 quantity-spinner">
-                                <button aria-label="Decrease quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-minus">
-                                    <span class="material-symbols-outlined text-sm">remove</span>
-                                </button>
-                                <input type="number" class="font-label-md text-label-md w-12 text-center text-inverse-surface fw-bold bg-transparent border-0 focus:ring-0 focus:outline-none input-qty [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" value="${item.quantity}" data-stock="${item.stockQuantity || 99}" min="1">
-                                <button aria-label="Increase quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-plus">
-                                    <span class="material-symbols-outlined text-sm">add</span>
-                                </button>
+                        <img alt="${productName}" class="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover flex-shrink-0 border border-white/30" src="${imgUrl}">
+                        <div class="flex-grow flex flex-col gap-xs w-full">
+                            <div class="flex justify-between items-start w-full">
+                                <div>
+                                    <h3 class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark">${productLinkHtml}</h3>
+                                    <p class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">
+                                        Phân loại: 
+                                        ${item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== '' ? `
+                                        <span class="inline-block relative">
+                                            <select class="cart-variant-select bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-xs border border-secondary/20 font-semibold cursor-pointer focus:ring-1 focus:ring-primary outline-none py-0 pr-8" data-item-id="${item.cartItemId || ''}" data-current-variant-id="${item.variantId}" data-product-id="${item.productId}">
+                                                <option value="${item.variantId}" selected>${variantLabel} - ${CurrencyFmt.format(item.price)}</option>
+                                            </select>
+                                        </span>
+                                        ` : `<span class="bg-[#f3f4f6] text-[#374151] px-2 py-0.5 rounded text-xs font-semibold border border-slate-200">${variantLabel}</span>`}
+                                    </p>
+                                    <p class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 text-muted">Trọng lượng: <span class="fw-semibold text-dark">${weightKg.toFixed(3)} kg</span></p>
+                                    ${item.packagingLabel ? `
+                                    <p class="font-body-md text-body-md text-on-surface-variant text-[11px] mt-1 text-muted">
+                                        Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-semibold border border-[#BBF7D0]/40">${item.packagingLabel} (+${CurrencyFmt.format(packagingPriceAdd)})</span>
+                                    </p>
+                                    ` : ''}
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <span class="font-headline-md text-headline-md text-primary font-bold text-lg text-success">${CurrencyFmt.format(price + packagingPriceAdd)}</span>
+                                    ${packagingPriceAdd > 0 ? `<span class="text-[10px] text-gray-400">Gồm đóng gói +${CurrencyFmt.format(packagingPriceAdd)}</span>` : ''}
+                                </div>
                             </div>
                             
-                            <!-- Nút xóa sản phẩm với micro-animation -->
-                            <button class="flex items-center gap-xs text-error hover:text-on-error-container transition-colors group btn-remove-item" data-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}">
-                                <span class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">delete</span>
-                                <span class="font-label-md text-label-md hidden sm:inline ml-1 font-semibold text-sm">Remove</span>
-                            </button>
+                            <div class="flex justify-between items-center mt-sm w-full">
+                                <!-- Bộ Spinner số lượng bo tròn cao cấp -->
+                                <div class="flex items-center bg-surface-container-low border border-surface-container-highest rounded-full p-1 quantity-spinner">
+                                    <button aria-label="Decrease quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-minus">
+                                        <span class="material-symbols-outlined text-sm">remove</span>
+                                    </button>
+                                    <input type="number" class="font-label-md text-label-md w-12 text-center text-inverse-surface fw-bold bg-transparent border-0 focus:ring-0 focus:outline-none input-qty [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" value="${item.quantity}" data-stock="${item.stockQuantity || 99}" min="1">
+                                    <button aria-label="Increase quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-plus">
+                                        <span class="material-symbols-outlined text-sm">add</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Nút xóa sản phẩm với micro-animation -->
+                                <button class="flex items-center gap-xs text-error hover:text-on-error-container transition-colors group btn-remove-item" data-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}">
+                                    <span class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">delete</span>
+                                    <span class="font-label-md text-label-md hidden sm:inline ml-1 font-semibold text-sm">Remove</span>
+                                </button>
+                            </div>
                         </div>
+                    </article>
+                `;
+            });
+
+            html += `
                     </div>
-                </article>
+                </section>
             `;
         });
 

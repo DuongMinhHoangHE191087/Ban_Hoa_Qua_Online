@@ -4,7 +4,7 @@
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Giỏ hàng"/></jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined giống hệt file mẫu -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -106,17 +106,6 @@
     }
 </script>
 
-<style>
-    /* Continuous Curvature Squircle shadows */
-    .premium-glass-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: 0 8px 32px rgba(20, 83, 45, 0.05);
-    }
-</style>
-
 <main class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-body-md text-on-background">
     <div class="flex items-baseline justify-between mb-lg border-b border-surface-container-high pb-4">
         <h1 class="font-display-lg text-display-lg text-inverse-surface font-bold tracking-tight">Giỏ hàng của bạn</h1>
@@ -178,7 +167,7 @@
                 </button>
                 
                 <p class="font-label-sm text-label-sm text-on-surface-variant text-center mt-sm opacity-80">
-                    Thanh toán an toàn bảo mật bởi Verdant Market.
+                    Thanh toán an toàn bảo mật bởi MetaFruit.
                 </p>
             </div>
         </aside>
