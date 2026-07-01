@@ -432,65 +432,20 @@ const NotificationAjax = {
             return;
         }
 
-        const paletteMap = {
-            info: {
-                border: '#dbeafe',
-                background: '#eff6ff',
-                iconBackground: '#dbeafe',
-                iconColor: '#1d4ed8',
-                titleColor: '#1e3a8a',
-                messageColor: '#334155',
-                buttonBackground: '#4d661c',
-                buttonColor: '#ffffff'
-            },
-            success: {
-                border: '#bbf7d0',
-                background: '#f0fdf4',
-                iconBackground: '#dcfce7',
-                iconColor: '#15803d',
-                titleColor: '#166534',
-                messageColor: '#166534',
-                buttonBackground: '#4d661c',
-                buttonColor: '#ffffff'
-            },
-            warning: {
-                border: '#fed7aa',
-                background: '#fff7ed',
-                iconBackground: '#ffedd5',
-                iconColor: '#c2410c',
-                titleColor: '#9a3412',
-                messageColor: '#9a3412',
-                buttonBackground: '#b45309',
-                buttonColor: '#ffffff'
-            },
-            error: {
-                border: '#fecaca',
-                background: '#fff1f2',
-                iconBackground: '#fee2e2',
-                iconColor: '#b91c1c',
-                titleColor: '#991b1b',
-                messageColor: '#7f1d1d',
-                buttonBackground: '#4d661c',
-                buttonColor: '#ffffff'
-            }
-        };
-        const palette = paletteMap[tone] || paletteMap.info;
-
         let html = `
-            <div style="padding: 12px;">
-                <div style="display:flex; gap:12px; align-items:flex-start; padding:14px 14px 12px; border-radius:16px; border:1px solid ${palette.border}; background:${palette.background};">
-                    <div style="width:36px; height:36px; border-radius:12px; background:${palette.iconBackground}; color:${palette.iconColor}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <span class="material-symbols-outlined" style="font-size:18px; line-height:1;">${icon}</span>
+            <div class="notification-status-card" data-tone="${tone}">
+                <div class="notification-status-card__surface">
+                    <div class="notification-status-card__icon">
+                        <span class="material-symbols-outlined text-[18px] leading-none">${icon}</span>
                     </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-size:13px; font-weight:800; color:${palette.titleColor}; line-height:1.35;">${this.escapeHtml(title)}</div>
-                        <div style="margin-top:4px; font-size:12px; line-height:1.5; color:${palette.messageColor}; white-space:pre-line;">${this.escapeHtml(message)}</div>`;
+                    <div class="notification-status-card__body">
+                        <div class="notification-status-card__title">${this.escapeHtml(title)}</div>
+                        <div class="notification-status-card__message">${this.escapeHtml(message)}</div>`;
 
         if (actionLabel) {
             html += `
-                        <div style="margin-top:12px;">
-                            <button type="button" data-notification-action
-                                style="border:none; background:${palette.buttonBackground}; color:${palette.buttonColor}; font-size:12px; font-weight:700; padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:0 6px 14px rgba(77, 102, 28, 0.18);">
+                        <div class="notification-status-card__actions">
+                            <button type="button" data-notification-action class="notification-status-card__button">
                                 ${this.escapeHtml(actionLabel)}
                             </button>
                         </div>`;
@@ -551,25 +506,27 @@ const NotificationAjax = {
 
     buildNotificationItem(notification) {
         const isRead = !!notification?.isRead;
-        const bg = isRead ? 'transparent' : '#f8fafc';
-        const dot = isRead ? '' : '<span style="display:inline-block; width:6px; height:6px; background:#4d661c; border-radius:50%; margin-right:4px;"></span>';
+        const dot = isRead ? '' : '<span class="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle"></span>';
         const link = notification?.actionUrl ? `${this.getContextPath()}${notification.actionUrl}` : '#';
         const dateStr = this.formatNotifTime(notification?.createdAt, notification?.createdAtAsDate);
         const title = this.escapeHtml(notification?.title);
         const message = this.escapeHtml(notification?.message);
 
         return `
-            <div class="notif-dropdown-item" style="position:relative; padding:12px 16px; background:${bg}; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick='handleNotifClick(event, ${notification.notificationId}, ${JSON.stringify(link)})'>
-                <div style="display:flex; justify-content:space-between; margin-bottom:4px; align-items:center; padding-right:16px;">
-                    <span style="font-weight:600; font-size:13px; color:#334155; display:flex; align-items:center;">
+            <div class="notif-item relative ${isRead ? '' : 'unread'}" onclick='handleNotifClick(event, ${notification.notificationId}, ${JSON.stringify(link)})'>
+                <span class="notif-item__icon notif-icon--system">
+                    <span class="material-symbols-outlined text-[18px] leading-none">notifications</span>
+                </span>
+                <div class="notif-item__content">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="notif-item__title">
                         ${dot}${title}
-                    </span>
-                    <span style="font-size:10px; color:#94a3b8; white-space:nowrap; margin-left:8px;">${dateStr}</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400 whitespace-nowrap">${dateStr}</span>
+                    </div>
+                    <p class="notif-item__msg">${message}</p>
                 </div>
-                <p style="margin:0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; padding-right:16px;">
-                    ${message}
-                </p>
-                <button onclick="handleNotifDelete(event, ${notification.notificationId})" style="position:absolute; right:12px; top:12px; border:none; background:none; color:#94a3b8; cursor:pointer; font-size:14px; padding:2px 6px; line-height:1; display:flex; align-items:center; justify-content:center; border-radius:4px;" onmouseover="this.style.color='#ef4444'; this.style.background='#f1f5f9';" onmouseout="this.style.color='#94a3b8'; this.style.background='none';">
+                <button type="button" onclick="handleNotifDelete(event, ${notification.notificationId})" class="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-md border-0 bg-transparent text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-500" aria-label="Xóa thông báo">
                     &times;
                 </button>
             </div>
@@ -757,7 +714,7 @@ function showCartSuccessToast(productName, quantity) {
             <div id="cart-added-toast" class="premium-toast font-sans">
                 <span class="premium-toast-icon"><i class="fa-solid fa-circle-check"></i></span>
                 <div>
-                    <strong style="display: block; font-weight: 700;">Thành công!</strong>
+                    <strong class="block font-bold">Thành công!</strong>
                     <span class="text-xs" id="toast-message">Đã thêm sản phẩm vào giỏ hàng.</span>
                 </div>
             </div>

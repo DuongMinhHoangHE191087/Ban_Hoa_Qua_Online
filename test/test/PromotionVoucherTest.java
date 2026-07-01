@@ -422,6 +422,91 @@ public class PromotionVoucherTest {
         }
     }
 
+    /**
+     * TC-PROMO-13: Kiểm tra nghiệp vụ cộng dồn mã (stacking).
+     * Cho phép tối đa 2 voucher sàn và 2 voucher shop nếu tất cả đều cho phép cộng dồn (canStack = true).
+     */
+    @Test
+    public void test13_VoucherStackingLogic() {
+        service.shop.PromotionService service = new service.shop.PromotionService();
+        
+        Promotion stackableShop1 = new Promotion();
+        stackableShop1.setCanStack(true);
+        stackableShop1.setCreatedBy(3);
+        
+        Promotion stackableShop2 = new Promotion();
+        stackableShop2.setCanStack(true);
+        stackableShop2.setCreatedBy(3);
+        
+        Promotion nonStackableShop = new Promotion();
+        nonStackableShop.setCanStack(false);
+        nonStackableShop.setCreatedBy(3);
+        
+        Promotion stackableSystem1 = new Promotion();
+        stackableSystem1.setCanStack(true);
+        
+        Promotion stackableSystem2 = new Promotion();
+        stackableSystem2.setCanStack(true);
+        
+        Promotion nonStackableSystem = new Promotion();
+        nonStackableSystem.setCanStack(false);
+
+        // 1. Stack 2 shop vouchers that can stack -> OK
+        try {
+            service.validateCouponStack(
+                java.util.List.of(stackableShop1, stackableShop2), 
+                java.util.List.of()
+            );
+        } catch (Exception e) {
+            fail("Cộng dồn 2 voucher shop hợp lệ bị báo lỗi: " + e.getMessage());
+        }
+
+        // 2. Stack 2 system vouchers that can stack -> OK
+        try {
+            service.validateCouponStack(
+                java.util.List.of(), 
+                java.util.List.of(stackableSystem1, stackableSystem2)
+            );
+        } catch (Exception e) {
+            fail("Cộng dồn 2 voucher sàn hợp lệ bị báo lỗi: " + e.getMessage());
+        }
+
+        // 3. Stack 2 system + 2 shop vouchers that can stack -> OK
+        try {
+            service.validateCouponStack(
+                java.util.List.of(stackableShop1, stackableShop2), 
+                java.util.List.of(stackableSystem1, stackableSystem2)
+            );
+        } catch (Exception e) {
+            fail("Cộng dồn 2 voucher shop + 2 voucher sàn hợp lệ bị báo lỗi: " + e.getMessage());
+        }
+
+        // 4. Stacking including a non-stackable coupon -> Should fail with BusinessException PRO-01
+        try {
+            service.validateCouponStack(
+                java.util.List.of(stackableShop1, nonStackableShop), 
+                java.util.List.of()
+            );
+            fail("Cộng dồn voucher có chứa mã không cho phép cộng dồn đáng lẽ phải bị chặn.");
+        } catch (exception.BusinessException e) {
+            assertEquals("PRO-01", e.getErrorCode());
+        }
+
+        // 5. Exceeding 2 vouchers limit -> Should fail
+        try {
+            Promotion stackableShop3 = new Promotion();
+            stackableShop3.setCanStack(true);
+            stackableShop3.setCreatedBy(3);
+            service.validateCouponStack(
+                java.util.List.of(stackableShop1, stackableShop2, stackableShop3), 
+                java.util.List.of()
+            );
+            fail("Dùng quá 2 voucher shop đáng lẽ phải bị chặn.");
+        } catch (exception.BusinessException e) {
+            assertEquals("PRO-01", e.getErrorCode());
+        }
+    }
+
     // =========================================================
     // Helper — xây dựng Promotion object chuẩn
     // =========================================================

@@ -116,4 +116,36 @@ public class Product {
 
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    /**
+     * Trả về nhãn mùa vụ dạng "Tháng 11 – Tháng 1 (qua năm mới)".
+     * Trả về null nếu không cấu hình mùa vụ.
+     */
+    public String getSeasonLabel() {
+        if (seasonStartMonth == null || seasonEndMonth == null) return null;
+        String[] months = {"", "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
+                           "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
+                           "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"};
+        String label = months[seasonStartMonth] + " – " + months[seasonEndMonth];
+        if (seasonStartMonth > seasonEndMonth) {
+            label += " (qua năm mới)";
+        }
+        return label;
+    }
+
+    /**
+     * Kiểm tra tháng hiện tại có thuộc mùa vụ không.
+     * Xử lý đúng mùa xuên năm (VD: start=11, end=1 bao gồm tháng 11, 12, 1).
+     * Nếu không cấu hình mùa vụ, mặc định trả về true (quảnh năm).
+     */
+    public boolean isInSeason() {
+        if (seasonStartMonth == null || seasonEndMonth == null) return true;
+        int m = java.time.LocalDate.now().getMonthValue();
+        if (seasonStartMonth <= seasonEndMonth) {
+            return m >= seasonStartMonth && m <= seasonEndMonth;
+        } else {
+            // Mùa xuên năm: VD start=11, end=1 -> tháng 11, 12, 1
+            return m >= seasonStartMonth || m <= seasonEndMonth;
+        }
+    }
 }

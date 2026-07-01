@@ -12,14 +12,7 @@
         <a href="${pageContext.request.contextPath}/customer/orders" class="btn btn-outline-secondary">Quay lại lịch sử</a>
     </div>
 
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="alert alert-${sessionScope.flashType} alert-dismissible fade show" role="alert">
-            ${sessionScope.flashMsg}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <div class="row">
         <c:forEach var="item" items="${items}">

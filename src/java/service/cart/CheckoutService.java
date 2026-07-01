@@ -189,41 +189,56 @@ public class CheckoutService {
             throw new IllegalArgumentException("Bạn không thể mua hàng từ cửa hàng của chính mình.");
         }
 
-        Promotion shopPromo = null;
-        Promotion systemPromo = null;
-        BigDecimal deliveryFee = DELIVERY_FEE_PER_SHOP;
-        BigDecimal shopDiscount = BigDecimal.ZERO;
-        BigDecimal systemDiscount = BigDecimal.ZERO;
-        BigDecimal totalDiscount = BigDecimal.ZERO;
-        BigDecimal finalAmount = subtotal.add(deliveryFee);
-
+        List<Promotion> shopPromos = new ArrayList<>();
+        Map<Promotion, BigDecimal> promoDiscounts = new LinkedHashMap<>();
+        BigDecimal tempSubtotal = subtotal;
+        
         if (isNotBlank(request.getShopCouponCode())) {
-            // coupon-scope: re-resolve from DB, validate scope ownership — never trust client data
-            shopPromo = promotionService.resolveAndValidateShopCouponScope(
-                    request.getShopCouponCode(), ownerId, subtotal);
-        }
-        if (isNotBlank(request.getSystemCouponCode())) {
-            systemPromo = promotionService.validateSystemCoupon(request.getSystemCouponCode(), subtotal);
-            if (systemPromo == null) {
-                throw new IllegalArgumentException("Mã giảm giá của sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
+            for (String code : request.getShopCouponCode().split(",")) {
+                if (isNotBlank(code)) {
+                    Promotion promo = promotionService.resolveAndValidateShopCouponScope(code.trim(), ownerId, subtotal);
+                    shopPromos.add(promo);
+                }
             }
         }
-        // PRO-01: reject double-discount stacking
-        promotionService.validateCouponStack(shopPromo, systemPromo);
-        if (shopPromo != null || systemPromo != null) {
-            BigDecimal[] calcs = promotionService.calculateAllDiscounts(shopPromo, systemPromo, subtotal, deliveryFee);
-            shopDiscount = calcs[0];
-            systemDiscount = calcs[1];
-            totalDiscount = calcs[2];
-            finalAmount = calcs[3];
+        
+        BigDecimal shopDiscount = BigDecimal.ZERO;
+        for (Promotion promo : shopPromos) {
+            BigDecimal d = promotionService.calculateDiscount(promo, tempSubtotal);
+            shopDiscount = shopDiscount.add(d);
+            promoDiscounts.put(promo, d);
+            tempSubtotal = tempSubtotal.subtract(d).max(BigDecimal.ZERO);
         }
-
+        
+        List<Promotion> systemPromos = new ArrayList<>();
+        if (isNotBlank(request.getSystemCouponCode())) {
+            for (String code : request.getSystemCouponCode().split(",")) {
+                if (isNotBlank(code)) {
+                    Promotion promo = promotionService.validateSystemCoupon(code.trim(), tempSubtotal);
+                    if (promo == null) {
+                        throw new IllegalArgumentException("Mã giảm giá của sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu: " + code);
+                    }
+                    systemPromos.add(promo);
+                    BigDecimal d = promotionService.calculateDiscount(promo, tempSubtotal);
+                    promoDiscounts.put(promo, d);
+                    tempSubtotal = tempSubtotal.subtract(d).max(BigDecimal.ZERO);
+                }
+            }
+        }
+        
+        promotionService.validateCouponStack(shopPromos, systemPromos);
+        
+        BigDecimal systemDiscount = subtotal.subtract(shopDiscount).subtract(tempSubtotal).max(BigDecimal.ZERO);
+        BigDecimal totalDiscount = shopDiscount.add(systemDiscount);
+        BigDecimal deliveryFee = DELIVERY_FEE_PER_SHOP;
+        BigDecimal finalAmount = subtotal.subtract(totalDiscount).add(deliveryFee).max(BigDecimal.ZERO);
+ 
         BigDecimal platformFeeRate = BigDecimal.valueOf(
                 configDAO.getDouble(AppConfig.CONFIG_PLATFORM_FEE_RATE, AppConfig.PLATFORM_FEE_RATE_DEFAULT / 100.0)
         );
         BigDecimal netMerchandiseAmount = subtotal.subtract(totalDiscount).max(BigDecimal.ZERO);
         BigDecimal platformFee = netMerchandiseAmount.multiply(platformFeeRate).setScale(0, RoundingMode.HALF_UP);
-
+ 
         int orderId;
         try (Connection conn = orderDAO.openConnection()) {
             conn.setAutoCommit(false);
@@ -232,12 +247,13 @@ public class CheckoutService {
                         resolveInitialStatus(request.getPaymentMethod()), subtotal, deliveryFee,
                         totalDiscount, systemDiscount, shopDiscount, platformFee, finalAmount);
                 orderId = orderDAO.save(conn, order);
-
+ 
                 orderItemDAO.saveBatch(conn, orderId, checkoutItems, variantMap);
                 reserveInventory(conn, checkoutItems, orderId, user.getUserId());
-
-                savePromotionUsage(conn, orderId, user.getUserId(), shopPromo, shopDiscount);
-                savePromotionUsage(conn, orderId, user.getUserId(), systemPromo, systemDiscount);
+ 
+                for (Map.Entry<Promotion, BigDecimal> entry : promoDiscounts.entrySet()) {
+                    savePromotionUsage(conn, orderId, user.getUserId(), entry.getKey(), entry.getValue());
+                }
                 cartDAO.deleteItemsByCustomer(conn, user.getUserId(), request.getVariantIds());
                 conn.commit();
             } catch (SQLException | RuntimeException ex) {
@@ -252,9 +268,9 @@ public class CheckoutService {
 
         // Gửi thông báo đặt hàng cho Customer và Shop Owner
         try {
-            String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + orderId;
+            String orderDetailUrl = AppConfig.APP_BASE_URL + "/profile/order-detail?orderId=" + orderId;
             String customerMsg = "Đơn hàng #" + orderId + " của bạn đã được tạo thành công.";
-            notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", customerMsg, "/orders/detail?orderId=" + orderId);
+            notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", customerMsg, "/profile/order-detail?orderId=" + orderId);
             emailService.sendOrderNotificationEmail(user.getEmail(), user.getFullName(), String.valueOf(orderId), "Đặt hàng thành công", orderDetailUrl);
             
             User shopOwner = userDAO.findUserById(ownerId);
@@ -297,47 +313,79 @@ public class CheckoutService {
             systemDiscountByOwner.put(entry.getKey(), BigDecimal.ZERO);
         }
 
-        Promotion shopPromo = null;
-        Integer shopPromoOwnerId = null;
+        List<Promotion> shopPromos = new ArrayList<>();
+        Map<Promotion, Integer> shopPromoOwners = new LinkedHashMap<>();
+        Map<Promotion, BigDecimal> shopPromoDiscounts = new LinkedHashMap<>();
+        
         if (isNotBlank(request.getShopCouponCode())) {
-            // coupon-scope: find which owner in the cart owns this coupon by trying each with DB re-resolution.
-            // resolveAndValidateShopCouponScope already checks code+ownerId in DB so it's safe against spoofing.
-            for (Integer ownerId : itemsByOwner.keySet()) {
-                Promotion candidate = promotionService.validateShopCoupon(
-                        request.getShopCouponCode(), ownerId, subtotalByOwner.get(ownerId));
-                if (candidate != null) {
-                    shopPromo = candidate;
-                    shopPromoOwnerId = ownerId;
-                    break;
+            for (String code : request.getShopCouponCode().split(",")) {
+                if (isNotBlank(code)) {
+                    Promotion shopPromo = null;
+                    Integer shopPromoOwnerId = null;
+                    for (Integer ownerId : itemsByOwner.keySet()) {
+                        Promotion candidate = promotionService.validateShopCoupon(
+                                code.trim(), ownerId, subtotalByOwner.get(ownerId));
+                        if (candidate != null) {
+                            shopPromo = candidate;
+                            shopPromoOwnerId = ownerId;
+                            break;
+                        }
+                    }
+                    if (shopPromo == null) {
+                        throw new BusinessException("COUPON-SCOPE",
+                                "Mã voucher shop không hợp lệ hoặc không thuộc bất kỳ shop nào trong giỏ hàng: " + code);
+                    }
+                    shopPromos.add(shopPromo);
+                    shopPromoOwners.put(shopPromo, shopPromoOwnerId);
+                    
+                    BigDecimal ownerSub = subtotalByOwner.get(shopPromoOwnerId);
+                    BigDecimal prevDiscount = shopDiscountByOwner.get(shopPromoOwnerId);
+                    BigDecimal currentShopSub = ownerSub.subtract(prevDiscount).max(BigDecimal.ZERO);
+                    BigDecimal d = promotionService.calculateDiscount(shopPromo, currentShopSub);
+                    shopDiscountByOwner.put(shopPromoOwnerId, prevDiscount.add(d));
+                    shopPromoDiscounts.put(shopPromo, d);
                 }
             }
-            if (shopPromo == null) {
-                // Explicit scope enforcement: re-resolve throws COUPON-SCOPE with first owner if all fail
-                throw new BusinessException("COUPON-SCOPE",
-                        "Mã voucher shop không hợp lệ hoặc không thuộc bất kỳ shop nào trong giỏ hàng.");
-            }
-            BigDecimal shopDiscount = promotionService.calculateDiscount(shopPromo, subtotalByOwner.get(shopPromoOwnerId));
-            shopDiscountByOwner.put(shopPromoOwnerId, shopDiscount);
         }
 
+        List<Promotion> systemPromos = new ArrayList<>();
         BigDecimal totalShopDiscount = sumValues(shopDiscountByOwner);
         BigDecimal afterShopTotal = subtotal.subtract(totalShopDiscount).max(BigDecimal.ZERO);
-        Promotion systemPromo = null;
+        
+        BigDecimal tempAfterShopTotal = afterShopTotal;
+        Map<Promotion, Map<Integer, BigDecimal>> systemPromoAllocations = new LinkedHashMap<>();
+        
         if (isNotBlank(request.getSystemCouponCode())) {
-            systemPromo = promotionService.validateSystemCoupon(request.getSystemCouponCode(), afterShopTotal);
-            if (systemPromo == null) {
-                throw new IllegalArgumentException("Mã voucher sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu.");
+            for (String code : request.getSystemCouponCode().split(",")) {
+                if (isNotBlank(code)) {
+                    Promotion systemPromo = promotionService.validateSystemCoupon(code.trim(), tempAfterShopTotal);
+                    if (systemPromo == null) {
+                        throw new IllegalArgumentException("Mã voucher sàn không hợp lệ, đã hết hạn, hoặc chưa đạt giá trị đơn tối thiểu: " + code);
+                    }
+                    systemPromos.add(systemPromo);
+                    
+                    BigDecimal systemDiscount = promotionService.calculateDiscount(systemPromo, tempAfterShopTotal);
+                    
+                    Map<Integer, BigDecimal> allocationBase = new LinkedHashMap<>();
+                    for (Integer ownerId : itemsByOwner.keySet()) {
+                        BigDecimal ownerShopDiscount = shopDiscountByOwner.get(ownerId);
+                        BigDecimal prevSystemDiscount = systemDiscountByOwner.get(ownerId);
+                        allocationBase.put(ownerId, subtotalByOwner.get(ownerId)
+                                .subtract(ownerShopDiscount).subtract(prevSystemDiscount).max(BigDecimal.ZERO));
+                    }
+                    
+                    Map<Integer, BigDecimal> allocated = allocateDiscount(systemDiscount, allocationBase);
+                    for (Map.Entry<Integer, BigDecimal> entry : allocated.entrySet()) {
+                        systemDiscountByOwner.put(entry.getKey(), systemDiscountByOwner.get(entry.getKey()).add(entry.getValue()));
+                    }
+                    
+                    systemPromoAllocations.put(systemPromo, allocated);
+                    tempAfterShopTotal = tempAfterShopTotal.subtract(systemDiscount).max(BigDecimal.ZERO);
+                }
             }
-            // PRO-01: reject double-discount stacking
-            promotionService.validateCouponStack(shopPromo, systemPromo);
-            BigDecimal systemDiscount = promotionService.calculateDiscount(systemPromo, afterShopTotal);
-            Map<Integer, BigDecimal> allocationBase = new LinkedHashMap<>();
-            for (Integer ownerId : itemsByOwner.keySet()) {
-                allocationBase.put(ownerId, subtotalByOwner.get(ownerId)
-                        .subtract(shopDiscountByOwner.get(ownerId)).max(BigDecimal.ZERO));
-            }
-            systemDiscountByOwner.putAll(allocateDiscount(systemDiscount, allocationBase));
         }
+        
+        promotionService.validateCouponStack(shopPromos, systemPromos);
 
         BigDecimal deliveryFee = DELIVERY_FEE_PER_SHOP.multiply(new BigDecimal(itemsByOwner.size()));
         BigDecimal totalSystemDiscount = sumValues(systemDiscountByOwner);
@@ -378,12 +426,22 @@ public class CheckoutService {
                     orderItemDAO.saveBatch(conn, childOrderId, ownerItems, variantMap);
                     reserveInventory(conn, ownerItems, childOrderId, user.getUserId());
 
-                    if (shopPromo != null && shopPromoOwnerId != null && shopPromoOwnerId.equals(ownerId)
-                            && ownerShopDiscount.compareTo(BigDecimal.ZERO) > 0) {
-                        savePromotionUsage(conn, childOrderId, user.getUserId(), shopPromo, ownerShopDiscount);
+                    for (Promotion promo : shopPromos) {
+                        if (shopPromoOwners.get(promo).equals(ownerId)) {
+                            BigDecimal d = shopPromoDiscounts.get(promo);
+                            if (d != null && d.compareTo(BigDecimal.ZERO) > 0) {
+                                savePromotionUsage(conn, childOrderId, user.getUserId(), promo, d);
+                            }
+                        }
                     }
-                    if (systemPromo != null && ownerSystemDiscount.compareTo(BigDecimal.ZERO) > 0) {
-                        savePromotionUsage(conn, childOrderId, user.getUserId(), systemPromo, ownerSystemDiscount);
+                    for (Promotion promo : systemPromos) {
+                        Map<Integer, BigDecimal> alloc = systemPromoAllocations.get(promo);
+                        if (alloc != null) {
+                            BigDecimal d = alloc.get(ownerId);
+                            if (d != null && d.compareTo(BigDecimal.ZERO) > 0) {
+                                savePromotionUsage(conn, childOrderId, user.getUserId(), promo, d);
+                            }
+                        }
                     }
                 }
 
@@ -403,9 +461,9 @@ public class CheckoutService {
 
         // Gửi thông báo đặt hàng cho Customer
         try {
-            String orderDetailUrl = AppConfig.APP_BASE_URL + "/orders/detail?orderId=" + parentOrderId;
+            String orderDetailUrl = AppConfig.APP_BASE_URL + "/profile/order-detail?orderId=" + parentOrderId;
             String msg = "Đơn hàng tổng #" + parentOrderId + " đã đặt thành công và được tự động tách theo từng shop.";
-            notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", msg, "/orders/detail?orderId=" + parentOrderId);
+            notificationService.send(user.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Đặt hàng thành công", msg, "/profile/order-detail?orderId=" + parentOrderId);
             emailService.sendOrderNotificationEmail(user.getEmail(), user.getFullName(), String.valueOf(parentOrderId), "Đặt hàng thành công", orderDetailUrl);
         } catch (Exception ex) {
             LoggerUtil.warn(log, "Không gửi được thông báo đặt hàng cho customerId=" + user.getUserId(), ex);

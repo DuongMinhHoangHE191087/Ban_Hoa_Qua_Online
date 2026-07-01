@@ -1,4 +1,5 @@
 package servlet.shop.product;
+
 import service.catalog.InventoryService;
 
 import config.AppConfig;
@@ -57,24 +58,15 @@ public class InventoryServlet extends HttpServlet {
         List<InventoryLog> history = new ArrayList<>();
         String errorMsg = null;
         try {
-            // 1. Fetch variants belonging to products of this shop owner
-            List<Product> products = productDAO.findByOwner(currentUser.getUserId());
-            for (Product p : products) {
-                List<ProductVariant> variants = productVariantDAO.findByProduct(p.getProductId());
-                for (ProductVariant v : variants) {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("productId", p.getProductId());
-                    map.put("productName", p.getName());
-                    map.put("variantId", v.getVariantId());
-                    map.put("variantLabel", v.getVariantLabel());
-                    map.put("stockQuantity", v.getStockQuantity());
-                    map.put("sku", v.getSku());
-                    variantsWithProduct.add(map);
-                }
-            }
+            // 1. Fetch variants belonging to products of this shop owner in a single joined query (Optimized)
+            variantsWithProduct = productVariantDAO.findVariantsWithOwnerDetails(currentUser.getUserId());
 
             // 2. Fetch past restock history logs
             history = inventoryService.getRestockHistory(currentUser.getUserId());
+
+            // 3. Fetch active batches (lô hàng còn hạn) for batch/expiry panel
+            List<InventoryLog> activeBatches = inventoryService.getActiveBatches(currentUser.getUserId());
+            req.setAttribute("activeBatches", activeBatches);
 
         } catch (SQLException e) {
             LoggerUtil.error(log, "Không thể tải danh sách sản phẩm hoặc lịch sử nhập kho", e);
@@ -146,7 +138,7 @@ public class InventoryServlet extends HttpServlet {
 
         try {
             variantId = Integer.parseInt(variantIdStr);
-            quantity  = Integer.parseInt(quantityStr);
+            quantity = Integer.parseInt(quantityStr);
         } catch (NumberFormatException e) {
             SessionUtil.flashError(session, "Mã sản phẩm hoặc số lượng không hợp lệ.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
@@ -186,7 +178,8 @@ public class InventoryServlet extends HttpServlet {
                 inventoryService.manualAdjust(variantId, -quantity, note, currentUser.getUserId());
                 SessionUtil.flashSuccess(session, "Cập nhật giảm tồn kho thành công!");
             } else {
-                inventoryService.restockWithExpiry(variantId, quantity, note, changedAt, expiresAt, currentUser.getUserId());
+                inventoryService.restockWithExpiry(variantId, quantity, note, changedAt, expiresAt,
+                        currentUser.getUserId());
                 SessionUtil.flashSuccess(session, "Nhập kho sản phẩm thành công!");
             }
 

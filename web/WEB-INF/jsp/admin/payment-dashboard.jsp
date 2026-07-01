@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -8,60 +8,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giám sát thanh toán - Admin Verdant Market</title>
+    <title>Giám sát thanh toán - Admin MetaFruit</title>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface: '#ffffff',
-                        'surface-2': '#f8fafc',
-                        border: '#e2ece7',
-                        txt: '#0f172a',
-                        'txt-2': '#475569',
-                        'txt-3': '#94a3b8'
-                    },
-                    fontFamily: {
-                        sans: ['Lexend', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Lexend', sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-    </style>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <div class="admin-layout">
+    <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="payments"/>
     </jsp:include>
 
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+    <%-- Main --%>
+    <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
+
+        <%-- Page header --%>
+        <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Giám Sát Thanh Toán Toàn Sàn</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Theo dõi giao dịch, trạng thái thanh toán và dấu vết đối soát của toàn hệ thống.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Giám Sát Thanh Toán Toàn Sàn</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Theo dõi giao dịch, trạng thái thanh toán và dấu vết đối soát của toàn hệ thống.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                <i class="fa-solid fa-credit-card text-amber-500"></i>
+            <div class="hidden md:flex items-center gap-2 bg-primary-lt text-primary px-4 py-2 rounded-xl border border-primary-fixed font-bold">
+                <i class="fa-solid fa-credit-card text-primary"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">Payments</span>
             </div>
         </div>
@@ -193,14 +166,7 @@
             <c:if test="${totalPages > 1}">
                 <div class="flex justify-between items-center px-6 py-4 border-t border-border gap-4">
                     <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
-                    <div class="flex gap-1.5 flex-wrap">
-                        <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="?page=${i}&status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&keyword=${fn:escapeXml(param.keyword)}"
-                               class="inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-semibold ${i == currentPage ? 'bg-primary text-white border-primary' : 'bg-white text-txt-2 border-border hover:bg-slate-100'}">
-                                ${i}
-                            </a>
-                        </c:forEach>
-                    </div>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&keyword=${fn:escapeXml(param.keyword)}" />
                 </div>
             </c:if>
         </div>

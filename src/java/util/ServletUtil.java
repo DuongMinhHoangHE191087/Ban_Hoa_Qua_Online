@@ -281,5 +281,29 @@ public final class ServletUtil {
         return env == null || !"production".equalsIgnoreCase(String.valueOf(env));
     }
 
+    /**
+     * Lấy dynamic Google Redirect URI dựa trên request hiện tại.
+     * Hỗ trợ reverse proxy/tunnel qua X-Forwarded-Proto và X-Forwarded-Host.
+     */
+    public static String getGoogleRedirectUri(HttpServletRequest request) {
+        String proto = request.getHeader("X-Forwarded-Proto");
+        if (proto == null || proto.isEmpty()) {
+            proto = request.getScheme();
+        }
+        String host = request.getHeader("X-Forwarded-Host");
+        if (host == null || host.isEmpty()) {
+            host = request.getHeader("Host");
+            if (host == null || host.isEmpty()) {
+                host = request.getServerName();
+                int port = request.getServerPort();
+                if (port != 80 && port != 443) {
+                    host += ":" + port;
+                }
+            }
+        }
+        String contextPath = request.getContextPath();
+        return proto + "://" + host + contextPath + "/GoogleCallback";
+    }
+
     private ServletUtil() {}
 }

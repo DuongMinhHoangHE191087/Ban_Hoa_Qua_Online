@@ -146,6 +146,20 @@ public class PaymentServiceTest {
     }
 
     @Test
+    public void testConfirmManualPaymentMovesTransactionToProcessing() throws Exception {
+        boolean confirmed = paymentService.confirmManualPayment(testOrderId, testCustomerId);
+        assertTrue(confirmed);
+
+        PaymentTransaction tx = paymentDAO.findByOrder(testOrderId).get(0);
+        assertNotNull(tx);
+        assertEquals("processing", tx.getStatus());
+        assertNotNull(tx.getSepayReference());
+
+        Order o = orderDAO.findById(testOrderId).get(0);
+        assertEquals("PENDING_PAYMENT", o.getStatus());
+    }
+
+    @Test
     public void testAdminApprovePayment() throws Exception {
         // Create an admin
         String adminPhone = "09" + String.format("%08d", Math.abs((System.nanoTime()) % 100000000L));
@@ -167,7 +181,9 @@ public class PaymentServiceTest {
                 + "\"transferType\": \"in\","
                 + "\"transferAmount\": \"120000.00\""
                 + "}";
-        paymentService.processWebhook(payload);
+        PaymentService.WebhookProcessingResult result = paymentService.processWebhook(payload);
+        assertEquals("processed", result.getOutcome());
+        assertFalse(result.isDuplicate());
 
         PaymentTransaction tx = paymentDAO.findByOrder(testOrderId).get(0);
         assertEquals("completed", tx.getStatus());
@@ -188,11 +204,13 @@ public class PaymentServiceTest {
                 + "\"transferType\": \"in\","
                 + "\"transferAmount\": \"120000.00\""
                 + "}";
-        paymentService.processWebhook(payload);
+        PaymentService.WebhookProcessingResult firstResult = paymentService.processWebhook(payload);
+        assertEquals("processed", firstResult.getOutcome());
 
         // Send again
-        paymentService.processWebhook(payload);
-        // If it returns normally, it successfully deduped
+        PaymentService.WebhookProcessingResult duplicateResult = paymentService.processWebhook(payload);
+        assertEquals("duplicate", duplicateResult.getOutcome());
+        assertTrue(duplicateResult.isDuplicate());
     }
 
     @Test
@@ -203,7 +221,8 @@ public class PaymentServiceTest {
                 + "\"transferType\": \"in\","
                 + "\"transferAmount\": \"1000.00\""
                 + "}";
-        paymentService.processWebhook(payload);
+        PaymentService.WebhookProcessingResult result = paymentService.processWebhook(payload);
+        assertEquals("amount_mismatch", result.getOutcome());
 
         PaymentTransaction tx = paymentDAO.findByOrder(testOrderId).get(0);
         assertEquals("failed", tx.getStatus());

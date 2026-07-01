@@ -1,78 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>${shopProfile.shopName} - Trang Cửa Hàng | Verdant Market</title>
-    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
+<jsp:include page="/WEB-INF/jsp/common/header.jsp">
+    <jsp:param name="pageTitle" value="${shopProfile.shopName} - Trang Cửa Hàng" />
+</jsp:include>
 
-    <!-- Fonts & Icons -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-
-    <!-- Tailwind & SweetAlert -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
-    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#14532D',
-                        'primary-hover': '#166534',
-                        'primary-light': '#4d661c',
-                        'primary-container': '#d9f99d',
-                        'on-primary-container': '#597428',
-                        secondary: '#31694b',
-                        'secondary-container': '#b4f0c9',
-                        tertiary: '#486554',
-                        'tertiary-container': '#d5f5e0',
-                        surface: '#eaffea',
-                        'on-surface': '#00210d',
-                        'on-surface-variant': '#44483b',
-                        outline: '#75796a',
-                        'outline-variant': '#c5c8b7',
-                        background: '#f0fdf4',
-                        error: '#ba1a1a',
-                        amber: '#f59e0b',
-                        orange: '#ea580c',
-                    },
-                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 30%, #f0fdf4 60%, #ecfdf5 100%); min-height: 100vh; }
-        .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 4px 24px -4px rgba(20,83,45,0.08); }
-        .glass-subtle { background: rgba(255,255,255,0.5); backdrop-filter: blur(8px); }
-        .shop-banner { position: relative; height: 260px; overflow: hidden; border-radius: 1.5rem; }
-        @media (min-width: 768px) { .shop-banner { height: 320px; } }
-        .shop-banner img { width: 100%; height: 100%; object-fit: cover; }
-        .shop-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 60%, transparent 100%); }
-        .avatar-ring { border: 4px solid white; box-shadow: 0 0 0 3px #14532D, 0 8px 24px rgba(20,83,45,0.2); }
-        .tab-item { transition: all 0.2s; border-bottom: 3px solid transparent; padding-bottom: 10px; cursor: pointer; color: #44483b; font-size: 14px; white-space: nowrap; }
-        .tab-item:hover, .tab-item.active { color: #14532D; font-weight: 600; border-bottom-color: #14532D; }
-        .product-card { overflow: hidden; border-radius: 1rem; background: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.6); transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
-        .product-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px -8px rgba(20,83,45,0.18); border-color: #d9f99d; }
-        .product-card img { transition: transform 0.4s ease; }
-        .product-card:hover img { transform: scale(1.06); }
-    </style>
-</head>
-<body class="text-on-surface">
-
-<!-- Include Header / Navbar -->
-<jsp:include page="/WEB-INF/jsp/common/header.jsp" />
-
-<div class="max-w-[1280px] mx-auto px-4 md:px-6 pt-24 pb-20">
+<div class="max-w-[1280px] mx-auto px-4 md:px-6 pt-24 pb-20 animate-fade-in-up opacity-0">
 
     <!-- ===== SHOP PROFILE BAR & BANNER ===== -->
     <div class="relative mb-6">
@@ -202,11 +135,11 @@
 
                                     <div class="flex items-center gap-1 mb-1.5">
                                         <div class="flex text-amber">
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                            <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                            <span class="material-symbols-outlined text-xs fill-1">star</span>
                                         </div>
                                         <span class="text-[9px] text-on-surface-variant font-semibold">(${p.rating})</span>
                                     </div>
@@ -295,11 +228,11 @@
                     <div class="text-center">
                         <div class="text-4xl md:text-5xl font-extrabold text-primary">${shopProfile.rating}</div>
                         <div class="flex text-amber my-2 justify-center">
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                            <span class="material-symbols-outlined text-base fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
+                            <span class="material-symbols-outlined text-base fill-1">star</span>
                         </div>
                         <div class="text-xs text-on-surface-variant font-medium">Đánh giá trung bình</div>
                     </div>
@@ -308,35 +241,35 @@
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">5 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 85%"></div>
+                                <div class="bg-primary h-full rounded-full w-[85%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">85%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">4 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 10%"></div>
+                                <div class="bg-primary h-full rounded-full w-[10%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">10%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">3 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 4%"></div>
+                                <div class="bg-primary h-full rounded-full w-[4%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">4%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">2 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-primary h-full rounded-full" style="width: 1%"></div>
+                                <div class="bg-primary h-full rounded-full w-[1%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">1%</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <span class="w-12 text-on-surface-variant font-medium">1 Sao</span>
                             <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div class="bg-red-400 h-full rounded-full" style="width: 0%"></div>
+                                <div class="bg-red-400 h-full rounded-full w-[0%]"></div>
                             </div>
                             <span class="w-8 text-right font-semibold">0%</span>
                         </div>
@@ -354,11 +287,11 @@
                                 <span class="text-[10px] text-on-surface-variant">04-06-2026</span>
                             </div>
                             <div class="flex text-amber">
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
                             </div>
                             <p class="text-xs text-on-surface-variant leading-relaxed font-medium">Trái cây cực kỳ ngon ngọt và tươi mới, đóng gói rất cẩn thận, an tâm khi giao hàng xa.</p>
                         </div>
@@ -373,11 +306,11 @@
                                 <span class="text-[10px] text-on-surface-variant">02-06-2026</span>
                             </div>
                             <div class="flex text-amber">
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
-                                <span class="material-symbols-outlined text-xs fill-1" style="font-variation-settings:'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
+                                <span class="material-symbols-outlined text-xs fill-1">star</span>
                             </div>
                             <p class="text-xs text-on-surface-variant leading-relaxed font-medium">Dưa hấu chín mọng nước, ngọt lịm không hạt, đúng chuẩn VietGAP hữu cơ ngon sạch.</p>
                         </div>
@@ -513,9 +446,48 @@
         });
     }
 
+    window.promptPageJumpForCallback = function(totalPages, containerId) {
+        const onPageChange = window[containerId + 'Change'];
+        if (typeof onPageChange !== 'function') return;
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Chuyển đến trang',
+                text: 'Nhập số trang muốn đến (1 - ' + totalPages + '):',
+                input: 'number',
+                inputAttributes: { min: 1, max: totalPages, step: 1 },
+                showCancelButton: true,
+                confirmButtonText: 'Đến',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#14532D',
+                inputValidator: (value) => {
+                    const page = parseInt(value);
+                    if (isNaN(page) || page < 1 || page > totalPages) {
+                        return 'Số trang phải từ 1 đến ' + totalPages + '!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    onPageChange(parseInt(result.value));
+                }
+            });
+        } else {
+            const targetPageStr = prompt("Nhập số trang bạn muốn chuyển đến (1 - " + totalPages + "):");
+            if (targetPageStr) {
+                const targetPage = parseInt(targetPageStr);
+                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+                    onPageChange(targetPage);
+                }
+            }
+        }
+    };
+
     function renderPaginationControls(containerId, totalPages, currentPage, onPageChange) {
         const container = document.getElementById(containerId);
         if (!container) return;
+        
+        // Expose callback globally first
+        window[containerId + 'Change'] = onPageChange;
         
         if (totalPages <= 1) {
             container.innerHTML = '';
@@ -535,12 +507,34 @@
             </span>`;
         }
 
-        // Page numbers
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === currentPage) {
-                html += '<span class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary font-extrabold border border-primary/40 shadow-sm">' + i + '</span>';
+        // Page numbers with Neighbors and Ellipsis
+        const pagesToShow = new Set();
+        pagesToShow.add(1);
+        if (totalPages > 1) {
+            pagesToShow.add(totalPages);
+            pagesToShow.add(totalPages - 1);
+        }
+        pagesToShow.add(currentPage);
+        if (currentPage > 1) pagesToShow.add(currentPage - 1);
+        if (currentPage < totalPages) pagesToShow.add(currentPage + 1);
+
+        const pagesSorted = Array.from(pagesToShow).sort((a, b) => a - b);
+
+        for (let idx = 0; idx < pagesSorted.length; idx++) {
+            const pageNum = pagesSorted[idx];
+            if (idx > 0) {
+                const prevPage = pagesSorted[idx - 1];
+                if (pageNum - prevPage > 1) {
+                    html += `
+                        <a href="javascript:void(0)" onclick="promptPageJumpForCallback(${totalPages}, '${containerId}')" class="w-8 h-8 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer" title="Nhảy đến trang...">...</a>
+                    `;
+                }
+            }
+
+            if (pageNum === currentPage) {
+                html += '<span class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary font-extrabold border border-primary/40 shadow-sm">' + pageNum + '</span>';
             } else {
-                html += '<button onclick="window[\'' + containerId + 'Change\'](' + i + ')" class="flex items-center justify-center w-8 h-8 rounded-lg border border-primary/20 bg-white text-on-surface-variant hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">' + i + '</button>';
+                html += '<button onclick="window[\'' + containerId + 'Change\'](' + pageNum + ')" class="flex items-center justify-center w-8 h-8 rounded-lg border border-primary/20 bg-white text-on-surface-variant hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">' + pageNum + '</button>';
             }
         }
 
@@ -556,9 +550,6 @@
         }
 
         container.innerHTML = html;
-        
-        // Expose callback globally
-        window[containerId + 'Change'] = onPageChange;
     }
 
     // Client-side search filters inside shop
@@ -648,5 +639,3 @@
         });
     }
 </script>
-</body>
-</html>

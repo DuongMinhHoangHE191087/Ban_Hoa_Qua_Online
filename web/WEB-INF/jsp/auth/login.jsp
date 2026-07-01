@@ -1,5 +1,6 @@
 ﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -12,8 +13,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Material Symbols Outlined -->
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/assets/css/auth-overrides.css" rel="stylesheet">
     <!-- Tailwind CSS -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <!-- Tailwind Configuration -->
     <script id="tailwind-config">
         tailwind.config = {
@@ -43,36 +45,12 @@
             }
         }
     </script>
-    <style>
-        body {
-            font-family: 'Lexend', sans-serif;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 20px 50px rgba(20, 83, 45, 0.12);
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #14532D;
-            border-radius: 9999px;
-        }
-    </style>
 </head>
 <body class="bg-emerald-50 text-on-surface min-h-screen flex flex-col antialiased relative">
 
     <!-- Decorative Organic Background -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-multiply" 
-             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24');">
+        <div class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-multiply bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24')]">
         </div>
         <!-- Gradient Overlay to ensure readability and glass effect -->
         <div class="absolute inset-0 bg-gradient-to-br from-white/90 via-emerald-50/70 to-emerald-100/90 backdrop-blur-[4px]"></div>
@@ -81,7 +59,7 @@
     <!-- Top AppBar Navigation Header -->
     <header class="flex justify-between items-center w-full px-6 md:px-12 py-4 z-50 fixed top-0 left-0 right-0 border-b border-white/30 bg-white/40 backdrop-blur-md shadow-[0_2px_15px_rgba(20,83,45,0.03)]">
         <div class="flex items-center gap-2">
-            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
             <div class="text-2xl font-bold text-primary tracking-wide">
                 MetaFruit
             </div>
@@ -113,10 +91,58 @@
 
             <!-- Error message display if any -->
             <c:if test="${not empty requestScope.errorMsg}">
-                <div class="mb-6 p-4 bg-red-50 border-l-4 border-error text-red-800 rounded-r-lg flex items-center gap-3 shadow-sm">
-                    <span class="material-symbols-outlined text-error">error</span>
-                    <span class="text-sm font-medium"><c:out value="${requestScope.errorMsg}"/></span>
-                </div>
+                <c:set var="loginErrorText" value="${fn:toLowerCase(requestScope.errorMsg)}"/>
+                <c:choose>
+                    <c:when test="${fn:contains(loginErrorText, 'khóa') or fn:contains(loginErrorText, 'đình chỉ') or fn:contains(loginErrorText, 'lock')}">
+                        <div class="mb-6 rounded-3xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-rose-50 p-5 md:p-6 shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="w-11 h-11 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-[24px]">lock</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <span class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-700">
+                                            Trạng thái tài khoản
+                                        </span>
+                                        <span class="text-[10px] font-bold uppercase tracking-[0.22em] text-red-500">
+                                            Bảo mật đăng nhập
+                                        </span>
+                                    </div>
+                                    <c:choose>
+                                        <c:when test="${fn:contains(loginErrorText, 'đình chỉ')}">
+                                            <h2 class="mt-1 text-lg font-bold text-red-800">Tài khoản đang bị đình chỉ</h2>
+                                        </c:when>
+                                        <c:when test="${fn:contains(loginErrorText, 'tạm thời')}">
+                                            <h2 class="mt-1 text-lg font-bold text-red-800">Tài khoản đang bị khóa tạm thời</h2>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <h2 class="mt-1 text-lg font-bold text-red-800">Tài khoản đang bị khóa</h2>
+                                        </c:otherwise>
+                                    </c:choose>
+                                    <p class="mt-2 text-sm leading-6 text-red-700">
+                                        <c:out value="${requestScope.errorMsg}"/>
+                                    </p>
+                                    <div class="mt-4 flex flex-wrap gap-3">
+                                        <a href="mailto:support@metafruit.com" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
+                                            <span class="material-symbols-outlined text-[18px]">support_agent</span>
+                                            Liên hệ hỗ trợ
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/auth/forgot" class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-700 transition-all hover:border-red-300 hover:bg-red-50">
+                                            <span class="material-symbols-outlined text-[18px]">key</span>
+                                            Khôi phục mật khẩu
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="mb-6 p-4 bg-red-50 border-l-4 border-error text-red-800 rounded-r-lg flex items-center gap-3 shadow-sm">
+                            <span class="material-symbols-outlined text-error">error</span>
+                            <span class="text-sm font-medium"><c:out value="${requestScope.errorMsg}"/></span>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
             </c:if>
             <c:if test="${not empty sessionScope.flashMsg}">
                 <c:set var="isError" value="${sessionScope.flashType == 'error'}"/>
@@ -128,6 +154,35 @@
                 </div>
                 <c:remove var="flashMsg" scope="session"/>
                 <c:remove var="flashType" scope="session"/>
+            </c:if>
+
+            <c:if test="${not empty sessionScope.currentUser}">
+                <div class="mb-6 overflow-hidden rounded-[1.75rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 shadow-[0_18px_45px_rgba(20,83,45,0.10)]">
+                    <div class="flex items-start gap-4 p-5 md:p-6">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-primary flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-[26px]">assignment</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+                                Trạng thái đăng ký
+                            </span>
+                            <h2 class="mt-2 text-lg md:text-xl font-extrabold text-on-surface">Xem lại đơn shop_owner của bạn</h2>
+                            <p class="mt-2 text-sm leading-6 text-on-surface-variant">
+                                Bạn đã đăng nhập. Mở trang trạng thái để xem hồ sơ đang chờ duyệt, bị từ chối hay đã bị đình chỉ.
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-3">
+                                <a href="${pageContext.request.contextPath}/shop/status" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
+                                    <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                                    Xem trạng thái đăng ký
+                                </a>
+                                <a href="${pageContext.request.contextPath}/auth/register" class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-primary transition-all hover:border-emerald-300 hover:bg-emerald-50">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    Quay lại đăng ký
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </c:if>
 
             <!-- Login Form -->

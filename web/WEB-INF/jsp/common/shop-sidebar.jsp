@@ -9,8 +9,8 @@
 <aside class="w-64 bg-gradient-to-b from-white to-[#f4fbf7] border-r border-[#e2ece7] flex flex-col h-screen sticky top-0 overflow-y-auto z-40 shrink-0 shadow-sm">
     <!-- Logo Brand -->
     <div class="p-5 border-b border-[#e2ece7] flex items-center gap-3">
-        <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit"
-             class="h-9 w-9 rounded-lg object-cover shadow-sm"
+        <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit"
+             class="brand-mark"
              onerror="this.src='https://images.unsplash.com/photo-1610832958506-ee5633619144?w=100'">
         <div>
             <div class="text-base font-extrabold text-[#4d661c] leading-tight">Meta<span class="text-[#84cc16]">Fruit</span></div>
@@ -99,3 +99,43 @@
         </a>
     </div>
 </aside>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    if (window.innerWidth <= 1024) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'sidebarMobileToggle';
+        btn.className = 'sidebar-mobile-toggle';
+        btn.innerHTML = '<i class="fa-solid fa-angles-right"></i>';
+        
+        const sidebar = document.querySelector('aside.w-64');
+        if (sidebar) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('active');
+                const icon = btn.querySelector('i');
+                if (sidebar.classList.contains('active')) {
+                    icon.className = 'fa-solid fa-angles-left';
+                    btn.style.left = '270px';
+                } else {
+                    icon.className = 'fa-solid fa-angles-right';
+                    btn.style.left = '20px';
+                }
+            });
+            
+            document.addEventListener('click', function(ev) {
+                if (sidebar.classList.contains('active') && !sidebar.contains(ev.target) && ev.target !== btn) {
+                    sidebar.classList.remove('active');
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'fa-solid fa-angles-right';
+                    btn.style.left = '20px';
+                }
+            });
+            
+            document.body.appendChild(btn);
+        }
+    }
+});
+</script>
+<jsp:include page="/WEB-INF/jsp/common/alert.jsp" />

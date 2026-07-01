@@ -12,7 +12,7 @@ public class UserLockManager {
 
     public static void cleanUp(int userId) {
         ReentrantLock lock = locks.get(userId);
-        if (lock != null && !lock.hasQueuedThreads()) {
+        if (lock != null && !lock.isLocked() && !lock.hasQueuedThreads()) {
             locks.remove(userId, lock);
         }
     }

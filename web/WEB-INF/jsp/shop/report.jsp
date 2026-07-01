@@ -6,74 +6,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Báo cáo & Thống kê | Kênh Người Bán</title>
-    
+    <title>Báo cáo &amp; Thống kê | MetaFruit</title>
+
     <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/favicon.png">
-    
-    <!-- Google Fonts & Icons -->
+
+    <!-- Local Fonts & Icons (offline-safe) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+
     <!-- Core Tailwind and SweetAlert -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
     <!-- Chart.js Secure CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-hover': '#364e03',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Segoe UI', 'Lexend', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        body { 
-            background-color: #f4faf6; 
-            font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, sans-serif; 
-        }
-        .glass-card {
-            background: #ffffff;
-            border: 1px solid #e2ece7;
-            box-shadow: 0 4px 20px -2px rgba(77, 102, 28, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .glass-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px -4px rgba(77, 102, 28, 0.08), 0 0 0 1px rgba(77, 102, 28, 0.05);
-        }
-        .table-container::-webkit-scrollbar {
-            height: 6px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-    </style>
+
 </head>
-<body class="antialiased text-[#0f172a]">
+<body class="antialiased text-txt bg-background">
     <div class="flex min-h-screen">
         <!-- Shared Sidebar -->
         <jsp:include page="/WEB-INF/jsp/common/shop-sidebar.jsp">
@@ -81,15 +33,15 @@
         </jsp:include>
 
         <!-- Main Content Area -->
-        <main class="flex-grow p-6 md:p-8 overflow-y-auto">
+        <main class="flex-grow p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
             <!-- Header Section -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#f0faf3] via-[#e6f4ea] to-[#dcfce7] border border-[#bbf7d0]/80 p-6 rounded-3xl shadow-sm mb-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-3xl shadow-sm mb-8">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight font-sans">Thống Kê & Báo Cáo Doanh Thu</h1>
-                    <p class="text-[#475569] text-xs md:text-sm mt-1">Phân tích chuyên sâu về doanh thu cửa hàng, tình trạng đơn hàng và hành vi mua sắm.</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight font-sans">Thống Kê &amp; Báo Cáo Doanh Thu</h1>
+                    <p class="text-txt-2 text-xs md:text-sm mt-1">Phân tích chuyên sâu về doanh thu cửa hàng, tình trạng đơn hàng và hành vi mua sắm.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="exportToCSV()" class="bg-[#4d661c] hover:bg-[#364e03] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer border-none">
+                    <button onclick="exportToCSV()" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer border-none">
                         <i class="fa-solid fa-file-csv text-sm"></i> Xuất dữ liệu (CSV)
                     </button>
                 </div>
@@ -246,26 +198,32 @@
 
             <%-- Fruit Usage Report Table --%>
             <div class="glass-card p-6 mb-8 rounded-2xl">
-                <div class="flex items-center justify-between mb-6 border-b border-border pb-4">
-                    <h3 class="text-base font-bold text-txt"><i class="fa-solid fa-basket-shopping text-amber-500 mr-1.5"></i>Báo cáo bán hàng & mức sử dụng trái cây cửa hàng</h3>
-                    <span class="text-xs text-txt-3 font-semibold">Bộ dữ liệu giai đoạn</span>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-border pb-4 gap-3">
+                    <h3 class="text-base font-bold text-txt"><i class="fa-solid fa-basket-shopping text-amber-500 mr-1.5"></i>Báo cáo bán hàng &amp; mức sử dụng trái cây cửa hàng</h3>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <i class="fa-solid fa-search text-txt-3 absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none"></i>
+                            <input type="text" id="fruitSearch" placeholder="Tìm sản phẩm..."
+                                   class="pl-8 pr-4 py-1.5 border border-border rounded-xl text-xs focus:outline-none focus:border-primary bg-surface-2 w-44 transition-all">
+                        </div>
+                        <span class="text-xs text-txt-3 font-semibold whitespace-nowrap" id="fruitRowCount"></span>
+                    </div>
                 </div>
-                
-                <div class="table-container overflow-x-auto">
+                <div class="overflow-x-auto overflow-y-auto max-h-[520px]">
                     <table class="w-full border-collapse text-left" id="fruitUsageTable">
-                        <thead>
-                            <tr class="border-b border-border text-xs font-bold text-txt-3 uppercase tracking-wider">
-                                <th class="pb-3 pr-4">Tên Trái Cây / Sản Phẩm</th>
-                                <th class="pb-3 px-4">Phân loại</th>
-                                <th class="pb-3 px-4 text-center">Số lượng đã bán</th>
-                                <th class="pb-3 px-4 text-right">Tổng doanh số</th>
-                                <th class="pb-3 pl-4 text-center">Số đơn hàng</th>
+                        <thead class="sticky top-0 z-10">
+                            <tr class="border-b border-border text-xs font-bold text-txt-3 uppercase tracking-wider bg-surface-2">
+                                <th class="py-3 px-3">Tên Trái Cây / Sản Phẩm</th>
+                                <th class="py-3 px-4">Phân loại</th>
+                                <th class="py-3 px-4 text-center">Số lượng đã bán</th>
+                                <th class="py-3 px-4 text-right">Tổng doanh số</th>
+                                <th class="py-3 px-4 text-center">Số đơn hàng</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-border text-sm text-txt-2">
+                        <tbody id="fruitTableBody" class="divide-y divide-border text-sm text-txt-2">
                             <c:forEach var="item" items="${fruitUsage}">
-                                <tr class="hover:bg-surface-2 transition-colors">
-                                    <td class="py-3.5 pr-4 font-bold text-txt"><c:out value="${item.productName}"/></td>
+                                <tr data-fruit-row class="hover:bg-surface-2 transition-colors">
+                                    <td class="py-3.5 px-3 font-bold text-txt"><c:out value="${item.productName}"/></td>
                                     <td class="py-3.5 px-4"><span class="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-1 rounded-md"><c:out value="${item.variantLabel}"/></span></td>
                                     <td class="py-3.5 px-4 text-center font-semibold text-txt">${item.totalQuantity}</td>
                                     <td class="py-3.5 px-4 text-right font-bold text-primary"><ft:currency value="${item.totalAmount}" /></td>
@@ -350,7 +308,6 @@
 
         // B. Biểu đồ tỉ lệ đơn hàng theo trạng thái
         const statusCtx = document.getElementById('orderStatusChart').getContext('2d');
-        // Map status tiếng Anh sang tiếng Việt để hiển thị trực quan
         const statusLabelsVi = {
             'PENDING_PAYMENT': 'Chờ thanh toán',
             'APPROVED': 'Đã duyệt',
@@ -397,7 +354,7 @@
                 }]
             },
             options: {
-                indexAxis: 'y', // Biểu đồ cột nằm ngang
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
@@ -419,17 +376,35 @@
                 let month = '' + (date.getMonth() + 1);
                 let day = '' + date.getDate();
                 let year = date.getFullYear();
-
                 if (month.length < 2) month = '0' + month;
                 if (day.length < 2) day = '0' + day;
-
                 return [year, month, day].join('-');
-            }
+            };
 
             document.getElementsByName('startDate')[0].value = formatDate(start);
             document.getElementsByName('endDate')[0].value = formatDate(end);
             document.forms[0].submit();
         }
+
+        // Fruit table search filter
+        (function() {
+            const searchEl = document.getElementById('fruitSearch');
+            const countEl  = document.getElementById('fruitRowCount');
+            const tbody    = document.getElementById('fruitTableBody');
+            if (!searchEl || !tbody) return;
+            const allRows = Array.from(tbody.querySelectorAll('tr[data-fruit-row]'));
+            countEl.textContent = allRows.length + ' sản phẩm';
+            searchEl.addEventListener('input', function() {
+                const term = this.value.toLowerCase().trim();
+                let vis = 0;
+                allRows.forEach(function(row) {
+                    const match = term === '' || row.textContent.toLowerCase().includes(term);
+                    row.style.display = match ? '' : 'none';
+                    if (match) vis++;
+                });
+                countEl.textContent = (term === '' ? allRows.length : vis) + ' sản phẩm';
+            });
+        })();
 
         // Xuất báo cáo CSV phía client
         function exportToCSV() {
@@ -440,7 +415,6 @@
                 ["Ten San Pham", "Phien Ban", "So Luong Ban", "Doanh Thu (VND)", "So Don Hang"]
             ];
 
-            // Duyệt dòng dữ liệu trong bảng để xuất
             const jspData = [
                 <c:forEach var="item" items="${fruitUsage}">
                     [
@@ -460,12 +434,10 @@
 
             rows.push(...jspData);
 
-            // Chuyển mảng thành định dạng CSV
             let csvContent = "";
             rows.forEach(function(rowArray) {
                 let row = rowArray.map(val => {
                     if (typeof val === 'string') {
-                        // Escape double quotes
                         return '"' + val.replace(/"/g, '""') + '"';
                     }
                     return val;
@@ -473,7 +445,6 @@
                 csvContent += row + "\r\n";
             });
 
-            // Tạo tệp và tải xuống kèm BOM để hiển thị đúng Unicode Tiếng Việt trong Excel
             const BOM = "\uFEFF";
             const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");

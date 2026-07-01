@@ -45,6 +45,7 @@ import java.util.List;
 )//upload file
 public class ProductCreateServlet extends HttpServlet {
 
+    // Khởi tạo Logger để ghi lại nhật ký hoạt động (log) của class này thay cho System.out.println
     private static final Logger log = Logger.getLogger(ProductCreateServlet.class.getName());
 
     private final ProductDAO productDAO = new ProductDAO();
@@ -129,6 +130,7 @@ public class ProductCreateServlet extends HttpServlet {
         if (variantLabels == null || variantLabels.length == 0) {
             errors.add("Sản phẩm phải có ít nhất một phân loại/biến thể.");
         } else {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
             for (int i = 0; i < variantLabels.length; i++) {
                 String label = variantLabels[i];
                 if (label == null || label.trim().isEmpty()) {
@@ -137,13 +139,72 @@ public class ProductCreateServlet extends HttpServlet {
                 
                 String pStr = (variantPrices != null && variantPrices.length > i) ? variantPrices[i] : null;
                 BigDecimal price = BigDecimal.ZERO;
+                boolean isPriceValid = false;
                 try {
                     price = new BigDecimal(pStr);
                     if (price.compareTo(BigDecimal.ZERO) <= 0) {
                         errors.add("Giá bán phân loại '" + (label != null ? label : "") + "' phải lớn hơn 0.");
+                    } else {
+                        isPriceValid = true;
                     }
                 } catch (Exception e) {
                     errors.add("Giá bán phân loại '" + (label != null ? label : "") + "' không đúng định dạng số.");
+                }
+
+                String dpStr = (variantDiscountPrices != null && variantDiscountPrices.length > i) ? variantDiscountPrices[i] : null;
+                String dsStr = (variantDiscountStarts != null && variantDiscountStarts.length > i) ? variantDiscountStarts[i] : null;
+                String deStr = (variantDiscountEnds != null && variantDiscountEnds.length > i) ? variantDiscountEnds[i] : null;
+
+                boolean hasDiscountPrice = dpStr != null && !dpStr.trim().isEmpty();
+                boolean hasDiscountStart = dsStr != null && !dsStr.trim().isEmpty();
+                boolean hasDiscountEnd = deStr != null && !deStr.trim().isEmpty();
+
+                if (hasDiscountPrice || hasDiscountStart || hasDiscountEnd) {
+                    if (!hasDiscountPrice || !hasDiscountStart || !hasDiscountEnd) {
+                        errors.add("Phân loại '" + (label != null ? label : "") + "' cấu hình giảm giá phải điền đầy đủ cả giá khuyến mãi, ngày bắt đầu và ngày kết thúc.");
+                    } else {
+                        BigDecimal discPrice = BigDecimal.ZERO;
+                        boolean isDiscPriceValid = false;
+                        try {
+                            discPrice = new BigDecimal(dpStr.trim());
+                            if (discPrice.compareTo(BigDecimal.ZERO) < 0) {
+                                errors.add("Giá khuyến mãi của phân loại '" + (label != null ? label : "") + "' không được âm.");
+                            } else if (isPriceValid && discPrice.compareTo(price) >= 0) {
+                                errors.add("Giá khuyến mãi của phân loại '" + (label != null ? label : "") + "' phải nhỏ hơn giá gốc.");
+                            } else {
+                                isDiscPriceValid = true;
+                            }
+                        } catch (Exception e) {
+                            errors.add("Giá khuyến mãi của phân loại '" + (label != null ? label : "") + "' không đúng định dạng số.");
+                        }
+
+                        java.time.LocalDateTime vDiscStart = null;
+                        java.time.LocalDateTime vDiscEnd = null;
+                        try {
+                            vDiscStart = java.time.LocalDateTime.parse(dsStr.trim());
+                        } catch (Exception e) {
+                            errors.add("Ngày bắt đầu giảm giá của phân loại '" + (label != null ? label : "") + "' không đúng định dạng.");
+                        }
+
+                        try {
+                            vDiscEnd = java.time.LocalDateTime.parse(deStr.trim());
+                        } catch (Exception e) {
+                            errors.add("Ngày kết thúc giảm giá của phân loại '" + (label != null ? label : "") + "' không đúng định dạng.");
+                        }
+
+                        if (vDiscStart != null && vDiscEnd != null) {
+                            // Cho phép trễ tối đa 5 phút để tránh lệch giờ client-server
+                            if (vDiscStart.isBefore(now.minusMinutes(5))) {
+                                errors.add("Ngày bắt đầu giảm giá của phân loại '" + (label != null ? label : "") + "' không được ở trong quá khứ.");
+                            }
+                            if (vDiscEnd.isBefore(now.minusMinutes(5))) {
+                                errors.add("Ngày kết thúc giảm giá của phân loại '" + (label != null ? label : "") + "' không được ở trong quá khứ.");
+                            }
+                            if (!vDiscEnd.isAfter(vDiscStart)) {
+                                errors.add("Ngày kết thúc giảm giá của phân loại '" + (label != null ? label : "") + "' phải sau ngày bắt đầu.");
+                            }
+                        }
+                    }
                 }
             }
         }

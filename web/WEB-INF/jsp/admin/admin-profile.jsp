@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
@@ -6,51 +6,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hồ sơ cá nhân – Admin Verdant Market</title>
+    <title>Hồ sơ cá nhân – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
-        .glass-card { background:#fff; border:1px solid #e2ece7; border-radius:1rem; box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06); }
-    </style>
 </head>
-<body>
-<div class="admin-layout flex h-screen overflow-hidden">
+<body class="antialiased text-txt bg-background">
+<div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="profile"/>
     </jsp:include>
 
     <%-- Main --%>
-    <main class="flex-1 overflow-y-auto p-6 md:p-8">
+    <main class="flex-1 overflow-y-auto p-6 md:p-8 animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex items-center justify-between bg-white border border-slate-200 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight">Hồ Sơ Cá Nhân</h1>
-                <p class="text-slate-500 text-sm mt-1">Quản lý thông tin cá nhân và bảo mật tài khoản quản trị.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Hồ Sơ Cá Nhân</h1>
+                <p class="text-txt-2 text-sm mt-1">Quản lý thông tin cá nhân và bảo mật tài khoản quản trị.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl border border-emerald-100 font-bold">
+            <div class="hidden md:flex items-center gap-2 bg-primary-lt text-primary px-4 py-2 rounded-xl border border-primary-fixed font-bold">
                 <i class="fa-solid fa-user-shield"></i> Admin
             </div>
         </div>

@@ -2,54 +2,28 @@
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
+<!DOCTYPE html>
+<html lang="vi">
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phê duyệt Sản phẩm – Admin Verdant Market</title>
+    <title>Phê duyệt Sản phẩm – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-    </style>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
@@ -57,17 +31,17 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex flex-col md:flex-row md:items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8 gap-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8 gap-4">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Phê Duyệt Sản Phẩm</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Duyệt sản phẩm mới đăng, kiểm tra giấy tờ chứng nhận, gắn nhãn Hữu cơ/Nhập khẩu và lọc sản phẩm vi phạm.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Phê Duyệt Sản Phẩm</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Duyệt sản phẩm mới đăng, kiểm tra giấy tờ chứng nhận, gắn nhãn Hữu cơ/Nhập khẩu và lọc sản phẩm vi phạm.</p>
             </div>
             
             <%-- Filter Tabs --%>
-            <div class="flex items-center gap-2 bg-white/80 p-1.5 rounded-xl border border-slate-200 self-start md:self-auto">
+            <div class="flex items-center gap-2 bg-surface/80 p-1.5 rounded-xl border border-border self-start md:self-auto">
                 <a href="${pageContext.request.contextPath}/admin/products" 
                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${empty paramApprovalStatus ? 'bg-primary text-white shadow-sm' : 'text-txt-2 hover:bg-slate-100'}">
                     Tất cả
@@ -86,7 +60,6 @@
                 </a>
             </div>
         </div>
-
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
         <%-- Products List Card --%>
@@ -288,23 +261,12 @@
             </div>
             
             <%-- Pagination --%>
-            <div class="px-6 py-4 border-t border-border flex items-center justify-between bg-slate-50/50">
-                <span class="text-xs text-txt-2">Trang <b>${currentPage}</b></span>
-                <div class="flex items-center gap-1">
-                    <c:if test="${currentPage > 1}">
-                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage - 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" 
-                           class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
-                            Trước
-                        </a>
-                    </c:if>
-                    <c:if test="${products.size() == 25}">
-                        <a href="${pageContext.request.contextPath}/admin/products?page=${currentPage + 1}${not empty paramApprovalStatus ? '&approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" 
-                           class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm">
-                            Sau
-                        </a>
-                    </c:if>
+            <c:if test="${totalPages > 1}">
+                <div class="px-6 py-4 border-t border-border flex items-center justify-between bg-slate-50/50">
+                    <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="${pageContext.request.contextPath}/admin/products?${not empty paramApprovalStatus ? 'approvalStatus=' : ''}${fn:escapeXml(paramApprovalStatus)}" />
                 </div>
-            </div>
+            </c:if>
         </div>
     </main>
 </div>

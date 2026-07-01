@@ -7,73 +7,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đối soát Thanh toán – Admin Verdant Market</title>
+    <title>Đối soát Thanh toán – Admin MetaFruit</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Lexend', 'sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Lexend', sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-        select {
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234d661c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 12px 8px;
-            padding-right: 2.25rem;
-        }
-        .page-btn {
-            display:inline-flex; align-items:center; gap:.3rem;
-            padding:.4rem .875rem; border-radius:.625rem;
-            font-size:.78rem; font-weight:600;
-            border:1px solid #d1d5db; background:#fff;
-            color:#374151; cursor:pointer; transition:all .15s;
-            text-decoration:none;
-        }
-        .page-btn:hover { background:#f1f5f9; border-color:#9ca3af; text-decoration:none; }
-        .page-btn-active { background:#4d661c; border-color:#4d661c; color:#fff; }
-        .page-btn-active:hover { background:#364e03; border-color:#364e03; color:#fff; }
-    </style>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
@@ -81,19 +27,19 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8 gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8 gap-4">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Đối Soát &amp; Thanh Toán Shop</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Tính toán phí nền tảng, hoàn tiền, và chuyển khoản doanh thu cho chủ shop.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Đối Soát &amp; Thanh Toán Shop</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Tính toán phí nền tảng, hoàn tiền, và chuyển khoản doanh thu cho chủ shop.</p>
             </div>
             <div class="flex items-center gap-3">
                 <form action="${pageContext.request.contextPath}/admin/settlements" method="POST" class="inline">
                     <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                     <input type="hidden" name="action" value="triggerSettlement">
-                    <button type="submit" class="bg-primary hover:bg-[#364e03] text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+                    <button type="submit" class="bg-primary hover:bg-primary-dk text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-arrows-rotate"></i>
                         <span>Chạy Auto-Settlement</span>
                     </button>
@@ -217,12 +163,7 @@
             <c:if test="${totalPages > 1}">
                 <div class="flex justify-between items-center px-6 py-4 border-t border-border gap-4">
                     <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
-                    <div class="flex gap-1.5">
-                        <c:forEach begin="1" end="${totalPages}" var="i">
-                            <a href="?page=${i}&status=${paramStatus}" 
-                               class="page-btn ${i == currentPage ? 'page-btn-active' : ''}">${i}</a>
-                        </c:forEach>
-                    </div>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?status=${fn:escapeXml(paramStatus)}" />
                 </div>
             </c:if>
         </div>

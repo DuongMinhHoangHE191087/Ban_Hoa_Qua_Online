@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
@@ -81,16 +81,6 @@
     }
 </script>
 
-<style>
-    .premium-glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.05);
-    }
-</style>
-
 <main class="max-w-3xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-on-background">
     <!-- Header -->
     <div class="mb-lg border-b border-surface-container-high pb-4">
@@ -101,17 +91,7 @@
         <p class="text-on-surface-variant text-sm mt-1">Chúng tôi cam kết bảo vệ quyền lợi người tiêu dùng tối đa. Hồ sơ sẽ được giải quyết nhanh trong vòng 24h.</p>
     </div>
 
-    <!-- Alert Flash message -->
-    <c:if test="${not empty sessionScope.flashMsg}">
-        <div class="mb-6 p-4 rounded-xl flex items-center justify-between shadow-sm border ${sessionScope.flashType == 'success' ? 'bg-[#dcfce7] border-[#bbf7d0] text-emerald-800' : 'bg-error-container border-[#ffdad6] text-[#93000a]'}">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined">${sessionScope.flashType == 'success' ? 'check_circle' : 'error'}</span>
-                <span class="font-semibold">${sessionScope.flashMsg}</span>
-            </div>
-        </div>
-        <c:remove var="flashMsg" scope="session"/>
-        <c:remove var="flashType" scope="session"/>
-    </c:if>
+
 
     <!-- Order summary card -->
     <div class="premium-glass-card rounded-[1.5rem] p-6 mb-6">

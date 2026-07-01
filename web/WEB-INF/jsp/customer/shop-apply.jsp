@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -10,7 +11,9 @@
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -30,18 +33,6 @@
             }
         }
     </script>
-    <style>
-        body { font-family: 'Lexend', sans-serif; }
-        .glass-card {
-            background: rgba(255,255,255,0.88);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.5);
-            box-shadow: 0 20px 50px rgba(20,83,45,0.12);
-        }
-        .status-badge-pending  { background: #fef3c7; color: #92400e; }
-        .status-badge-approved { background: #d1fae5; color: #065f46; }
-        .status-badge-rejected { background: #fee2e2; color: #991b1b; }
-    </style>
 </head>
 <body class="bg-emerald-50 text-on-surface min-h-screen antialiased">
 
@@ -55,7 +46,7 @@
     <!-- Header -->
     <header class="flex justify-between items-center w-full px-6 md:px-12 py-4 z-50 fixed top-0 left-0 right-0 border-b border-white/30 bg-white/60 backdrop-blur-md shadow-sm">
         <a href="${pageContext.request.contextPath}/" class="flex items-center gap-2">
-            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
             <span class="text-2xl font-bold text-primary tracking-wide">MetaFruit</span>
         </a>
         <div class="flex items-center gap-3">
@@ -84,70 +75,11 @@
             </div>
 
             <!-- Flash Message -->
-            <c:if test="${not empty sessionScope.flashMsg}">
-                <c:set var="isError" value="${sessionScope.flashType == 'error'}"/>
-                <div class="mb-6 p-4 ${isError ? 'bg-red-50 border-error text-red-800' : 'bg-green-50 border-primary text-green-800'} border-l-4 rounded-r-xl flex items-center gap-3 shadow-sm glass-card">
-                    <span class="material-symbols-outlined ${isError ? 'text-error' : 'text-primary'}">${isError ? 'error' : 'check_circle'}</span>
-                    <span class="text-sm font-medium"><c:out value="${sessionScope.flashMsg}"/></span>
-                </div>
-                <c:remove var="flashMsg" scope="session"/>
-                <c:remove var="flashType" scope="session"/>
-            </c:if>
+            <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
             <!-- TRẠNG THÁI ĐÃ NỘP ĐƠN (nếu có) -->
-            <c:if test="${not empty requestScope.existingProfile}">
-                <div class="glass-card rounded-2xl p-6 mb-6">
-                    <h2 class="text-base font-bold text-primary mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">assignment</span>
-                        Trạng thái đơn đăng ký hiện tại
-                    </h2>
-                    <div class="flex items-center justify-between flex-wrap gap-3">
-                        <div>
-                            <p class="text-sm font-medium text-on-surface"><c:out value="${existingProfile.shopName}"/></p>
-                            <p class="text-xs text-on-surface-variant mt-1"><c:out value="${existingProfile.deliveryAddress}"/></p>
-                        </div>
-                        <c:choose>
-                            <c:when test="${existingProfile.approvalStatus == 'PENDING'}">
-                                <span class="status-badge-pending px-3 py-1 rounded-full text-xs font-semibold">⏳ Đang chờ duyệt</span>
-                            </c:when>
-                            <c:when test="${existingProfile.approvalStatus == 'APPROVED'}">
-                                <span class="status-badge-approved px-3 py-1 rounded-full text-xs font-semibold">✅ Đã được duyệt</span>
-                            </c:when>
-                            <c:when test="${existingProfile.approvalStatus == 'REJECTED'}">
-                                <span class="status-badge-rejected px-3 py-1 rounded-full text-xs font-semibold">❌ Bị từ chối</span>
-                            </c:when>
-                            <c:when test="${existingProfile.approvalStatus == 'SUSPENDED'}">
-                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">⏸ Tạm ngừng hoạt động</span>
-                            </c:when>
-                        </c:choose>
-                    </div>
+            
 
-                    <c:if test="${existingProfile.approvalStatus == 'REJECTED' and not empty existingProfile.rejectionReason}">
-                        <div class="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
-                            <p class="text-xs font-semibold text-red-700 mb-1">Lý do từ chối:</p>
-                            <p class="text-xs text-red-600"><c:out value="${existingProfile.rejectionReason}"/></p>
-                        </div>
-                    </c:if>
-
-                    <!-- Chỉ cho phép nộp lại khi bị REJECTED -->
-                    <c:if test="${existingProfile.approvalStatus != 'REJECTED'}">
-                        <c:if test="${existingProfile.approvalStatus == 'PENDING'}">
-                            <div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                <p class="text-xs text-amber-700">Đơn của bạn đang được xem xét. Vui lòng chờ phản hồi từ Admin.</p>
-                            </div>
-                        </c:if>
-                        <c:if test="${existingProfile.approvalStatus == 'APPROVED'}">
-                            <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                                <p class="text-xs text-green-700">Tài khoản của bạn đã được kích hoạt quyền Shop Owner.
-                                    <a href="${pageContext.request.contextPath}/shop/dashboard" class="font-bold underline">Vào Dashboard →</a>
-                                </p>
-                            </div>
-                        </c:if>
-                    </c:if>
-                </div>
-            </c:if>
-
-            <!-- FORM NỘP ĐƠN — Ẩn nếu đã PENDING hoặc APPROVED -->
             <c:set var="canApply" value="${empty existingProfile or existingProfile.approvalStatus == 'REJECTED'}"/>
             <c:if test="${canApply}">
                 <div class="glass-card rounded-2xl p-6 md:p-10">
@@ -202,6 +134,7 @@
                                         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">phone</span>
                                         <input class="w-full pl-9 pr-4 py-2.5 bg-white border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
                                                id="userPhone" name="userPhone"
+                                               value="<c:out value="${param.userPhone}"/>"
                                                placeholder="VD: 0987654321" type="tel" required pattern="^(0|\+84)(3[2-9]|5[689]|7[06-9]|8[1-689]|9[0-9])[0-9]{7}$">
                                     </div>
                                 </div>
@@ -222,7 +155,7 @@
                                         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">storefront</span>
                                         <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
                                                id="shopName" name="shopName"
-                                               value="<c:out value="${not empty existingProfile ? existingProfile.shopName : param.shopName}"/>"
+                                               value="<c:out value="${not empty param.shopName ? param.shopName : existingProfile.shopName}"/>"
                                                placeholder="VD: Nông trại hữu cơ xanh" type="text" required maxlength="150">
                                     </div>
                                 </div>
@@ -233,7 +166,7 @@
                                         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">mail</span>
                                         <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
                                                id="businessEmail" name="businessEmail"
-                                               value="<c:out value="${not empty existingProfile ? existingProfile.businessEmail : param.businessEmail}"/>"
+                                               value="<c:out value="${not empty param.businessEmail ? param.businessEmail : existingProfile.businessEmail}"/>"
                                                placeholder="VD: email@doanhnghiep.com" type="email" required maxlength="150">
                                     </div>
                                 </div>
@@ -245,7 +178,7 @@
                                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">pin_drop</span>
                                     <input class="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all"
                                            id="shopAddress" name="shopAddress"
-                                           value="<c:out value="${not empty existingProfile ? existingProfile.deliveryAddress : param.shopAddress}"/>"
+                                           value="<c:out value="${not empty param.shopAddress ? param.shopAddress : existingProfile.deliveryAddress}"/>"
                                            placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành" type="text" required maxlength="500">
                                 </div>
                             </div>
@@ -254,7 +187,7 @@
                                 <label class="text-xs font-semibold text-primary" for="shopDescription">Mô tả cửa hàng</label>
                                 <textarea class="w-full mt-1 px-4 py-2.5 bg-white/70 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm outline-none transition-all resize-none"
                                           id="shopDescription" name="shopDescription" rows="3"
-                                          placeholder="Giới thiệu ngắn về cửa hàng, sản phẩm chuyên bán, kinh nghiệm..."><c:out value="${not empty existingProfile ? existingProfile.shopDescription : param.shopDescription}"/></textarea>
+                                          placeholder="Giới thiệu ngắn về cửa hàng, sản phẩm chuyên bán, kinh nghiệm..."><c:out value="${not empty param.shopDescription ? param.shopDescription : existingProfile.shopDescription}"/></textarea>
                             </div>
                         </div>
 
@@ -269,11 +202,34 @@
                                 <c:choose>
                                     <c:when test="${not empty categories}">
                                         <c:forEach var="cat" items="${categories}">
+                                            <c:set var="isChecked" value="false"/>
+                                            <c:choose>
+                                                <c:when test="${not empty paramValues.categoryIds}">
+                                                    <c:forEach var="selectedId" items="${paramValues.categoryIds}">
+                                                        <c:if test="${selectedId == cat.categoryId}">
+                                                            <c:set var="isChecked" value="true"/>
+                                                        </c:if>
+                                                    </c:forEach>
+                                                </c:when>
+                                                <c:when test="${not empty existingProfile and not empty existingProfile.preferredCategories}">
+                                                    <c:set var="prefCatContains" value="[${cat.categoryId},"/>
+                                                    <c:set var="prefCatContainsMiddle" value=",${cat.categoryId},"/>
+                                                    <c:set var="prefCatContainsEnd" value=",${cat.categoryId}]"/>
+                                                    <c:set var="prefCatSingle" value="[${cat.categoryId}]"/>
+                                                    <c:if test="${existingProfile.preferredCategories == prefCatSingle || 
+                                                                  fn:contains(existingProfile.preferredCategories, prefCatContains) || 
+                                                                  fn:contains(existingProfile.preferredCategories, prefCatContainsMiddle) || 
+                                                                  fn:contains(existingProfile.preferredCategories, prefCatContainsEnd)}">
+                                                        <c:set var="isChecked" value="true"/>
+                                                    </c:if>
+                                                </c:when>
+                                            </c:choose>
                                             <label class="flex items-center p-3 rounded-lg border border-primary/10 bg-white/40 hover:bg-emerald-50 cursor-pointer transition-all duration-200">
-                                                <input class="rounded text-primary focus:ring-primary border-outline/30 bg-white"
-                                                       name="categoryIds"
-                                                       value="<c:out value="${cat.categoryId}"/>"
-                                                       type="checkbox">
+                                                <input class="rounded text-primary focus:ring-primary border-outline/30 bg-white" 
+                                                       name="categoryIds" 
+                                                       value="<c:out value="${cat.categoryId}"/>" 
+                                                       type="checkbox"
+                                                       <c:if test="${isChecked}">checked</c:if>>
                                                 <span class="ml-2.5 text-xs font-medium text-on-surface"><c:out value="${cat.name}"/></span>
                                             </label>
                                         </c:forEach>
@@ -298,7 +254,8 @@
                                 <input class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                        id="shopDocs" name="shopDocs" type="file"
                                        multiple accept=".pdf,.jpg,.jpeg,.png,.docx"
-                                       onchange="handleDocSelect(this)">
+                                       onchange="handleDocSelect(this)"
+                                       <c:if test="${empty requestScope.shopApplyDraftDocPaths}">required</c:if>>
                                 <div class="flex flex-col items-center gap-2 pointer-events-none">
                                     <span class="material-symbols-outlined text-[40px] text-primary/50 group-hover:text-primary transition-colors">cloud_upload</span>
                                     <p class="text-sm font-medium text-on-surface-variant" id="shopUploadLabel">
@@ -308,13 +265,34 @@
                             </div>
                             <ul id="shopFileList" class="mt-2 space-y-1 hidden"></ul>
                             <p id="shopFileError" class="text-xs text-red-600 hidden"></p>
+                            <c:if test="${not empty requestScope.shopApplyDraftDocPaths}">
+                                <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-primary text-[20px]">draft</span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-primary">Tài liệu nháp đã lưu trên hệ thống</p>
+                                            <p class="text-xs text-on-surface-variant">Bạn có thể sửa các trường khác mà không phải chọn lại file.</p>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <c:forEach var="draftDocPath" items="${requestScope.shopApplyDraftDocPaths}">
+                                            <c:set var="draftPathSegments" value="${fn:split(draftDocPath, '/')}"/>
+                                            <c:set var="draftFileName" value="${draftPathSegments[fn:length(draftPathSegments) - 1]}"/>
+                                            <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-white/80 px-3 py-2 text-xs">
+                                                <span class="material-symbols-outlined text-primary text-[16px]">description</span>
+                                                <span class="font-medium text-on-surface break-all"><c:out value="${draftFileName}"/></span>
+                                            </div>
+                                        </c:forEach>
+                                    </div>
+                                </div>
+                            </c:if>
                         </div>
 
                         <!-- Terms -->
                         <div class="flex items-start gap-3">
                             <div class="flex items-center h-5 mt-0.5">
                                 <input class="w-4 h-4 rounded border-outline/30 text-primary focus:ring-primary bg-white cursor-pointer"
-                                       id="agreeTerms" name="agreeTerms" type="checkbox" required>
+                                       id="agreeTerms" name="agreeTerms" type="checkbox" <c:if test="${not empty param.agreeTerms}">checked</c:if> required>
                             </div>
                             <label class="text-xs text-on-surface-variant leading-relaxed cursor-pointer" for="agreeTerms">
                                 Tôi cam kết thông tin cung cấp là chính xác và đồng ý với

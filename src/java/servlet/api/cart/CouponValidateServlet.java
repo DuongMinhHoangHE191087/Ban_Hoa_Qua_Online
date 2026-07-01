@@ -24,11 +24,12 @@ import java.util.logging.Logger;
  * Params:
  *   code    - Mã giảm giá
  *   subtotal - Tổng tiền sản phẩm (BigDecimal string)
- *   ownerId  - ID chủ shop (để validate mã shop)
+ *   ownerId  - ID chủ shop (hoặc danh sách ID cách nhau bằng dấu phẩy)
  *   scope    - "SHOP" hoặc "SYSTEM"
  *
  * Response JSON:
- *   {"valid": true/false, "discountAmount": 10000, "message": "..."}
+ *   {"success": true, "data": {"discountAmount": 10000, "message": "..."}}
+ *   {"success": false, "error": "..."}
  *
  * @author fruitmkt-team
  */
@@ -67,13 +68,23 @@ public class CouponValidateServlet extends HttpServlet {
             Promotion promo = null;
 
             if ("SHOP".equalsIgnoreCase(scope)) {
-                int ownerId;
-                try { ownerId = Integer.parseInt(ownerIdStr); }
-                catch (NumberFormatException e) {
+                if (ownerIdStr == null || ownerIdStr.trim().isEmpty()) {
                     JsonUtil.writeJson(resp, ApiResponse.error("Thiếu thông tin shop."));
                     return;
                 }
-                promo = promotionService.validateShopCoupon(code, ownerId, subtotal);
+                String[] parts = ownerIdStr.split(",");
+                for (String part : parts) {
+                    try {
+                        int ownerId = Integer.parseInt(part.trim());
+                        if (ownerId > 0) {
+                            Promotion candidate = promotionService.validateShopCoupon(code, ownerId, subtotal);
+                            if (candidate != null) {
+                                promo = candidate;
+                                break;
+                            }
+                        }
+                    } catch (NumberFormatException ignored) {}
+                }
             } else {
                 promo = promotionService.validateSystemCoupon(code, subtotal);
             }
@@ -91,6 +102,8 @@ public class CouponValidateServlet extends HttpServlet {
                 "discountAmount", Long.parseLong(fmtAmt),
                 "promoId", promo.getPromoId(),
                 "discountType", promo.getDiscountType(),
+                "canStack", promo.getCanStack(),
+                "ownerId", promo.getCreatedBy(), // Return ownerId of coupon creator
                 "message", "Áp dụng thành công! Giảm " + displayAmt
             );
             JsonUtil.writeJson(resp, ApiResponse.ok(data));
@@ -100,7 +113,7 @@ public class CouponValidateServlet extends HttpServlet {
                     req,
                     resp,
                     log,
-                    "CouponValidateServlet#doPost",
+                    "CouponValidateServlet#doGet",
                     "Lỗi hệ thống. Vui lòng thử lại.",
                     e);
         }

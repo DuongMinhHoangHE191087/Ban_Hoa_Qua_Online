@@ -1051,6 +1051,134 @@ function Setup-Database {
     }
 }
 
+function Setup-Tunnel {
+    Write-Host "`n===== SETUP CLOUDFLARE TUNNEL =====" -ForegroundColor Green
+    
+    $tunnelName = Read-Host "Nhap ten tunnel [mac dinh: metafruit]"
+    if (-not $tunnelName) { $tunnelName = "metafruit" }
+    
+    # 1. Option to delete old tunnel
+    $cleanOld = Read-Host "Ban co muon xoa tunnel cu cung ten '$tunnelName' neu da ton tai khong? (Y/N)"
+    if ($cleanOld -eq "y" -or $cleanOld -eq "Y") {
+        Write-Host "Dang xoa tunnel cu '$tunnelName'..." -ForegroundColor Yellow
+        cmd.exe /c "cloudflared tunnel delete -f $tunnelName 2>&1"
+    }
+    
+    # 2. Check login
+    $certPath = "$env:USERPROFILE\.cloudflared\cert.pem"
+    if (Test-Path $certPath) {
+        $relogin = Read-Host "Phat hien chung chi cu tai cert.pem. Ban co muon ghi de de dang nhap tai khoan khac khong? (Y/N)"
+        if ($relogin -eq "y" -or $relogin -eq "Y") {
+            Write-Host "Dang xao luu cert.pem thanh cert.pem.bak..." -ForegroundColor Yellow
+            if (Test-Path "$certPath.bak") { Remove-Item "$certPath.bak" -Force }
+            Rename-Item $certPath "cert.pem.bak" -Force
+            Write-Host "Dang mo trinh duyet de login Cloudflare..." -ForegroundColor Cyan
+            cmd.exe /c "cloudflared tunnel login"
+        }
+    } else {
+        Write-Host "Chua dang nhap Cloudflare. Dang mo trinh duyet..." -ForegroundColor Cyan
+        cmd.exe /c "cloudflared tunnel login"
+    }
+    
+    # 3. Create Tunnel
+    Write-Host "`nDang tao tunnel moi '$tunnelName'..." -ForegroundColor Yellow
+    $createOutput = cmd.exe /c "cloudflared tunnel create $tunnelName 2>&1"
+    $createOutput | Write-Host
+    
+    $uuid = $null
+    foreach ($line in $createOutput) {
+        if ($line -match "with id ([a-f0-9\-]+)") {
+            $uuid = $Matches[1]
+            break
+        }
+    }
+    
+    if (-not $uuid) {
+        # Fallback search inside credentials folder
+        $credsDir = "$env:USERPROFILE\.cloudflared"
+        if (Test-Path $credsDir) {
+            $recentJson = Get-ChildItem $credsDir -Filter "*.json" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($recentJson) {
+                $uuid = $recentJson.BaseName
+                Write-Host "Khong parse duoc tu output nhung phat hien JSON credentials moi nhat: $uuid" -ForegroundColor Yellow
+            }
+        }
+    }
+    
+    if ($uuid) {
+        Write-Host "`n[OK] Da lay duoc Tunnel UUID: $uuid" -ForegroundColor Green
+        
+        # 4. Generate/Update cloudflare/config.yml
+        $configDir = "cloudflare"
+        if (-not (Test-Path $configDir)) {
+            New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+        }
+        
+        $jsonCredPath = "$env:USERPROFILE\.cloudflared\$uuid.json"
+        $escapedCredPath = $jsonCredPath.Replace("\", "\\")
+        
+        # 4. Lay Custom Domain truoc de cau hinh vao config.yml
+        Write-Host "`n=== CAU HINH TEN MIEN CO DINH (CUSTOM DOMAIN) ===" -ForegroundColor Cyan
+        $customDomain = Read-Host "Nhap ten mien co dinh cua ban (vi du: fruitshop.yourdomain.com)"
+        
+        $jsonCredPath = "$env:USERPROFILE\.cloudflared\$uuid.json"
+        $escapedCredPath = $jsonCredPath.Replace("\", "\\")
+        
+        if ($customDomain) {
+            $configContent = @"
+# Cloudflare Tunnel Config - MetaFruit (Tu dong cap nhat boi build-tools)
+tunnel: $uuid
+credentials-file: $escapedCredPath
+
+ingress:
+  # Map ten mien co dinh vao Tomcat local
+  - hostname: $customDomain
+    service: http://localhost:8080
+  # Mac dinh tra ve 404 cho cac truy cap khac
+  - service: http_status:404
+"@
+        } else {
+            $configContent = @"
+# Cloudflare Tunnel Config - MetaFruit (Tu dong cap nhat boi build-tools)
+tunnel: $uuid
+credentials-file: $escapedCredPath
+
+ingress:
+  # Route mac dinh toan bo traffic ve Tomcat local
+  - service: http://localhost:8080
+"@
+        }
+        
+        $configContent | Out-File "cloudflare/config.yml" -Encoding utf8
+        Write-Host "Da cap nhat file cau hinh tai: cloudflare/config.yml" -ForegroundColor Green
+        
+        # 5. Route DNS option
+        if ($customDomain) {
+            Write-Host "`nDang map ten mien $customDomain vao tunnel qua CLI..." -ForegroundColor Yellow
+            cmd.exe /c "cloudflared tunnel route dns $tunnelName $customDomain 2>&1" | Write-Host
+            Write-Host "[OK] Da tro ten mien $customDomain ve tunnel!" -ForegroundColor Green
+        } else {
+            Write-Host "`n=== HUONG DAN SETUP TREN CLOUDFLARE DASHBOARD ===" -ForegroundColor Cyan
+            Write-Host "De chay duoc, ban can cau hinh DNS de tro ten mien ve tunnel nay." -ForegroundColor Yellow
+        }
+        
+        Write-Host "`nCach 2 (Thu cong tren website):" -ForegroundColor White
+        Write-Host "  1. Truy cap trang chu: https://dash.cloudflare.com" -ForegroundColor Gray
+        Write-Host "  2. Chon Domain cua ban > DNS > Records > Add Record" -ForegroundColor Gray
+        Write-Host "  3. Nhap Type: CNAME, Name: <subdomain> (vi du: fruitshop), Target: $uuid.cfargotunnel.com" -ForegroundColor Gray
+        Write-Host "  4. Chon Proxy status: Proxied (Dam bao hinh dam may mau cam bat)." -ForegroundColor Gray
+        
+        # 6. Run Tunnel option
+        $runNow = Read-Host "`nBan co muon khoi chay tunnel '$tunnelName' ngay bay gio khong? (Y/N)"
+        if ($runNow -eq "y" -or $runNow -eq "Y") {
+            Write-Host "Dang chay tunnel..." -ForegroundColor Green
+            Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "title Cloudflare Tunnel - $tunnelName && cloudflared tunnel --config cloudflare/config.yml run"
+        }
+    } else {
+        Write-Host "[ERROR] Khong the tao hoac xac dinh UUID cua tunnel. Vui long kiem tra lai quyen truy cap." -ForegroundColor Red
+    }
+}
+
 # Main execution
 switch ($Action.ToLower()) {
     "help" { Show-Help }
@@ -1066,6 +1194,7 @@ switch ($Action.ToLower()) {
     "reload" { Deploy-Reload }
     "test" { Run-Tests }
     "setup-db" { Setup-Database }
+    "setup-tunnel" { Setup-Tunnel }
     "docker-build" { Docker-Build }
     "docker-up" { Docker-Up }
     "docker-down" { Docker-Down }

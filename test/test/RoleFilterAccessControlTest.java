@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.entity.auth.User;
+import model.entity.shop.ShopProfile;
 import util.HashUtil;
 import org.junit.After;
 import org.junit.Before;
@@ -17,7 +18,9 @@ import org.junit.Test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Proxy;
+import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,6 +36,7 @@ import static org.junit.Assert.*;
 public class RoleFilterAccessControlTest {
 
     private UserDAO userDAO;
+    private ShopProfileDAO shopProfileDAO;
     private MockEnv env;
 
     private int adminId = -1;
@@ -43,6 +47,7 @@ public class RoleFilterAccessControlTest {
     @Before
     public void setUp() throws SQLException {
         userDAO = new UserDAO();
+        shopProfileDAO = new ShopProfileDAO();
         env = new MockEnv();
         long ts = System.currentTimeMillis();
 
@@ -188,6 +193,22 @@ public class RoleFilterAccessControlTest {
     }
 
     // =========================================================
+    // TC-RF-08B: Customer có ShopProfile vẫn được vào /shop/status
+    // =========================================================
+
+    @Test
+    public void should_allowCustomerWithShopProfile_when_requestingShopStatus() throws Exception {
+        env.reset();
+        env.uri = "/Ban_Hoa_Qua_Online/shop/status";
+        env.user = buildUser(customerId, AppConfig.ROLE_CUSTOMER);
+        createShopProfile(customerId, AppConfig.SHOP_PENDING);
+
+        runFilter();
+        assertTrue("Customer có hồ sơ shop phải được vào /shop/status", env.chainCalled.get());
+        assertEquals("Không được trả 403 cho /shop/status", 0, env.errorCode.get());
+    }
+
+    // =========================================================
     // TC-RF-08: Admin được phép truy cập /shop/* (admin review shop)
     // =========================================================
 
@@ -200,6 +221,21 @@ public class RoleFilterAccessControlTest {
         runFilter();
         // Admin có thể access shop path nếu filter cho phép
         assertFalse("Không được crash", env.errorCode.get() == 500);
+    }
+
+    // =========================================================
+    // TC-RF-09: Admin được phép truy cập /notifications
+    // =========================================================
+
+    @Test
+    public void should_allowAdmin_when_requestingNotificationsPath() throws Exception {
+        env.reset();
+        env.uri = "/Ban_Hoa_Qua_Online/notifications";
+        env.user = buildUser(adminId, AppConfig.ROLE_ADMIN);
+
+        runFilter();
+        assertTrue("Admin phải được truy cập /notifications", env.chainCalled.get());
+        assertEquals("Không được trả về lỗi cho admin", 0, env.errorCode.get());
     }
 
     // =========================================================
@@ -221,6 +257,22 @@ public class RoleFilterAccessControlTest {
         u.setStatus(AppConfig.ACCOUNT_STATUS_ACTIVE);
         u.setEmailVerified(true);
         return u;
+    }
+
+    private void createShopProfile(int userId, String status) throws SQLException {
+        ShopProfile profile = new ShopProfile();
+        profile.setUserId(userId);
+        profile.setShopName("RFC Shop " + userId);
+        profile.setShopDescription("Regression test shop");
+        profile.setApprovalStatus(status);
+        profile.setDeliveryAddress("123 Test Street");
+        profile.setRating(BigDecimal.ZERO);
+        profile.setPreferredCategories("[1]");
+        profile.setDocPaths("[\"uploads/test.pdf\"]");
+        profile.setBusinessEmail("shop_" + userId + "@test.com");
+        profile.setCreatedAt(LocalDateTime.now());
+        profile.setUpdatedAt(LocalDateTime.now());
+        shopProfileDAO.save(profile);
     }
 
     private String buildPhone(int offset) {

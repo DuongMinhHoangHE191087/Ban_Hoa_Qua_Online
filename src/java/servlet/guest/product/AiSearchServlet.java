@@ -71,19 +71,21 @@ public class AiSearchServlet extends HttpServlet {
             }
             List<Product> activeProductsForAI = productDAO.findAllActiveForAI();
 
-            // 2. Đọc câu hỏi/yêu cầu tìm kiếm của người dùng sớm để có thể fallback ngay khi cần.
-            byte[] bodyBytes = req.getInputStream().readAllBytes();
-            String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
-            Map<String, Object> requestData;
-            try {
-                requestData = mapper.readValue(jsonInput, Map.class);
-            } catch (Exception parseError) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
-                    "Nội dung tìm kiếm không hợp lệ."));
-                return;
+            // 2. Đọc câu hỏi/yêu cầu tìm kiếm sớm để có thể fallback ngay khi cần.
+            String userMessage = normalizeText(req.getParameter("message"));
+            if (userMessage == null) {
+                byte[] bodyBytes = req.getInputStream().readAllBytes();
+                String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
+                try {
+                    Map<String, Object> requestData = mapper.readValue(jsonInput, Map.class);
+                    userMessage = normalizeText(requestData.get("message"));
+                } catch (Exception parseError) {
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                            "Nội dung tìm kiếm không hợp lệ."));
+                    return;
+                }
             }
-            String userMessage = normalizeText(requestData.get("message"));
 
             if (userMessage == null || userMessage.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -91,16 +93,13 @@ public class AiSearchServlet extends HttpServlet {
                 return;
             }
 
-            // 3. Lấy API Key từ DB, biến môi trường, hoặc file .env trực tiếp
+            // 3. Lấy API Key từ DB hoặc AppConfig.GEMINI_API_KEY trực tiếp
             String apiKey = systemConfigDAO.getValue(AppConfig.CONFIG_GEMINI_API_KEY);
-            if (apiKey == null || apiKey.trim().isEmpty()) {
-                apiKey = System.getenv("GEMINI_API_KEY");
-            }
-            if (apiKey == null || apiKey.trim().isEmpty()) {
-                apiKey = getApiKeyFromDotEnv();
+            if (apiKey == null || apiKey.trim().isEmpty() || "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey.trim())) {
+                apiKey = AppConfig.GEMINI_API_KEY;
             }
 
-            if (apiKey == null || apiKey.trim().isEmpty()) {
+            if (apiKey == null || apiKey.trim().isEmpty() || "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey.trim())) {
                 LoggerUtil.warn(log, "Gemini API key chưa được cấu hình, chuyển sang fallback nội bộ cho AI search.");
                 writeFallbackResponse(req, resp, userMessage, activeCategories, activeProductsForAI);
                 return;
@@ -348,75 +347,6 @@ public class AiSearchServlet extends HttpServlet {
         }
     }
 
-    private String getApiKeyFromDotEnv() {
-        String[] paths = {
-            ".env",
-            "../.env",
-            "../../.env",
-            System.getProperty("user.dir") + "/.env",
-            System.getProperty("user.dir") + "/../.env"
-        };
-        for (String p : paths) {
-            java.io.File file = new java.io.File(p);
-            if (file.exists() && file.isFile()) {
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file, java.nio.charset.StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        line = line.trim();
-                        if (line.isEmpty() || line.startsWith("#")) continue;
-                        String[] parts = line.split("=", 2);
-                        if (parts.length == 2 && "GEMINI_API_KEY".equals(parts[0].trim())) {
-                            String val = parts[1].trim();
-                            if ((val.startsWith("\"") && val.endsWith("\"")) || (val.startsWith("'") && val.endsWith("'"))) {
-                                val = val.substring(1, val.length() - 1);
-                            }
-                            return val;
-                        }
-                    }
-                } catch (Exception e) {
-                    // Tiếp tục thử đường dẫn tiếp theo
-                }
-            }
-        }
-        // Thử tìm thêm bằng Real Path từ ServletContext nếu có
-        try {
-            String webappPath = getServletContext().getRealPath("/");
-            if (webappPath != null) {
-                String[] contextPaths = {
-                    webappPath + "/.env",
-                    webappPath + "/../.env",
-                    webappPath + "/../../.env",
-                    webappPath + "/../../../.env"
-                };
-                for (String p : contextPaths) {
-                    java.io.File file = new java.io.File(p);
-                    if (file.exists() && file.isFile()) {
-                        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file, java.nio.charset.StandardCharsets.UTF_8))) {
-                            String line;
-                            while ((line = reader.readLine()) != null) {
-                                line = line.trim();
-                                if (line.isEmpty() || line.startsWith("#")) continue;
-                                String[] parts = line.split("=", 2);
-                                if (parts.length == 2 && "GEMINI_API_KEY".equals(parts[0].trim())) {
-                                    String val = parts[1].trim();
-                                    if ((val.startsWith("\"") && val.endsWith("\"")) || (val.startsWith("'") && val.endsWith("'"))) {
-                                        val = val.substring(1, val.length() - 1);
-                                    }
-                                    return val;
-                                }
-                            }
-                        } catch (Exception e) {
-                            // Bỏ qua
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Bỏ qua nếu có lỗi ServletContext
-        }
-        return null;
-    }
-
     private String normalizeText(Object value) {
         if (value == null) {
             return null;
@@ -657,25 +587,60 @@ public class AiSearchServlet extends HttpServlet {
 
     private String buildFallbackReply(String userMessage, List<Product> products) {
         if (products == null || products.isEmpty()) {
-            return "Hiện tại mình chưa tìm thấy sản phẩm phù hợp ngay. Bạn có thể thử lại sau ít phút hoặc đổi từ khóa tìm kiếm.";
+            return "Chào bạn! Hiện tại các sản phẩm thuộc yêu cầu này tạm thời chưa có sẵn hoặc đã hết mùa vụ. Bạn vui lòng đổi từ khóa hoặc liên hệ hotline để nhận thông tin hàng mới về nhé! 🌿";
         }
 
+        String normalized = normalizeSearchText(userMessage);
+
+        if (normalized.contains("nguoi om") || normalized.contains("om") || normalized.contains("benh") || normalized.contains("suc khoe")) {
+            return "Chào bạn! Khi chọn hoa quả làm quà biếu cho người ốm hoặc người cần phục hồi sức khỏe, chúng ta nên ưu tiên các loại quả giàu vitamin C, mềm, dễ ăn và có nguồn gốc hữu cơ sạch rõ ràng.\n\nMetaFruit gợi ý các sản phẩm thích hợp nhất bên dưới như Cam Sành Hàm Yên, Kiwi Vàng và Nho Đỏ Không Hạt. Đây đều là những sản phẩm tươi ngon, có hàm lượng dinh dưỡng cao giúp tăng cường hệ miễn dịch rất tốt. Bạn có thể tham khảo danh sách cụ thể:";
+        }
+
+        if (normalized.contains("vitamin c") || normalized.contains("de khang")) {
+            return "Chào bạn! Trái cây giàu Vitamin C là lựa chọn tuyệt vời để tăng cường sức đề kháng và làm đẹp da tự nhiên. Tại MetaFruit, chúng tôi có sẵn nhiều loại trái cây chứa hàm lượng Vitamin C vượt trội như Cam Sành chín mọng, Kiwi Xanh/Vàng nhập khẩu trực tiếp và Dâu Tây hữu cơ thơm ngon.\n\nBạn có thể tham khảo ngay các sản phẩm giàu Vitamin C nổi bật bên dưới:";
+        }
+
+        if (normalized.contains("sau rieng")) {
+            return "Chào bạn! Để chọn được một quả sầu riêng Ri6 chín cây thơm ngon cơm vàng hạt lép, bạn nên chú ý chọn những quả eo tròn đều, vỏ có màu xanh rêu ngả vàng, gai nở to và có mùi thơm nồng đặc trưng tỏa ra ở phần đít quả.\n\nMetaFruit gợi ý sản phẩm Sầu Riêng Ri6 chín cây, múi cơm dày béo ngậy cực kỳ chất lượng đang có sẵn trong kho bên dưới:";
+        }
+
+        if (normalized.contains("bieu") || normalized.contains("qua tang") || normalized.contains("hop qua") || normalized.contains("gio qua") || normalized.contains("set qua")) {
+            return "Chào bạn! Để làm quà biếu tặng sang trọng trong các dịp lễ tết hoặc gặp mặt đối tác, các set giỏ quà hoặc hộp quà trái cây nhập khẩu của MetaFruit là sự lựa chọn hoàn hảo. Các set quà được bài trí tinh tế, kết hợp từ những loại quả thượng hạng nhập khẩu chính ngạch như Nho Móng Tay, Envy và Lê Nam Phi.\n\nBạn có thể tham khảo các set quà tặng cao cấp đang có sẵn bên dưới:";
+        }
+
+        if (normalized.contains("nhap khau") || normalized.contains("import")) {
+            return "Chào bạn! Trái cây nhập khẩu tại MetaFruit luôn cam kết độ tươi ngon tối đa, được bảo quản trong hệ thống kho lạnh chuẩn quốc tế và nhập khẩu chính ngạch từ các quốc gia uy tín như Mỹ, New Zealand, Úc, Nam Phi. Dưới đây là các loại quả nhập khẩu thượng hạng đang có sẵn tại cửa hàng:";
+        }
+
+        if (normalized.contains("cam")) {
+            return "Chào bạn! Quả cam tươi mọng nước là nguồn cung cấp dồi dào chất xơ, vitamin C và chất chống oxy hóa. MetaFruit đang có sẵn dòng Cam Sành Hàm Yên ngọt thanh đậm vị, cam chín tự nhiên rất tốt cho sức khỏe cả gia đình. Gợi ý cụ thể cho bạn bên dưới:";
+        }
+
+        if (normalized.contains("kiwi")) {
+            return "Chào bạn! Kiwi là dòng trái cây thượng hạng giàu dinh dưỡng, đặc biệt tốt cho hệ tiêu hóa và hệ miễn dịch. MetaFruit cung cấp cả Kiwi Vàng ngọt thơm dịu và Kiwi Xanh chua ngọt thanh mát nhập khẩu trực tiếp từ New Zealand. Chi tiết sản phẩm dành cho bạn:";
+        }
+
+        if (normalized.contains("nho")) {
+            return "Chào bạn! Các dòng nho nhập khẩu như Nho Móng Tay Mỹ ngọt lịm, Nho Xanh không hạt giòn ngọt và Nho Đỏ hữu cơ là những lựa chọn được yêu thích nhất tại MetaFruit. Nho chứa hàm lượng lớn chất chống oxy hóa resveratrol rất tốt cho tim mạch. Bạn tham khảo danh sách sau nhé:";
+        }
+
+        if (normalized.contains("tao")) {
+            return "Chào bạn! Táo Envy nhập khẩu nổi tiếng với độ giòn đanh, ngọt đậm và mùi thơm đặc trưng, rất thích hợp để ăn trực tiếp hoặc làm quà biếu. Dưới đây là các loại táo tươi ngon đang có sẵn tại hệ thống cửa hàng của chúng tôi:";
+        }
+
+        // Trường hợp mặc định tìm kiếm chung
         String intentLabel = deriveFallbackIntentLabel(userMessage);
         List<String> highlightNames = extractProductNames(products, 3);
         StringBuilder reply = new StringBuilder();
-        reply.append("Mình đã chọn ra các sản phẩm phù hợp nhất");
+        reply.append("Chào bạn! Trợ lý AI MetaFruit đã chọn ra các sản phẩm tươi ngon, phù hợp nhất");
         if (!intentLabel.isBlank()) {
-            reply.append(" cho ").append(intentLabel);
+            reply.append(" cho yêu cầu tìm kiếm ").append(intentLabel);
         }
-        reply.append(" trong kho hiện có.");
-
-        if (!highlightNames.isEmpty()) {
-            reply.append(" Nổi bật gồm ").append(joinNaturalLanguage(highlightNames));
-            if (products.size() > highlightNames.size()) {
-                reply.append(" và một số lựa chọn khác.");
-            } else {
-                reply.append('.');
-            }
+        reply.append(" đang sẵn sàng phục vụ bạn.\n\nNổi bật gồm có ").append(joinNaturalLanguage(highlightNames));
+        if (products.size() > highlightNames.size()) {
+            reply.append(" và một số lựa chọn chất lượng khác bên dưới:");
+        } else {
+            reply.append(" bên dưới:");
         }
 
         return reply.toString();

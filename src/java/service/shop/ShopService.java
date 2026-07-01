@@ -1,11 +1,13 @@
 package service.shop;
 
 import config.AppConfig;
+import dao.auth.UserDAO;
 import dao.shop.ShopProfileDAO;
 import model.entity.catalog.Product;
 import model.entity.shop.ShopProfile;
 import service.catalog.ProductService;
 import service.order.OrderService;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
@@ -13,13 +15,38 @@ import java.util.Locale;
 public class ShopService {
 
     private final ShopProfileDAO shopProfileDAO;
+    private final UserDAO userDAO;
     private final ProductService productService;
     private final OrderService orderService;
 
     public ShopService() {
         this.shopProfileDAO = new ShopProfileDAO();
+        this.userDAO = new UserDAO();
         this.productService = new ProductService();
         this.orderService = new OrderService();
+    }
+
+    @FunctionalInterface
+    private interface TransactionWork<T> {
+        T execute(Connection conn) throws SQLException;
+    }
+
+    private <T> T withTransaction(TransactionWork<T> work) throws SQLException {
+        try (Connection conn = shopProfileDAO.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                T result = work.execute(conn);
+                conn.commit();
+                return result;
+            } catch (SQLException e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    e.addSuppressed(rollbackEx);
+                }
+                throw e;
+            }
+        }
     }
 
     public List<ShopProfile> getAllShops() throws SQLException {
@@ -72,6 +99,64 @@ public class ShopService {
         }
     }
 
+    public int submitShopApplication(ShopProfile profile, String phoneToUpdate) throws SQLException {
+        if (profile == null) {
+            throw new IllegalArgumentException("Profile không được null.");
+        }
+        if (profile.getUserId() <= 0) {
+            throw new IllegalArgumentException("User ID không hợp lệ.");
+        }
+        return withTransaction(conn -> {
+            ensureBusinessEmailAvailable(conn, profile.getBusinessEmail(), profile.getUserId());
+            updatePhoneIfNeeded(conn, profile.getUserId(), phoneToUpdate);
+            return shopProfileDAO.save(conn, profile);
+        });
+    }
+
+    public void resubmitRejectedShopApplication(ShopProfile profile, String phoneToUpdate) throws SQLException {
+        if (profile == null) {
+            throw new IllegalArgumentException("Profile không được null.");
+        }
+        if (profile.getProfileId() <= 0 || profile.getUserId() <= 0) {
+            throw new IllegalArgumentException("Thông tin profile không hợp lệ.");
+        }
+        withTransaction(conn -> {
+            ensureBusinessEmailAvailable(conn, profile.getBusinessEmail(), profile.getUserId());
+            updatePhoneIfNeeded(conn, profile.getUserId(), phoneToUpdate);
+            shopProfileDAO.update(conn, profile);
+            return null;
+        });
+    }
+
+    public ShopProfile finalizeRegisteredShopProfile(int userId, String shopName, String shopAddress,
+            String preferredCategoriesJson, String businessEmail, String docPathsJson) throws SQLException {
+        if (userId <= 0) {
+            throw new IllegalArgumentException("User ID không hợp lệ.");
+        }
+        return withTransaction(conn -> {
+            ensureBusinessEmailAvailable(conn, businessEmail, userId);
+            ShopProfile profile = shopProfileDAO.findOneByUserId(conn, userId);
+            if (profile == null) {
+                throw new SQLException("Không tìm thấy hồ sơ shop cần cập nhật.");
+            }
+            if (shopName != null && !shopName.trim().isEmpty()) {
+                profile.setShopName(shopName.trim());
+            }
+            if (shopAddress != null && !shopAddress.trim().isEmpty()) {
+                profile.setDeliveryAddress(shopAddress.trim());
+            }
+            if (preferredCategoriesJson != null) {
+                profile.setPreferredCategories(preferredCategoriesJson);
+            }
+            if (docPathsJson != null) {
+                profile.setDocPaths(docPathsJson);
+            }
+            profile.setBusinessEmail(businessEmail != null ? businessEmail.trim() : null);
+            shopProfileDAO.update(conn, profile);
+            return profile;
+        });
+    }
+
     public ShopProfile getShopByUserId(int userId) throws SQLException {
         if (userId <= 0) {
             throw new IllegalArgumentException("User ID không hợp lệ.");
@@ -114,5 +199,24 @@ public class ShopService {
             return "Shop bị đình chỉ bởi quản trị viên.";
         }
         return "Shop không còn hoạt động.";
+    }
+
+    private void updatePhoneIfNeeded(Connection conn, int userId, String phoneToUpdate) throws SQLException {
+        if (phoneToUpdate == null || phoneToUpdate.trim().isEmpty()) {
+            return;
+        }
+        if (userDAO.isPhoneExists(conn, phoneToUpdate, userId)) {
+            throw new SQLException("Số điện thoại đã được đăng ký bởi tài khoản khác, vui lòng đăng nhập!");
+        }
+        userDAO.updatePhone(conn, userId, phoneToUpdate.trim());
+    }
+
+    private void ensureBusinessEmailAvailable(Connection conn, String businessEmail, int userId) throws SQLException {
+        if (businessEmail == null || businessEmail.trim().isEmpty()) {
+            throw new SQLException("Email liên hệ kinh doanh không được để trống.");
+        }
+        if (shopProfileDAO.isBusinessEmailExists(conn, businessEmail, userId)) {
+            throw new SQLException("Mỗi doanh nghiệp chỉ được đăng ký tối đa 1 gian hàng! Email kinh doanh này đã được sử dụng.");
+        }
     }
 }

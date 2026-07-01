@@ -8,68 +8,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giám sát đơn hàng - Admin Verdant Market</title>
-    <!-- Google Fonts & Tailwind CSS -->
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Giám sát đơn hàng - Admin MetaFruit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
-    <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    
-    <script id="tailwind-config">
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#4d661c",
-                        "primary-dark": "#364e03",
-                        "primary-light": "#d9f99d",
-                        bg: "#f4fbf7",
-                        surface: "#ffffff",
-                        border: "#e2ece7",
-                        "text-primary": "#00210d",
-                        "text-secondary": "#44483b",
-                        "text-muted": "#8e9285",
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        .premium-glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(77, 102, 28, 0.08);
-            box-shadow: 0 10px 30px -10px rgba(20, 83, 45, 0.03);
-        }
-    </style>
 </head>
-<body class="bg-bg text-text-primary">
-    <div class="admin-layout flex min-h-screen">
+<body class="antialiased text-txt bg-background">
+    <div class="admin-layout">
         <!-- Sidebar -->
         <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
             <jsp:param name="activeMenu" value="orders"/>
         </jsp:include>
 
         <!-- Main Content -->
-        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
-            <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
+            <%-- Page header --%>
+            <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Giám Sát Đơn Hàng</h1>
-                    <p class="text-[#475569] text-xs md:text-sm mt-1">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Giám Sát Đơn Hàng</h1>
+                    <p class="text-txt-2 text-xs md:text-sm mt-1">Xem và kiểm duyệt toàn bộ luồng giao dịch, thanh toán đơn hàng trên toàn hệ thống.</p>
                 </div>
-                <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                    <i class="fa-solid fa-leaf text-[#84cc16]"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider">Verdant Market Live</span>
+                <div class="hidden md:flex items-center gap-2 bg-primary-lt text-primary px-4 py-2 rounded-xl border border-primary-fixed font-bold">
+                    <i class="fa-solid fa-leaf text-primary"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">MetaFruit Live</span>
                 </div>
             </div>
 
             <!-- Flash Message (PRG pattern support) -->
-            <%-- Dùng data-* attribute để tránh JS string injection khi message chứa ' hoặc \ --%>
             <c:if test="${not empty sessionScope.flashMsg}">
                 <div id="flashData" hidden
                      data-icon="<c:out value="${sessionScope.flashType == 'success' ? 'success' : 'error'}"/>"
@@ -335,18 +304,7 @@
                 <!-- Pagination UI with advanced parameters preserved -->
                 <div class="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-border gap-4">
                     <span class="text-xs text-text-secondary font-medium">Trang ${currentPage} / ${totalPages}</span>
-                    <div class="flex gap-1.5">
-                        <c:if test="${currentPage > 1}">
-                            <a href="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}&page=${currentPage - 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
-                                <span class="material-symbols-outlined text-sm">chevron_left</span> Trước
-                            </a>
-                        </c:if>
-                        <c:if test="${currentPage < totalPages}">
-                            <a href="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}&page=${currentPage + 1}" class="bg-white border border-border hover:bg-slate-50 text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer">
-                                Sau <span class="material-symbols-outlined text-sm">chevron_right</span>
-                            </a>
-                        </c:if>
-                    </div>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}" />
                 </div>
             </div>
         </main>

@@ -102,28 +102,55 @@ public class PromotionService {
      * free-shipping vouchers are not in this schema, so any two ORDER-discount coupons are rejected).
      * Call this before saving the order to enforce server-side stacking rules.
      *
-     * Determination: if both shopPromo and systemPromo are non-null and BOTH have discountScope
-     * that reduces the merchandise price (SHOP or ALL with scope=ORDER), that is a double-discount
-     * stack and is rejected.
+     * Returns the DB record; never trusts a client-supplied discount value.
      *
-     * @throws BusinessException with code PRO-01 when illegal stack detected
+     * @throws BusinessException with code COUPON-SCOPE when scope mismatch is detected
      */
+    public void validateCouponStack(java.util.List<Promotion> shopPromos, java.util.List<Promotion> systemPromos) {
+        int totalCoupons = (shopPromos != null ? shopPromos.size() : 0) + (systemPromos != null ? systemPromos.size() : 0);
+        if (totalCoupons <= 1) {
+            return; // Single coupon is always allowed
+        }
+        
+        int systemCount = systemPromos != null ? systemPromos.size() : 0;
+        if (systemCount > 2) {
+            throw new BusinessException("PRO-01", "Tối đa chỉ được dùng 2 voucher sàn.");
+        }
+        
+        java.util.Map<Integer, Integer> shopCounts = new java.util.HashMap<>();
+        if (shopPromos != null) {
+            for (Promotion p : shopPromos) {
+                shopCounts.put(p.getCreatedBy(), shopCounts.getOrDefault(p.getCreatedBy(), 0) + 1);
+            }
+        }
+        for (java.util.Map.Entry<Integer, Integer> entry : shopCounts.entrySet()) {
+            if (entry.getValue() > 2) {
+                throw new BusinessException("PRO-01", "Mỗi shop tối đa chỉ được dùng 2 voucher shop.");
+            }
+        }
+
+        if (shopPromos != null) {
+            for (Promotion p : shopPromos) {
+                if (!p.getCanStack()) {
+                    throw new BusinessException("PRO-01", "Mã giảm giá [" + p.getCode() + "] không hỗ trợ cộng dồn.");
+                }
+            }
+        }
+        if (systemPromos != null) {
+            for (Promotion p : systemPromos) {
+                if (!p.getCanStack()) {
+                    throw new BusinessException("PRO-01", "Mã giảm giá [" + p.getCode() + "] không hỗ trợ cộng dồn.");
+                }
+            }
+        }
+    }
+
     public void validateCouponStack(Promotion shopPromo, Promotion systemPromo) {
-        if (shopPromo == null || systemPromo == null) {
-            return; // single coupon — always allowed
-        }
-        // Both coupons present: only allowed if one is a free-shipping type.
-        // Current schema has no SHIPPING scope, so any two ORDER-scope coupons are a double-discount.
-        boolean shopIsDiscount = "ORDER".equalsIgnoreCase(shopPromo.getScope())
-                && ("SHOP".equalsIgnoreCase(shopPromo.getDiscountScope())
-                    || "ALL".equalsIgnoreCase(shopPromo.getDiscountScope()));
-        boolean systemIsDiscount = "ORDER".equalsIgnoreCase(systemPromo.getScope())
-                && "ALL".equalsIgnoreCase(systemPromo.getDiscountScope());
-        if (shopIsDiscount && systemIsDiscount
-                && !(shopPromo.getCanStack() && systemPromo.getCanStack())) {
-            throw new BusinessException("PRO-01",
-                    "Không thể dùng đồng thời hai mã giảm giá. Chỉ được kết hợp 1 mã giảm giá + 1 mã miễn phí vận chuyển.");
-        }
+        java.util.List<Promotion> shops = new java.util.ArrayList<>();
+        if (shopPromo != null) shops.add(shopPromo);
+        java.util.List<Promotion> systems = new java.util.ArrayList<>();
+        if (systemPromo != null) systems.add(systemPromo);
+        validateCouponStack(shops, systems);
     }
 
     /**

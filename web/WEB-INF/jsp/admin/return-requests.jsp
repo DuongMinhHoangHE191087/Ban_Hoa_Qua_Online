@@ -3,66 +3,6 @@
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quản lý yêu cầu đổi trả (Admin)"/></jsp:include>
 
-<style>
-    .admin-container {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 0 15px;
-    }
-    .panel-card {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        border: 1px solid #eef2f3;
-        padding: 30px;
-    }
-    .panel-title {
-        font-family: 'Lexend', sans-serif;
-        font-weight: 700;
-        color: #1e3a8a;
-        margin-bottom: 25px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .status-badge {
-        font-weight: 600;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.85em;
-    }
-    .status-requested { background: #fff3e0; color: #e65100; }
-    .status-approved { background: #e8f5e9; color: #1b5e20; }
-    .status-rejected { background: #ffebee; color: #c62828; }
-    
-    .table-custom th {
-        background-color: #f8fafc;
-        color: #475569;
-        font-weight: 600;
-        border-bottom: 2px solid #e2e8f0;
-    }
-    .table-custom td {
-        vertical-align: middle;
-    }
-    .modal-custom {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-content-custom {
-        background: #fff;
-        padding: 30px;
-        border-radius: 12px;
-        width: 100%;
-        max-width: 500px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-</style>
-
 <div class="admin-container">
     <div class="panel-card">
         <h2 class="panel-title"><i class="fa-solid fa-list-check"></i> Quản lý Yêu cầu Đổi trả hàng (Admin)</h2>
@@ -94,11 +34,11 @@
                                     <c:when test="${not empty req.productName}">
                                         <c:out value="${req.productName}"/>
                                         <c:if test="${not empty req.variantLabel}">
-                                            <br/><small style="color:#888;">Phân loại: <c:out value="${req.variantLabel}"/></small>
+                                            <br/><small class="text-xs text-gray-500">Phân loại: <c:out value="${req.variantLabel}"/></small>
                                         </c:if>
                                     </c:when>
                                     <c:otherwise>
-                                        <small style="color:#999; font-style:italic;">Toàn bộ đơn hàng</small>
+                                        <small class="text-xs italic text-gray-400">Toàn bộ đơn hàng</small>
                                     </c:otherwise>
                                 </c:choose>
                             </td>
@@ -109,29 +49,29 @@
                                 </span>
                             </td>
                             <td>
-                                <span style="font-weight: 500; font-size: 0.9em;"><c:out value="${req.reasonCode}"/></span>
+                                <span class="text-sm font-medium"><c:out value="${req.reasonCode}"/></span>
                                 <c:if test="${not empty req.description}">
-                                    <br/><small style="color:#777;"><c:out value="${req.description}"/></small>
+                                    <br/><small class="text-xs text-gray-500"><c:out value="${req.description}"/></small>
                                 </c:if>
                                 <c:if test="${not empty req.evidenceUrl}">
-                                    <br/><a href="<c:out value="${req.evidenceUrl}"/>" target="_blank" style="font-size:0.8em;"><i class="fa-solid fa-image"></i> Xem bằng chứng</a>
+                                    <br/><a href="<c:out value="${req.evidenceUrl}"/>" target="_blank" class="text-[0.8em]"><i class="fa-solid fa-image"></i> Xem bằng chứng</a>
                                 </c:if>
                             </td>
                             <td><c:out value="${req.requestedQuantity}"/></td>
-                            <td style="color:#d32f2f; font-weight:700;"><c:out value="${req.refundAmount}"/>đ</td>
+                            <td class="text-[#d32f2f] font-bold"><c:out value="${req.refundAmount}"/>đ</td>
                             <td>
                                 <c:choose>
                                     <c:when test="${req.status == 'REQUESTED'}">
                                         <span class="status-badge status-requested">Chưa duyệt</span>
                                     </c:when>
                                     <c:when test="${req.status == 'PROCESSING'}">
-                                        <span class="status-badge" style="background:#e0f2fe; color:#0284c7;">Đang xử lý</span>
+                                        <span class="status-badge status-badge-pending">Đang xử lý</span>
                                     </c:when>
                                     <c:when test="${req.status == 'APPROVED'}">
                                         <span class="status-badge status-approved">Đã duyệt</span>
                                     </c:when>
                                     <c:when test="${req.status == 'COMPLETED'}">
-                                        <span class="status-badge" style="background:#d1fae5; color:#059669;">Đã hoàn tiền</span>
+                                        <span class="status-badge status-badge-approved">Đã hoàn tiền</span>
                                     </c:when>
                                     <c:otherwise>
                                         <span class="status-badge status-rejected">Từ chối</span>
@@ -149,9 +89,9 @@
                                         <button class="btn btn-sm btn-info" disabled>Đang xử lý</button>
                                     </c:when>
                                     <c:otherwise>
-                                        <small style="color: #666; font-style:italic;">Đã quyết định bởi Admin #${req.decidedBy}</small>
+                                        <small class="text-xs italic text-gray-500">Đã quyết định bởi Admin #${req.decidedBy}</small>
                                         <c:if test="${not empty req.decisionReason}">
-                                            <br/><small style="color:#888;">Lý do: <c:out value="${req.decisionReason}"/></small>
+                                            <br/><small class="text-xs text-gray-500">Lý do: <c:out value="${req.decisionReason}"/></small>
                                         </c:if>
                                     </c:otherwise>
                                 </c:choose>
@@ -160,7 +100,7 @@
                     </c:forEach>
                     <c:if test="${empty returnRequests}">
                         <tr>
-                            <td colspan="10" class="text-center" style="color: #888; padding: 30px 0;">Không có yêu cầu đổi trả nào.</td>
+                            <td colspan="10" class="px-6 py-8 text-center text-gray-400">Không có yêu cầu đổi trả nào.</td>
                         </tr>
                     </c:if>
                 </tbody>
@@ -172,7 +112,7 @@
 <!-- Modal Quyết định -->
 <div id="decisionModal" class="modal-custom">
     <div class="modal-content-custom">
-        <h4 style="font-family:'Lexend',sans-serif; margin-bottom: 20px;" id="modalTitle">Phán quyết yêu cầu</h4>
+        <h4 class="mb-5 font-bold text-lg" id="modalTitle">Phán quyết yêu cầu</h4>
         <form action="${pageContext.request.contextPath}/returns" method="post">
             <input type="hidden" name="action" value="decide"/>
             <input type="hidden" name="requestId" id="modalReqId"/>
@@ -180,7 +120,7 @@
             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}"/>
 
             <div class="form-group">
-                <label for="reason" class="form-label">Lý do duyệt/từ chối <span style="color:red;">*</span></label>
+                <label for="reason" class="form-label">Lý do duyệt/từ chối <span class="text-red-600">*</span></label>
                 <textarea class="form-control" name="reason" id="reason" rows="4" required placeholder="Nhập lý do chi tiết cho quyết định này để gửi cho khách hàng..."></textarea>
             </div>
 

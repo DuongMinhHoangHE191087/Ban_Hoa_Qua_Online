@@ -929,6 +929,32 @@ public class ProductDAO extends BaseDAO {
     }
 
     /**
+     * Đếm số lượng sản phẩm phục vụ trang quản trị Admin (lọc theo trạng thái duyệt)
+     */
+    public int countAllAdminProducts(String approvalStatusFilter) throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM products WHERE status != 'DELETED' ");
+        List<Object> params = new ArrayList<>();
+        
+        if (approvalStatusFilter != null && !approvalStatusFilter.trim().isEmpty()) {
+            sql.append("AND approval_status = ? ");
+            params.add(approvalStatusFilter.trim());
+        }
+        
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
      * Cập nhật trạng thái phê duyệt sản phẩm bởi Admin.
      * Cập nhật cả nhãn Organic/Imported và Category ID nếu được Admin chỉ định khi duyệt.
      */
@@ -1230,11 +1256,32 @@ public class ProductDAO extends BaseDAO {
             item.put("stockRemaining", stockRemaining);
             item.put("stockTotal", Math.max(stockRemaining + soldQuantity, stockRemaining));
         } else {
-            item.put("price", basePrice);
-            item.put("originalPrice", basePrice);
-            item.put("discountPercent", 0);
+            BigDecimal originalPrice = rs.getBigDecimal("original_price");
+            if (originalPrice == null) originalPrice = basePrice;
+            
+            if (originalPrice.compareTo(basePrice) > 0) {
+                int discountPercent = originalPrice.subtract(basePrice)
+                        .multiply(new BigDecimal("100"))
+                        .divide(originalPrice, 0, java.math.RoundingMode.HALF_UP)
+                        .intValue();
+                item.put("price", basePrice);
+                item.put("originalPrice", originalPrice);
+                item.put("discountPercent", discountPercent);
+            } else {
+                item.put("price", basePrice);
+                item.put("originalPrice", basePrice);
+                item.put("discountPercent", 0);
+            }
             item.put("stockRemaining", stockRemaining);
             item.put("stockTotal", Math.max(stockRemaining + soldQuantity, stockRemaining));
+        }
+        try {
+            java.sql.Timestamp validUntil = rs.getTimestamp("valid_until");
+            if (validUntil != null) {
+                item.put("validUntil", validUntil.getTime());
+            }
+        } catch (SQLException e) {
+            // Bỏ qua nếu cột không tồn tại trong ResultSet
         }
         return item;
     }
@@ -1243,12 +1290,12 @@ public class ProductDAO extends BaseDAO {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
-                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
-                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "    SELECT product_id, price AS cheapest_price, price AS original_price, variant_label, stock_quantity, "
                    + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
                    + "    FROM product_variants "
                    + "    WHERE is_active = 1 AND stock_quantity > 0 "
@@ -1273,12 +1320,12 @@ public class ProductDAO extends BaseDAO {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
-                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
-                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "    SELECT product_id, price AS cheapest_price, price AS original_price, variant_label, stock_quantity, "
                    + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
                    + "    FROM product_variants "
                    + "    WHERE is_active = 1 AND stock_quantity > 0 "
@@ -1304,12 +1351,12 @@ public class ProductDAO extends BaseDAO {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
-                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
-                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "    SELECT product_id, price AS cheapest_price, price AS original_price, variant_label, stock_quantity, "
                    + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
                    + "    FROM product_variants "
                    + "    WHERE is_active = 1 AND stock_quantity > 0 "
@@ -1335,12 +1382,12 @@ public class ProductDAO extends BaseDAO {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
-                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
-                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "    SELECT product_id, price AS cheapest_price, price AS original_price, variant_label, stock_quantity, "
                    + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
                    + "    FROM product_variants "
                    + "    WHERE is_active = 1 AND stock_quantity > 0 "
@@ -1366,12 +1413,12 @@ public class ProductDAO extends BaseDAO {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT TOP (?) p.product_id, p.name, p.description, p.rating, p.sold_quantity, "
                    + "       pi.file_path AS primary_image_path, "
-                   + "       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
-                   + "       pr.discount_type, pr.discount_value, pr.discount_max "
+                   + "       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, "
+                   + "       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
                    + "FROM products p "
                    + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 "
                    + "LEFT JOIN ( "
-                   + "    SELECT product_id, price, variant_label, stock_quantity, "
+                   + "    SELECT product_id, price AS cheapest_price, price AS original_price, variant_label, stock_quantity, "
                    + "           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn "
                    + "    FROM product_variants "
                    + "    WHERE is_active = 1 AND stock_quantity > 0 "
@@ -1402,8 +1449,8 @@ public class ProductDAO extends BaseDAO {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT p.product_id, p.name, p.description, p.rating, p.sold_quantity, ");
         sql.append("       pi.file_path AS primary_image_path, ");
-        sql.append("       pv.price AS cheapest_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, ");
-        sql.append("       pr.discount_type, pr.discount_value, pr.discount_max ");
+        sql.append("       pv.cheapest_price, pv.original_price, pv.variant_label AS cheapest_unit, pv.stock_quantity AS cheapest_stock, ");
+        sql.append("       pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until ");
         sql.append("FROM products p ");
         sql.append("JOIN ( ");
         sql.append("    SELECT p.product_id");
@@ -1436,8 +1483,22 @@ public class ProductDAO extends BaseDAO {
         sql.append(") temp ON p.product_id = temp.product_id ");
         sql.append("LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.is_primary = 1 ");
         sql.append("LEFT JOIN ( ");
-        sql.append("    SELECT product_id, price, variant_label, stock_quantity, ");
-        sql.append("           ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY price ASC, variant_id ASC) as rn ");
+        sql.append("    SELECT product_id, variant_label, stock_quantity, ");
+        sql.append("           CASE ");
+        sql.append("               WHEN discount_price IS NOT NULL AND discount_start IS NOT NULL AND discount_end IS NOT NULL AND GETDATE() BETWEEN discount_start AND discount_end ");
+        sql.append("               THEN discount_price ");
+        sql.append("               ELSE price ");
+        sql.append("           END AS cheapest_price, ");
+        sql.append("           price AS original_price, ");
+        sql.append("           ROW_NUMBER() OVER ( ");
+        sql.append("               PARTITION BY product_id ");
+        sql.append("               ORDER BY CASE ");
+        sql.append("                   WHEN discount_price IS NOT NULL AND discount_start IS NOT NULL AND discount_end IS NOT NULL AND GETDATE() BETWEEN discount_start AND discount_end ");
+        sql.append("                   THEN discount_price ");
+        sql.append("                   ELSE price ");
+        sql.append("               END ASC, variant_id ASC ");
+        // Clean up ending
+        sql.append("           ) as rn ");
         sql.append("    FROM product_variants ");
         sql.append("    WHERE is_active = 1 AND stock_quantity > 0 ");
         sql.append(") pv ON pv.product_id = p.product_id AND pv.rn = 1 ");

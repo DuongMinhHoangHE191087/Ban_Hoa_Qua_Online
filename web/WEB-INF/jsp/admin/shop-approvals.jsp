@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -7,49 +7,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phê duyệt cửa hàng – Admin Verdant Market</title>
+    <title>Phê duyệt cửa hàng – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        'primary-lt': '#f0f7e6',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                        'txt-3':      '#94a3b8',
-                    },
-                    fontFamily: {
-                        sans: ['Segoe UI','-apple-system','BlinkMacSystemFont','Helvetica Neue','Arial','sans-serif'],
-                    },
-                    boxShadow: {
-                        card: '0 1px 3px rgba(0,0,0,.06),0 4px 16px -4px rgba(20,83,45,.06)',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',-apple-system,sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        tbody tr { transition:background .12s; }
-        tbody tr:hover td { background:#f8fafc; }
-    </style>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
 <div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
@@ -57,16 +23,16 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
 
         <%-- Page header --%>
-        <div class="flex items-center justify-between bg-gradient-to-r from-[#f0faf3] to-[#dcfce7] border border-[#bbf7d0]/60 p-6 rounded-2xl shadow-sm mb-8">
+        <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
             <div>
-                <h1 class="text-xl md:text-2xl font-extrabold text-[#364e03] tracking-tight">Phê Duyệt Cửa Hàng</h1>
-                <p class="text-[#475569] text-xs md:text-sm mt-1">Duyệt thông tin đăng ký gian hàng và cấp quyền kinh doanh cho người dùng.</p>
+                <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Phê Duyệt Cửa Hàng</h1>
+                <p class="text-txt-2 text-xs md:text-sm mt-1">Duyệt thông tin đăng ký gian hàng và cấp quyền kinh doanh cho người dùng.</p>
             </div>
-            <div class="hidden md:flex items-center gap-2 bg-[#ffffff]/80 border border-[#bbf7d0]/80 px-4 py-2 rounded-xl text-[#364e03] shadow-sm">
-                <i class="fa-solid fa-store text-[#84cc16]"></i>
+            <div class="hidden md:flex items-center gap-2 bg-primary-lt text-primary px-4 py-2 rounded-xl border border-primary-fixed font-bold">
+                <i class="fa-solid fa-store text-primary"></i>
                 <span class="text-xs font-bold uppercase tracking-wider">Gian Hàng</span>
             </div>
         </div>
@@ -229,13 +195,15 @@
     </div>
 </div>
 
-<!-- Map các danh mục từ DB thành object js để lookup dễ dàng -->
-<script>
-    const categoryMap = {
-        <c:forEach var="cat" items="${categories}">
-            "${cat.categoryId}": "${fn:escapeXml(cat.name)}",
+<script id="categoriesData" type="application/json">
+    {
+        <c:forEach var="cat" items="${categories}" varStatus="status">
+            "${cat.categoryId}": "${fn:escapeXml(cat.name)}"<c:if test="${!status.last}">,</c:if>
         </c:forEach>
-    };
+    }
+</script>
+<script>
+    const categoryMap = JSON.parse(document.getElementById('categoriesData').textContent);
 </script>
 
 <%-- Reject Modal --%>
@@ -414,15 +382,14 @@
                             if (paths && paths.length > 0) {
                                 paths.forEach(path => {
                                     const fileName = path.split('/').pop().split('\\').pop();
-                                    const fileUrl = '${pageContext.request.contextPath}/' + path;
+                                    const fileUrl = '${pageContext.request.contextPath}/shop/docs?path=' + encodeURIComponent(path);
                                     docContainer.innerHTML += `<li class="flex items-center justify-between p-3 border border-border rounded-lg bg-white">
                                         <div class="flex items-center gap-2 overflow-hidden">
                                             <i class="fa-solid fa-file-alt text-primary text-lg"></i>
                                             <span class="text-xs text-txt truncate">` + fileName + `</span>
                                         </div>
                                         <div class="flex gap-2">
-                                            <a href="` + fileUrl + `" target="_blank" class="text-blue-600 hover:text-blue-800" title="Xem trước"><i class="fa-solid fa-eye"></i></a>
-                                            <a href="` + fileUrl + `" download class="text-emerald-600 hover:text-emerald-800" title="Tải xuống"><i class="fa-solid fa-download"></i></a>
+                                            <a href="` + fileUrl + `" class="text-emerald-600 hover:text-emerald-800" title="Tải xuống"><i class="fa-solid fa-download"></i></a>
                                         </div>
                                     </li>`;
                                 });

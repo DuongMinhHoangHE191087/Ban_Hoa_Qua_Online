@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
@@ -19,7 +19,7 @@
 </jsp:include>
 
 <!-- Load Tailwind CSS dynamically to sync container layout with Home page -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <script id="tailwind-config">
     tailwind.config = {
         theme: {
@@ -34,1042 +34,8 @@
     }
 </script>
 
-<!-- Custom Premium CSS for Product Detail Page using Tailwind directives -->
-<style type="text/tailwindcss">
-    /* ============================================================
-       PREMIUM PAGE DESIGN TOKENS
-    ============================================================ */
-    :root {
-        --color-accent: #84CC16;
-        --color-glass-bg: rgba(255, 255, 255, 0.72);
-        --color-glass-border: rgba(226, 236, 231, 0.6);
-        --transition-premium: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        --shop-green: rgba(77, 102, 28, 0.06);
-        --shop-green-border: rgba(77, 102, 28, 0.12);
-    }
-
-    /* ============================================================
-       PAGE CONTAINER & LAYOUT
-    ============================================================ */
-    .detail-container {
-        padding-top: var(--space-8);
-        padding-bottom: var(--space-12);
-        background:
-            radial-gradient(ellipse at 0% 0%, rgba(187,247,208,0.35) 0%, transparent 55%),
-            radial-gradient(ellipse at 100% 10%, rgba(134,239,172,0.2) 0%, transparent 50%),
-            linear-gradient(160deg, #f0fdf4 0%, #ffffff 60%, #f7fee7 100%);
-        min-height: 100vh;
-    }
-
-    /* Breadcrumbs */
-    .breadcrumbs {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        font-size: var(--font-size-sm);
-        color: var(--color-text-secondary);
-        margin-bottom: var(--space-6);
-    }
-    .breadcrumbs a {
-        color: var(--color-text-muted);
-        transition: var(--transition-premium);
-    }
-    .breadcrumbs a:hover {
-        color: var(--color-primary);
-        text-decoration: none;
-    }
-    .breadcrumbs .separator {
-        color: var(--color-text-muted);
-        opacity: 0.5;
-    }
-
-    /* Two-Column Product Grid */
-    .detail-grid {
-        display: grid;
-        grid-template-columns: 1.1fr 1fr;
-        gap: var(--space-10);
-        margin-bottom: var(--space-8);
-    }
-    @media (max-width: 992px) {
-        .detail-grid { grid-template-columns: 1fr; gap: var(--space-8); }
-    }
-
-    /* Glassmorphic Panel */
-    .premium-panel {
-        background: rgba(255,255,255,0.88);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1.5px solid rgba(134,239,172,0.3);
-        border-radius: var(--radius-xl);
-        padding: var(--space-6);
-        box-shadow:
-            0 8px 32px rgba(34,197,94,0.08),
-            0 1px 4px rgba(20,83,45,0.06),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-        transition: var(--transition-premium);
-    }
-    .premium-panel:hover {
-        box-shadow:
-            0 16px 48px rgba(34,197,94,0.12),
-            0 2px 8px rgba(20,83,45,0.08),
-            inset 0 1px 0 rgba(255,255,255,1);
-        border-color: rgba(134,239,172,0.5);
-    }
-
-    /* GALLERY */
-    .gallery-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-4);
-    }
-    .main-image-box {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 4/3;
-        border-radius: var(--radius-xl);
-        overflow: hidden;
-        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-        border: 2px solid rgba(134,239,172,0.35);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 8px 32px rgba(34,197,94,0.1), inset 0 1px 0 rgba(255,255,255,0.8);
-    }
-    .main-image-box img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
-    }
-    .main-image-box:hover img { transform: scale(1.05); }
-    .thumbnail-list {
-        display: flex;
-        gap: var(--space-3);
-        overflow-x: auto;
-        padding-bottom: var(--space-2);
-    }
-    .thumbnail-item {
-        width: 80px;
-        height: 60px;
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        border: 2px solid transparent;
-        cursor: pointer;
-        opacity: 0.65;
-        transition: var(--transition-premium);
-        background: #fff;
-        flex-shrink: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .thumbnail-item img { width: 100%; height: 100%; object-fit: cover; }
-    .thumbnail-item.active, .thumbnail-item:hover {
-        border-color: #22c55e;
-        opacity: 1;
-        transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(34,197,94,0.2);
-    }
-
-    /* ============================================================
-       BADGES & TAGS
-    ============================================================ */
-    .badge-stock {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px var(--space-3);
-        border-radius: var(--radius-full);
-        font-size: var(--font-size-xs);
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .badge-instock {
-        background: linear-gradient(120deg, #dcfce7, #bbf7d0);
-        color: #14532d;
-        border: 1px solid rgba(34,197,94,0.3);
-        box-shadow: 0 2px 8px rgba(34,197,94,0.15);
-    }
-    .badge-outstock {
-        background: linear-gradient(120deg, #fee2e2, #fecaca);
-        color: #7f1d1d;
-        border: 1px solid rgba(239,68,68,0.3);
-    }
-    .badge-rating-top {
-        background: linear-gradient(120deg, #fef9c3, #fde68a);
-        color: #713f12;
-        border: 1px solid rgba(245,158,11,0.3);
-        font-weight: 700;
-        font-size: var(--font-size-xs);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 5px var(--space-3);
-        border-radius: var(--radius-full);
-        box-shadow: 0 2px 8px rgba(245,158,11,0.12);
-    }
-
-    /* ============================================================
-       VARIANT SELECTOR
-    ============================================================ */
-    .variant-section { margin: var(--space-5) 0; }
-    .section-sub-title {
-        font-size: var(--font-size-xs);
-        font-weight: 800;
-        color: #14532d;
-        margin-bottom: var(--space-3);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .section-sub-title::before {
-        content: '';
-        display: inline-block;
-        width: 3px; height: 14px;
-        background: linear-gradient(180deg, #22c55e, #16a34a);
-        border-radius: 2px;
-    }
-    .variant-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-    .variant-chip-input { display: none; }
-    .variant-chip-label {
-        display: inline-flex;
-        align-items: center;
-        padding: var(--space-2) var(--space-5);
-        border: 2px solid #e2e8f0;
-        border-radius: var(--radius-full);
-        font-weight: 600;
-        font-size: var(--font-size-sm);
-        color: #475569;
-        cursor: pointer;
-        transition: var(--transition-premium);
-        background: #fff;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    }
-    .variant-chip-input:checked + .variant-chip-label {
-        border-color: #16a34a;
-        background: linear-gradient(120deg, #f0fdf4, #dcfce7);
-        color: #14532d;
-        box-shadow: 0 0 0 3px rgba(34,197,94,0.15), 0 2px 8px rgba(34,197,94,0.1);
-        font-weight: 700;
-    }
-    .variant-chip-label:hover {
-        border-color: #22c55e;
-        color: #14532d;
-        background: #f0fdf4;
-        transform: translateY(-1px);
-    }
-
-    /* ============================================================
-       CART ACTIONS
-    ============================================================ */
-    .cart-action-row {
-        display: flex;
-        align-items: center;
-        gap: var(--space-4);
-        margin-top: var(--space-6);
-        margin-bottom: var(--space-2);
-    }
-    .qty-selector {
-        display: flex;
-        align-items: center;
-        border: 2px solid #e2e8f0;
-        border-radius: var(--radius-full);
-        padding: 2px;
-        background: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        transition: var(--transition-premium);
-    }
-    .qty-selector:focus-within {
-        border-color: #22c55e;
-        box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
-    }
-    .qty-btn {
-        width: 36px; height: 36px;
-        border-radius: var(--radius-full);
-        border: none;
-        background: none;
-        color: #16a34a;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1rem;
-        transition: var(--transition-premium);
-        font-weight: 700;
-    }
-    .qty-btn:hover {
-        background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-        color: #14532d;
-        transform: scale(1.1);
-    }
-    .qty-input {
-        width: 44px;
-        text-align: center;
-        border: none;
-        font-weight: 800;
-        font-size: var(--font-size-base);
-        color: #14532d;
-        outline: none;
-        background: transparent;
-    }
-    .qty-input::-webkit-outer-spin-button,
-    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    .btn-add-to-cart-large {
-        flex: 1;
-        padding: 14px var(--space-6);
-        background: linear-gradient(135deg, #16a34a 0%, #22c55e 60%, #4ade80 100%);
-        color: #fff;
-        font-weight: 800;
-        font-size: var(--font-size-base);
-        border-radius: var(--radius-full);
-        border: none;
-        cursor: pointer;
-        display: inline-flex; align-items: center; justify-content: center;
-        gap: var(--space-2);
-        box-shadow: 0 4px 20px rgba(34,197,94,0.35), 0 2px 8px rgba(20,83,45,0.2);
-        transition: var(--transition-premium);
-        letter-spacing: 0.2px;
-        position: relative;
-        overflow: hidden;
-    }
-    .btn-add-to-cart-large::before {
-        content: '';
-        position: absolute;
-        top: 0; left: -100%;
-        width: 100%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s ease;
-    }
-    .btn-add-to-cart-large:hover::before { left: 100%; }
-    .btn-add-to-cart-large:hover {
-        background: linear-gradient(135deg, #14532d 0%, #16a34a 60%, #22c55e 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 28px rgba(34,197,94,0.45), 0 4px 12px rgba(20,83,45,0.25);
-    }
-    .btn-add-to-cart-large:active { transform: translateY(0); }
-
-    /* Product Description Box */
-    .product-desc-box {
-        background: linear-gradient(135deg, rgba(240,253,244,0.8) 0%, rgba(220,252,231,0.5) 100%);
-        border: 1px solid rgba(34,197,94,0.2);
-        border-left: 3px solid #22c55e;
-        border-radius: 0 var(--radius-md) var(--radius-md) 0;
-        padding: var(--space-4) var(--space-5);
-        margin-bottom: var(--space-5);
-        position: relative;
-    }
-    .product-desc-box::before {
-        content: '\201C';
-        position: absolute;
-        top: -4px; left: 12px;
-        font-size: 2.5rem;
-        color: #22c55e;
-        opacity: 0.3;
-        line-height: 1;
-        font-family: Georgia, serif;
-    }
-    .product-desc-text {
-        font-size: var(--font-size-sm);
-        color: #374151;
-        line-height: 1.75;
-        font-style: italic;
-        padding-left: var(--space-3);
-    }
-
-    /* Price Area */
-    .price-area {
-        background: linear-gradient(120deg, rgba(240,253,244,0.95) 0%, rgba(220,252,231,0.7) 100%);
-        border: 1.5px solid rgba(34,197,94,0.25);
-        border-radius: var(--radius-lg);
-        padding: var(--space-4) var(--space-5);
-        margin-bottom: var(--space-4);
-        display: flex;
-        align-items: baseline;
-        gap: var(--space-2);
-        box-shadow: 0 2px 12px rgba(34,197,94,0.08), inset 0 1px 0 rgba(255,255,255,0.8);
-    }
-    .price-main {
-        font-size: 2.2rem;
-        font-weight: 900;
-        background: linear-gradient(135deg, #14532d, #16a34a);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        line-height: 1;
-        letter-spacing: -1px;
-    }
-    .price-unit {
-        font-size: var(--font-size-sm);
-        color: #6b7280;
-        font-weight: 500;
-    }
-
-    /* Flash Sale Inline Badge */
-    .flash-sale-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: linear-gradient(120deg, #fff1f2, #ffe4e6);
-        border: 1.5px solid rgba(239,68,68,0.3);
-        border-radius: var(--radius-full);
-        padding: 5px var(--space-4);
-        font-size: var(--font-size-xs);
-        font-weight: 700;
-        color: #991B1B;
-        margin-bottom: var(--space-3);
-        box-shadow: 0 2px 8px rgba(239,68,68,0.1);
-        animation: pulse-red 2s infinite;
-    }
-    @keyframes pulse-red {
-        0%, 100% { box-shadow: 0 2px 8px rgba(239,68,68,0.1); }
-        50% { box-shadow: 0 2px 16px rgba(239,68,68,0.25); }
-    }
-
-    /* Stock indicator */
-    .stock-indicator {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        font-size: var(--font-size-xs);
-        color: #6b7280;
-        margin-bottom: var(--space-5);
-    }
-    .stock-bar-bg {
-        flex: 1;
-        height: 5px;
-        background: #e5e7eb;
-        border-radius: var(--radius-full);
-        overflow: hidden;
-        max-width: 120px;
-    }
-    .stock-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #22c55e, #4ade80);
-        border-radius: var(--radius-full);
-        transition: width 0.8s ease;
-    }
-
-    /* ============================================================
-       SHOP PROFILE CARD (below product info)
-    ============================================================ */
-    .shop-profile-panel {
-        background: linear-gradient(160deg, rgba(255,255,255,0.96) 0%, rgba(240,253,244,0.92) 100%);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(74,187,74,0.22);
-        border-radius: var(--radius-xl);
-        overflow: hidden;
-        margin-bottom: var(--space-6);
-        box-shadow: 0 8px 32px rgba(34,197,94,0.10), 0 2px 8px rgba(20,83,45,0.06);
-    }
-    .shop-header-band {
-        background: linear-gradient(120deg, #16a34a 0%, #22c55e 45%, #4ade80 80%, #86efac 100%);
-        padding: var(--space-5) var(--space-6);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-4);
-    }
-    .shop-header-left {
-        display: flex;
-        align-items: center;
-        gap: var(--space-4);
-    }
-    .shop-avatar-lg {
-        width: 56px; height: 56px;
-        background: rgba(255,255,255,0.2);
-        border-radius: var(--radius-lg);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.6rem;
-        color: #fff;
-        border: 2px solid rgba(255,255,255,0.3);
-        flex-shrink: 0;
-    }
-    .shop-name-hero {
-        font-weight: 800;
-        font-size: 1.15rem;
-        color: #fff;
-        margin-bottom: 2px;
-        letter-spacing: -0.3px;
-    }
-    .shop-hero-sub {
-        font-size: var(--font-size-xs);
-        color: rgba(255,255,255,0.75);
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-    }
-    .shop-rating-stars-sm {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        color: #FCD34D;
-        font-size: var(--font-size-xs);
-    }
-    .btn-visit-shop-hero {
-        padding: var(--space-2) var(--space-5);
-        background: rgba(255,255,255,0.15);
-        color: #fff;
-        font-weight: 700;
-        font-size: var(--font-size-sm);
-        border-radius: var(--radius-full);
-        border: 1.5px solid rgba(255,255,255,0.4);
-        white-space: nowrap;
-        transition: var(--transition-premium);
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-2);
-    }
-    .btn-visit-shop-hero:hover {
-        background: rgba(255,255,255,0.28);
-        border-color: rgba(255,255,255,0.7);
-        text-decoration: none;
-    }
-    .shop-body-section {
-        padding: var(--space-4) var(--space-6);
-        border-bottom: 1px dashed var(--color-glass-border);
-    }
-    .shop-body-section:last-child { border-bottom: none; }
-    .shop-section-label {
-        font-size: 10px;
-        font-weight: 800;
-        color: var(--color-primary-dark);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: var(--space-3);
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-    }
-    .shop-section-label i { color: var(--color-primary); }
-
-    /* ============================================================
-       SHIPPING INFO PILLS
-    ============================================================ */
-    .shipping-info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: var(--space-3);
-    }
-    .shipping-pill {
-        background: linear-gradient(135deg, rgba(240,253,244,0.95) 0%, rgba(220,252,231,0.8) 100%);
-        border: 1px solid rgba(34,197,94,0.2);
-        border-radius: var(--radius-lg);
-        padding: var(--space-3) var(--space-4);
-        display: flex;
-        align-items: flex-start;
-        gap: var(--space-3);
-        transition: var(--transition-premium);
-    }
-    .shipping-pill:hover {
-        background: linear-gradient(135deg, rgba(220,252,231,0.98) 0%, rgba(187,247,208,0.7) 100%);
-        border-color: rgba(34,197,94,0.4);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(34,197,94,0.12);
-    }
-    .shipping-pill-icon {
-        width: 36px; height: 36px;
-        border-radius: var(--radius-md);
-        background: linear-gradient(135deg, #22c55e, #16a34a);
-        display: flex; align-items: center; justify-content: center;
-        color: #fff;
-        font-size: 1rem;
-        flex-shrink: 0;
-        box-shadow: 0 2px 8px rgba(34,197,94,0.3);
-    }
-    .shipping-pill-title {
-        font-weight: 700;
-        font-size: var(--font-size-sm);
-        color: #14532d;
-        margin-bottom: 2px;
-    }
-    .shipping-pill-sub {
-        font-size: var(--font-size-xs);
-        color: #166534;
-        opacity: 0.8;
-        line-height: 1.4;
-    }
-
-    /* ============================================================
-       VOUCHER / PROMOTION SECTION — Horizontal Slider
-    ============================================================ */
-    .voucher-slider-wrapper {
-        position: relative;
-    }
-    .voucher-slider-nav {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: var(--space-2);
-    }
-    .voucher-nav-btn {
-        width: 30px; height: 30px;
-        border-radius: var(--radius-full);
-        border: 1.5px solid #22c55e;
-        background: #fff;
-        color: #16a34a;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 12px;
-        transition: var(--transition-premium);
-        flex-shrink: 0;
-        box-shadow: 0 2px 8px rgba(34,197,94,0.12);
-    }
-    .voucher-nav-btn:hover { background: #22c55e; color: #fff; box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
-    .voucher-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .voucher-dots {
-        display: flex; gap: 5px; align-items: center;
-    }
-    .voucher-dot {
-        width: 6px; height: 6px;
-        border-radius: 50%;
-        background: #bbf7d0;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    .voucher-dot.active { background: #16a34a; width: 18px; border-radius: 3px; }
-    .voucher-track-container {
-        overflow: hidden;
-        border-radius: var(--radius-lg);
-    }
-    .voucher-track {
-        display: flex;
-        gap: var(--space-3);
-        transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
-        will-change: transform;
-    }
-    .voucher-item {
-        flex: 0 0 calc(50% - 6px);
-        min-width: 220px;
-        display: flex;
-        align-items: stretch;
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        border: 1.5px solid;
-        transition: var(--transition-premium);
-        position: relative;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    @media (max-width: 600px) {
-        .voucher-item { flex: 0 0 calc(100% - 0px); }
-    }
-    .voucher-item:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-    .voucher-item.type-shop {
-        border-color: #F59E0B;
-        background: linear-gradient(120deg, #FFFBEB 0%, #FEF3C7 60%, #FDE68A22 100%);
-    }
-    .voucher-item.type-system {
-        border-color: #22c55e;
-        background: linear-gradient(120deg, #f0fdf4 0%, #dcfce7 60%, #bbf7d022 100%);
-    }
-    .voucher-item.type-product {
-        border-color: #EF4444;
-        background: linear-gradient(120deg, #FEF2F2 0%, #FEE2E2 60%, #FECACA22 100%);
-    }
-    .voucher-ribbon {
-        width: 54px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: var(--space-3) var(--space-2);
-        font-size: 9px;
-        font-weight: 800;
-        color: #fff;
-        flex-shrink: 0;
-        text-align: center;
-        line-height: 1.2;
-        position: relative;
-        min-height: 64px;
-        letter-spacing: 0.5px;
-    }
-    .voucher-ribbon::after {
-        content: '';
-        position: absolute;
-        right: -9px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 0;
-        height: 0;
-        border-top: 9px solid transparent;
-        border-bottom: 9px solid transparent;
-        border-left: 9px solid;
-    }
-    .voucher-item.type-shop .voucher-ribbon { background: linear-gradient(180deg, #F59E0B, #D97706); }
-    .voucher-item.type-shop .voucher-ribbon::after { border-left-color: #D97706; }
-    .voucher-item.type-system .voucher-ribbon { background: linear-gradient(180deg, #22c55e, #16a34a); }
-    .voucher-item.type-system .voucher-ribbon::after { border-left-color: #16a34a; }
-    .voucher-item.type-product .voucher-ribbon { background: linear-gradient(180deg, #EF4444, #DC2626); }
-    .voucher-item.type-product .voucher-ribbon::after { border-left-color: #DC2626; }
-    .voucher-ribbon-icon { font-size: 1.2rem; margin-bottom: 3px; }
-    .voucher-body {
-        flex: 1;
-        padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .voucher-code {
-        font-weight: 800;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-        margin-bottom: 2px;
-    }
-    .voucher-item.type-shop .voucher-code { color: #92400E; }
-    .voucher-item.type-system .voucher-code { color: #14532d; }
-    .voucher-item.type-product .voucher-code { color: #991B1B; }
-    .voucher-desc {
-        font-size: 11px;
-        color: var(--color-text-secondary);
-        line-height: 1.4;
-    }
-    .voucher-expire {
-        font-size: 9px;
-        color: var(--color-text-muted);
-        margin-top: 3px;
-        font-style: italic;
-    }
-    .voucher-copy-btn {
-        padding: 5px 10px;
-        font-size: 10px;
-        font-weight: 700;
-        border-radius: var(--radius-sm);
-        border: 1.5px solid;
-        cursor: pointer;
-        transition: var(--transition-premium);
-        background: transparent;
-        white-space: nowrap;
-        margin: auto var(--space-3) auto 0;
-        flex-shrink: 0;
-        align-self: center;
-    }
-    .voucher-item.type-shop .voucher-copy-btn { border-color: #F59E0B; color: #92400E; }
-    .voucher-item.type-shop .voucher-copy-btn:hover { background: #F59E0B; color: #fff; }
-    .voucher-item.type-system .voucher-copy-btn { border-color: #22c55e; color: #14532d; }
-    .voucher-item.type-system .voucher-copy-btn:hover { background: #22c55e; color: #fff; }
-    .voucher-item.type-product .voucher-copy-btn { border-color: #EF4444; color: #991B1B; }
-    .voucher-item.type-product .voucher-copy-btn:hover { background: #EF4444; color: #fff; }
-
-    /* ============================================================
-       SHOP MORE PRODUCTS SLIDER
-    ============================================================ */
-    .shop-products-slider {
-        display: flex;
-        gap: var(--space-3);
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        padding-bottom: var(--space-2);
-        snap-type: x mandatory;
-    }
-    .shop-products-slider::-webkit-scrollbar { display: none; }
-    .shop-product-mini {
-        flex: 0 0 130px;
-        snap-align: start;
-        background: #fff;
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--color-glass-border);
-        overflow: hidden;
-        transition: var(--transition-premium);
-    }
-    .shop-product-mini:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(20,83,45,0.1);
-        border-color: var(--color-primary-light);
-    }
-    .shop-product-mini-img {
-        width: 100%;
-        height: 90px;
-        object-fit: cover;
-    }
-    .shop-product-mini-info { padding: var(--space-2) var(--space-2) var(--space-3); }
-    .shop-product-mini-name {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--color-text-primary);
-        line-height: 1.3;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        margin-bottom: 3px;
-    }
-    .shop-product-mini-price {
-        font-size: 10px;
-        font-weight: 800;
-        color: var(--color-primary-dark);
-    }
-
-    /* ============================================================
-       SPECIFICATIONS TABLE
-    ============================================================ */
-    .spec-table {
-        width: 100%;
-        border-collapse: collapse;
-        border: 1px solid var(--color-glass-border);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        margin-top: var(--space-4);
-    }
-    .spec-table th, .spec-table td { padding: var(--space-3) var(--space-4); }
-    .spec-table th {
-        background: rgba(77, 102, 28, 0.05);
-        color: var(--color-primary-dark);
-        font-weight: 700;
-        width: 30%;
-    }
-    .spec-table tr:not(:last-child) { border-bottom: 1px solid var(--color-glass-border); }
-    .spec-table tr:hover td { background: rgba(132, 204, 22, 0.03); }
-
-    /* ============================================================
-       REVIEW SECTION
-    ============================================================ */
-    .review-grid {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: var(--space-8);
-        margin-top: var(--space-6);
-    }
-    @media (max-width: 768px) { .review-grid { grid-template-columns: 1fr; gap: var(--space-6); } }
-    .rating-summary-box {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: rgba(77, 102, 28, 0.03);
-        border: 1px solid var(--color-glass-border);
-        border-radius: var(--radius-xl);
-        padding: var(--space-6);
-        text-align: center;
-    }
-    .big-score {
-        font-size: 3.5rem;
-        font-weight: 800;
-        color: var(--color-primary-dark);
-        line-height: 1;
-    }
-    .rating-bar-row {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        width: 100%;
-        margin-bottom: var(--space-2);
-        font-size: var(--font-size-xs);
-    }
-    .bar-stars { width: 55px; text-align: right; font-weight: 600; }
-    .progress-bar-bg {
-        flex: 1;
-        height: 8px;
-        background: var(--color-border);
-        border-radius: var(--radius-full);
-        overflow: hidden;
-    }
-    .progress-bar-fill {
-        height: 100%;
-        background: #F59E0B;
-        border-radius: var(--radius-full);
-        transition: width 0.6s ease;
-    }
-    .bar-count-percent { width: 45px; text-align: left; color: var(--color-text-secondary); font-weight: 600; }
-
-    /* Review Filter Tabs */
-    .review-filters-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-2);
-        border-bottom: 1px solid var(--color-border);
-        padding-bottom: var(--space-4);
-        margin-bottom: var(--space-6);
-    }
-    .filter-tab-btn {
-        padding: var(--space-2) var(--space-4);
-        border-radius: var(--radius-full);
-        font-size: var(--font-size-xs);
-        font-weight: 700;
-        background: #fff;
-        border: 1.5px solid var(--color-border);
-        color: var(--color-text-secondary);
-        cursor: pointer;
-        display: flex; align-items: center; gap: 4px;
-        transition: var(--transition-premium);
-        text-decoration: none;
-    }
-    .filter-tab-btn:hover, .filter-tab-btn.active {
-        border-color: var(--color-primary);
-        color: var(--color-primary-dark);
-        background: rgba(77, 102, 28, 0.05);
-        text-decoration: none;
-    }
-
-    /* Review Card */
-    .review-card-item {
-        padding: var(--space-4) 0;
-        border-bottom: 1px dashed var(--color-border);
-    }
-    .review-card-item:last-child { border-bottom: none; }
-    .review-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: var(--space-2);
-    }
-    .reviewer-meta { display: flex; align-items: center; gap: var(--space-3); }
-    .reviewer-avatar {
-        width: 38px; height: 38px;
-        border-radius: var(--radius-full);
-        background: var(--color-primary-light);
-        color: var(--color-primary-dark);
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 800;
-        font-size: var(--font-size-base);
-    }
-    .reviewer-name { font-weight: 700; font-size: var(--font-size-sm); color: var(--color-text-primary); }
-    .review-date { font-size: var(--font-size-xs); color: var(--color-text-muted); }
-    .review-body-text {
-        font-size: var(--font-size-sm);
-        color: var(--color-text-secondary);
-        line-height: 1.6;
-        margin-bottom: var(--space-3);
-    }
-    .review-attachment-box { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-    .review-thumb-image {
-        width: 90px; height: 90px;
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        border: 1.5px solid var(--color-border);
-        cursor: zoom-in;
-        transition: var(--transition-premium);
-        background: #fff;
-    }
-    .review-thumb-image img { width: 100%; height: 100%; object-fit: cover; }
-    .review-thumb-image:hover {
-        transform: scale(1.04);
-        border-color: var(--color-primary);
-        box-shadow: var(--shadow-sm);
-    }
-
-    /* ============================================================
-       SIMILAR PRODUCTS SECTION (below reviews)
-    ============================================================ */
-    .similar-section {
-        margin-top: var(--space-10);
-        margin-bottom: var(--space-12);
-        position: relative;
-    }
-    .carousel-header-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: var(--space-5);
-    }
-    .carousel-arrows { display: flex; gap: var(--space-2); }
-    .arrow-btn {
-        width: 36px; height: 36px;
-        border-radius: var(--radius-full);
-        border: 1.5px solid var(--color-primary);
-        color: var(--color-primary);
-        background: #fff;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        transition: var(--transition-premium);
-    }
-    .arrow-btn:hover { background: var(--color-primary); color: #fff; }
-    .slider-track {
-        display: flex;
-        gap: var(--space-5);
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        padding-bottom: var(--space-4);
-        snap-type: x mandatory;
-    }
-    .slider-track::-webkit-scrollbar { display: none; }
-    .slider-item {
-        flex: 0 0 260px;
-        snap-align: start;
-    }
-
-    /* ============================================================
-       MODAL (photo zoom)
-    ============================================================ */
-    .premium-modal {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 33, 13, 0.7);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        z-index: 2000;
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    .premium-modal.show { display: flex; opacity: 1; }
-    .modal-content-box {
-        position: relative;
-        max-width: 90%; max-height: 85%;
-        border-radius: var(--radius-xl);
-        overflow: hidden;
-        box-shadow: var(--shadow-lg);
-        background: #fff;
-        border: 3px solid #fff;
-        transform: scale(0.9);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .premium-modal.show .modal-content-box { transform: scale(1); }
-    .modal-content-box img { max-width: 100%; max-height: 75vh; display: block; object-fit: contain; }
-    .modal-close-btn {
-        position: absolute;
-        top: 10px; right: 10px;
-        width: 36px; height: 36px;
-        border-radius: var(--radius-full);
-        background: rgba(0, 0, 0, 0.5);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.2rem;
-        transition: var(--transition-premium);
-    }
-    .modal-close-btn:hover { background: rgba(0, 0, 0, 0.8); }
-
-    /* Toast */
-    .premium-toast {
-        position: fixed;
-        bottom: 30px; right: 30px;
-        background: var(--color-primary-dark);
-        color: #fff;
-        border-left: 5px solid var(--color-accent);
-        border-radius: var(--radius-md);
-        padding: var(--space-4) var(--space-6);
-        box-shadow: var(--shadow-lg);
-        display: flex; align-items: center; gap: var(--space-3);
-        z-index: 3000;
-        transform: translateY(100px);
-        opacity: 0;
-        transition: var(--transition-premium);
-    }
-    .premium-toast.show { transform: translateY(0); opacity: 1; }
-    .premium-toast-icon { color: var(--color-accent); font-size: 1.4rem; }
-
-    /* Voucher copy toast */
-    .copy-toast {
-        position: fixed;
-        bottom: 80px; right: 30px;
-        background: #1e293b;
-        color: #fff;
-        font-size: var(--font-size-sm);
-        font-weight: 700;
-        border-radius: var(--radius-md);
-        padding: var(--space-3) var(--space-4);
-        box-shadow: var(--shadow-lg);
-        z-index: 3100;
-        transform: translateY(20px);
-        opacity: 0;
-        transition: var(--transition-premium);
-        pointer-events: none;
-    }
-    .copy-toast.show { transform: translateY(0); opacity: 1; }
-</style>
+<!-- Custom Premium CSS loaded from external asset -->
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/product-detail.css">
 
 <div class="detail-container">
     <div class="container">
@@ -1143,7 +109,7 @@
                 <div class="flex items-center space-x-2 mb-3 gap-2">
                     <c:choose>
                         <c:when test="${isExpiredProduct}">
-                            <span id="variant-status-badge" class="badge-stock badge-outstock" style="background: #fecaca; color: #b91c1c;">
+                            <span id="variant-status-badge" class="badge-stock badge-outstock !bg-red-200 !text-red-800 !border-red-300">
                                 <i class="fa-solid fa-clock-rotate-left mr-1"></i> Hết vụ thu hoạch
                             </span>
                         </c:when>
@@ -1164,12 +130,12 @@
                         </c:otherwise>
                     </c:choose>
                     <c:if test="${product.isOrganic}">
-                        <span class="badge-stock" style="background: linear-gradient(120deg, #dcfce7, #86efac); color: #14532d; border: 1px solid rgba(34,197,94,0.4);">
+                        <span class="badge-stock !bg-emerald-100 !text-emerald-900 !border-emerald-300">
                             <i class="fa-solid fa-leaf mr-1"></i> Hữu Cơ
                         </span>
                     </c:if>
                     <c:if test="${product.isImported}">
-                        <span class="badge-stock" style="background: linear-gradient(120deg, #dbeafe, #93c5fd); color: #1e3a8a; border: 1px solid rgba(59,130,246,0.4);">
+                        <span class="badge-stock !bg-blue-100 !text-blue-900 !border-blue-300">
                             <i class="fa-solid fa-globe mr-1"></i> Nhập Khẩu
                         </span>
                     </c:if>
@@ -1181,8 +147,8 @@
                             </span>
                         </c:when>
                         <c:otherwise>
-                            <span class="badge-rating-top" style="background: linear-gradient(120deg, #f8fafc, #e2e8f0); color: #64748b; border: 1px solid rgba(148,163,184,0.35); box-shadow: 0 2px 8px rgba(148,163,184,0.08);">
-                                <i class="fa-solid fa-star" style="color:#cbd5e1;"></i>
+                            <span class="badge-rating-top !bg-slate-100 !text-slate-600 !border-slate-300 !shadow-sm">
+                                <i class="fa-solid fa-star !text-slate-300"></i>
                                 Chưa có đánh giá
                             </span>
                         </c:otherwise>
@@ -1191,41 +157,41 @@
                 </div>
 
                 <!-- Product Name -->
-                <h1 class="font-bold text-3xl mb-2 text-[#00210D] font-headline-lg" style="letter-spacing: -0.5px;">
+                <h1 class="font-bold text-3xl mb-2 text-[#00210D] font-headline-lg tracking-[-0.03em]">
                     <c:out value="${product.name}"/>
                 </h1>
 
                 <c:if test="${isOutOfSeason && !isExpiredProduct}">
-                    <div class="out-of-season-banner" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin: 16px 0; display: flex; align-items: center; gap: 12px;">
-                        <div style="background: #f59e0b; color: white; min-width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                    <div class="out-of-season-banner bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 my-4 flex items-center gap-3">
+                        <div class="bg-amber-500 text-white min-w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">
                             <i class="fa-solid fa-cloud-sun-rain"></i>
                         </div>
                         <div>
-                            <h4 style="margin: 0; color: #b45309; font-weight: bold; font-size: 14px;">Sản phẩm đã hết mùa vụ gieo trồng</h4>
-                            <p style="margin: 4px 0 0 0; color: #92400e; font-size: 12px;">Mùa vụ của sản phẩm này từ tháng ${product.seasonStartMonth} đến tháng ${product.seasonEndMonth}. Vui lòng quay lại khi đến mùa vụ hoặc liên hệ shop.</p>
+                            <h4 class="m-0 text-amber-700 font-bold text-sm">Sản phẩm đã hết mùa vụ gieo trồng</h4>
+                            <p class="mt-1 text-amber-900/90 text-xs">Mùa vụ của sản phẩm này từ tháng ${product.seasonStartMonth} đến tháng ${product.seasonEndMonth}. Vui lòng quay lại khi đến mùa vụ hoặc liên hệ shop.</p>
                         </div>
                     </div>
                 </c:if>
 
                 <c:if test="${isExpiredProduct}">
-                    <div class="expired-product-banner" style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="background: #ef4444; color: white; min-width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <div class="expired-product-banner bg-red-50 border border-red-100 rounded-xl px-4 py-4 my-4 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-red-500 text-white min-w-10 h-10 rounded-full flex items-center justify-center text-lg">
                                 <i class="fa-solid fa-triangle-exclamation"></i>
                             </div>
                             <div>
-                                <h4 style="margin: 0; color: #991b1b; font-weight: bold; font-size: 14px;">Sản phẩm đã hết hạn vụ thu hoạch</h4>
-                                <p style="margin: 4px 0 0 0; color: #7f1d1d; font-size: 12px;">Sản phẩm hiện đang tạm dừng bán. Bạn có thể gửi yêu cầu nhập kho vụ mới để thông báo cho chủ cửa hàng.</p>
+                                <h4 class="m-0 text-red-800 font-bold text-sm">Sản phẩm đã hết hạn vụ thu hoạch</h4>
+                                <p class="mt-1 text-red-950/85 text-xs">Sản phẩm hiện đang tạm dừng bán. Bạn có thể gửi yêu cầu nhập kho vụ mới để thông báo cho chủ cửa hàng.</p>
                             </div>
                         </div>
                         <c:choose>
                             <c:when test="${hasRequestedToday}">
-                                <button type="button" id="btn-request-restock" disabled style="background: #cbd5e1; color: #64748b; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: not-allowed; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+                                <button type="button" id="btn-request-restock" disabled class="bg-slate-300 text-slate-500 border-0 px-4 py-2 rounded-lg font-bold text-xs cursor-not-allowed inline-flex items-center gap-2 whitespace-nowrap">
                                     <i class="fa-solid fa-check"></i> Đã Yêu Cầu Hôm Nay
                                 </button>
                             </c:when>
                             <c:otherwise>
-                                <button type="button" id="btn-request-restock" onclick="requestRestock()" style="background: var(--color-primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: transform 0.2s; white-space: nowrap;">
+                                <button type="button" id="btn-request-restock" onclick="requestRestock()" class="bg-primary text-white border-0 px-4 py-2 rounded-lg font-bold text-xs cursor-pointer inline-flex items-center gap-2 transition-transform duration-200 hover:-translate-y-0.5 whitespace-nowrap">
                                     <i class="fa-solid fa-paper-plane"></i> Yêu Cầu Nhập Kho
                                 </button>
                             </c:otherwise>
@@ -1235,7 +201,7 @@
 
                 <!-- Origin -->
                 <p class="text-sm text-[#44483B] mb-4 flex items-center">
-                    <i class="fa-solid fa-location-dot mr-2" style="color: var(--color-primary);"></i>
+                    <i class="fa-solid fa-location-dot mr-2 text-primary"></i>
                     Xuất xứ: <strong><c:out value="${product.originRegion}"/>, <c:out value="${product.originCountry}"/></strong>
                 </p>
 
@@ -1249,12 +215,12 @@
                             <c:when test="${fp.discountType == 'PERCENT'}">Giảm <c:out value="${fp.discountValue}"/>%</c:when>
                             <c:otherwise>Giảm <ft:currency value="${fp.discountValue}"/></c:otherwise>
                         </c:choose>
-                        <span style="opacity:0.5">|</span> Còn lại <c:out value="${fp.maxUses - fp.usedCount}"/> lượt
+                        <span class="opacity-50">|</span> Còn lại <c:out value="${fp.maxUses - fp.usedCount}"/> lượt
                     </div>
                 </c:if>
 
                 <!-- Price Area -->
-                <div class="price-area" style="display: flex; flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+                <div class="price-area">
                     <span id="original-price-container" class="${not empty variants && variants[0].isDiscounted ? '' : 'hidden'}">
                         <span id="original-price" class="text-red-500 line-through text-base md:text-lg mr-2 font-semibold">
                             <c:if test="${not empty variants}">
@@ -1330,15 +296,15 @@
                     <c:choose>
                         <c:when test="${isExpiredProduct}">
                             <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-calendar-xmark" style="color:#ef4444;"></i>
-                                Trạng thái: <strong style="color:#b91c1c;">Hết vụ thu hoạch</strong>
+                                <i class="fa-solid fa-calendar-xmark text-red-500"></i>
+                                Trạng thái: <strong class="text-red-700">Hết vụ thu hoạch</strong>
                             </div>
                         </c:when>
                         <c:otherwise>
                             <c:if test="${not empty variants}">
                                 <div class="flex items-center gap-2">
-                                    <i class="fa-solid fa-boxes-stacked" style="color:#22c55e;"></i>
-                                    Tồn kho: <strong id="stock-qty-val" style="color:#14532d;"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
+                                    <i class="fa-solid fa-boxes-stacked text-emerald-500"></i>
+                                    Tồn kho: <strong id="stock-qty-val" class="text-emerald-800"><c:out value="${variants[0].stockQuantity}"/></strong> sản phẩm
                                 </div>
                                 <div class="stock-bar-bg">
                                     <div class="stock-bar-fill" id="stock-bar-fill-indicator" data-initial-stock="${variants[0].stockQuantity}"></div>
@@ -1350,7 +316,7 @@
 
                 <!-- Subtotal display -->
                 <c:if test="${not empty variants && product.status == 'ACTIVE' && !isOutOfSeason}">
-                    <div class="flex items-center justify-between bg-[#f0fdf4] border border-[#dcfce7] rounded-2xl px-5 py-3.5 my-4" style="background: rgba(240, 253, 244, 0.6); border: 1.5px solid rgba(134, 239, 172, 0.35);">
+                    <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3.5 my-4">
                         <span class="text-xs font-bold text-[#14532d] uppercase tracking-wider">Tạm tính (chưa gồm ship)</span>
                         <strong id="purchase-subtotal" class="text-xl font-extrabold text-[#166534]">0 ₫</strong>
                     </div>
@@ -1361,7 +327,7 @@
                     <c:choose>
                         <c:when test="${isOutOfSeason}">
                             <div class="cart-action-row">
-                                <button type="button" disabled class="btn-add-to-cart-large" style="background: #cbd5e1; color: #64748b; cursor: not-allowed; box-shadow: none;">
+                                <button type="button" disabled class="btn-add-to-cart-large !bg-slate-300 !text-slate-500 !cursor-not-allowed !shadow-none">
                                     <i class="fa-solid fa-calendar-xmark"></i> Hết mùa vụ gieo trồng
                                 </button>
                             </div>
@@ -1413,7 +379,7 @@
                         <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" class="btn-visit-shop-hero">
                             <i class="fa-solid fa-store"></i> Ghé Thăm Shop
                         </a>
-                        <button type="button" id="btnChatWithShop" data-owner-id="${shopProfile.userId}" class="btn-visit-shop-hero" style="background: white; color: var(--color-primary); border: 2.5px solid var(--color-primary); display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px;">
+                        <button type="button" id="btnChatWithShop" data-owner-id="${shopProfile.userId}" class="btn-visit-shop-hero !bg-white !text-primary !border-2 !border-primary !px-5 !py-2.5 !gap-1.5 hover:!bg-emerald-50">
                             <i class="fa-solid fa-comments"></i> Chat Với Shop
                         </button>
                     </div>
@@ -1548,17 +514,17 @@
                 <!-- More from this shop -->
                 <c:if test="${not empty shopOtherProducts}">
                     <div class="shop-body-section">
-                        <div class="shop-section-label" style="justify-content: space-between;">
+                        <div class="shop-section-label justify-between w-full">
                             <span><i class="fa-solid fa-layer-group"></i> Xem thêm sản phẩm từ cửa hàng này</span>
-                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" 
-                               style="font-size:10px; color:var(--color-primary); font-weight:700; text-transform:none; letter-spacing:0;">
+                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}"
+                               class="text-[10px] text-primary font-bold normal-case tracking-normal no-underline">
                                 Xem tất cả <i class="fa-solid fa-arrow-right ml-1"></i>
                             </a>
                         </div>
                         <div class="shop-products-slider" id="shop-slider">
                             <c:forEach var="sp" items="${shopOtherProducts}">
-                                <a href="${pageContext.request.contextPath}/products/detail?id=${sp.productId}" 
-                                   class="shop-product-mini" style="text-decoration:none; color:inherit;">
+                                <a href="${pageContext.request.contextPath}/products/detail?id=${sp.productId}"
+                                   class="shop-product-mini no-underline text-current">
                                     <img src="${sp.image}" class="shop-product-mini-img" alt="${sp.name}" onerror="handleImageError(this)">
                                     <div class="shop-product-mini-info">
                                         <div class="shop-product-mini-name"><c:out value="${sp.name}"/></div>
@@ -1576,7 +542,7 @@
         <!-- ④ Product Specifications Panel -->
         <div class="premium-panel mb-6">
             <h2 class="font-headline-lg text-[#00210D] font-bold text-xl mb-2 flex items-center">
-                <i class="fa-solid fa-circle-info mr-2" style="color: var(--color-primary);"></i>
+                <i class="fa-solid fa-circle-info mr-2 text-primary"></i>
                 Thông số kỹ thuật &amp; Bảo quản
             </h2>
             <table class="spec-table">
@@ -1627,7 +593,7 @@
                             <div class="text-sm text-muted"><c:out value="${totalReviewsCount}"/> đánh giá thực tế</div>
                         </c:when>
                         <c:otherwise>
-                            <div class="big-score" style="color:#94a3b8;">--</div>
+                            <div class="big-score !text-slate-400">--</div>
                             <div class="my-2"><ft:stars rating="${product.rating}"/></div>
                             <div class="text-sm text-muted">Chưa có đánh giá</div>
                         </c:otherwise>
@@ -1748,13 +714,13 @@
                 <div class="slider-track" id="similar-slider">
                     <c:forEach var="p" items="${similarProducts}">
                         <div class="slider-item">
-                            <div class="product-card" style="margin-bottom: var(--space-1);">
-                                <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}" class="product-card-link" style="text-decoration: none; color: inherit;">
+                            <div class="product-card mb-1">
+                                <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}" class="product-card-link no-underline text-current">
                                     <img src="${p.image}"
                                          id="similar_img_${p.productId}" onerror="handleImageError(this)"
                                          class="object-cover w-full h-[180px] rounded-t-xl" alt="<c:out value='${p.name}'/>">
                                     <h3 class="font-bold text-sm px-3 pt-3 line-clamp-1"><c:out value="${p.name}"/></h3>
-                                    <div class="product-card__price px-3 py-1 font-bold" style="color: var(--color-primary);">
+                                    <div class="product-card__price px-3 py-1 font-bold text-primary">
                                         Giá chỉ từ <ft:currency value="${p.price}"/>
                                     </div>
                                     <div class="product-card__rating px-3 pb-1">
@@ -1779,7 +745,7 @@
 <div id="photo-viewer-modal" class="premium-modal" onclick="closePhotoModal()">
     <div class="modal-content-box" onclick="event.stopPropagation()">
         <button class="modal-close-btn" onclick="closePhotoModal()"><i class="fa-solid fa-xmark"></i></button>
-        <img id="modal-expanded-img" src="" alt="Expanded review photo">
+        <img id="modal-expanded-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Expanded review photo">
     </div>
 </div>
 
@@ -1787,7 +753,7 @@
 <div id="cart-added-toast" class="premium-toast">
     <span class="premium-toast-icon"><i class="fa-solid fa-circle-check"></i></span>
     <div>
-        <strong style="display: block;">Thành công!</strong>
+        <strong class="block">Thành công!</strong>
         <span class="text-xs">Sản phẩm đã được thêm vào giỏ hàng.</span>
     </div>
 </div>
@@ -1912,7 +878,7 @@
         const fillBar = document.getElementById('stock-bar-fill-indicator');
         if (fillBar) {
             const fillPercent = (stock * 100) / 200;
-            fillBar.style.width = Math.min(100, fillPercent) + '%';
+            fillBar.style.transform = 'scaleX(' + (Math.min(100, fillPercent) / 100) + ')';
         }
     }
 
@@ -2287,7 +1253,7 @@
         // Initialize star rating progress bars style
         document.querySelectorAll('.progress-bar-fill').forEach(el => {
             const pct = el.getAttribute('data-percent');
-            if (pct) el.style.width = pct + '%';
+            if (pct) el.style.transform = 'scaleX(' + (parseFloat(pct) / 100) + ')';
         });
 
         const fruitImages = {
@@ -2389,7 +1355,7 @@
     }
 
     const reviewContextPath = '${pageContext.request.contextPath}';
-    const reviewProductId = ${product.productId};
+    const reviewProductId = '${product.productId}';
 
     let currentReviewPage = 1;
     let currentRatingFilter = null;
@@ -2499,12 +1465,35 @@
                 paginationHtml += '<button onclick="changeReviewPage(' + (pagedResult.currentPage - 1) + ')" class="' + navButtonClass + '">Trước</button>';
             }
             
-            for (let i = 1; i <= pagedResult.totalPages; i++) {
-                const isActive = i === pagedResult.currentPage;
+            let pagesToShow = new Set();
+            pagesToShow.add(1);
+            if (pagedResult.totalPages > 1) {
+                pagesToShow.add(pagedResult.totalPages);
+                pagesToShow.add(pagedResult.totalPages - 1);
+            }
+            pagesToShow.add(pagedResult.currentPage);
+            if (pagedResult.currentPage > 1) {
+                pagesToShow.add(pagedResult.currentPage - 1);
+            }
+            if (pagedResult.currentPage < pagedResult.totalPages) {
+                pagesToShow.add(pagedResult.currentPage + 1);
+            }
+
+            let pagesList = Array.from(pagesToShow).sort((a, b) => a - b);
+            for (let idx = 0; idx < pagesList.length; idx++) {
+                let pageNum = pagesList[idx];
+                if (idx > 0) {
+                    let prevPage = pagesList[idx - 1];
+                    if (pageNum - prevPage > 1) {
+                        paginationHtml += '<button onclick="promptReviewPageJump(' + pagedResult.totalPages + ')" class="w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border border-gray-200 hover:bg-gray-50 bg-white" title="Nhảy đến trang...">...</button>';
+                    }
+                }
+                
+                const isActive = pageNum === pagedResult.currentPage;
                 const pageButtonClass = isActive
                     ? 'w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer bg-primary text-white border-none'
                     : 'w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border border-gray-200 hover:bg-gray-50 bg-white';
-                paginationHtml += '<button onclick="changeReviewPage(' + i + ')" class="' + pageButtonClass + '">' + i + '</button>';
+                paginationHtml += '<button onclick="changeReviewPage(' + pageNum + ')" class="' + pageButtonClass + '">' + pageNum + '</button>';
             }
             
             if (pagedResult.currentPage < pagedResult.totalPages) {
@@ -2516,6 +1505,39 @@
         
         wrapper.innerHTML = html;
     }
+
+    window.promptReviewPageJump = function(totalPages) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Chuyển đến trang',
+                text: 'Nhập số trang muốn đến (1 - ' + totalPages + '):',
+                input: 'number',
+                inputAttributes: { min: 1, max: totalPages, step: 1 },
+                showCancelButton: true,
+                confirmButtonText: 'Đến',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#4d661c',
+                inputValidator: (value) => {
+                    const page = parseInt(value);
+                    if (isNaN(page) || page < 1 || page > totalPages) {
+                        return 'Số trang phải từ 1 đến ' + totalPages + '!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    changeReviewPage(parseInt(result.value));
+                }
+            });
+        } else {
+            const targetPageStr = prompt('Nhập số trang bạn muốn chuyển đến (1 - ' + totalPages + '):');
+            if (targetPageStr) {
+                const targetPage = parseInt(targetPageStr);
+                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+                    changeReviewPage(targetPage);
+                }
+            }
+        }
+    };
 
     window.changeReviewPage = function(page) {
         currentReviewPage = page;

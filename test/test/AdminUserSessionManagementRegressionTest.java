@@ -13,6 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import servlet.admin.system.AdminConfigServlet;
 import servlet.admin.user.AdminUserRevokeSessionsAPI;
+import servlet.admin.user.AdminUserStatusAPI;
+import util.HashUtil;
 import util.JsonUtil;
 
 import java.io.IOException;
@@ -22,6 +24,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +42,7 @@ public class AdminUserSessionManagementRegressionTest {
     private final UserDAO userDAO = new UserDAO();
     private final UserSessionDAO userSessionDAO = new UserSessionDAO();
     private final RevokeSessionsHarness revokeSessionsServlet = new RevokeSessionsHarness();
+    private final StatusHarness statusServlet = new StatusHarness();
     private final AdminConfigHarness adminConfigServlet = new AdminConfigHarness();
     private final List<Integer> createdUserIds = new ArrayList<>();
 
@@ -166,7 +170,92 @@ public class AdminUserSessionManagementRegressionTest {
         assertNull(userSessionDAO.findUserIdBySessionToken(token3));
     }
 
+    @Test
+    public void userStatusEndpoint_updatesSuspendedAndClearsVerificationState() throws Exception {
+        int adminId = createUser("Admin Suspend", AppConfig.ROLE_ADMIN);
+        int userId = createUser("Suspend Target", AppConfig.ROLE_CUSTOMER);
+        userDAO.saveEmailVerificationCode(
+                userId,
+                HashUtil.hashPassword("123456"),
+                futureExpiry(),
+                new Timestamp(System.currentTimeMillis() + 60_000L));
+
+        MockHttpEnvironment env = new MockHttpEnvironment("/admin/users/status");
+        env.setCurrentUser(buildSessionUser(adminId, AppConfig.ROLE_ADMIN));
+        env.setCsrfToken(CSRF_TOKEN);
+        env.putParam("userId", String.valueOf(userId));
+        env.putParam("status", AppConfig.ACCOUNT_STATUS_SUSPENDED);
+
+        statusServlet.doPostPublic(env.request, env.response);
+
+        assertEquals(Integer.valueOf(HttpServletResponse.SC_OK), env.status);
+        Map<?, ?> response = JsonUtil.fromJson(env.getResponseBody(), Map.class);
+        assertEquals(Boolean.TRUE, response.get("success"));
+
+        User updated = userDAO.findUserById(userId);
+        assertNotNull(updated);
+        assertEquals(AppConfig.ACCOUNT_STATUS_SUSPENDED, updated.getStatus());
+        assertNull(updated.getEmailVerificationCodeHash());
+        assertNull(updated.getEmailVerificationExpiresAt());
+        assertNull(updated.getEmailVerificationResendAt());
+        assertNull(updated.getEmailVerificationSentAt());
+        assertEquals(0, updated.getFailedLoginCount());
+        assertNull(updated.getLockedUntil());
+    }
+
+    @Test
+    public void userStatusEndpoint_restoresLockedAccountAndClearsLockState() throws Exception {
+        int adminId = createUser("Admin Restore", AppConfig.ROLE_ADMIN);
+        int userId = createUser("Locked Target", AppConfig.ROLE_CUSTOMER, AppConfig.ACCOUNT_STATUS_LOCKED, true);
+        userDAO.incrementFailedLogin(userId);
+        userDAO.incrementFailedLogin(userId);
+        userDAO.lockAccount(userId, LocalDateTime.now().plusHours(1));
+
+        MockHttpEnvironment env = new MockHttpEnvironment("/admin/users/status");
+        env.setCurrentUser(buildSessionUser(adminId, AppConfig.ROLE_ADMIN));
+        env.setCsrfToken(CSRF_TOKEN);
+        env.putParam("userId", String.valueOf(userId));
+        env.putParam("status", AppConfig.ACCOUNT_STATUS_ACTIVE);
+
+        statusServlet.doPostPublic(env.request, env.response);
+
+        assertEquals(Integer.valueOf(HttpServletResponse.SC_OK), env.status);
+        Map<?, ?> response = JsonUtil.fromJson(env.getResponseBody(), Map.class);
+        assertEquals(Boolean.TRUE, response.get("success"));
+
+        User updated = userDAO.findUserById(userId);
+        assertNotNull(updated);
+        assertEquals(AppConfig.ACCOUNT_STATUS_ACTIVE, updated.getStatus());
+        assertEquals(0, updated.getFailedLoginCount());
+        assertNull(updated.getLockedUntil());
+    }
+
+    @Test
+    public void userStatusEndpoint_rejectsInactiveTargetStatus() throws Exception {
+        int adminId = createUser("Admin Reject", AppConfig.ROLE_ADMIN);
+        int userId = createUser("Inactive Target", AppConfig.ROLE_CUSTOMER);
+
+        MockHttpEnvironment env = new MockHttpEnvironment("/admin/users/status");
+        env.setCurrentUser(buildSessionUser(adminId, AppConfig.ROLE_ADMIN));
+        env.setCsrfToken(CSRF_TOKEN);
+        env.putParam("userId", String.valueOf(userId));
+        env.putParam("status", AppConfig.ACCOUNT_STATUS_INACTIVE);
+
+        statusServlet.doPostPublic(env.request, env.response);
+
+        assertEquals(Integer.valueOf(HttpServletResponse.SC_BAD_REQUEST), env.status);
+        Map<?, ?> response = JsonUtil.fromJson(env.getResponseBody(), Map.class);
+        assertEquals(Boolean.FALSE, response.get("success"));
+        assertNotNull(response.get("error"));
+        String error = String.valueOf(response.get("error")).toLowerCase();
+        assertTrue(error.contains("không hợp lệ") || error.contains("active hoặc suspended"));
+    }
+
     private int createUser(String fullNamePrefix, String role) throws SQLException {
+        return createUser(fullNamePrefix, role, AppConfig.ACCOUNT_STATUS_ACTIVE, true);
+    }
+
+    private int createUser(String fullNamePrefix, String role, String status, boolean emailVerified) throws SQLException {
         String suffix = String.valueOf(System.currentTimeMillis());
         String fullName = fullNamePrefix + " " + suffix;
         String email = fullNamePrefix.toLowerCase().replace(' ', '.') + "." + suffix + "@test.com";
@@ -177,8 +266,8 @@ public class AdminUserSessionManagementRegressionTest {
                 "hashed_pwd",
                 phone,
                 role,
-                AppConfig.ACCOUNT_STATUS_ACTIVE,
-                true
+                status,
+                emailVerified
         );
         createdUserIds.add(userId);
         return userId;
@@ -209,6 +298,12 @@ public class AdminUserSessionManagementRegressionTest {
     }
 
     private static final class RevokeSessionsHarness extends AdminUserRevokeSessionsAPI {
+        void doPostPublic(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            super.doPost(req, resp);
+        }
+    }
+
+    private static final class StatusHarness extends AdminUserStatusAPI {
         void doPostPublic(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             super.doPost(req, resp);
         }

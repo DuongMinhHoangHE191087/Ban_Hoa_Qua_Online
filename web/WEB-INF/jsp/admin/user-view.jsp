@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
@@ -6,55 +6,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chi tiết người dùng – Admin Verdant Market</title>
+    <title>Chi tiết người dùng – Admin MetaFruit</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary:      '#4d661c',
-                        'primary-dk': '#364e03',
-                        surface:      '#ffffff',
-                        'surface-2':  '#f8fafc',
-                        border:       '#e2ece7',
-                        'txt':        '#0f172a',
-                        'txt-2':      '#475569',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background:#f4fbf7; font-family:'Segoe UI',sans-serif; }
-        .glass-card {
-            background:#fff;
-            border:1px solid #e2ece7;
-            border-radius:1rem;
-            box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px -4px rgba(20,83,45,.06);
-        }
-        .detail-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
-        }
-        .detail-value {
-            font-size: 1rem;
-            font-weight: 500;
-            color: #0f172a;
-            padding: 0.75rem 1rem;
-            background: #f8fafc;
-            border: 1px solid #e2ece7;
-            border-radius: 0.75rem;
-        }
-    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
+    <!-- Tailwind & SweetAlert -->
+    <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
+    <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
-<body>
+<body class="antialiased text-txt bg-background">
+<input type="hidden" id="js-csrf" value="${sessionScope._csrfToken}">
 <div class="admin-layout">
     <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
@@ -62,10 +23,10 @@
     </jsp:include>
 
     <%-- Main --%>
-    <main class="admin-main p-6 md:p-8 overflow-y-auto">
+    <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
         
         <div class="mb-6 flex items-center justify-between">
-            <a href="${pageContext.request.contextPath}/admin/users" class="text-primary hover:text-primary-dk font-bold flex items-center gap-2 transition-colors">
+            <a href="${pageContext.request.contextPath}/admin/users" class="text-primary hover:text-primary-dk font-bold flex items-center gap-2 transition-colors text-decoration-none">
                 <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
             </a>
             <h1 class="text-2xl font-extrabold text-txt">Chi Tiết Người Dùng</h1>
@@ -90,13 +51,23 @@
                 <div class="ml-auto">
                     <c:choose>
                         <c:when test="${user.status == 'ACTIVE'}">
-                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-400/20 text-emerald-100 border border-emerald-400/30 text-xs font-bold shadow-sm">
-                                <i class="fa-solid fa-check"></i> HOẠT ĐỘNG
+                            <span id="user-status-badge" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-400/20 text-emerald-100 border border-emerald-400/30 text-xs font-bold shadow-sm">
+                                <i class="fa-solid fa-check"></i> ACTIVE
+                            </span>
+                        </c:when>
+                        <c:when test="${user.status == 'SUSPENDED'}">
+                            <span id="user-status-badge" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-400/20 text-amber-100 border border-amber-400/30 text-xs font-bold shadow-sm">
+                                <i class="fa-solid fa-ban"></i> SUSPENDED
+                            </span>
+                        </c:when>
+                        <c:when test="${user.status == 'LOCKED'}">
+                            <span id="user-status-badge" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-400/20 text-red-100 border border-red-400/30 text-xs font-bold shadow-sm">
+                                <i class="fa-solid fa-lock"></i> LOCKED
                             </span>
                         </c:when>
                         <c:otherwise>
-                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-400/20 text-red-100 border border-red-400/30 text-xs font-bold shadow-sm">
-                                <i class="fa-solid fa-lock"></i> ĐÃ KHÓA
+                            <span id="user-status-badge" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-400/20 text-slate-100 border border-slate-400/30 text-xs font-bold shadow-sm">
+                                <i class="fa-regular fa-hourglass-half"></i> ${user.status}
                             </span>
                         </c:otherwise>
                     </c:choose>
@@ -148,13 +119,241 @@
                 </div>
             </div>
             
-            <div class="px-8 py-4 bg-slate-50 border-t border-border flex justify-end">
-                <a href="${pageContext.request.contextPath}/admin/users" class="px-6 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-txt-2 font-bold rounded-xl transition-colors cursor-pointer text-sm">
+            <div class="px-8 py-4 bg-slate-50 border-t border-border flex justify-end gap-2 flex-wrap">
+                <c:if test="${user.role ne 'ADMIN'}">
+                    <button class="toggle-status-btn font-bold px-4 py-2.5 rounded-xl text-sm transition-all cursor-pointer ${user.status == 'ACTIVE' ? 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100' : user.status == 'SUSPENDED' ? 'bg-emerald-50 border border-emerald-200 text-emerald-600 hover:bg-emerald-100' : user.status == 'LOCKED' ? 'bg-amber-50 border border-amber-200 text-amber-600 hover:bg-amber-100' : 'bg-sky-50 border border-sky-200 text-sky-600 hover:bg-sky-100'}"
+                            data-id="${user.userId}"
+                            data-current="${user.status}"
+                            id="btn-toggle-${user.userId}">
+                        <c:choose>
+                            <c:when test="${user.status == 'ACTIVE'}">
+                                <i class="fa-solid fa-ban mr-1"></i> Đình chỉ
+                            </c:when>
+                            <c:when test="${user.status == 'SUSPENDED'}">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Khôi phục
+                            </c:when>
+                            <c:when test="${user.status == 'LOCKED'}">
+                                <i class="fa-solid fa-unlock mr-1"></i> Mở khóa
+                            </c:when>
+                            <c:otherwise>
+                                <i class="fa-solid fa-user-check mr-1"></i> Kích hoạt
+                            </c:otherwise>
+                        </c:choose>
+                    </button>
+
+                    <button class="revoke-sessions-btn bg-amber-50 border border-amber-200 text-amber-600 hover:bg-amber-100 font-bold px-4 py-2.5 rounded-xl text-sm transition-all cursor-pointer"
+                            data-id="${user.userId}"
+                            data-name="<c:out value="${user.fullName}"/>"
+                            id="btn-revoke-${user.userId}">
+                        <i class="fa-solid fa-user-slash mr-1"></i> Thu hồi phiên
+                    </button>
+                </c:if>
+                <a href="${pageContext.request.contextPath}/admin/users" class="px-6 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-txt-2 font-bold rounded-xl transition-colors cursor-pointer text-sm flex items-center">
                     Đóng
                 </a>
             </div>
         </div>
     </main>
 </div>
+
+<script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
+<script>
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'bottom-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    });
+
+    function handleJSONResponse(response) {
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || contentType.indexOf("application/json") === -1) {
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || errData.error || 'Lỗi hệ thống (Mã: ' + response.status + ')');
+                });
+            }
+            throw new Error('Lỗi hệ thống (Mã: ' + response.status + ')');
+        }
+        return response.json();
+    }
+
+    function getStatusBadgeMeta(status) {
+        switch (status) {
+            case 'ACTIVE':
+                return {
+                    className: 'inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-400/20 text-emerald-100 border border-emerald-400/30 text-xs font-bold shadow-sm',
+                    html: '<i class="fa-solid fa-check"></i> ACTIVE'
+                };
+            case 'SUSPENDED':
+                return {
+                    className: 'inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-400/20 text-amber-100 border border-amber-400/30 text-xs font-bold shadow-sm',
+                    html: '<i class="fa-solid fa-ban"></i> SUSPENDED'
+                };
+            case 'LOCKED':
+                return {
+                    className: 'inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-400/20 text-red-100 border border-red-400/30 text-xs font-bold shadow-sm',
+                    html: '<i class="fa-solid fa-lock"></i> LOCKED'
+                };
+            case 'INACTIVE':
+                return {
+                    className: 'inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-400/20 text-slate-100 border border-slate-400/30 text-xs font-bold shadow-sm',
+                    html: '<i class="fa-regular fa-hourglass-half"></i> INACTIVE'
+                };
+            default:
+                return {
+                    className: 'inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-400/20 text-slate-100 border border-slate-400/30 text-xs font-bold shadow-sm',
+                    html: status
+                };
+        }
+    }
+
+    function getStatusActionMeta(status) {
+        const baseClass = 'toggle-status-btn font-bold px-4 py-2.5 rounded-xl text-sm transition-all cursor-pointer';
+        switch (status) {
+            case 'ACTIVE':
+                return {
+                    nextStatus: 'SUSPENDED',
+                    className: baseClass + ' bg-red-50 border border-red-200 text-red-600 hover:bg-red-100',
+                    html: '<i class="fa-solid fa-ban mr-1"></i> Đình chỉ'
+                };
+            case 'SUSPENDED':
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' bg-emerald-50 border border-emerald-200 text-emerald-600 hover:bg-emerald-100',
+                    html: '<i class="fa-solid fa-rotate-left mr-1"></i> Khôi phục'
+                };
+            case 'LOCKED':
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' bg-amber-50 border border-amber-200 text-amber-600 hover:bg-amber-100',
+                    html: '<i class="fa-solid fa-unlock mr-1"></i> Mở khóa'
+                };
+            case 'INACTIVE':
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' bg-sky-50 border border-sky-200 text-sky-600 hover:bg-sky-100',
+                    html: '<i class="fa-solid fa-user-check mr-1"></i> Kích hoạt'
+                };
+            default:
+                return {
+                    nextStatus: 'ACTIVE',
+                    className: baseClass + ' bg-sky-50 border border-sky-200 text-sky-600 hover:bg-sky-100',
+                    html: '<i class="fa-solid fa-user-check mr-1"></i> Kích hoạt'
+                };
+        }
+    }
+
+    const toggleBtn = document.querySelector('.toggle-status-btn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-id');
+            const currentStatus = this.getAttribute('data-current');
+            const actionMeta = getStatusActionMeta(currentStatus);
+            const newStatus = actionMeta.nextStatus;
+
+            this.disabled = true;
+            const originalHtml = this.innerHTML;
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang xử lý...';
+
+            const CSRF = document.getElementById('js-csrf').value;
+            fetch('${pageContext.request.contextPath}/admin/users/status', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': CSRF
+                },
+                body: 'userId=' + encodeURIComponent(userId) + '&status=' + encodeURIComponent(newStatus) + '&_csrf=' + encodeURIComponent(CSRF)
+            })
+            .then(handleJSONResponse)
+            .then(data => {
+                this.disabled = false;
+                if (data.success) {
+                    Toast.fire({ icon: 'success', title: data.data || data.message || 'Cập nhật thành công' });
+                    this.setAttribute('data-current', newStatus);
+                    const badge = document.getElementById('user-status-badge');
+                    const badgeMeta = getStatusBadgeMeta(newStatus);
+                    const nextActionMeta = getStatusActionMeta(newStatus);
+
+                    if (badge) {
+                        badge.className = badgeMeta.className;
+                        badge.innerHTML = badgeMeta.html;
+                    }
+                    this.className = nextActionMeta.className;
+                    this.innerHTML = nextActionMeta.html;
+                } else {
+                    Toast.fire({ icon: 'error', title: data.error || data.message || 'Có lỗi xảy ra' });
+                    this.innerHTML = originalHtml;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Toast.fire({ icon: 'error', title: error.message || 'Lỗi kết nối mạng' });
+                this.disabled = false;
+                this.innerHTML = originalHtml;
+            });
+        });
+    }
+
+    const revokeBtn = document.querySelector('.revoke-sessions-btn');
+    if (revokeBtn) {
+        revokeBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-id');
+            const userName = this.getAttribute('data-name');
+
+            Swal.fire({
+                title: 'Xác nhận thu hồi phiên đăng nhập?',
+                text: 'Hành động này sẽ xóa toàn bộ refresh tokens của ' + userName + '. Người dùng này sẽ phải đăng nhập lại.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Đồng ý thu hồi',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.disabled = true;
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang xử lý...';
+
+                    const CSRF = document.getElementById('js-csrf').value;
+                    fetch('${pageContext.request.contextPath}/admin/users/revoke-sessions', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-Token': CSRF
+                        },
+                        body: 'userId=' + encodeURIComponent(userId) + '&_csrf=' + encodeURIComponent(CSRF)
+                    })
+                    .then(handleJSONResponse)
+                    .then(data => {
+                        this.disabled = false;
+                        this.innerHTML = originalHtml;
+                        if (data.success) {
+                            Swal.fire(
+                                'Thành công!',
+                                data.data || data.message || 'Thao tác thành công',
+                                'success'
+                            );
+                        } else {
+                            Toast.fire({ icon: 'error', title: data.error || data.message || 'Có lỗi xảy ra' });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Toast.fire({ icon: 'error', title: error.message || 'Lỗi kết nối mạng' });
+                        this.disabled = false;
+                        this.innerHTML = originalHtml;
+                    });
+                }
+            });
+        });
+    }
+</script>
 </body>
 </html>

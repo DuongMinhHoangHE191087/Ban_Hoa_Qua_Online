@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.logging.Logger;
 
 @WebServlet("/admin/users/status")
@@ -37,8 +38,11 @@ public class AdminUserStatusAPI extends HttpServlet {
         try {
             int userId = Integer.parseInt(request.getParameter("userId"));
             String status = request.getParameter("status");
+            if (status == null || status.trim().isEmpty()) {
+                throw new IllegalArgumentException("Trạng thái không được để trống.");
+            }
 
-            boolean updated = userService.updateUserStatus(userId, status);
+            boolean updated = userService.updateUserStatus(userId, status.trim());
 
             if (updated) {
                 response.setStatus(HttpServletResponse.SC_OK);
@@ -47,6 +51,20 @@ public class AdminUserStatusAPI extends HttpServlet {
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy user"));
             }
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "userId không hợp lệ."));
+        } catch (IllegalArgumentException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
+        } catch (SQLException e) {
+            util.ServletUtil.sendJsonInternalServerError(
+                    request,
+                    response,
+                    log,
+                    "AdminUserStatusAPI#doPost",
+                    "Lỗi hệ thống.",
+                    e);
         } catch (Exception e) {
             util.ServletUtil.sendJsonInternalServerError(
                     request,

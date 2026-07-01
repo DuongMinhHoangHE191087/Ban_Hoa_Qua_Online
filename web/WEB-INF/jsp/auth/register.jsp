@@ -1,5 +1,6 @@
-<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -12,8 +13,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Material Symbols Outlined -->
     <link href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/assets/css/auth-overrides.css" rel="stylesheet">
     <!-- Tailwind CSS -->
-    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
     <!-- Tailwind Configuration -->
     <script id="tailwind-config">
         tailwind.config = {
@@ -43,36 +45,12 @@
             }
         }
     </script>
-    <style>
-        body {
-            font-family: 'Lexend', sans-serif;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 20px 50px rgba(20, 83, 45, 0.12);
-        }
-        /* Custom scrollbar for beautiful experience */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #14532D;
-            border-radius: 9999px;
-        }
-    </style>
 </head>
 <body class="bg-emerald-50 text-on-surface min-h-screen flex flex-col antialiased relative">
 
     <!-- Decorative Organic Background -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-multiply" 
-             style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24');">
+        <div class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-multiply bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24')]">
         </div>
         <!-- Gradient Overlay to ensure readability and glass effect -->
         <div class="absolute inset-0 bg-gradient-to-br from-white/90 via-emerald-50/70 to-emerald-100/90 backdrop-blur-[4px]"></div>
@@ -81,7 +59,7 @@
     <!-- Top AppBar Navigation Header -->
     <header class="flex justify-between items-center w-full px-6 md:px-12 py-4 z-50 fixed top-0 left-0 right-0 border-b border-white/30 bg-white/40 backdrop-blur-md shadow-[0_2px_15px_rgba(20,83,45,0.03)]">
         <div class="flex items-center gap-2">
-            <img src="${pageContext.request.contextPath}/assets/images/logo.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
+            <img src="${pageContext.request.contextPath}/assets/images/logo_light.png" alt="MetaFruit" class="h-8 w-8 rounded-lg object-cover">
             <div class="text-2xl font-bold text-primary tracking-wide">
                 MetaFruit
             </div>
@@ -130,6 +108,35 @@
                 </div>
                 <c:remove var="flashMsg" scope="session"/>
                 <c:remove var="flashType" scope="session"/>
+            </c:if>
+
+            <c:if test="${not empty requestScope.prefilledUser}">
+                <div class="mb-6 overflow-hidden rounded-[1.75rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 shadow-[0_18px_45px_rgba(20,83,45,0.10)]">
+                    <div class="flex items-start gap-4 p-5 md:p-6">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-primary flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-[26px]">assignment</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+                                Trạng thái đăng ký
+                            </span>
+                            <h2 class="mt-2 text-lg md:text-xl font-extrabold text-on-surface">Xem lại đơn shop_owner của bạn</h2>
+                            <p class="mt-2 text-sm leading-6 text-on-surface-variant">
+                                Tài khoản của bạn đang ở luồng nâng cấp. Mở trang trạng thái để xem hồ sơ đang chờ duyệt, bị từ chối hay đã bị đình chỉ.
+                            </p>
+                            <div class="mt-4 flex flex-wrap gap-3">
+                                <a href="${pageContext.request.contextPath}/shop/status" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
+                                    <span class="material-symbols-outlined text-[18px]">open_in_new</span>
+                                    Xem trạng thái đăng ký
+                                </a>
+                                <a href="#registerForm" class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-primary transition-all hover:border-emerald-300 hover:bg-emerald-50">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    Quay lại form
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </c:if>
 
             <!-- Unified Form -->
@@ -188,7 +195,7 @@
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">call</span>
                                 <input class="w-full pl-9 pr-4 py-2.5 border border-outline/30 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-sm transition-all outline-none placeholder:text-outline-variant/60 ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'bg-gray-100/80 text-gray-500 cursor-not-allowed' : 'bg-white/70'}" 
                                        id="phone" name="phone" 
-                                       value="<c:out value="${not empty requestScope.prefilledUser ? requestScope.prefilledUser.phone : param.phone}"/>" 
+                                       value="<c:out value="${not empty requestScope.prefilledUser and not empty requestScope.prefilledUser.phone ? requestScope.prefilledUser.phone : param.phone}"/>" 
                                        placeholder="Nhập số điện thoại" type="tel" required maxlength="15"
                                        ${(not empty requestScope.prefilledUser && not empty requestScope.prefilledUser.phone) ? 'readonly' : ''}>
                             </div>
@@ -330,11 +337,12 @@
                         <label class="text-xs font-semibold text-primary">Tải lên tài liệu xác minh (GPKD, Chứng nhận ATTP...) *</label>
                         <p class="text-[10px] text-outline">Tối đa 10 tài liệu • Mỗi file ≤ 25MB • Định dạng: PDF, JPG, PNG, DOCX</p>
                         <div class="border-2 border-dashed border-primary/20 rounded-lg p-5 text-center bg-white/20 hover:bg-emerald-50/50 transition-colors cursor-pointer group relative" id="dropzone">
-                            <input class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                                   id="businessDocs" name="businessDocs" type="file" 
-                                   multiple 
-                                   accept=".pdf,.jpg,.jpeg,.png,.docx"
-                                   onchange="handleFileSelect(this)">
+                                <input class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                                       id="businessDocs" name="businessDocs" type="file" 
+                                       multiple 
+                                       accept=".pdf,.jpg,.jpeg,.png,.docx"
+                                       onchange="handleFileSelect(this)"
+                                       <c:if test="${empty requestScope.registerDraftDocPaths}">required</c:if>>
                             <div class="flex flex-col items-center gap-2 pointer-events-none">
                                 <span class="material-symbols-outlined text-[36px] text-primary/60 group-hover:text-primary transition-colors">cloud_upload</span>
                                 <p class="text-xs font-medium text-on-surface-variant" id="uploadLabel">
@@ -345,13 +353,34 @@
                         <!-- File list preview -->
                         <ul id="fileList" class="mt-2 space-y-1 hidden"></ul>
                         <p id="fileError" class="text-xs text-red-600 hidden"></p>
+                        <c:if test="${not empty requestScope.registerDraftDocPaths}">
+                            <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary text-[20px]">draft</span>
+                                    <div>
+                                        <p class="text-sm font-semibold text-primary">Tài liệu nháp đã lưu trên hệ thống</p>
+                                        <p class="text-xs text-on-surface-variant">Bạn chỉ cần sửa các trường khác nếu đang lỗi validation.</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <c:forEach var="draftDocPath" items="${requestScope.registerDraftDocPaths}">
+                                        <c:set var="draftPathSegments" value="${fn:split(draftDocPath, '/')}"/>
+                                        <c:set var="draftFileName" value="${draftPathSegments[fn:length(draftPathSegments) - 1]}"/>
+                                        <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-white/80 px-3 py-2 text-xs">
+                                            <span class="material-symbols-outlined text-primary text-[16px]">description</span>
+                                            <span class="font-medium text-on-surface break-all"><c:out value="${draftFileName}"/></span>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+                            </div>
+                        </c:if>
                     </div>
                 </div>
 
                 <!-- Terms and Conditions Checkbox -->
                 <div class="flex items-start gap-3 mt-4">
                     <div class="flex items-center h-5 mt-0.5">
-                        <input class="w-4 h-4 rounded border-outline/30 text-primary focus:ring-primary bg-white cursor-pointer" id="terms" name="terms" type="checkbox" required>
+                        <input class="w-4 h-4 rounded border-outline/30 text-primary focus:ring-primary bg-white cursor-pointer" id="terms" name="terms" type="checkbox" <c:if test="${not empty param.terms}">checked</c:if> required>
                     </div>
                     <label class="text-xs text-on-surface-variant leading-relaxed cursor-pointer" for="terms">
                         Tôi đồng ý với các <a class="text-primary font-bold hover:underline" href="#">Điều khoản sử dụng dịch vụ</a> và <a class="text-primary font-bold hover:underline" href="#">Chính sách bảo mật dữ liệu khách hàng</a> của MetaFruit.
@@ -409,6 +438,7 @@
         const MAX_DOC_SIZE_MB = 25;
         const MAX_DOC_SIZE_BYTES = MAX_DOC_SIZE_MB * 1024 * 1024;
         const ALLOWED_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'docx'];
+        const hasDraftDocs = ${not empty requestScope.registerDraftDocPaths};
 
         /**
          * Chuyển giữa tab Đăng ký khách hàng / Chủ cửa hàng
@@ -430,12 +460,16 @@
                     shopFields.classList.add('hidden');
                     document.getElementById('storeName') && document.getElementById('storeName').removeAttribute('required');
                     document.getElementById('address') && document.getElementById('address').removeAttribute('required');
+                    document.getElementById('businessDocs') && document.getElementById('businessDocs').removeAttribute('required');
                 } else {
                     tabShop.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 bg-white text-primary shadow-sm";
                     tabCustomer.className = "flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary";
                     shopFields.classList.remove('hidden');
                     document.getElementById('storeName') && document.getElementById('storeName').setAttribute('required', 'required');
                     document.getElementById('address') && document.getElementById('address').setAttribute('required', 'required');
+                    if (!hasDraftDocs) {
+                        document.getElementById('businessDocs') && document.getElementById('businessDocs').setAttribute('required', 'required');
+                    }
                 }
             } else {
                 // Trường hợp prefilledUser, chỉ có tab shop được hiện và không có tab selector
@@ -611,13 +645,13 @@
 
                     // Check files
                     const fileInput = document.getElementById('businessDocs');
-                    if (fileInput.files.length === 0) {
+                    if (fileInput.files.length === 0 && !hasDraftDocs) {
                         hasError = true;
                         const errorDiv = document.createElement('p');
                         errorDiv.className = 'client-error text-xs text-red-600 mt-1';
                         errorDiv.textContent = 'Vui lòng chọn ít nhất một tệp tài liệu để xác minh.';
                         document.getElementById('dropzone').parentNode.appendChild(errorDiv);
-                    } else {
+                    } else if (fileInput.files.length > 0) {
                         const files = Array.from(fileInput.files);
                         if (files.length > MAX_DOC_COUNT) {
                             hasError = true;

@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+import util.ServletUtil;
+
 /**
  * GoogleLoginServlet — Điều hướng người dùng sang màn hình xin cấp quyền (OAuth Consent) của Google.
  *
@@ -44,7 +46,7 @@ public class GoogleLoginServlet extends HttpServlet {
         // Xây dựng Google OAuth URL kèm state
         String googleAuthUrl = "https://accounts.google.com/o/oauth2/auth"
                 + "?client_id=" + URLEncoder.encode(AppConfig.GOOGLE_CLIENT_ID, StandardCharsets.UTF_8)
-                + "&redirect_uri=" + URLEncoder.encode(AppConfig.GOOGLE_REDIRECT_URI, StandardCharsets.UTF_8)
+                + "&redirect_uri=" + URLEncoder.encode(ServletUtil.getGoogleRedirectUri(req), StandardCharsets.UTF_8)
                 + "&response_type=code"
                 + "&scope=" + URLEncoder.encode("email profile openid", StandardCharsets.UTF_8)
                 + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8)

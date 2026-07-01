@@ -8,59 +8,6 @@
     <jsp:param name="pageTitle" value="Danh sách sản phẩm - MetaFruit" />
 </jsp:include>
 
-<!-- Google Fonts Lexend & Material Icons -->
-<link href="https://fonts.googleapis.com" rel="preconnect">
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/material-symbols-outlined.css">
-
-<!-- Tailwind CSS Engine for consistent modern rich aesthetics -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
-
-<script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                colors: {
-                    "primary": "#14532D", // Match MetaFruit theme precisely
-                    "primary-hover": "#166534",
-                    "primary-light": "#d1ffd8",
-                    "surface": "#eaffea",
-                    "on-surface": "#00210d",
-                    "on-surface-variant": "#44483b",
-                    "outline": "#75796a",
-                    "outline-variant": "#c5c8b7"
-                },
-                fontFamily: {
-                    sans: ["Lexend", "sans-serif"]
-                }
-            }
-        }
-    }
-</script>
-
-<style>
-    body {
-        font-family: 'Lexend', sans-serif;
-    }
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-    }
-    .ambient-shadow {
-        box-shadow: 0 10px 40px rgba(20, 83, 45, 0.06);
-    }
-    .hide-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-    .hide-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-</style>
-
 <script>
     window.handleImageError = function (img) {
         if (!img.dataset.errorStage) {
@@ -259,7 +206,7 @@
                     <c:when test="${empty pagedResult or empty pagedResult.items}">
                         <!-- Empty Fallback View -->
                         <div class="glass-panel rounded-3xl p-16 text-center max-w-xl mx-auto ambient-shadow flex flex-col items-center gap-4 bg-white/60">
-                            <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce">sentiment_dissatisfied</span>
+                            <span class="material-symbols-outlined text-[64px] text-primary/30">sentiment_dissatisfied</span>
                             <div>
                                 <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
                                 <p class="text-xs text-on-surface-variant font-light mt-1.5 leading-relaxed">
@@ -285,9 +232,9 @@
                                          class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                                     
                                     <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}"
-                                       class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
+                                       class="block group/link flex-grow no-underline text-inherit">
                                         <!-- Image Aspect Ratio block -->
-                                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                                             <img src="${p.image}" alt="${fn:escapeXml(p.name)}"
                                                  onerror="handleImageError(this)"
                                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -341,90 +288,7 @@
                         </div>
 
                         <!-- Beautiful Pagination Controls -->
-                        <c:if test="${pagedResult.totalPages > 1}">
-                            <div class="flex justify-center items-center mt-12 gap-2">
-                                <!-- Prev Button -->
-                                <c:choose>
-                                    <c:when test="${pagedResult.currentPage > 1}">
-                                        <c:url var="prevUrl" value="/products">
-                                            <c:param name="page" value="${pagedResult.currentPage - 1}" />
-                                            <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
-                                            <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
-                                            <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
-                                            <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
-                                        </c:url>
-                                        <a href="${prevUrl}"
-                                           class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
-                                        </a>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
-                                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
-                                        </span>
-                                    </c:otherwise>
-                                </c:choose>
-
-                                <!-- Page Numbers with Ellipsis -->
-                                <c:forEach var="pageNum" begin="1" end="${pagedResult.totalPages}">
-                                    <c:choose>
-                                        <%-- Display conditions: first page, last page, and neighbor pages --%>
-                                        <c:when test="${pageNum == 1 || pageNum == pagedResult.totalPages || (pageNum >= pagedResult.currentPage - 1 && pageNum <= pagedResult.currentPage + 1)}">
-                                            <c:url var="pageUrl" value="/products">
-                                                <c:param name="page" value="${pageNum}" />
-                                                <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
-                                                <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
-                                                <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
-                                                <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
-                                            </c:url>
-                                            <c:choose>
-                                                <c:when test="${pagedResult.currentPage == pageNum}">
-                                                    <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                                                        ${pageNum}
-                                                    </span>
-                                                </c:when>
-                                                <c:otherwise>
-                                                    <a href="${pageUrl}"
-                                                       class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                                        ${pageNum}
-                                                    </a>
-                                                </c:otherwise>
-                                            </c:choose>
-                                        </c:when>
-                                        <%-- Ellipsis before active range --%>
-                                        <c:when test="${pageNum == 2 && pagedResult.currentPage > 3}">
-                                            <span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>
-                                        </c:when>
-                                        <%-- Ellipsis after active range --%>
-                                        <c:when test="${pageNum == pagedResult.totalPages - 1 && pagedResult.currentPage < pagedResult.totalPages - 2}">
-                                            <span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>
-                                        </c:when>
-                                    </c:choose>
-                                </c:forEach>
-
-                                <!-- Next Button -->
-                                <c:choose>
-                                    <c:when test="${pagedResult.currentPage < pagedResult.totalPages}">
-                                        <c:url var="nextUrl" value="/products">
-                                            <c:param name="page" value="${pagedResult.currentPage + 1}" />
-                                            <c:if test="${not empty keyword}"><c:param name="keyword" value="${keyword}" /></c:if>
-                                            <c:if test="${not empty categoryId}"><c:param name="categoryId" value="${categoryId}" /></c:if>
-                                            <c:if test="${not empty minPrice}"><c:param name="minPrice" value="${minPrice}" /></c:if>
-                                            <c:if test="${not empty maxPrice}"><c:param name="maxPrice" value="${maxPrice}" /></c:if>
-                                        </c:url>
-                                        <a href="${nextUrl}"
-                                           class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200">
-                                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
-                                        </a>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-100 bg-gray-50/50 text-gray-400 cursor-not-allowed">
-                                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
-                                        </span>
-                                    </c:otherwise>
-                                </c:choose>
-                            </div>
-                        </c:if>
+                        <ft:pagination current="${pagedResult.currentPage}" total="${pagedResult.totalPages}" baseUrl="${pageContext.request.contextPath}/products?keyword=${fn:escapeXml(keyword)}&categoryId=${categoryId}&minPrice=${minPrice}&maxPrice=${maxPrice}"/>
                     </c:otherwise>
                 </c:choose>
                 </div>
@@ -481,6 +345,39 @@
     const catalogContainerEl = document.getElementById('products-catalog-container');
     let currentPage = catalogContainerEl ? parseInt(catalogContainerEl.getAttribute('data-current-page') || '1') : 1;
     let totalPages = catalogContainerEl ? parseInt(catalogContainerEl.getAttribute('data-total-pages') || '1') : 1;
+
+    window.promptPageJumpForList = function(totalPages) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Chuyển đến trang',
+                text: 'Nhập số trang muốn đến (1 - ' + totalPages + '):',
+                input: 'number',
+                inputAttributes: { min: 1, max: totalPages, step: 1 },
+                showCancelButton: true,
+                confirmButtonText: 'Đến',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#14532D',
+                inputValidator: (value) => {
+                    const page = parseInt(value);
+                    if (isNaN(page) || page < 1 || page > totalPages) {
+                        return 'Số trang phải từ 1 đến ' + totalPages + '!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetchProductsAjax(parseInt(result.value));
+                }
+            });
+        } else {
+            const targetPageStr = prompt("Nhập số trang bạn muốn chuyển đến (1 - " + totalPages + "):");
+            if (targetPageStr) {
+                const targetPage = parseInt(targetPageStr);
+                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+                    fetchProductsAjax(targetPage);
+                }
+            }
+        }
+    };
 
     function escapeHtml(str) {
         if (!str) return '';
@@ -620,7 +517,7 @@
         if (products.length === 0) {
             gridContainer.innerHTML = bannerHtml + `
                 <div class="glass-panel rounded-3xl p-16 text-center max-w-xl mx-auto ambient-shadow flex flex-col items-center gap-4 bg-white/60 mt-6">
-                    <span class="material-symbols-outlined text-[64px] text-primary/30 animate-bounce">sentiment_dissatisfied</span>
+                    <span class="material-symbols-outlined text-[64px] text-primary/30">sentiment_dissatisfied</span>
                     <div>
                         <h3 class="font-bold text-lg text-on-surface">Không tìm thấy sản phẩm phù hợp</h3>
                         <p class="text-xs text-on-surface-variant font-light mt-1.5 leading-relaxed">
@@ -672,8 +569,8 @@
                          class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
                     
                     <a href="\${detailUrl}"
-                       class="block group/link flex-grow" style="text-decoration: none; color: inherit;">
-                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50" style="aspect-ratio: 4/3;">
+                       class="block group/link flex-grow no-underline text-inherit">
+                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                              <img src="\${escapeHtml(p.image || '')}" alt="\${escapeHtml(p.name)}"
                                  onerror="handleImageError(this)"
                                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
@@ -746,26 +643,42 @@
             }
 
             // Page numbers
-            for (let pageNum = 1; pageNum <= total; pageNum++) {
-                if (pageNum === 1 || pageNum === total || (pageNum >= page - 1 && pageNum <= page + 1)) {
-                    if (page === pageNum) {
+            const pagesToShow = new Set();
+            pagesToShow.add(1);
+            if (total > 1) {
+                pagesToShow.add(total);
+                pagesToShow.add(total - 1);
+            }
+            pagesToShow.add(page);
+            if (page > 1) pagesToShow.add(page - 1);
+            if (page < total) pagesToShow.add(page + 1);
+
+            const pagesSorted = Array.from(pagesToShow).sort((a, b) => a - b);
+
+            for (let idx = 0; idx < pagesSorted.length; idx++) {
+                const pageNum = pagesSorted[idx];
+                if (idx > 0) {
+                    const prevPage = pagesSorted[idx - 1];
+                    if (pageNum - prevPage > 1) {
                         html += `
-                            <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
-                                \${pageNum}
-                            </span>
-                        `;
-                    } else {
-                        html += `
-                            <button type="button" onclick="fetchProductsAjax(\${pageNum})"
-                               class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
-                                \${pageNum}
-                            </button>
+                        <a href="javascript:void(0)" onclick="promptPageJumpForList(\${total})" class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold hover:text-primary transition-colors cursor-pointer" title="Nhảy đến trang...">...</a>
                         `;
                     }
-                } else if (pageNum === 2 && page > 3) {
-                    html += `<span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>`;
-                } else if (pageNum === total - 1 && page < total - 2) {
-                    html += `<span class="w-10 h-10 flex items-center justify-center text-on-surface-variant/50 font-bold">...</span>`;
+                }
+
+                if (page === pageNum) {
+                    html += `
+                        <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20">
+                            \${pageNum}
+                        </span>
+                    `;
+                } else {
+                    html += `
+                        <button type="button" onclick="fetchProductsAjax(\${pageNum})"
+                           class="flex items-center justify-center w-10 h-10 rounded-xl border border-primary/20 bg-white text-on-surface-variant font-medium hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 duration-200 cursor-pointer">
+                            \${pageNum}
+                        </button>
+                    `;
                 }
             }
 

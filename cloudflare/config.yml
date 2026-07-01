@@ -9,10 +9,14 @@
 
 tunnel: b873150f-1854-45a0-b0b2-8eade3f62f1b
 credentials-file: C:\Users\Admin\.cloudflared\b873150f-1854-45a0-b0b2-8eade3f62f1b.json
+protocol: http2
 
 ingress:
-  # Route toàn bộ traffic về Tomcat local
-  - service: http://localhost:8080
+  # Route traffic từ tên miền cố định metafruit.me về Tomcat local
+  - hostname: metafruit.me
+    service: http://localhost:8080
+  # Trả về 404 cho các truy cập khác
+  - service: http_status:404
 
 # Ghi log để debug
 loglevel: info

@@ -1,10 +1,10 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
-<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quét mã QR Thanh toán - Verdant Market"/></jsp:include>
+<jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Quét mã QR Thanh toán - MetaFruit"/></jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
-<script src="${pageContext.request.contextPath}/assets/js/tailwind.js?plugins=forms,container-queries"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -89,18 +89,12 @@
   }
 </script>
 
-<style>
-    .glass-card {
-        background-color: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 15px -3px rgba(20, 83, 45, 0.05), 0 4px 6px -2px rgba(20, 83, 45, 0.03);
-    }
-</style>
-
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
     <input type="hidden" id="js-qr-expire-min" value="${qrExpireMin != null ? qrExpireMin : 15}">
+    <input type="hidden" id="js-order-id" value="<c:out value='${order.orderId}'/>">
+    <input type="hidden" id="js-reference" value="<c:out value='${reference}'/>">
+    <input type="hidden" id="js-amount-formatted" value="<c:out value='${amountFormatted}'/>">
+    <input type="hidden" id="js-context-path" value="<c:out value='${pageContext.request.contextPath}'/>">
     
     <div class="mb-8 flex items-baseline justify-between border-b border-[#b1f2be] pb-4">
         <div>
@@ -155,14 +149,14 @@
             <div class="glass-card rounded-2xl p-5 border border-amber-200 bg-amber-50/40 text-xs">
                 <span class="font-bold text-amber-800 flex items-center gap-1 mb-2">
                     <span class="material-symbols-outlined text-sm">construction</span>
-                    DEVELOPMENT TESTING:
+                    DEVELOPMENT TESTING - Webhook SePay:
                 </span>
                 <p class="text-on-surface-variant mb-3 leading-relaxed">
-                    Bạn có thể mô phỏng SePay callback ghi nhận tiền về thành công để kiểm thử khả năng chuyển trang tự động của Polling script.
+                    Dùng nút này để mô phỏng webhook SePay. Trạng thái đơn chỉ được xem là hoàn tất khi polling nhận được trạng thái đơn hàng mới.
                 </p>
                 <div class="flex gap-2">
                     <button onclick="simulateSuccessRedirect()" class="bg-[#14532D] text-white px-3 py-1.5 rounded font-bold hover:bg-opacity-90 transition-all cursor-pointer">
-                        Mô phỏng Thanh toán Thành công
+                        Mô phỏng webhook SePay
                     </button>
                 </div>
             </div>
@@ -183,7 +177,7 @@
                             <span class="text-xs text-on-surface-variant font-medium block">Ngân hàng thụ hưởng</span>
                             <span class="font-extrabold text-[#00210d]">Ngân hàng Quân Đội (MB Bank)</span>
                         </div>
-                        <button onclick="copyText('Ngân hàng Quân Đội (MB Bank)', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="Ngân hàng Quân Đội (MB Bank)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -192,9 +186,9 @@
                     <div class="flex justify-between items-center bg-white/40 p-3 rounded-lg border border-emerald-100/50 hover:bg-white/60 transition-colors">
                         <div>
                             <span class="text-xs text-on-surface-variant font-medium block">Số tài khoản</span>
-                            <span class="font-extrabold text-[#00210d] text-base select-all tracking-wider">${accountNo}</span>
+                            <span class="font-extrabold text-[#00210d] text-base select-all tracking-wider"><c:out value="${accountNo}"/></span>
                         </div>
-                        <button onclick="copyText('${accountNo}', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${accountNo}'/>" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -203,9 +197,9 @@
                     <div class="flex justify-between items-center bg-white/40 p-3 rounded-lg border border-emerald-100/50 hover:bg-white/60 transition-colors">
                         <div>
                             <span class="text-xs text-on-surface-variant font-medium block">Chủ tài khoản thụ hưởng</span>
-                            <span class="font-extrabold text-[#00210d] select-all">${accountName}</span>
+                            <span class="font-extrabold text-[#00210d] select-all"><c:out value="${accountName}"/></span>
                         </div>
-                        <button onclick="copyText('${accountName}', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${accountName}'/>" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -216,7 +210,7 @@
                             <span class="text-xs text-on-surface-variant font-medium block">Số tiền chính xác</span>
                             <span class="font-black text-[#ba1a1a] text-lg select-all"><ft:currency value="${order.finalAmount}"/></span>
                         </div>
-                        <button onclick="copyText('${amountFormatted}', this)" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${amountFormatted}'/>" class="text-primary hover:text-opacity-80 p-1 flex items-center justify-center rounded hover:bg-emerald-50 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[18px]">content_copy</span>
                         </button>
                     </div>
@@ -228,9 +222,9 @@
                                 <span class="material-symbols-outlined text-sm">warning</span>
                                 Nội dung chuyển khoản bắt buộc
                             </span>
-                            <span class="font-black text-amber-900 text-base select-all tracking-wider font-mono">${description}</span>
+                            <span class="font-black text-amber-900 text-base select-all tracking-wider font-mono"><c:out value="${description}"/></span>
                         </div>
-                        <button onclick="copyText('${description}', this)" class="text-amber-800 hover:text-opacity-80 p-1.5 flex items-center justify-center rounded hover:bg-yellow-100 transition-colors cursor-pointer" title="Copy">
+                        <button onclick="copyText(this.dataset.text, this)" data-text="<c:out value='${description}'/>" class="text-amber-800 hover:text-opacity-80 p-1.5 flex items-center justify-center rounded hover:bg-yellow-100 transition-colors cursor-pointer" title="Copy">
                             <span class="material-symbols-outlined text-[20px] font-bold">content_copy</span>
                         </button>
                     </div>
@@ -357,9 +351,16 @@
             (seconds < 10 ? '0' : '') + seconds;
     }, 1000);
 
+    // Read clean values from DOM hidden fields to prevent quote/syntax breaking issues
+    const orderId = document.getElementById('js-order-id').value;
+    const reference = document.getElementById('js-reference').value;
+    const amountFormatted = document.getElementById('js-amount-formatted').value;
+    const contextPath = document.getElementById('js-context-path').value;
+    const terminalPaidStatuses = new Set(['CONFIRMED', 'APPROVED', 'PREPARING', 'DISPATCHED', 'DELIVERED']);
+
     // Real-time Polling every 3 seconds to check order payment status
-    const pollingUrl = '${pageContext.request.contextPath}/checkout?action=status&orderId=${order.orderId}';
-    const successUrl = '${pageContext.request.contextPath}/checkout?action=success&orderId=${order.orderId}';
+    const pollingUrl = contextPath + '/checkout?action=status&orderId=' + encodeURIComponent(orderId);
+    const successUrl = contextPath + '/checkout?action=success&orderId=' + encodeURIComponent(orderId);
 
     // Hiển thị modal thông báo thành công và đếm ngược tự động chuyển hướng
     function showSuccessModal(redirectUrl) {
@@ -396,9 +397,17 @@
         })
             .then(handleJSONResponse)
             .then(data => {
-                console.log('[FruitMkt] Polling Order Status:', data.status);
-                // If order state updated to CONFIRMED (or preparing, dispatched etc. indicating payment complete)
-                if (data.status && data.status !== 'PENDING_PAYMENT' && data.status !== 'UNKNOWN') {
+                const orderStatus = data.data ? data.data.status : null;
+                console.log('[FruitMkt] Polling Order Status:', orderStatus);
+                if (orderStatus === 'CANCELLED') {
+                    clearInterval(timerInterval);
+                    clearInterval(pollingInterval);
+                    alert('Đơn hàng đã bị hủy. Bạn sẽ được chuyển tới chi tiết đơn hàng.');
+                    window.location.href = contextPath + '/profile/order-detail?orderId=' + encodeURIComponent(orderId);
+                    return;
+                }
+                // If order state updated to a paid/fulfilled state, show success modal.
+                if (orderStatus && terminalPaidStatuses.has(orderStatus)) {
                     clearInterval(timerInterval);
                     clearInterval(pollingInterval);
                     showSuccessModal(successUrl);
@@ -413,24 +422,26 @@
     function simulateSuccessRedirect() {
         const payload = {
             id: "SIM_TX_" + Date.now(),
-            code: "${reference}",
+            code: reference,
             transferType: "in",
-            transferAmount: "${amountFormatted}"
+            transferAmount: amountFormatted
         };
 
-        fetch('${pageContext.request.contextPath}/api/payment/webhook', {
+        fetch(contextPath + '/api/payment/webhook', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         })
-        .then(res => {
-            if (res.ok) {
-                console.log('[Dev Sim] Webhook sent successfully');
-                showSuccessModal(successUrl);
+        .then(handleJSONResponse)
+        .then(data => {
+            const outcome = data.data ? data.data.outcome : null;
+            if (outcome && outcome !== 'invalid_payload') {
+                console.log('[Dev Sim] Webhook simulation outcome:', outcome, data);
+                alert('Webhook mô phỏng đã được gửi. Trạng thái sẽ được xác nhận qua polling.');
             } else {
-                alert('Gửi webhook mô phỏng thất bại.');
+                alert('Gửi webhook mô phỏng thất bại: ' + (data.error || data.message || 'Lỗi xử lý nội bộ'));
             }
         })
         .catch(err => {
