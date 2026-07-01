@@ -741,6 +741,12 @@ function Deploy-App {
                           "<Context docBase=`"$($docBaseAbsolute.Replace('\', '/'))`" path=`"/Ban_Hoa_Qua_Online`" reloadable=`"true`" useHttpOnly=`"true`"/>"
         [System.IO.File]::WriteAllText($contextXmlPath, $contextContent)
         Write-Host "Context XML updated at: $contextXmlPath" -ForegroundColor Yellow
+
+        $rootContextXmlPath = "$contextConfDir/ROOT.xml"
+        $rootContextContent = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`r`n" +
+                              "<Context docBase=`"$($docBaseAbsolute.Replace('\', '/'))`" reloadable=`"true`" useHttpOnly=`"true`"/>"
+        [System.IO.File]::WriteAllText($rootContextXmlPath, $rootContextContent)
+        Write-Host "Root context XML updated at: $rootContextXmlPath" -ForegroundColor Yellow
     }
 
     Start-Process -FilePath "$tomcatHome\bin\startup.bat"

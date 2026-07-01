@@ -490,7 +490,7 @@ BEGIN
     INSERT INTO system_config (config_key, config_value, description, data_type)
     VALUES (
         'gemini_api_key',
-        '',
+        'AIzaSyC6rEPhvOksINyqgnUjOlGPjOq_IWKEgBI',
         N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.',
         'STRING'
     );

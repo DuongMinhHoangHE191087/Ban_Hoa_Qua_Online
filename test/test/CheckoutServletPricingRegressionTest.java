@@ -22,6 +22,7 @@ import model.entity.Promotion;
 import servlet.customer.cart.CheckoutServlet;
 import service.order.DeliveryService;
 import service.cart.CartService;
+import service.cart.CheckoutPricingEngine;
 import service.shop.PaymentService;
 import service.shop.PromotionService;
 import jakarta.servlet.RequestDispatcher;
@@ -657,6 +658,30 @@ public class CheckoutServletPricingRegressionTest {
         assertFalse(fullCartErrors.isEmpty());
     }
 
+    @Test
+    public void rejectOutOfSeasonProductInCartAndCheckoutQuote() throws Exception {
+        markProductOutOfSeason(productAId);
+
+        try {
+            cartService.addToCart(customerId, variantAId, 1);
+            fail("Expected addToCart to reject out-of-season product");
+        } catch (IllegalArgumentException ex) {
+            assertNotNull(ex.getMessage());
+            assertTrue(ex.getMessage().contains("hết mùa"));
+        }
+
+        List<String> selectedErrors = cartService.checkCartStockBeforeCheckout(customerId, List.of(variantAId));
+        assertFalse(selectedErrors.isEmpty());
+        assertTrue(selectedErrors.stream().anyMatch(err -> err.contains("hết mùa")));
+
+        CheckoutPricingEngine.CheckoutPricingSnapshot snapshot =
+                new CheckoutPricingEngine().buildSelectionQuote(buildCustomer(customerId), List.of(variantAId));
+        assertNotNull(snapshot);
+        assertNotNull(snapshot.getQuote());
+        assertFalse(snapshot.getQuote().getValid());
+        assertTrue(snapshot.getQuote().getErrors().stream().anyMatch(err -> err.contains("hết mùa")));
+    }
+
     private void assertChildOrder(Order child, int expectedOwnerId, BigDecimal expectedSubtotal,
                                   BigDecimal expectedDiscount, BigDecimal expectedFinalAmount) {
         assertNotNull(child);
@@ -809,6 +834,16 @@ public class CheckoutServletPricingRegressionTest {
                 ps.executeUpdate();
             }
         }
+    }
+
+    private void markProductOutOfSeason(int productId) throws SQLException {
+        Product product = productDAO.findOneById(productId);
+        assertNotNull(product);
+
+        int nextMonth = (LocalDate.now().getMonthValue() % 12) + 1;
+        product.setSeasonStartMonth(nextMonth);
+        product.setSeasonEndMonth(nextMonth);
+        productDAO.update(product);
     }
 
     private int parseOrderId(String redirectLocation) {

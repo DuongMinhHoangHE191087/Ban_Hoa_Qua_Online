@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -36,12 +37,14 @@ public class AiSearchService {
 
     private static final Logger log = Logger.getLogger(AiSearchService.class.getName());
 
-    private static final long TOTAL_BUDGET_MS = 4_000L;
-    private static final long UPSTREAM_TIMEOUT_MS = 2_500L;
+    private static final long TOTAL_BUDGET_MS = 15_000L;
+    private static final long UPSTREAM_TIMEOUT_MS = 12_000L;
+    private static final long MIN_RETRY_BUDGET_MS = 4_000L;
     private static final int MAX_RETRIES = 1;
     private static final int MAX_FALLBACK_PRODUCTS = 6;
     private static final int MAX_AI_CONTEXT_PRODUCTS = 12;
     private static final Set<Integer> TRANSIENT_AI_STATUS_CODES = Set.of(429, 503);
+    private static final Set<Integer> AI_CONFIG_ERROR_STATUS_CODES = Set.of(400, 401, 403, 404);
     private static final Set<String> AI_SEARCH_STOP_WORDS = Set.of(
             "cho", "voi", "cua", "mot", "nhung", "nay", "ban", "toi", "minh", "tu",
             "den", "la", "va", "the", "thi", "duoc", "khong");
@@ -66,7 +69,12 @@ public class AiSearchService {
         AiCatalogContextCache.Snapshot snapshot = catalogContextCache.getSnapshot();
         String apiKey = resolveApiKey();
         if (apiKey == null) {
-            return buildFallbackResponse(userMessage, snapshot, startedAt, "missing_api_key");
+            return buildUpstreamErrorResponse(
+                    startedAt,
+                    "missing_api_key",
+                    "Chưa có Gemini API key hợp lệ. Hãy cấu hình trong Admin hoặc biến môi trường GEMINI_API_KEY.",
+                    null,
+                    null);
         }
 
         List<Product> promptProducts = selectRelevantProducts(
@@ -103,18 +111,60 @@ public class AiSearchService {
                 Thread.currentThread().interrupt();
                 failureReason = "interrupted";
                 break;
+            } catch (HttpTimeoutException hte) {
+                failureReason = "timeout";
+                LoggerUtil.warn(log, "Gemini API phản hồi quá chậm.", hte);
+                long retryBudget = deadlineAt - System.currentTimeMillis();
+                if (attempt < MAX_RETRIES && retryBudget >= MIN_RETRY_BUDGET_MS) {
+                    continue;
+                }
+                return buildUpstreamErrorResponse(
+                        startedAt,
+                        "timeout",
+                        "Gemini phản hồi quá lâu. Vui lòng thử lại sau.",
+                        null,
+                        null);
             } catch (IOException ioe) {
                 failureReason = "network_error";
-                LoggerUtil.warn(log, "Không gọi được Gemini API, chuyển fallback.", ioe);
-                break;
+                LoggerUtil.warn(log, "Không gọi được Gemini API.", ioe);
+                long retryBudget = deadlineAt - System.currentTimeMillis();
+                if (attempt < MAX_RETRIES && retryBudget >= MIN_RETRY_BUDGET_MS) {
+                    continue;
+                }
+                return buildUpstreamErrorResponse(
+                        startedAt,
+                        "network_error",
+                        "Không kết nối được tới Gemini. Vui lòng thử lại sau.",
+                        null,
+                        null);
             }
 
             int status = httpResponse.statusCode();
             if (status == 200) {
-                return buildGeminiResponse(httpResponse.body(), startedAt);
+                try {
+                    return buildGeminiResponse(httpResponse.body(), startedAt);
+                } catch (Exception parseError) {
+                    LoggerUtil.warn(log, "Gemini trả về payload không hợp lệ.", parseError);
+                    return buildUpstreamErrorResponse(
+                            startedAt,
+                            "invalid_gemini_payload",
+                            "Gemini trả về dữ liệu không hợp lệ. Vui lòng thử lại sau.",
+                            status,
+                            truncateForLog(httpResponse.body()));
+                }
             }
 
             lastErrorBody = truncateForLog(httpResponse.body());
+            if (AI_CONFIG_ERROR_STATUS_CODES.contains(status)) {
+                String errorMessage = extractGeminiErrorMessage(status, lastErrorBody);
+                LoggerUtil.warn(log, "Gemini upstream config error status=%d body=%s", status, lastErrorBody);
+                return buildUpstreamErrorResponse(
+                        startedAt,
+                        "http_" + status,
+                        errorMessage,
+                        status,
+                        lastErrorBody);
+            }
             if (attempt < MAX_RETRIES && TRANSIENT_AI_STATUS_CODES.contains(status)) {
                 failureReason = "retry_" + status;
                 try {
@@ -124,6 +174,10 @@ public class AiSearchService {
                     failureReason = "interrupted";
                     break;
                 }
+                long retryBudget = deadlineAt - System.currentTimeMillis();
+                if (retryBudget < MIN_RETRY_BUDGET_MS) {
+                    break;
+                }
                 continue;
             }
             failureReason = "http_" + status;
@@ -131,24 +185,67 @@ public class AiSearchService {
         }
 
         if (failureReason != null && lastErrorBody != null) {
-            LoggerUtil.warn(log, "Gemini fallback reason=%s body=%s", failureReason, lastErrorBody);
+            LoggerUtil.warn(log, "Gemini upstream failure reason=%s body=%s", failureReason, lastErrorBody);
         }
-        return buildFallbackResponse(userMessage, snapshot, startedAt, failureReason != null ? failureReason : "unknown");
+        return buildUpstreamErrorResponse(
+                startedAt,
+                failureReason != null ? failureReason : "unknown",
+                "Gemini không phản hồi hợp lệ. Vui lòng thử lại sau.",
+                null,
+                lastErrorBody);
     }
 
     private String resolveApiKey() throws Exception {
         String apiKey = systemConfigDAO.getValue(AppConfig.CONFIG_GEMINI_API_KEY);
-        if (apiKey == null || apiKey.trim().isEmpty() || isPlaceholderKey(apiKey)) {
-            apiKey = AppConfig.GEMINI_API_KEY;
+        if (apiKey != null) {
+            apiKey = apiKey.trim();
+            if (!apiKey.isEmpty()) {
+                return apiKey;
+            }
         }
-        if (apiKey == null || apiKey.trim().isEmpty() || isPlaceholderKey(apiKey)) {
-            return null;
+
+        String envApiKey = System.getenv("GEMINI_API_KEY");
+        if (envApiKey != null) {
+            envApiKey = envApiKey.trim();
+            if (!envApiKey.isEmpty()) {
+                return envApiKey;
+            }
         }
-        return apiKey.trim();
+
+        if (AppConfig.GEMINI_API_KEY != null) {
+            String appConfigApiKey = AppConfig.GEMINI_API_KEY.trim();
+            if (!appConfigApiKey.isEmpty()) {
+                return appConfigApiKey;
+            }
+        }
+
+        return null;
     }
 
-    private boolean isPlaceholderKey(String apiKey) {
-        return "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey != null ? apiKey.trim() : null);
+    private String extractGeminiErrorMessage(int status, String rawBody) {
+        String parsedMessage = null;
+        if (rawBody != null && !rawBody.isBlank()) {
+            try {
+                Map<String, Object> parsedBody = mapper.readValue(rawBody, Map.class);
+                Object error = parsedBody.get("error");
+                if (error instanceof Map<?, ?> errorMap) {
+                    Object message = errorMap.get("message");
+                    parsedMessage = normalizeText(message);
+                    if (parsedMessage == null) {
+                        parsedMessage = normalizeText(errorMap.get("status"));
+                    }
+                }
+            } catch (Exception ignored) {
+                // Use the truncated body below when JSON parsing fails.
+            }
+        }
+        if (parsedMessage == null && rawBody != null && !rawBody.isBlank()) {
+            parsedMessage = rawBody;
+        }
+        if (parsedMessage == null || parsedMessage.isBlank()) {
+            return "Gemini từ chối yêu cầu với mã HTTP " + status + ".";
+        }
+        return "Gemini từ chối yêu cầu với mã HTTP " + status + ": " + parsedMessage;
     }
 
     private Map<String, Object> buildGeminiPayload(String userMessage,
@@ -208,7 +305,12 @@ public class AiSearchService {
         Map<String, Object> geminiResponse = mapper.readValue(rawBody, Map.class);
         List<Map<String, Object>> candidates = (List<Map<String, Object>>) geminiResponse.get("candidates");
         if (candidates == null || candidates.isEmpty()) {
-            return buildFallbackResponse("", catalogContextCache.getSnapshot(), startedAt, "empty_candidates");
+            return buildUpstreamErrorResponse(
+                    startedAt,
+                    "empty_candidates",
+                    "Gemini trả về phản hồi rỗng. Vui lòng thử lại sau.",
+                    null,
+                    null);
         }
 
         Map<String, Object> candidate = candidates.get(0);
@@ -216,7 +318,12 @@ public class AiSearchService {
         List<Map<String, Object>> partsList = contentMap != null ? (List<Map<String, Object>>) contentMap.get("parts") : null;
         String jsonText = partsList != null && !partsList.isEmpty() ? normalizeText(partsList.get(0).get("text")) : null;
         if (jsonText == null) {
-            return buildFallbackResponse("", catalogContextCache.getSnapshot(), startedAt, "empty_text");
+            return buildUpstreamErrorResponse(
+                    startedAt,
+                    "empty_text",
+                    "Gemini trả về nội dung không hợp lệ. Vui lòng thử lại sau.",
+                    null,
+                    null);
         }
 
         Map<String, Object> aiResult = mapper.readValue(jsonText, Map.class);
@@ -256,6 +363,31 @@ public class AiSearchService {
         response.put("fallback", true);
         response.put("latencyMs", System.currentTimeMillis() - startedAt);
         response.put("fallbackReason", fallbackReason);
+        return response;
+    }
+
+    private Map<String, Object> buildUpstreamErrorResponse(long startedAt,
+                                                           String errorCode,
+                                                           String errorMessage,
+                                                           Integer upstreamStatus,
+                                                           String upstreamBody) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("reply", null);
+        response.put("suggestedProductIds", Collections.emptyList());
+        response.put("products", Collections.emptyList());
+        response.put("source", "upstream_error");
+        response.put("fallback", false);
+        response.put("latencyMs", System.currentTimeMillis() - startedAt);
+        response.put("errorCode", errorCode);
+        response.put("errorMessage", normalizeText(errorMessage) != null
+                ? normalizeText(errorMessage)
+                : "Gemini không phản hồi được.");
+        if (upstreamStatus != null) {
+            response.put("upstreamStatus", upstreamStatus);
+        }
+        if (upstreamBody != null && !upstreamBody.isBlank()) {
+            response.put("upstreamBody", upstreamBody);
+        }
         return response;
     }
 

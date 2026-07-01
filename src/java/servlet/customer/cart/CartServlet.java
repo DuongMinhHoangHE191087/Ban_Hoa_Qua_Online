@@ -229,7 +229,9 @@ public class CartServlet extends HttpServlet {
 
     private Map<String, Object> buildValidationErrorMeta(String message) {
         Map<String, Object> meta = new HashMap<>();
-        if (isStockRelatedMessage(message)) {
+        if (isOutOfSeasonMessage(message)) {
+            meta.put("errorCode", "out_of_season");
+        } else if (isStockRelatedMessage(message)) {
             meta.put("errorCode", "out_of_stock");
         }
         return meta.isEmpty() ? null : meta;
@@ -237,9 +239,21 @@ public class CartServlet extends HttpServlet {
 
     private Map<String, Object> buildStockErrorMeta(List<String> errors) {
         Map<String, Object> meta = new HashMap<>();
-        meta.put("errorCode", "out_of_stock");
+        meta.put("errorCode", resolveStockErrorCode(errors));
         meta.put("errors", errors);
         return meta;
+    }
+
+    private String resolveStockErrorCode(List<String> errors) {
+        if (errors == null) {
+            return "out_of_stock";
+        }
+        for (String message : errors) {
+            if (isOutOfSeasonMessage(message)) {
+                return "out_of_season";
+            }
+        }
+        return "out_of_stock";
     }
 
     private boolean isStockRelatedMessage(String message) {
@@ -247,9 +261,21 @@ public class CartServlet extends HttpServlet {
             return false;
         }
         return message.contains("vượt quá số lượng còn lại trong kho")
+                || message.contains("hết số lượng bạn cần mua")
                 || message.contains("hết hàng")
-                || message.contains("trong kho chỉ còn")
-                || message.contains("không còn bán");
+                || message.contains("chỉ còn")
+                || message.contains("không còn bán")
+                || isOutOfSeasonMessage(message);
+    }
+
+    private boolean isOutOfSeasonMessage(String message) {
+        if (message == null) {
+            return false;
+        }
+        return message.contains("hết mùa")
+                || message.contains("ngoài mùa")
+                || message.contains("vụ mới")
+                || message.contains("không còn khả dụng");
     }
 
     private List<Integer> parseVariantIds(String variantIdsParam) {

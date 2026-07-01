@@ -1352,12 +1352,12 @@
                                 }
                                 const envelope = await response.json();
                                 if (envelope.success === false) {
-                                    alert(envelope.error || 'Sản phẩm hiện không khả dụng.');
+                                    window.showCartErrorModal(envelope.error || 'Sản phẩm hiện không khả dụng.', 'Không thể tải sản phẩm');
                                     return;
                                 }
                                 const data = envelope.data;
                                 if (!data) {
-                                    alert('Sản phẩm hiện không khả dụng.');
+                                    window.showCartErrorModal('Sản phẩm hiện không khả dụng.', 'Không thể tải sản phẩm');
                                     return;
                                 }
 
@@ -1366,18 +1366,39 @@
                                     const reason = data.reason || '';
                                     const msg = data.message || 'Sản phẩm hiện không khả dụng.';
                                     if (reason === 'OUT_OF_SEASON') {
-                                        if (confirm(msg + '\n\nBạn có muốn gửi yêu cầu nhập kho vụ mới tới cửa hàng không?')) {
+                                        const confirmMessage = `${msg} Bạn có muốn gửi yêu cầu nhập kho vụ mới tới cửa hàng không?`;
+                                        if (typeof Swal !== 'undefined') {
+                                            const result = await Swal.fire({
+                                                icon: 'warning',
+                                                title: 'Sản phẩm đã hết mùa',
+                                                text: confirmMessage,
+                                                showCancelButton: true,
+                                                confirmButtonText: 'Gửi yêu cầu',
+                                                cancelButtonText: 'Đóng',
+                                                confirmButtonColor: '#14532D',
+                                                cancelButtonColor: '#94a3b8',
+                                                background: '#ffffff',
+                                                customClass: {
+                                                    popup: 'premium-swal-popup',
+                                                    title: 'premium-swal-title',
+                                                    confirmButton: 'premium-swal-button'
+                                                }
+                                            });
+                                            if (result.isConfirmed) {
+                                                window.location.href = `${contextPath}/products/detail?id=${productId}`;
+                                            }
+                                        } else if (confirm(confirmMessage)) {
                                             window.location.href = `${contextPath}/products/detail?id=${productId}`;
                                         }
                                     } else if (reason === 'OUT_OF_STOCK') {
-                                        alert('Sản phẩm đã hết hàng. Vui lòng quay lại sau.');
+                                        window.showCartErrorModal('Sản phẩm đã hết hàng. Vui lòng quay lại sau.', 'Sản phẩm hết hàng');
                                     } else {
-                                        alert(msg);
+                                        window.showCartErrorModal(msg, 'Không thể tải sản phẩm');
                                     }
                                     return;
                                 }
                                 if (!data.variants || data.variants.length === 0) {
-                                    alert('Sản phẩm đã hết hàng. Vui lòng quay lại sau.');
+                                    window.showCartErrorModal('Sản phẩm đã hết hàng. Vui lòng quay lại sau.', 'Sản phẩm hết hàng');
                                     return;
                                 }
                                 // Cảnh báo nhẹ khi sản phẩm ngoài mùa vụ nhưng vẫn còn hàng
@@ -1404,7 +1425,7 @@
                                 openQuickAddModal(data.product, data.variants);
                             } catch (err) {
                                 console.error('Lỗi tải thông tin sản phẩm:', err);
-                                alert('Không thể kết nối đến máy chủ.');
+                                window.showCartErrorModal('Không thể kết nối đến máy chủ.', 'Lỗi kết nối');
                             }
                         }
 
@@ -1493,7 +1514,7 @@
                             if (qty < 1) qty = 1;
                             if (qty > v.stockQuantity) {
                                 qty = v.stockQuantity;
-                                alert(`Kho chỉ còn \${v.stockQuantity} sản phẩm khả dụng cho phân loại này!`);
+                                window.showCartErrorModal(`Kho chỉ còn \${v.stockQuantity} sản phẩm khả dụng cho phân loại này!`, 'Cảnh báo tồn kho');
                             }
 
                             window.currentQuickAddData.quantity = qty;
@@ -1607,7 +1628,7 @@
                                             weightKg: 1.0,
                                             quantity: parseInt(quantity),
                                             imagePath: imagePath || 'assets/img/placeholder.png',
-                                            stockQuantity: parseInt(stockQuantity) || 99,
+                                            stockQuantity: parseInt(stockQuantity) || 0,
                                             productId: parseInt(productId) || null
                                         });
                                     }
@@ -1625,7 +1646,7 @@
                                             price: parseFloat(price),
                                             quantity: parseInt(quantity),
                                             imagePath: imagePath || 'assets/img/placeholder.png',
-                                            stockQuantity: parseInt(stockQuantity) || 99,
+                                            stockQuantity: parseInt(stockQuantity) || 0,
                                             productId: parseInt(productId) || null
                                         });
                                     }
@@ -1723,7 +1744,7 @@
                                             window.updateCardAddedQuantities();
                                         }
                                     }
-                                    alert(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
+                                    window.showCartErrorModal(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
                                 });
                         };
 

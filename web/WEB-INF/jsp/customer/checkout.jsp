@@ -383,11 +383,11 @@
                                                 <c:choose>
                                                     <c:when test="${sId > 0}">
                                                         <a href="${pageContext.request.contextPath}/shop-view?id=${sId}" class="hover:underline text-primary-dark transition-all">
-                                                            Cửa hàng: <c:out value="${sName != null ? sName : 'N/A'}"/>
+                                                            Cửa hàng: <c:out value="${sName != null ? sName : 'Chưa có'}"/>
                                                         </a>
                                                     </c:when>
                                                     <c:otherwise>
-                                                        <span>Cửa hàng: <c:out value="${sName != null ? sName : 'N/A'}"/></span>
+                                                        <span>Cửa hàng: <c:out value="${sName != null ? sName : 'Chưa có'}"/></span>
                                                     </c:otherwise>
                                                 </c:choose>
                                             </div>
@@ -396,10 +396,64 @@
                                             </div>
                                         </div>
                                         <%-- Danh sách sản phẩm của Shop này --%>
+                                        <c:set var="shopOutOfStockCount" value="0" />
+                                        <c:set var="shopOverLimitCount" value="0" />
+                                        <c:set var="shopHasStockIssue" value="false" />
+                                        <c:forEach var="stockItem" items="${cartSummary.items}">
+                                            <c:if test="${stockItem.shopId == sId and stockItem.stockQuantity <= 0}">
+                                                <c:set var="shopOutOfStockCount" value="${shopOutOfStockCount + 1}" />
+                                                <c:set var="shopHasStockIssue" value="true" />
+                                            </c:if>
+                                            <c:if test="${stockItem.shopId == sId and stockItem.stockQuantity > 0 and stockItem.quantity > stockItem.stockQuantity}">
+                                                <c:set var="shopOverLimitCount" value="${shopOverLimitCount + 1}" />
+                                                <c:set var="shopHasStockIssue" value="true" />
+                                            </c:if>
+                                        </c:forEach>
+                                        <c:if test="${shopHasStockIssue}">
+                                            <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 text-amber-900 p-4 shadow-sm">
+                                                <div class="flex items-start gap-3">
+                                                    <span class="material-symbols-outlined text-xl mt-0.5">warning</span>
+                                                    <div class="text-sm leading-relaxed">
+                                                        <p class="font-bold">Shop này có <c:out value="${shopOutOfStockCount + shopOverLimitCount}"/> sản phẩm chưa thể thanh toán ngay.</p>
+                                                        <p class="mt-1">
+                                                            <c:if test="${shopOutOfStockCount > 0}">
+                                                                <c:out value="${shopOutOfStockCount}"/> sản phẩm đã hết hàng.
+                                                            </c:if>
+                                                            <c:if test="${shopOverLimitCount > 0}">
+                                                                <c:if test="${shopOutOfStockCount > 0}"> </c:if>
+                                                                <c:out value="${shopOverLimitCount}"/> sản phẩm vượt số lượng còn lại.
+                                                            </c:if>
+                                                            Vui lòng quay lại giỏ hàng để đổi phân loại còn hàng hoặc giảm số lượng trước khi thanh toán.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </c:if>
                                         <div class="divide-y divide-emerald-50/50">
                                             <c:forEach var="item" items="${cartSummary.items}">
                                                 <c:if test="${item.shopId == sId}">
-                                                     <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
+                                                    <c:set var="itemRowClass" value="" />
+                                                    <c:set var="itemStockMessage" value="Tồn kho: ${item.stockQuantity} sản phẩm." />
+                                                    <c:set var="itemStockBadgeClass" value="border-emerald-200 bg-emerald-50 text-emerald-700" />
+                                                    <c:set var="itemStockTextClass" value="text-txt-2" />
+                                                    <c:set var="itemStockBlocked" value="false" />
+                                                    <c:choose>
+                                                        <c:when test="${item.stockQuantity <= 0}">
+                                                            <c:set var="itemRowClass" value="opacity-50 grayscale bg-rose-50/60 border-rose-200" />
+                                                            <c:set var="itemStockMessage" value="Sản phẩm đã hết số lượng bạn cần mua, hiện chỉ còn 0 sản phẩm." />
+                                                            <c:set var="itemStockBadgeClass" value="border-red-200 bg-red-50 text-red-700" />
+                                                            <c:set var="itemStockTextClass" value="text-rose-700 font-semibold" />
+                                                            <c:set var="itemStockBlocked" value="true" />
+                                                        </c:when>
+                                                        <c:when test="${item.quantity > item.stockQuantity}">
+                                                            <c:set var="itemRowClass" value="bg-amber-50/60 border-amber-200" />
+                                                            <c:set var="itemStockMessage" value="Bạn đang chọn ${item.quantity} sản phẩm nhưng hiện chỉ còn ${item.stockQuantity}. Hãy giảm số lượng hoặc đổi phân loại." />
+                                                            <c:set var="itemStockBadgeClass" value="border-amber-200 bg-amber-50 text-amber-700" />
+                                                            <c:set var="itemStockTextClass" value="text-amber-700 font-semibold" />
+                                                            <c:set var="itemStockBlocked" value="true" />
+                                                        </c:when>
+                                                    </c:choose>
+                                                    <div class="flex items-center gap-4 py-4 first:pt-0 last:pb-0 ${itemRowClass}" data-stock-blocked="${itemStockBlocked}" data-stock-quantity="${item.stockQuantity}" data-requested-quantity="${item.quantity}">
                                                          <c:choose>
                                                              <c:when test="${item.productId > 0}">
                                                                  <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-emerald-100/30 bg-slate-50 block hover:opacity-90 transition-opacity">
@@ -469,6 +523,17 @@
                                                                     Đóng gói: <c:out value="${item.packagingLabel}"/> (+<ft:currency value="${item.packagingPriceAdd}"/>)
                                                                 </span>
                                                             </c:if>
+                                                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${itemStockBadgeClass}">
+                                                                    <c:choose>
+                                                                        <c:when test="${item.stockQuantity <= 0}">Hết hàng</c:when>
+                                                                        <c:otherwise>Còn <c:out value="${item.stockQuantity}"/></c:otherwise>
+                                                                    </c:choose>
+                                                                </span>
+                                                                <span class="text-[11px] ${itemStockTextClass}">
+                                                                    <c:out value="${itemStockMessage}"/>
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                         <div class="text-right shrink-0">
                                                             <span class="font-bold text-txt text-sm block">
@@ -545,7 +610,7 @@
                                 <span class="font-label-md text-label-md text-on-surface font-bold">Tổng cộng</span>
                                 <span class="font-headline-md text-headline-md text-primary font-black text-2xl" id="summary-total"><ft:currency value="${cartSummary.total}"/></span>
                             </div>
-                            <span class="block text-right text-xs text-on-surface-variant mt-1">(Đã bao gồm VAT & Cước bảo ôn cold-chain)</span>
+                            <span class="block text-right text-xs text-on-surface-variant mt-1">(Đã bao gồm VAT & Cước bảo ôn chuỗi lạnh)</span>
                         </div>
                         <button id="submitBtn" type="submit" class="w-full py-4 rounded-lg bg-[#14532D] text-white font-label-md text-label-md flex justify-center items-center gap-2 hover:bg-opacity-90 transition-all font-bold cursor-pointer active:scale-95 shadow-md">
                             Đặt hàng ngay
@@ -743,7 +808,7 @@ function refreshQuotePreview(options = {}) {
         .then(r => r.json())
         .then(resp => {
             if (!resp || !resp.success) {
-                throw new Error((resp && (resp.error || resp.message)) || 'Không thể tính quote checkout.');
+                throw new Error((resp && (resp.error || resp.message)) || 'Không thể tính giá thanh toán.');
             }
             quoteState = resp.data || null;
             if (quoteState) {
@@ -798,7 +863,7 @@ function applyCoupon() {
             if (data.valid) {
                 const benefitTarget = (data.benefitTarget || 'MERCHANDISE').toString().toUpperCase();
                 if (benefitTarget === 'PRODUCT') {
-                    showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại checkout.', 'text-red-600 font-bold');
+                    showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại trang thanh toán.', 'text-red-600 font-bold');
                     return;
                 }
                 const ownerId = data.ownerId;
@@ -835,7 +900,7 @@ function applyCoupon() {
                         if (sysData.valid) {
                             const benefitTarget = (sysData.benefitTarget || 'MERCHANDISE').toString().toUpperCase();
                             if (benefitTarget === 'PRODUCT') {
-                                showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại checkout.', 'text-red-600 font-bold');
+                                showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại trang thanh toán.', 'text-red-600 font-bold');
                                 return;
                             }
                             const systemCouponsForThisTarget = appliedSystemCoupons.filter(c => (c.benefitTarget || 'MERCHANDISE') === benefitTarget);
@@ -1006,7 +1071,9 @@ function renderAppliedCoupons() {
             hasCoupon = true;
             const scopeLabel = c.discountScope === 'SYSTEM' ? 'Voucher sàn' : 'Voucher shop';
             const targetLabel = c.benefitTarget === 'SHIPPING' ? 'Phí ship' : 'Sản phẩm';
-            const ownerLabel = c.ownerId ? `Shop #${c.ownerId}` : '';
+            const ownerLabel = c.ownerId ? 'Cửa hàng #' + c.ownerId : '';
+            const couponScope = c.discountScope || 'SHOP';
+            const couponCode = c.code || '';
             const item = document.createElement('div');
             item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
             item.innerHTML = '<div>' +
@@ -1014,7 +1081,7 @@ function renderAppliedCoupons() {
                 '<span class="font-bold text-on-surface">' + c.code + '</span>' +
                 '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(c.discountAmount) + (ownerLabel ? ', ' + ownerLabel : '') + ', ' + targetLabel + ')</span>' +
                 '</div>' +
-                `<button type="button" onclick="removeCoupon('${c.discountScope || 'SHOP'}', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
+                '<button type="button" onclick="removeCoupon(\'' + couponScope + '\', \'' + couponCode + '\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
             listEl.appendChild(item);
         });
     } else {
@@ -1027,7 +1094,7 @@ function renderAppliedCoupons() {
                 '<span class="font-bold text-on-surface">' + c.code + '</span>' +
                 '<span class="text-on-surface-variant ml-1">(Đang tính...)</span>' +
                 '</div>' +
-                `<button type="button" onclick="removeCoupon('SHOP', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
+                '<button type="button" onclick="removeCoupon(\'SHOP\', \'' + (c.code || '') + '\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
             listEl.appendChild(item);
         });
     
@@ -1040,7 +1107,7 @@ function renderAppliedCoupons() {
                 '<span class="font-bold text-on-surface">' + c.code + '</span>' +
                 '<span class="text-on-surface-variant ml-1">(Đang tính...)</span>' +
                 '</div>' +
-                `<button type="button" onclick="removeCoupon('SYSTEM', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
+                '<button type="button" onclick="removeCoupon(\'SYSTEM\', \'' + (c.code || '') + '\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
             listEl.appendChild(item);
         });
     }
@@ -1250,18 +1317,18 @@ function handleInlineAddressSubmit() {
     const isDefault = document.getElementById('mIsDefault').checked;
 
     if (name.length < 3) {
-        alert('Họ và tên người nhận phải từ 3 ký tự trở lên.');
+        showCheckoutAlert('Họ và tên người nhận phải từ 3 ký tự trở lên.', 'Thông tin không hợp lệ', 'warning');
         document.getElementById('mRecipientName').focus();
         return;
     }
     const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
     if (!phoneRegex.test(phone)) {
-        alert('Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam gồm 10 chữ số).');
+        showCheckoutAlert('Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam gồm 10 chữ số).', 'Thông tin không hợp lệ', 'warning');
         document.getElementById('mRecipientPhone').focus();
         return;
     }
     if (detail.length < 5) {
-        alert('Địa chỉ chi tiết phải từ 5 ký tự trở lên.');
+        showCheckoutAlert('Địa chỉ chi tiết phải từ 5 ký tự trở lên.', 'Thông tin không hợp lệ', 'warning');
         document.getElementById('mAddressDetail').focus();
         return;
     }
@@ -1328,7 +1395,7 @@ function handleInlineAddressSubmit() {
             hideInlineAddressForm();
             scheduleQuoteRefresh();
         } else {
-            alert('Lỗi: ' + data.error);
+            showCheckoutAlert(data.error || 'Không thể lưu địa chỉ.', 'Lưu địa chỉ thất bại', 'error');
         }
     })
     .catch(err => {
@@ -1336,7 +1403,7 @@ function handleInlineAddressSubmit() {
         btn.classList.remove('opacity-50');
         btn.textContent = 'Lưu địa chỉ';
         console.error(err);
-        alert('Đã xảy ra lỗi kết nối.');
+        showCheckoutAlert('Đã xảy ra lỗi kết nối.', 'Lỗi kết nối', 'error');
     });
 }
 
@@ -1344,12 +1411,16 @@ let currentStep = 1;
 
 function goToStep(step) {
     if (step === 2) {
+        if (hasBlockingStockIssue()) {
+            showCheckoutAlert('Có sản phẩm đã hết số lượng hoặc vượt số lượng còn lại. Vui lòng quay lại giỏ hàng để đổi phân loại còn hàng hoặc giảm số lượng trước khi thanh toán.', 'Không thể thanh toán', 'warning');
+            return;
+        }
         // Validate shipping address
         const fullName = document.getElementById('fullName').value.trim();
         const phone = document.getElementById('phone').value.trim();
         const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
         if (userAddresses.length === 0 || !fullName || !phone || !deliveryAddress) {
-            alert('Vui lòng chọn hoặc thêm địa chỉ nhận hàng trước khi tiếp tục.');
+            showCheckoutAlert('Vui lòng chọn hoặc thêm địa chỉ nhận hàng trước khi tiếp tục.', 'Thiếu địa chỉ', 'warning');
             const list = document.getElementById('addressSelectionList');
             if (list && list.classList.contains('hidden')) {
                 toggleAddressSelectionList();
@@ -1406,6 +1477,8 @@ function updateStepUI() {
         }
     }
 
+    syncCheckoutSubmitButtons();
+
     // Populate confirmation info card when going to step 2
     if (currentStep === 2) {
         populateConfirmationCard();
@@ -1432,24 +1505,64 @@ function populateConfirmationCard() {
     if (couponContainer) {
         let html = '';
         if (quoteState && Array.isArray(quoteState.appliedCoupons) && quoteState.appliedCoupons.length > 0) {
+            const fmtCurrency = (value) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(parseMoneyValue(value));
             quoteState.appliedCoupons.forEach(c => {
                 const scopeLabel = c.discountScope === 'SYSTEM' ? 'Voucher sàn' : 'Voucher shop';
                 const targetLabel = c.benefitTarget === 'SHIPPING' ? 'phí ship' : 'sản phẩm';
-                html += `<p class="text-emerald-700 font-semibold">${scopeLabel}: ${c.code} (${targetLabel}, -${new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(parseMoneyValue(c.discountAmount))})</p>`;
+                html += '<p class="text-emerald-700 font-semibold">' + scopeLabel + ': ' + c.code + ' (' + targetLabel + ', -' + fmtCurrency(c.discountAmount) + ')</p>';
             });
         } else {
-            if (shopCouponCode) html += `<p class="text-emerald-700 font-semibold">🏷️ Voucher Shop: ${shopCouponCode}</p>`;
-            if (systemCouponCode) html += `<p class="text-emerald-700 font-semibold">🎟️ Voucher Sàn: ${systemCouponCode}</p>`;
+            if (shopCouponCode) html += '<p class="text-emerald-700 font-semibold">🏷️ Voucher Shop: ' + shopCouponCode + '</p>';
+            if (systemCouponCode) html += '<p class="text-emerald-700 font-semibold">🎟️ Voucher Sàn: ' + systemCouponCode + '</p>';
         }
         if (quoteState && Array.isArray(quoteState.errors) && quoteState.errors.length > 0) {
-            html += `<p class="text-red-600 font-semibold">${quoteState.errors[0]}</p>`;
+            html += '<p class="text-red-600 font-semibold">' + quoteState.errors[0] + '</p>';
         }
         couponContainer.innerHTML = html;
         couponContainer.classList.toggle('hidden', !html);
     }
 }
 
+function showCheckoutAlert(message, title = 'Thông báo', icon = 'warning') {
+    if (typeof Swal !== 'undefined') {
+        return Swal.fire({
+            icon,
+            title,
+            text: message,
+            confirmButtonText: 'Đã hiểu',
+            confirmButtonColor: 'var(--color-primary)',
+            background: '#ffffff',
+            customClass: {
+                popup: 'premium-swal-popup',
+                title: 'premium-swal-title',
+                confirmButton: 'premium-swal-button'
+            }
+        });
+    }
+    alert(message);
+}
+
+function syncCheckoutSubmitButtons() {
+    const blockingStockIssue = document.querySelectorAll('[data-stock-blocked="true"]').length > 0;
+    const submitButtons = document.querySelectorAll('#checkoutForm button[type="submit"], #checkoutForm input[type="submit"], button[onclick="goToStep(2)"], button[form="checkoutForm"][type="submit"]');
+    submitButtons.forEach((button) => {
+        const shouldDisable = blockingStockIssue;
+        button.disabled = shouldDisable;
+        button.classList.toggle('opacity-50', shouldDisable);
+        button.classList.toggle('cursor-not-allowed', shouldDisable);
+    });
+}
+
+function hasBlockingStockIssue() {
+    return document.querySelectorAll('[data-stock-blocked="true"]').length > 0;
+}
+
 function validateCheckoutForm() {
+    if (hasBlockingStockIssue()) {
+        showCheckoutAlert('Có sản phẩm đã hết số lượng hoặc vượt số lượng còn lại. Vui lòng quay lại giỏ hàng để đổi phân loại còn hàng hoặc giảm số lượng trước khi thanh toán.', 'Không thể thanh toán', 'warning');
+        return false;
+    }
+
     if (currentStep < 2) {
         goToStep(2);
         return false;
@@ -1460,21 +1573,21 @@ function validateCheckoutForm() {
     const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
 
     if (userAddresses.length === 0) {
-        alert('Vui lòng thêm địa chỉ nhận hàng trước khi thanh toán.');
+        showCheckoutAlert('Vui lòng thêm địa chỉ nhận hàng trước khi thanh toán.', 'Thiếu địa chỉ', 'warning');
         showInlineAddressForm('add');
         return false;
     }
 
     if (!fullName || !phone || !deliveryAddress) {
-        alert('Vui lòng chọn hoặc điền thông tin địa chỉ giao hàng hợp lệ.');
+        showCheckoutAlert('Vui lòng chọn hoặc điền thông tin địa chỉ giao hàng hợp lệ.', 'Thiếu thông tin', 'warning');
         return false;
     }
 
     if (quoteState && quoteState.valid === false) {
         const firstError = Array.isArray(quoteState.errors) && quoteState.errors.length > 0
             ? quoteState.errors[0]
-            : 'Vui lòng kiểm tra lại mã giảm giá hoặc thông tin checkout.';
-        alert(firstError);
+            : 'Vui lòng kiểm tra lại mã giảm giá hoặc thông tin thanh toán.';
+        showCheckoutAlert(firstError, 'Không thể thanh toán', 'error');
         return false;
     }
 
@@ -1504,6 +1617,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     scheduleQuoteRefresh();
+    syncCheckoutSubmitButtons();
     updateStepUI(); // Initialize wizard step indicators on load
 });
 </script>

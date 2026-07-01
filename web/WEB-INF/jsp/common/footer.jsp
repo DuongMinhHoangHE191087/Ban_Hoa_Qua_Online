@@ -401,7 +401,11 @@
         }
 
         function getAppContextPath() {
-            return window.contextPath || window.location.pathname.split('/').slice(0, 2).join('/') || '/Ban_Hoa_Qua_Online';
+            if (typeof window.contextPath === 'string') {
+                return window.contextPath;
+            }
+            const pathPrefix = window.location.pathname.split('/').slice(0, 2).join('/');
+            return pathPrefix && pathPrefix !== '/' ? pathPrefix : '';
         }
 
         function getAiCsrfToken() {
@@ -425,7 +429,7 @@
             const loadingId = 'ai-loading-' + Date.now();
             const contextPath = getAppContextPath();
             const logoUrl = contextPath + '/assets/images/logo_light.png';
-            const aiFallbackMessage = 'AI hiện chưa phản hồi. Mình đã chuyển sang gợi ý sản phẩm phù hợp bên dưới.';
+            const aiParseErrorMessage = 'Máy chủ AI trả về dữ liệu không hợp lệ. Vui lòng thử lại sau.';
             const loadingHtml = '<div class="flex items-start gap-2 max-w-[85%] animate-pulse" id="' + loadingId + '">' +
                 '<div class="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-emerald-100/30">' +
                     '<img src="' + logoUrl + '" alt="MetaFruit Logo" class="w-full h-full object-cover">' +
@@ -472,7 +476,7 @@
                     console.warn('AI response is not valid JSON:', parseError, responseText);
                     data = {
                         success: false,
-                        message: aiFallbackMessage
+                        message: aiParseErrorMessage
                     };
                 }
                 
@@ -482,6 +486,12 @@
 
                 if (response.ok && data.success) {
                     const payload = unwrapApiEnvelope(data);
+                    const responseSource = payload.source || data.source || '';
+                    if (responseSource === 'upstream_error') {
+                        const errorMessage = payload.errorMessage || payload.message || data.error || data.message || aiParseErrorMessage;
+                        appendMessage('ai', errorMessage);
+                        return;
+                    }
                     const reply = payload.reply || data.reply || payload.message || data.message || 'Mình chưa nhận được câu trả lời hợp lệ từ AI. Vui lòng thử lại.';
                     const products = Array.isArray(payload.products) ? payload.products : (Array.isArray(data.products) ? data.products : []);
                     const suggestedProductIds = Array.isArray(payload.suggestedProductIds)
@@ -493,7 +503,7 @@
                         appendMessage('ai', 'Phiên bảo mật đã thay đổi hoặc hết hạn. Hãy tải lại trang rồi thử lại.');
                         return;
                     }
-                    appendMessage('ai', data.error || data.message || aiFallbackMessage);
+                    appendMessage('ai', data.error || data.message || aiParseErrorMessage);
                 }
             } catch (error) {
                 console.error('Lỗi khi gọi AI:', error);

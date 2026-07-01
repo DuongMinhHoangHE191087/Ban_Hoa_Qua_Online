@@ -1,11 +1,13 @@
 package service.cart;
 
 import dao.cart.CartDAO;
+import dao.catalog.ProductDAO;
 import dao.catalog.ProductVariantDAO;
 import dao.shop.PromotionDAO;
 import model.dto.product.CartSummaryDTO;
 import model.entity.cart.Cart;
 import model.entity.cart.CartItem;
+import model.entity.catalog.Product;
 import model.entity.catalog.ProductVariant;
 import model.entity.Promotion;
 import util.JsonUtil;
@@ -38,7 +40,44 @@ public class CartService {
     private static final Logger log = LoggerUtil.getLogger(CartService.class);
 
     private final CartDAO cartDAO = new CartDAO();
+    private final ProductDAO productDAO = new ProductDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
+
+    private String resolveProductName(Product product, String fallbackName) {
+        if (product != null && product.getName() != null && !product.getName().trim().isEmpty()) {
+            return product.getName().trim();
+        }
+        if (fallbackName != null && !fallbackName.trim().isEmpty()) {
+            return fallbackName.trim();
+        }
+        return "Sản phẩm này";
+    }
+
+    private String validatePurchasableProduct(Product product, String fallbackName) {
+        String productName = resolveProductName(product, fallbackName);
+        if (product == null) {
+            return productName + " hiện không còn tồn tại.";
+        }
+
+        String status = product.getStatus();
+        if ("DELETED".equals(status)) {
+            return productName + " đã bị gỡ khỏi gian hàng.";
+        }
+        if ("INACTIVE".equals(status)) {
+            return productName + " đã ngừng kinh doanh.";
+        }
+        if ("OUT_OF_SEASON".equals(status) || !product.isInSeason()) {
+            return productName + " đã hết mùa. Vui lòng quay lại khi có vụ mới.";
+        }
+        return null;
+    }
+
+    private Product loadProductForVariant(ProductVariant variant) throws SQLException {
+        if (variant == null) {
+            return null;
+        }
+        return productDAO.findOneById(variant.getProductId());
+    }
 
     /**
      * Lấy hoặc khởi tạo giỏ hàng cho khách hàng.
@@ -103,6 +142,11 @@ public class CartService {
         if (variant == null || !variant.getIsActive()) {
             throw new IllegalArgumentException("Sản phẩm hoặc biến thể này không tồn tại hoặc đã ngừng kinh doanh.");
         }
+        Product product = loadProductForVariant(variant);
+        String productError = validatePurchasableProduct(product, null);
+        if (productError != null) {
+            throw new IllegalArgumentException(productError);
+        }
 
         List<Cart> carts = cartDAO.findByCustomer(customerId);
         int cartId;
@@ -125,8 +169,8 @@ public class CartService {
 
         int totalRequested = existingQty + qty;
         if (totalRequested > variant.getStockQuantity()) {
-            throw new IllegalArgumentException("Rất tiếc! Số lượng yêu cầu (" + totalRequested 
-                + ") vượt quá số lượng còn lại trong kho (" + variant.getStockQuantity() + ").");
+            throw new IllegalArgumentException(resolveProductName(product, null)
+                    + " đã hết số lượng bạn cần mua, hiện chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
         }
 
         cartDAO.addItem(cartId, variantId, qty, packagingId);
@@ -155,10 +199,15 @@ public class CartService {
         if (variant == null || !variant.getIsActive()) {
             throw new IllegalArgumentException("Biến thể sản phẩm này không còn tồn tại hoặc đã ngừng kinh doanh.");
         }
+        Product product = loadProductForVariant(variant);
+        String productError = validatePurchasableProduct(product, item.getProductName());
+        if (productError != null) {
+            throw new IllegalArgumentException(productError);
+        }
 
         if (qty > variant.getStockQuantity()) {
-            throw new IllegalArgumentException("Rất tiếc! Số lượng yêu cầu (" + qty 
-                + ") vượt quá số lượng còn lại trong kho (" + variant.getStockQuantity() + ").");
+            throw new IllegalArgumentException(resolveProductName(product, item.getProductName())
+                    + " đã hết số lượng bạn cần mua, hiện chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
         }
 
         cartDAO.updateItemQuantity(cartItemId, qty);
@@ -202,9 +251,14 @@ public class CartService {
         if (newVariant == null || !newVariant.getIsActive()) {
             throw new IllegalArgumentException("Biến thể mới không tồn tại hoặc đã ngừng kinh doanh.");
         }
+        Product newProduct = loadProductForVariant(newVariant);
+        String productError = validatePurchasableProduct(newProduct, item.getProductName());
+        if (productError != null) {
+            throw new IllegalArgumentException(productError);
+        }
 
         if (newVariant.getStockQuantity() <= 0) {
-            throw new IllegalArgumentException("Rất tiếc! Biến thể mới này hiện đã hết hàng.");
+            throw new IllegalArgumentException("Sản phẩm này đã hết số lượng bạn cần mua, hiện chỉ còn 0 sản phẩm.");
         }
 
         int cartId = item.getCartId();
@@ -304,7 +358,16 @@ public class CartService {
                     }
                     
                     // Validate stock nhanh
-                    int stock = productVariantDAO.getStockQuantity(variantId);
+                    ProductVariant variant = productVariantDAO.findById(variantId);
+                    if (variant == null || !variant.getIsActive()) {
+                        continue;
+                    }
+                    Product product = loadProductForVariant(variant);
+                    if (validatePurchasableProduct(product, null) != null) {
+                        LoggerUtil.warn(log, "[UnloadSync] Bỏ qua variantId %d vì sản phẩm không còn khả dụng", variantId);
+                        continue;
+                    }
+                    int stock = variant.getStockQuantity();
                     if (stock > 0) {
                         CartItem ci = new CartItem();
                         ci.setVariantId(variantId);
@@ -369,12 +432,15 @@ public class CartService {
             ProductVariant variant = productVariantDAO.findById(item.getVariantId());
             if (variant == null || !variant.getIsActive()) {
                 errors.add("Sản phẩm '" + item.getProductName() + "' (" + item.getVariantLabel() + ") hiện không còn bán.");
+                continue;
+            }
+            Product product = loadProductForVariant(variant);
+            String productError = validatePurchasableProduct(product, item.getProductName());
+            if (productError != null) {
+                errors.add(productError + " (" + item.getVariantLabel() + ")");
+                continue;
             } else if (item.getQuantity() > variant.getStockQuantity()) {
-                if (variant.getStockQuantity() <= 0) {
-                    errors.add("Sản phẩm '" + item.getProductName() + "' (" + item.getVariantLabel() + ") hiện đã hết hàng.");
-                } else {
-                    errors.add("Sản phẩm '" + item.getProductName() + "' (" + item.getVariantLabel() + ") trong kho chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
-                }
+                errors.add("Sản phẩm '" + item.getProductName() + "' (" + item.getVariantLabel() + ") đã hết số lượng bạn cần mua, hiện chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
             }
         }
         if (!matchedAnySelectedItem) {
