@@ -197,8 +197,8 @@ public class DeliveryServiceTest {
 
     private void hardDeleteProduct(int productId) throws SQLException {
         try (Connection conn = productDAO.getConnection();
-             PreparedStatement ps1 = conn.prepareStatement("DELETE FROM product_variants WHERE product_id = ?");
-             PreparedStatement ps2 = conn.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
+             PreparedStatement ps1 = conn.prepareStatement("UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?");
+             PreparedStatement ps2 = conn.prepareStatement("UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
             ps1.setInt(1, productId);
             ps1.executeUpdate();
             ps2.setInt(1, productId);

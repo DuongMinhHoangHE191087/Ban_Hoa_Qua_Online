@@ -1043,10 +1043,109 @@ aside.w-64 .text-base.font-extrabold {
     letter-spacing: 0.06em !important;
 }
 
+#admin-sidebar .sb-logo {
+    display: flex;
+    align-items: center;
+    min-height: 4rem;
+    padding: 0.25rem 0.75rem 1rem !important;
+}
+
+#admin-sidebar .sb-logo .brand-lockup {
+    width: 100%;
+    justify-content: flex-start;
+    color: inherit;
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+
+#admin-sidebar .sb-logo-text {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    min-width: 0;
+    color: var(--color-primary-dark) !important;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+}
+
+#admin-sidebar .sb-logo-text span {
+    color: var(--color-primary);
+}
+
+#admin-sidebar .sb-nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: 0 0.25rem;
+    min-width: 0;
+}
+
+#admin-sidebar .sb-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#admin-sidebar .sb-nav-item {
+    list-style: none;
+    min-width: 0;
+}
+
+#admin-sidebar .sb-section-label {
+    display: block;
+    margin: var(--space-2) 0 var(--space-1);
+    padding: 0 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
 #admin-sidebar .sb-nav-link,
 aside.w-64 nav a {
     border-radius: var(--radius-lg) !important;
     border-left: 0 !important;
+}
+
+#admin-sidebar .sb-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.7rem 0.9rem;
+    color: var(--color-text-primary) !important;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none !important;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+#admin-sidebar .sb-nav-link:hover {
+    transform: translateX(2px);
+}
+
+#admin-sidebar .sb-nav-link .sb-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 1.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    background: var(--color-surface-soft);
+    color: var(--color-primary-dark);
+    font-size: 0.95rem;
+}
+
+#admin-sidebar .sb-nav-link > span:last-child {
+    min-width: 0;
+    flex: 1;
 }
 
 #admin-sidebar .sb-nav-link:hover,
@@ -1057,15 +1156,63 @@ aside.w-64 nav a:hover {
 
 #admin-sidebar .sb-nav-link.active,
 aside.w-64 nav a.font-bold {
-    background: rgba(77, 102, 28, 0.08) !important;
+    background: linear-gradient(135deg, rgba(77, 102, 28, 0.12), rgba(77, 102, 28, 0.06)) !important;
     color: var(--color-primary-dark) !important;
     box-shadow: inset 0 0 0 1px rgba(77, 102, 28, 0.12) !important;
+}
+
+#admin-sidebar .sb-nav-link.active .sb-icon {
+    background: rgba(77, 102, 28, 0.12);
+    color: var(--color-primary-dark);
+}
+
+#admin-sidebar .sb-footer {
+    margin-top: auto;
+    padding: var(--space-4) 0.75rem 0.5rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#admin-sidebar .sb-footer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-lg);
+    font-weight: 700;
+    text-decoration: none !important;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+#admin-sidebar .sb-footer-btn:hover {
+    transform: translateY(-1px);
+}
+
+#admin-sidebar .sb-btn-home {
+    background: var(--color-surface-soft);
+    color: var(--color-primary-dark);
+    border: 1px solid var(--color-border);
+}
+
+#admin-sidebar .sb-btn-logout {
+    background: rgba(185, 28, 28, 0.06);
+    color: var(--color-danger);
+    border: 1px solid rgba(185, 28, 28, 0.12);
+}
+
+#admin-sidebar .sb-footer-btn i {
+    flex-shrink: 0;
 }
 
 .sidebar-mobile-toggle {
     position: fixed !important;
     top: 20px !important;
-    left: 20px !important;
+    left: 20px;
     width: 44px !important;
     height: 44px !important;
     border-radius: 50% !important;
@@ -1074,7 +1221,6 @@ aside.w-64 nav a.font-bold {
     box-shadow: 0 6px 16px rgba(77, 102, 28, 0.25) !important;
     z-index: 9999 !important;
     cursor: pointer !important;
-    display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border: none !important;

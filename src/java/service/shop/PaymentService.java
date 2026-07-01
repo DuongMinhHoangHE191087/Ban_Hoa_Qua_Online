@@ -5,6 +5,7 @@ import dao.order.OrderDAO;
 import dao.shop.PaymentDAO;
 import dao.auth.UserDAO;
 import com.fasterxml.jackson.databind.JsonNode;
+import model.dto.checkout.CheckoutPaymentSummaryDTO;
 import model.entity.order.Order;
 import model.entity.shop.PaymentTransaction;
 import model.entity.auth.User;
@@ -89,6 +90,27 @@ public class PaymentService {
         return paymentDAO.findOneByOrder(orderId);
     }
 
+    public CheckoutPaymentSummaryDTO getCustomerPaymentSummary(int orderId, int customerId) throws SQLException {
+        Order requestedOrder = orderDAO.findByIdForCustomer(orderId, customerId);
+        if (requestedOrder == null) {
+            return null;
+        }
+
+        Order rootOrder = requestedOrder;
+        if (requestedOrder.getParentOrderId() != null && requestedOrder.getParentOrderId() > 0) {
+            Order candidateRoot = orderDAO.findByIdForCustomer(requestedOrder.getParentOrderId(), customerId);
+            if (candidateRoot != null) {
+                rootOrder = candidateRoot;
+            }
+        }
+
+        List<Order> childOrders = AppConfig.ORDER_TYPE_PARENT.equals(rootOrder.getOrderType())
+                ? orderDAO.findChildrenByParentId(rootOrder.getOrderId())
+                : java.util.List.of(rootOrder);
+        PaymentTransaction paymentTx = getPaymentByOrder(rootOrder.getOrderId());
+        return buildPaymentSummary(requestedOrder, rootOrder, childOrders, paymentTx);
+    }
+
     public Map<Integer, PaymentTransaction> getPaymentMapByOrderIds(Collection<Integer> orderIds) throws SQLException {
         return paymentDAO.findByOrderIds(orderIds);
     }
@@ -114,18 +136,20 @@ public class PaymentService {
      * @return false nếu QR đã hết hạn
      */
     public boolean confirmManualPayment(int orderId, int customerId) throws SQLException {
-        if (orderId <= 0) {
-            throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
+        CheckoutPaymentSummaryDTO summary = getCustomerPaymentSummary(orderId, customerId);
+        if (summary == null) {
+            throw new SecurityException("Không có quyền truy cập đơn hàng #" + orderId);
         }
-        // Guard: đơn phải thuộc customer này
-        Order order = orderDAO.findByIdForCustomer(orderId, customerId);
-        if (order == null) throw new SecurityException("Không có quyền truy cập đơn hàng #" + orderId);
-        PaymentTransaction tx = getPaymentByOrder(orderId);
+        Order order = orderDAO.findByIdForCustomer(summary.getOrderId(), customerId);
+        if (order == null) {
+            throw new IllegalArgumentException("không tìm thấy đơn hàng #" + summary.getOrderId());
+        }
+        PaymentTransaction tx = getPaymentByOrder(summary.getOrderId());
         if (tx == null) {
-            throw new IllegalStateException("Không tìm thấy bản ghi thanh toán cho đơn #" + orderId);
+            throw new IllegalStateException("Không tìm thấy bản ghi thanh toán cho đơn #" + summary.getOrderId());
         }
 
-        if (!AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
+        if (!summary.getPendingPayment()) {
             throw new IllegalStateException("Đơn hàng không ở trạng thái chờ thanh toán.");
         }
         String currentTxStatus = tx.getStatus();
@@ -178,6 +202,7 @@ public class PaymentService {
                         AppConfig.ORDER_TYPE_PARENT.equals(order.getOrderType()) ? " và cascade đơn con" : "");
                 notifyPaymentSuccessAsync(orderId, order.getCustomerId(),
                         "Đơn hàng #" + orderId + " đã được xác nhận thanh toán thành công bởi quản trị viên.");
+                notifyOrdersReadyForFulfillmentAsync(order.getOrderId());
                 return;
             } catch (SQLException | RuntimeException ex) {
                 conn.rollback();
@@ -231,6 +256,7 @@ public class PaymentService {
                     if (freshCompletion) {
                         notifyPaymentSuccessAsync(order.getOrderId(), order.getCustomerId(),
                                 "Đơn hàng #" + order.getOrderId() + " đã được xác nhận thanh toán thành công sau đối soát tự động.");
+                        notifyOrdersReadyForFulfillmentAsync(order.getOrderId());
                     }
                 } catch (SQLException | RuntimeException ex) {
                     conn.rollback();
@@ -425,6 +451,7 @@ public class PaymentService {
         if (result.shouldNotifyCustomer()) {
             notifyPaymentSuccessAsync(result.orderId, result.customerId,
                     "Đơn hàng #" + result.orderId + " đã được xác nhận thanh toán thành công qua chuyển khoản tự động.");
+            notifyOrdersReadyForFulfillmentAsync(result.orderId);
         }
         return result;
     }
@@ -542,6 +569,94 @@ public class PaymentService {
             });
         } catch (RuntimeException ex) {
             LoggerUtil.warn(log, "Không thể xếp hàng thông báo thanh toán cho orderId=" + orderId, ex);
+        }
+    }
+
+    private CheckoutPaymentSummaryDTO buildPaymentSummary(Order requestedOrder,
+                                                          Order rootOrder,
+                                                          List<Order> childOrders,
+                                                          PaymentTransaction paymentTx) {
+        CheckoutPaymentSummaryDTO summary = new CheckoutPaymentSummaryDTO();
+        summary.setRequestedOrderId(requestedOrder.getOrderId());
+        summary.setOrderId(rootOrder.getOrderId());
+        summary.setOrderType(rootOrder.getOrderType());
+        summary.setPaymentMethod(rootOrder.getPaymentMethod());
+        summary.setFinalAmount(rootOrder.getFinalAmount() != null ? rootOrder.getFinalAmount() : BigDecimal.ZERO);
+        summary.setPaymentRequired(AppConfig.PAYMENT_CK.equals(rootOrder.getPaymentMethod()));
+        summary.setCancelled(AppConfig.ORDER_CANCELLED.equals(rootOrder.getStatus()));
+
+        String paymentStatus = paymentTx != null ? paymentTx.getStatus() : null;
+        summary.setPaymentStatus(paymentStatus);
+        if (paymentTx != null) {
+            summary.setReference(paymentTx.getSepayReference());
+        }
+
+        String effectiveOrderStatus = rootOrder.getStatus();
+        boolean paid = "completed".equalsIgnoreCase(paymentStatus);
+        if (AppConfig.ORDER_PENDING_PAYMENT.equals(effectiveOrderStatus) && paid) {
+            effectiveOrderStatus = AppConfig.ORDER_CONFIRMED;
+        }
+        summary.setOrderStatus(effectiveOrderStatus);
+        summary.setPaid(paid);
+        summary.setPendingPayment(summary.getPaymentRequired()
+                && AppConfig.ORDER_PENDING_PAYMENT.equals(rootOrder.getStatus())
+                && !paid
+                && !summary.getCancelled());
+        summary.setCanConfirmPayment(summary.getPendingPayment()
+                && paymentTx != null
+                && ("pending".equalsIgnoreCase(paymentStatus) || "processing".equalsIgnoreCase(paymentStatus)));
+
+        List<Integer> childOrderIds = new java.util.ArrayList<>();
+        if (childOrders != null) {
+            for (Order childOrder : childOrders) {
+                if (childOrder != null && childOrder.getOrderId() != rootOrder.getOrderId()) {
+                    childOrderIds.add(childOrder.getOrderId());
+                }
+            }
+        }
+        summary.setChildOrderIds(childOrderIds);
+        return summary;
+    }
+
+    private void notifyOrdersReadyForFulfillmentAsync(int orderId) {
+        try {
+            notifierExecutor.submit(() -> {
+                try {
+                    Order rootOrder = orderDAO.findOneById(orderId);
+                    if (rootOrder == null) {
+                        return;
+                    }
+                    if (AppConfig.ORDER_TYPE_PARENT.equals(rootOrder.getOrderType())) {
+                        for (Order childOrder : orderDAO.findChildrenByParentId(rootOrder.getOrderId())) {
+                            notifyShopOrderReady(childOrder);
+                        }
+                    } else {
+                        notifyShopOrderReady(rootOrder);
+                    }
+                } catch (Exception ex) {
+                    LoggerUtil.warn(log, "Không gửi được thông báo shop sau xác nhận thanh toán cho orderId=" + orderId, ex);
+                }
+            });
+        } catch (RuntimeException ex) {
+            LoggerUtil.warn(log, "Không thể xếp hàng thông báo shop cho orderId=" + orderId, ex);
+        }
+    }
+
+    private void notifyShopOrderReady(Order order) throws SQLException {
+        if (order == null || order.getOwnerId() <= 0) {
+            return;
+        }
+        String shopMsg = "Đơn hàng #" + order.getOrderId() + " đã thanh toán thành công và sẵn sàng để shop chuẩn bị.";
+        notificationService.send(order.getOwnerId(), AppConfig.NOTIF_ORDER_UPDATE,
+                "Có đơn hàng mới cần chuẩn bị", shopMsg, "/shop/orders");
+        User shopOwner = userDAO.findUserById(order.getOwnerId());
+        if (shopOwner != null) {
+            emailService.sendOrderNotificationEmail(
+                    shopOwner.getEmail(),
+                    shopOwner.getFullName(),
+                    String.valueOf(order.getOrderId()),
+                    "Có đơn hàng mới cần chuẩn bị",
+                    AppConfig.APP_BASE_URL + "/shop/orders");
         }
     }
 

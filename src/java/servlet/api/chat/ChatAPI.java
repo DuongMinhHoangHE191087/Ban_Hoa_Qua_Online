@@ -3,19 +3,19 @@ package servlet.api.chat;
 import config.AppConfig;
 import dao.auth.UserDAO;
 import dao.chat.ChatDAO;
-import model.entity.chat.ChatMessage;
-import model.entity.chat.ChatSession;
-import model.entity.auth.User;
-import model.response.ApiResponse;
-import service.chat.ChatDeliveryService;
-import util.JsonUtil;
-import util.LoggerUtil;
-import util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.entity.auth.User;
+import model.entity.chat.ChatSession;
+import model.response.ApiResponse;
+import service.chat.ChatDeliveryService;
+import service.chat.ChatReadService;
+import util.JsonUtil;
+import util.SessionUtil;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +33,7 @@ public class ChatAPI extends HttpServlet {
     private final ChatDAO chatDAO = new ChatDAO();
     private final UserDAO userDAO = new UserDAO();
     private final ChatDeliveryService chatDeliveryService = new ChatDeliveryService();
+    private final ChatReadService chatReadService = new ChatReadService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -49,74 +50,60 @@ public class ChatAPI extends HttpServlet {
             }
 
             String action = request.getParameter("action");
+            if ("bootstrap".equals(action)) {
+                Integer requestedSessionId = parseOptionalInt(request.getParameter("sessionId"));
+                Integer requestedLimit = parseOptionalInt(request.getParameter("limit"));
+                Map<String, Object> payload = chatReadService.loadBootstrap(currentUser, requestedSessionId, requestedLimit);
+                setMessageCountMetric(request, payload.get("messages"));
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(payload));
+                return;
+            }
+
             if ("getMessages".equals(action)) {
                 int sessionId = Integer.parseInt(request.getParameter("sessionId"));
-
-                ChatSession session = chatDAO.findSessionById(sessionId);
-                if (session == null) {
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Session không tồn tại"));
-                    return;
-                }
-
-                int uid = currentUser.getUserId();
-                boolean isAdmin = AppConfig.ROLE_ADMIN.equals(currentUser.getRole());
-                boolean isParticipant = session.getCustomerId() == uid || session.getOwnerId() == uid;
-                if (!isParticipant && !isAdmin) {
-                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền truy cập"));
-                    return;
-                }
-
-                chatDAO.markRead(sessionId, currentUser.getUserId());
-                List<ChatMessage> messages = chatDAO.findMessages(sessionId);
-
-                // Che giấu tên thật của Admin đối với Customer và Shop Owner
-                if (!isAdmin) {
-                    for (ChatMessage msg : messages) {
-                        if ("ADMIN".equals(msg.getSenderRole())) {
-                            msg.setSenderName("Hỗ trợ Admin");
-                        }
-                    }
-                }
-
+                Integer beforeMessageId = parseOptionalInt(request.getParameter("beforeMessageId"));
+                Integer requestedLimit = parseOptionalInt(request.getParameter("limit"));
+                Map<String, Object> payload = chatReadService.loadMessagePage(currentUser, sessionId, beforeMessageId, requestedLimit);
+                setMessageCountMetric(request, payload.get("messages"));
                 response.setStatus(HttpServletResponse.SC_OK);
-                JsonUtil.writeJson(response, ApiResponse.ok(Map.of(
-                    "messages", messages,
-                    "currentUserId", currentUser.getUserId()
-                )));
-            } else if ("getOnlineStatus".equals(action)) {
+                JsonUtil.writeJson(response, ApiResponse.ok(payload));
+                return;
+            }
+
+            if ("getOnlineStatus".equals(action)) {
                 int targetSessionId = Integer.parseInt(request.getParameter("sessionId"));
                 int targetUserId = Integer.parseInt(request.getParameter("userId"));
                 boolean online = websocket.ChatEndpoint.isUserOnline(targetSessionId, targetUserId);
                 response.setStatus(HttpServletResponse.SC_OK);
                 JsonUtil.writeJson(response, ApiResponse.ok(Map.of("online", online)));
-            } else if ("getSessions".equals(action)) {
-                List<ChatSession> sessions;
-                String role = currentUser.getRole();
-                if (AppConfig.ROLE_SHOP_OWNER.equals(role)) {
-                    sessions = chatDAO.findSessionsByOwner(currentUser.getUserId());
-                } else if (AppConfig.ROLE_CUSTOMER.equals(role)) {
-                    sessions = chatDAO.findSessionsByCustomer(currentUser.getUserId());
-                } else if (AppConfig.ROLE_ADMIN.equals(role)) {
-                    sessions = chatDAO.findAllSessions();
-                } else {
-                    sessions = new ArrayList<>();
-                }
+                return;
+            }
+
+            if ("getSessions".equals(action)) {
+                List<ChatSession> sessions = loadSessions(currentUser);
+                maskAdminSessionNames(currentUser, sessions);
                 response.setStatus(HttpServletResponse.SC_OK);
                 JsonUtil.writeJson(response, ApiResponse.ok(Map.of(
-                    "sessions", sessions,
-                    "currentUserId", currentUser.getUserId()
+                        "sessions", sessions,
+                        "currentUserId", currentUser.getUserId()
                 )));
-            } else if ("markRead".equals(action)) {
+                return;
+            }
+
+            if ("markRead".equals(action)) {
                 int targetSessionId = Integer.parseInt(request.getParameter("sessionId"));
                 chatDAO.markRead(targetSessionId, currentUser.getUserId());
                 response.setStatus(HttpServletResponse.SC_OK);
                 JsonUtil.writeJson(response, ApiResponse.ok(Map.of("message", "Đã đánh dấu đã đọc")));
-            } else {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
+                return;
             }
+
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
+        } catch (ChatReadService.ChatApiException e) {
+            response.setStatus(e.getStatusCode());
+            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getMessage()));
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
@@ -145,15 +132,8 @@ public class ChatAPI extends HttpServlet {
                 return;
             }
 
-            // CSRF validation
             String sessionToken = (String) request.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
-            String requestToken = request.getParameter("_csrf");
-            if (requestToken == null || requestToken.trim().isEmpty()) {
-                requestToken = request.getHeader("X-CSRF-Token");
-            }
-            if (requestToken == null || requestToken.trim().isEmpty()) {
-                requestToken = request.getHeader("X-XSRF-TOKEN");
-            }
+            String requestToken = resolveCsrfToken(request);
             if (sessionToken == null || !sessionToken.equals(requestToken)) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "CSRF token không hợp lệ"));
@@ -164,26 +144,8 @@ public class ChatAPI extends HttpServlet {
             if ("sendMessage".equals(action)) {
                 int sessionId = Integer.parseInt(request.getParameter("sessionId"));
                 String content = request.getParameter("content");
-
-                ChatSession session = chatDAO.findSessionById(sessionId);
-                if (session == null) {
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_NOT_FOUND, "Session không tồn tại"));
-                    return;
-                }
-
-                int uid = currentUser.getUserId();
-                boolean isAdmin = AppConfig.ROLE_ADMIN.equals(currentUser.getRole());
-                boolean isParticipant = session.getCustomerId() == uid || session.getOwnerId() == uid;
-                if (!isParticipant && !isAdmin) {
-                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Không có quyền gửi vào session này"));
-                    return;
-                }
-
                 String mediaUrl = request.getParameter("mediaUrl");
                 String mediaType = request.getParameter("mediaType");
-
                 try {
                     chatDeliveryService.sendMessage(
                             sessionId,
@@ -200,7 +162,10 @@ public class ChatAPI extends HttpServlet {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
                 }
-            } else if ("createAdminSession".equals(action)) {
+                return;
+            }
+
+            if ("createAdminSession".equals(action)) {
                 if (AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Admin không thể tạo phiên hỗ trợ với chính mình"));
@@ -208,12 +173,11 @@ public class ChatAPI extends HttpServlet {
                 }
 
                 int adminId = 0;
-                String adminIdStr = request.getParameter("adminId");
-                if (adminIdStr != null && !adminIdStr.trim().isEmpty()) {
-                    adminId = Integer.parseInt(adminIdStr);
-                    User requestedAdmin = userDAO.findActiveAdminById(adminId);
-                    if (requestedAdmin == null) {
-                        adminId = 0;
+                Integer requestedAdminId = parseOptionalInt(request.getParameter("adminId"));
+                if (requestedAdminId != null && requestedAdminId > 0) {
+                    User requestedAdmin = userDAO.findActiveAdminById(requestedAdminId);
+                    if (requestedAdmin != null) {
+                        adminId = requestedAdmin.getUserId();
                     }
                 }
 
@@ -231,22 +195,23 @@ public class ChatAPI extends HttpServlet {
                 }
 
                 List<ChatSession> existing = chatDAO.findSessionByParticipants(currentUser.getUserId(), adminId);
-                int sessionId;
-                if (!existing.isEmpty()) {
-                    sessionId = existing.get(0).getSessionId();
-                } else {
-                    sessionId = chatDAO.createSession(currentUser.getUserId(), adminId, "ADMIN");
-                }
+                int sessionId = existing.isEmpty()
+                        ? chatDAO.createSession(currentUser.getUserId(), adminId, "ADMIN")
+                        : existing.get(0).getSessionId();
+
                 response.setStatus(HttpServletResponse.SC_OK);
                 JsonUtil.writeJson(response, ApiResponse.ok(Map.of("sessionId", sessionId)));
-            } else if ("createShopSession".equals(action)) {
-                String ownerIdStr = request.getParameter("ownerId");
-                if (ownerIdStr == null || ownerIdStr.trim().isEmpty()) {
+                return;
+            }
+
+            if ("createShopSession".equals(action)) {
+                Integer ownerId = parseOptionalInt(request.getParameter("ownerId"));
+                if (ownerId == null || ownerId <= 0) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Thiếu thông tin ownerId"));
                     return;
                 }
-                int ownerId = Integer.parseInt(ownerIdStr.trim());
+
                 User requestedOwner = userDAO.findUserById(ownerId);
                 if (requestedOwner == null) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -255,18 +220,20 @@ public class ChatAPI extends HttpServlet {
                 }
 
                 List<ChatSession> existing = chatDAO.findSessionByParticipants(currentUser.getUserId(), ownerId);
-                int sessionId;
-                if (!existing.isEmpty()) {
-                    sessionId = existing.get(0).getSessionId();
-                } else {
-                    sessionId = chatDAO.createSession(currentUser.getUserId(), ownerId, "SHOP");
-                }
+                int sessionId = existing.isEmpty()
+                        ? chatDAO.createSession(currentUser.getUserId(), ownerId, "SHOP")
+                        : existing.get(0).getSessionId();
+
                 response.setStatus(HttpServletResponse.SC_OK);
                 JsonUtil.writeJson(response, ApiResponse.ok(Map.of("sessionId", sessionId)));
-            } else {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
+                return;
             }
+
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
+        } catch (ChatReadService.ChatApiException e) {
+            response.setStatus(e.getStatusCode());
+            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getMessage()));
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
@@ -279,5 +246,54 @@ public class ChatAPI extends HttpServlet {
                     "Lỗi server: " + e.getMessage(),
                     e);
         }
+    }
+
+    private List<ChatSession> loadSessions(User currentUser) throws Exception {
+        String role = currentUser.getRole();
+        if (AppConfig.ROLE_SHOP_OWNER.equals(role)) {
+            return chatDAO.findSessionsByOwner(currentUser.getUserId());
+        }
+        if (AppConfig.ROLE_CUSTOMER.equals(role)) {
+            return chatDAO.findSessionsByCustomer(currentUser.getUserId());
+        }
+        if (AppConfig.ROLE_ADMIN.equals(role)) {
+            return chatDAO.findAllSessions();
+        }
+        return new ArrayList<>();
+    }
+
+    private void maskAdminSessionNames(User currentUser, List<ChatSession> sessions) {
+        if (currentUser == null || AppConfig.ROLE_ADMIN.equals(currentUser.getRole()) || sessions == null) {
+            return;
+        }
+        for (ChatSession session : sessions) {
+            if ("ADMIN".equalsIgnoreCase(session.getSessionType())) {
+                session.setPartnerName("Hỗ trợ Admin");
+            }
+        }
+    }
+
+    private void setMessageCountMetric(HttpServletRequest request, Object messages) {
+        if (messages instanceof List<?> list) {
+            request.setAttribute("requestMetricsItemCount", list.size());
+        }
+    }
+
+    private String resolveCsrfToken(HttpServletRequest request) {
+        String requestToken = request.getParameter("_csrf");
+        if (requestToken == null || requestToken.trim().isEmpty()) {
+            requestToken = request.getHeader("X-CSRF-Token");
+        }
+        if (requestToken == null || requestToken.trim().isEmpty()) {
+            requestToken = request.getHeader("X-XSRF-TOKEN");
+        }
+        return requestToken;
+    }
+
+    private Integer parseOptionalInt(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return Integer.parseInt(value.trim());
     }
 }

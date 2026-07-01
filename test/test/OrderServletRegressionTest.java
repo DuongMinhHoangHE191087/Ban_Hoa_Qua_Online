@@ -321,11 +321,11 @@ public class OrderServletRegressionTest {
 
     private void hardDeleteProduct(int productId) throws SQLException {
         try (Connection conn = productDAO.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM product_variants WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
-            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }

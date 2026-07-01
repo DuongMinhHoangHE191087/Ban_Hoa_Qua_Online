@@ -590,11 +590,196 @@ const CSRF_TOKEN  = document.getElementById('js-csrf').value;
 
 let appliedShopCoupons = [];
 let appliedSystemCoupons = [];
+let quoteState = null;
+let quoteRefreshTimer = null;
+let quoteRefreshInFlight = null;
 
 let shopCouponCode   = '';
 let shopDiscount     = 0;
 let systemCouponCode = '';
 let systemDiscount   = 0;
+
+function getSelectedVariantIds() {
+    const raw = document.querySelector('input[name="variantIds"]')?.value || '';
+    return raw.split(',')
+        .map(value => parseInt(value.trim(), 10))
+        .filter(value => !Number.isNaN(value) && value > 0);
+}
+
+function getSelectedPaymentMethod() {
+    const selected = document.querySelector('input[name="paymentMethod"]:checked');
+    return selected ? selected.value : 'COD';
+}
+
+function parseMoneyValue(value) {
+    if (value === null || value === undefined || value === '') {
+        return 0;
+    }
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : 0;
+    }
+    const parsed = Number(String(value).replace(/,/g, '').trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getCouponCodePayload() {
+    return {
+        shopCouponCodes: appliedShopCoupons.map(c => c.code),
+        systemCouponCodes: appliedSystemCoupons.map(c => c.code)
+    };
+}
+
+function syncCouponHiddenFields() {
+    shopCouponCode = appliedShopCoupons.map(c => c.code).join(',');
+    systemCouponCode = appliedSystemCoupons.map(c => c.code).join(',');
+
+    const shopInput = document.getElementById('shopCouponCode');
+    const systemInput = document.getElementById('systemCouponCode');
+    if (shopInput) {
+        shopInput.value = shopCouponCode;
+    }
+    if (systemInput) {
+        systemInput.value = systemCouponCode;
+    }
+}
+
+function scheduleQuoteRefresh() {
+    if (quoteRefreshTimer) {
+        clearTimeout(quoteRefreshTimer);
+    }
+    quoteRefreshTimer = setTimeout(() => {
+        refreshQuotePreview({ silent: true }).catch(() => {});
+    }, 120);
+}
+
+function buildQuoteRequest() {
+    const deliveryAddress = document.getElementById('deliveryAddress')?.value || '';
+    const deliveryTimeSlot = document.getElementById('deliveryTimeSlot')?.value || '';
+    return {
+        variantIds: getSelectedVariantIds(),
+        deliveryAddress: deliveryAddress.trim(),
+        deliveryTimeSlot: deliveryTimeSlot.trim(),
+        paymentMethod: getSelectedPaymentMethod(),
+        shopCouponCodes: appliedShopCoupons.map(c => c.code),
+        systemCouponCodes: appliedSystemCoupons.map(c => c.code)
+    };
+}
+
+function clearCouponMessage() {
+    const msgEl = document.getElementById('couponMsg');
+    if (!msgEl) return;
+    msgEl.textContent = '';
+    msgEl.className = 'text-xs mt-2 hidden';
+}
+
+function renderQuoteSummary(quote) {
+    if (!quote) return;
+    const fmt = (n) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(parseMoneyValue(n));
+    const subtotal = parseMoneyValue(quote.subtotal);
+    const directSale = parseMoneyValue(quote.directSaleAmount);
+    const delivery = parseMoneyValue(quote.deliveryFee);
+    const shopDisc = parseMoneyValue(quote.shopDiscountAmount);
+    const systemDisc = parseMoneyValue(quote.systemDiscountAmount);
+    const finalAmount = parseMoneyValue(quote.finalAmount);
+
+    shopDiscount = shopDisc;
+    systemDiscount = systemDisc;
+    syncCouponHiddenFields();
+
+    const subtotalEl = document.getElementById('summary-subtotal');
+    const directSaleEl = document.getElementById('summary-direct-sale');
+    const deliveryEl = document.getElementById('summary-delivery');
+    const totalEl = document.getElementById('summary-total');
+    const shopRow = document.getElementById('shop-discount-row');
+    const systemRow = document.getElementById('system-discount-row');
+    const shopAmountEl = document.getElementById('summary-shop-discount');
+    const systemAmountEl = document.getElementById('summary-system-discount');
+
+    if (subtotalEl) subtotalEl.textContent = fmt(subtotal);
+    if (directSaleEl) directSaleEl.textContent = '- ' + fmt(directSale);
+    if (deliveryEl) deliveryEl.textContent = fmt(delivery);
+    if (totalEl) totalEl.textContent = fmt(finalAmount);
+
+    if (shopRow && shopAmountEl) {
+        if (shopDisc > 0) {
+            shopRow.style.removeProperty('display');
+            shopAmountEl.textContent = '- ' + fmt(shopDisc);
+        } else {
+            shopRow.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    if (systemRow && systemAmountEl) {
+        if (systemDisc > 0) {
+            systemRow.style.removeProperty('display');
+            systemAmountEl.textContent = '- ' + fmt(systemDisc);
+        } else {
+            systemRow.style.setProperty('display', 'none', 'important');
+        }
+    }
+}
+
+function refreshQuotePreview(options = {}) {
+    const payload = buildQuoteRequest();
+    if (!payload.variantIds || payload.variantIds.length === 0) {
+        return Promise.resolve(null);
+    }
+
+    syncCouponHiddenFields();
+    if (quoteRefreshInFlight) {
+        return quoteRefreshInFlight;
+    }
+
+    const request = fetch(QUOTE_API, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'X-CSRF-Token': CSRF_TOKEN,
+            'X-XSRF-TOKEN': CSRF_TOKEN
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+    })
+        .then(r => r.json())
+        .then(resp => {
+            if (!resp || !resp.success) {
+                throw new Error((resp && (resp.error || resp.message)) || 'Không thể tính quote checkout.');
+            }
+            quoteState = resp.data || null;
+            if (quoteState) {
+                renderQuoteSummary(quoteState);
+                renderAppliedCoupons();
+                populateConfirmationCard();
+                if (Array.isArray(quoteState.errors) && quoteState.errors.length > 0) {
+                    showCouponMsg(quoteState.errors[0], 'text-red-600 font-bold');
+                } else if (Array.isArray(quoteState.warnings) && quoteState.warnings.length > 0) {
+                    showCouponMsg(quoteState.warnings[0], 'text-amber-700 font-bold');
+                } else {
+                    clearCouponMessage();
+                }
+            }
+            return quoteState;
+        })
+        .catch(err => {
+            console.warn('[Checkout Quote] Falling back to legacy recalculation:', err);
+            quoteState = null;
+            return recalculateAllAppliedCoupons().then(() => {
+                updateSummary();
+                renderAppliedCoupons();
+                populateConfirmationCard();
+                if (!options.silent) {
+                    showCouponMsg('Không thể cập nhật quote tức thời. Đang dùng cơ chế dự phòng.', 'text-amber-700 font-bold');
+                }
+                return null;
+            });
+        })
+        .finally(() => {
+            quoteRefreshInFlight = null;
+        });
+
+    quoteRefreshInFlight = request;
+    return request;
+}
 
 function applyCoupon() {
     const inputEl = document.getElementById('couponInput');
@@ -611,10 +796,15 @@ function applyCoupon() {
     validateCouponAPI(code, 'SHOP')
         .then(data => {
             if (data.valid) {
+                const benefitTarget = (data.benefitTarget || 'MERCHANDISE').toString().toUpperCase();
+                if (benefitTarget === 'PRODUCT') {
+                    showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại checkout.', 'text-red-600 font-bold');
+                    return;
+                }
                 const ownerId = data.ownerId;
-                const shopCouponsForThisOwner = appliedShopCoupons.filter(c => c.ownerId === ownerId);
-                if (shopCouponsForThisOwner.length >= 2) {
-                    showCouponMsg('Mỗi shop tối đa chỉ được dùng 2 voucher shop.', 'text-red-600 font-bold');
+                const shopCouponsForThisOwnerAndTarget = appliedShopCoupons.filter(c => c.ownerId === ownerId && (c.benefitTarget || 'MERCHANDISE') === benefitTarget);
+                if (shopCouponsForThisOwnerAndTarget.length >= 1) {
+                    showCouponMsg('Mỗi shop chỉ được dùng tối đa 1 voucher cho cùng loại ưu đãi.', 'text-red-600 font-bold');
                     return;
                 }
                 const hasExisting = appliedShopCoupons.length > 0 || appliedSystemCoupons.length > 0;
@@ -630,24 +820,27 @@ function applyCoupon() {
 
                 appliedShopCoupons.push({
                     code: code,
-                    discountAmount: data.discountAmount || 0,
+                    ownerId: ownerId,
+                    benefitTarget: benefitTarget,
+                    discountScope: (data.discountScope || 'SHOP').toString().toUpperCase(),
                     canStack: data.canStack,
-                    ownerId: ownerId
                 });
                 
                 showCouponMsg('✔ ' + data.message + ' (Mã của Shop)', 'text-emerald-700 font-bold');
                 inputEl.value = '';
-
-                recalculateAllAppliedCoupons().then(() => {
-                    updateSummary();
-                    renderAppliedCoupons();
-                });
+                refreshQuotePreview();
             } else {
                 return validateCouponAPI(code, 'SYSTEM')
                     .then(sysData => {
                         if (sysData.valid) {
-                            if (appliedSystemCoupons.length >= 2) {
-                                showCouponMsg('Tối đa chỉ được dùng 2 voucher sàn.', 'text-red-600 font-bold');
+                            const benefitTarget = (sysData.benefitTarget || 'MERCHANDISE').toString().toUpperCase();
+                            if (benefitTarget === 'PRODUCT') {
+                                showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại checkout.', 'text-red-600 font-bold');
+                                return;
+                            }
+                            const systemCouponsForThisTarget = appliedSystemCoupons.filter(c => (c.benefitTarget || 'MERCHANDISE') === benefitTarget);
+                            if (systemCouponsForThisTarget.length >= 1) {
+                                showCouponMsg('Mỗi loại voucher sàn chỉ áp dụng được một mã.', 'text-red-600 font-bold');
                                 return;
                             }
                             const hasExisting = appliedShopCoupons.length > 0 || appliedSystemCoupons.length > 0;
@@ -663,17 +856,14 @@ function applyCoupon() {
 
                             appliedSystemCoupons.push({
                                 code: code,
-                                discountAmount: sysData.discountAmount || 0,
+                                benefitTarget: benefitTarget,
+                                discountScope: (sysData.discountScope || 'SYSTEM').toString().toUpperCase(),
                                 canStack: sysData.canStack
                             });
                             
                             showCouponMsg('✔ ' + sysData.message + ' (Mã của Sàn)', 'text-emerald-700 font-bold');
                             inputEl.value = '';
-                            
-                            recalculateAllAppliedCoupons().then(() => {
-                                updateSummary();
-                                renderAppliedCoupons();
-                            });
+                            refreshQuotePreview();
                         } else {
                             showCouponMsg('✘ ' + (sysData.message || data.message || 'Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.'), 'text-red-600 font-bold');
                         }
@@ -765,6 +955,9 @@ function normalizeCouponResponse(resp) {
             discountAmount: Number(payload.discountAmount ?? 0) || 0,
             promoId: payload.promoId,
             discountType: payload.discountType,
+            discountScope: payload.discountScope,
+            benefitTarget: payload.benefitTarget,
+            ownerId: payload.ownerId,
             canStack: payload.canStack ?? true,
             message: payload.message || 'Áp dụng thành công!'
         };
@@ -774,6 +967,9 @@ function normalizeCouponResponse(resp) {
         discountAmount: Number(resp.discountAmount ?? 0) || 0,
         promoId: resp.promoId,
         discountType: resp.discountType,
+        discountScope: resp.discountScope,
+        benefitTarget: resp.benefitTarget,
+        ownerId: resp.ownerId,
         canStack: resp.canStack ?? true,
         message: resp.message || resp.error || ''
     };
@@ -788,10 +984,7 @@ function removeCoupon(scope, code) {
         showCouponMsg('Đã xóa mã của Sàn.', 'text-on-surface-variant');
     }
     
-    recalculateAllAppliedCoupons().then(() => {
-        updateSummary();
-        renderAppliedCoupons();
-    });
+    refreshQuotePreview({ silent: true });
 }
 
 function showCouponMsg(text, className) {
@@ -808,32 +1001,49 @@ function renderAppliedCoupons() {
     
     let hasCoupon = false;
     const fmt = (n) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(n);
+    if (quoteState && Array.isArray(quoteState.appliedCoupons) && quoteState.appliedCoupons.length > 0) {
+        quoteState.appliedCoupons.forEach(c => {
+            hasCoupon = true;
+            const scopeLabel = c.discountScope === 'SYSTEM' ? 'Voucher sàn' : 'Voucher shop';
+            const targetLabel = c.benefitTarget === 'SHIPPING' ? 'Phí ship' : 'Sản phẩm';
+            const ownerLabel = c.ownerId ? `Shop #${c.ownerId}` : '';
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
+            item.innerHTML = '<div>' +
+                '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">' + scopeLabel + '</span>' +
+                '<span class="font-bold text-on-surface">' + c.code + '</span>' +
+                '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(c.discountAmount) + (ownerLabel ? ', ' + ownerLabel : '') + ', ' + targetLabel + ')</span>' +
+                '</div>' +
+                `<button type="button" onclick="removeCoupon('${c.discountScope || 'SHOP'}', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
+            listEl.appendChild(item);
+        });
+    } else {
+        appliedShopCoupons.forEach(c => {
+            hasCoupon = true;
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
+            item.innerHTML = '<div>' +
+                '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">Voucher shop</span>' +
+                '<span class="font-bold text-on-surface">' + c.code + '</span>' +
+                '<span class="text-on-surface-variant ml-1">(Đang tính...)</span>' +
+                '</div>' +
+                `<button type="button" onclick="removeCoupon('SHOP', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
+            listEl.appendChild(item);
+        });
     
-    appliedShopCoupons.forEach(c => {
-        hasCoupon = true;
-        const item = document.createElement('div');
-        item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
-        item.innerHTML = '<div>' +
-            '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">Voucher shop</span>' +
-            '<span class="font-bold text-on-surface">' + c.code + '</span>' +
-            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(c.discountAmount) + ')</span>' +
-            '</div>' +
-            `<button type="button" onclick="removeCoupon('SHOP', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
-        listEl.appendChild(item);
-    });
-    
-    appliedSystemCoupons.forEach(c => {
-        hasCoupon = true;
-        const item = document.createElement('div');
-        item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
-        item.innerHTML = '<div>' +
-            '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sàn</span>' +
-            '<span class="font-bold text-on-surface">' + c.code + '</span>' +
-            '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(c.discountAmount) + ')</span>' +
-            '</div>' +
-            `<button type="button" onclick="removeCoupon('SYSTEM', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
-        listEl.appendChild(item);
-    });
+        appliedSystemCoupons.forEach(c => {
+            hasCoupon = true;
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
+            item.innerHTML = '<div>' +
+                '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sàn</span>' +
+                '<span class="font-bold text-on-surface">' + c.code + '</span>' +
+                '<span class="text-on-surface-variant ml-1">(Đang tính...)</span>' +
+                '</div>' +
+                `<button type="button" onclick="removeCoupon('SYSTEM', '${c.code}')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>`;
+            listEl.appendChild(item);
+        });
+    }
     
     if (hasCoupon) {
         container.classList.remove('hidden');
@@ -843,6 +1053,11 @@ function renderAppliedCoupons() {
 }
 
 function updateSummary() {
+    if (quoteState) {
+        renderQuoteSummary(quoteState);
+        return;
+    }
+
     const total = Math.max(0, SUBTOTAL - shopDiscount - systemDiscount + DELIVERY);
     const fmt = (n) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(n);
 
@@ -932,6 +1147,7 @@ function selectAddress(addressId) {
 
     // Re-render list to show checked radio
     renderAddressList();
+    scheduleQuoteRefresh();
 }
 
 function renderAddressList() {
@@ -1110,6 +1326,7 @@ function handleInlineAddressSubmit() {
 
             selectAddress(updatedAddr.addressId);
             hideInlineAddressForm();
+            scheduleQuoteRefresh();
         } else {
             alert('Lỗi: ' + data.error);
         }
@@ -1214,8 +1431,19 @@ function populateConfirmationCard() {
     const couponContainer = document.getElementById('confirm-coupon-info');
     if (couponContainer) {
         let html = '';
-        if (shopCouponCode) html += `<p class="text-emerald-700 font-semibold">🏷️ Voucher Shop: ${shopCouponCode}</p>`;
-        if (systemCouponCode) html += `<p class="text-emerald-700 font-semibold">🎟️ Voucher Sàn: ${systemCouponCode}</p>`;
+        if (quoteState && Array.isArray(quoteState.appliedCoupons) && quoteState.appliedCoupons.length > 0) {
+            quoteState.appliedCoupons.forEach(c => {
+                const scopeLabel = c.discountScope === 'SYSTEM' ? 'Voucher sàn' : 'Voucher shop';
+                const targetLabel = c.benefitTarget === 'SHIPPING' ? 'phí ship' : 'sản phẩm';
+                html += `<p class="text-emerald-700 font-semibold">${scopeLabel}: ${c.code} (${targetLabel}, -${new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(parseMoneyValue(c.discountAmount))})</p>`;
+            });
+        } else {
+            if (shopCouponCode) html += `<p class="text-emerald-700 font-semibold">🏷️ Voucher Shop: ${shopCouponCode}</p>`;
+            if (systemCouponCode) html += `<p class="text-emerald-700 font-semibold">🎟️ Voucher Sàn: ${systemCouponCode}</p>`;
+        }
+        if (quoteState && Array.isArray(quoteState.errors) && quoteState.errors.length > 0) {
+            html += `<p class="text-red-600 font-semibold">${quoteState.errors[0]}</p>`;
+        }
         couponContainer.innerHTML = html;
         couponContainer.classList.toggle('hidden', !html);
     }
@@ -1242,6 +1470,14 @@ function validateCheckoutForm() {
         return false;
     }
 
+    if (quoteState && quoteState.valid === false) {
+        const firstError = Array.isArray(quoteState.errors) && quoteState.errors.length > 0
+            ? quoteState.errors[0]
+            : 'Vui lòng kiểm tra lại mã giảm giá hoặc thông tin checkout.';
+        alert(firstError);
+        return false;
+    }
+
     const submitBtn = document.getElementById('submitBtn');
     if (submitBtn) {
         submitBtn.disabled = true;
@@ -1254,6 +1490,20 @@ function validateCheckoutForm() {
 // Prefill default address on load if available
 document.addEventListener('DOMContentLoaded', () => {
     initAddressWidget();
+    const timeSlotEl = document.getElementById('deliveryTimeSlot');
+    if (timeSlotEl) {
+        timeSlotEl.addEventListener('change', () => {
+            scheduleQuoteRefresh();
+            populateConfirmationCard();
+        });
+    }
+    document.querySelectorAll('input[name="paymentMethod"]').forEach(el => {
+        el.addEventListener('change', () => {
+            scheduleQuoteRefresh();
+            populateConfirmationCard();
+        });
+    });
+    scheduleQuoteRefresh();
     updateStepUI(); // Initialize wizard step indicators on load
 });
 </script>

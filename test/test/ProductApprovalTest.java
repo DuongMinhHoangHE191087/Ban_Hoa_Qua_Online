@@ -92,13 +92,13 @@ public class ProductApprovalTest {
     private void deleteProductHard(int productId) throws SQLException {
         try (Connection conn = productDAO.getConnection()) {
             // Xóa biến thể trước do ràng buộc khóa ngoại
-            String sqlVar = "DELETE FROM product_variants WHERE product_id = ?";
+            String sqlVar = "UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE product_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlVar)) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();
             }
             // Xóa sản phẩm
-            String sqlProd = "DELETE FROM products WHERE product_id = ?";
+            String sqlProd = "UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlProd)) {
                 ps.setInt(1, productId);
                 ps.executeUpdate();

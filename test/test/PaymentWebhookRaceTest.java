@@ -312,7 +312,7 @@ public class PaymentWebhookRaceTest {
     private void cleanupVariant(int variantId) {
         try (Connection conn = paymentDAO.openConnection();
              PreparedStatement ps = conn.prepareStatement(
-                 "DELETE FROM product_variants WHERE variant_id = ?")) {
+                 "UPDATE product_variants SET is_active = 0, updated_at = GETDATE() WHERE variant_id = ?")) {
             ps.setInt(1, variantId);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -323,7 +323,7 @@ public class PaymentWebhookRaceTest {
     private void cleanupProduct(int productId) {
         try (Connection conn = paymentDAO.openConnection();
              PreparedStatement ps = conn.prepareStatement(
-                 "DELETE FROM products WHERE product_id = ?")) {
+                 "UPDATE products SET status = 'DELETED', updated_at = GETDATE() WHERE product_id = ?")) {
             ps.setInt(1, productId);
             ps.executeUpdate();
         } catch (SQLException e) {

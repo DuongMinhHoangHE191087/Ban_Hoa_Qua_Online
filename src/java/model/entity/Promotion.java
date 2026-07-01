@@ -15,6 +15,7 @@ public class Promotion {
     private java.math.BigDecimal discountValue;
     private java.math.BigDecimal minOrderValue;
     private String scope;
+    private String benefitTarget;
     private Integer productId;
     private Integer maxUses;
     private int usedCount;
@@ -52,6 +53,9 @@ public class Promotion {
 
     public String getScope() { return scope; }
     public void setScope(String scope) { this.scope = scope; }
+
+    public String getBenefitTarget() { return benefitTarget; }
+    public void setBenefitTarget(String benefitTarget) { this.benefitTarget = benefitTarget; }
 
     public Integer getProductId() { return productId; }
     public void setProductId(Integer productId) { this.productId = productId; }

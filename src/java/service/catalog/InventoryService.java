@@ -133,6 +133,24 @@ public class InventoryService {
         return inventoryDAO.findByOwner(ownerId);
     }
 
+    public List<InventoryLog> getRestockHistory(int ownerId, int limit) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("Owner ID không hợp lệ.");
+        }
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit không hợp lệ.");
+        }
+        return inventoryDAO.findByOwner(ownerId, limit);
+    }
+
+    /**
+     * Lấy shelf_life_days của sản phẩm thông qua variant_id — dùng cho Servlet để truyền xuống JSP.
+     * Trả về null nếu không cấu hình.
+     */
+    public Integer getShelfLifeForVariant(int variantId) throws SQLException {
+        return inventoryDAO.getShelfLifeByVariantId(variantId);
+    }
+
     /**
      * Lấy shelf_life_days của sản phẩm thông qua variant_id — dùng cho Servlet để truyền xuống JSP.
      * Trả về null nếu không cấu hình.
@@ -150,6 +168,16 @@ public class InventoryService {
             throw new IllegalArgumentException("Owner ID không hợp lệ.");
         }
         return inventoryDAO.findActiveBatchesByOwner(ownerId);
+    }
+
+    public List<InventoryLog> getActiveBatches(int ownerId, int limit) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("Owner ID không hợp lệ.");
+        }
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit không hợp lệ.");
+        }
+        return inventoryDAO.findActiveBatchesByOwner(ownerId, limit);
     }
 
     public void reserve(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {

@@ -512,7 +512,7 @@
     }
 
     function loadHistory() {
-        fetch(CTX + '/api/chat?action=getMessages&sessionId=' + sessionId)
+        fetch(CTX + '/api/chat/bootstrap?sessionId=' + sessionId + '&limit=40')
             .then(r => r.json())
             .then(resp => {
                 skeletonLoader && skeletonLoader.remove();
@@ -522,8 +522,11 @@
                     console.error('loadHistory: API error', resp.error);
                     return;
                 }
-                const { messages, currentUserId: apiUid } = resp.data;
+                const { messages, currentUserId: apiUid, presence } = resp.data;
                 if (!messages || !Array.isArray(messages)) return;
+                if (presence && Object.prototype.hasOwnProperty.call(presence, String(partnerUserId))) {
+                    setPartnerOnline(!!presence[String(partnerUserId)]);
+                }
                 messages.forEach(msg => {
                     if (!renderedIds.has(msg.messageId)) {
                         renderedIds.add(msg.messageId);

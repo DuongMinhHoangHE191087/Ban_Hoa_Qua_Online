@@ -304,7 +304,7 @@
     }
 
     function loadHistory() {
-        fetch(CTX + '/api/chat?action=getMessages&sessionId=' + sessionId)
+        fetch(CTX + '/api/chat/bootstrap?sessionId=' + sessionId + '&limit=40')
             .then(r => r.json())
             .then(resp => {
                 if (!resp.success || !resp.data) return;
