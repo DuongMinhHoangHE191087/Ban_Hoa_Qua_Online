@@ -152,6 +152,14 @@ public class InventoryService {
     }
 
     /**
+     * Lấy shelf_life_days của sản phẩm thông qua variant_id — dùng cho Servlet để truyền xuống JSP.
+     * Trả về null nếu không cấu hình.
+     */
+    public Integer getShelfLifeForVariant(int variantId) throws SQLException {
+        return inventoryDAO.getShelfLifeByVariantId(variantId);
+    }
+
+    /**
      * Lấy danh sách lô hàng nhập kho còn hiệu lực (chưa hết hạn / chưa bị đánh dấu expired).
      * Dùng cho bảng quản lý lô hàng / ngày hết hạn trên trang Tồn kho.
      */

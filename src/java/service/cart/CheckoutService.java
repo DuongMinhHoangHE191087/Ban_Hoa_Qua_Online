@@ -159,7 +159,7 @@ public class CheckoutService {
                 .add(summary.getSystemMerchandiseDiscountAmount());
         BigDecimal netMerchandiseAmount = summary.getSubtotal().subtract(merchandiseDiscount).max(BigDecimal.ZERO);
         BigDecimal platformFee = netMerchandiseAmount.multiply(platformFeeRate).setScale(0, RoundingMode.HALF_UP);
-
+ 
         int orderId;
         try (Connection conn = orderDAO.openConnection()) {
             conn.setAutoCommit(false);

@@ -322,6 +322,52 @@ public class InventoryDAO extends BaseDAO {
     }
 
     /**
+     * Lấy shelf_life_days của sản phẩm thông qua variant_id.
+     * Trả về null nếu sản phẩm không cấu hình shelf_life_days.
+     */
+    public Integer getShelfLifeByVariantId(int variantId) throws SQLException {
+        String sql = "SELECT p.shelf_life_days "
+                + "FROM product_variants pv "
+                + "JOIN products p ON pv.product_id = p.product_id "
+                + "WHERE pv.variant_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int val = rs.getInt("shelf_life_days");
+                    return rs.wasNull() ? null : val;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Tìm lô nhập kho FIFO — lô có ngày hết hạn SỚM NHẤT (hoặc ngày nhập sớm nhất nếu không có HH)
+     * cho một variant cụ thể. Dùng để ghi audit trail khi bán hàng (ORDER_RESERVE).
+     */
+    public InventoryLog findOldestActiveBatchForVariant(Connection conn, int variantId) throws SQLException {
+        String sql = "SELECT TOP 1 * FROM inventory_logs "
+                + "WHERE variant_id = ? AND change_type = 'MANUAL_ADJUST' AND quantity_delta > 0 "
+                + "AND is_expired = 0 "
+                + "AND (expires_at IS NULL OR expires_at > CAST(GETDATE() AS DATE)) "
+                + "ORDER BY "
+                + "  CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END ASC, " // lô có HH lên trước
+                + "  expires_at ASC, "                                       // HH sớm nhất
+                + "  changed_at ASC";                                        // nhập sớm nhất nếu bằng nhau
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Đánh dấu log nhập kho đã được xử lý hết hạn.
      */
     public void markLogExpired(Connection conn, int logId) throws SQLException {
