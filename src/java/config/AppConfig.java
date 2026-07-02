@@ -37,7 +37,7 @@ public final class AppConfig {
         public static final String EMAIL_FROM = "duongminhhoanginwork@gmail.com";
         public static final String EMAIL_PASSWORD = "jkhg przg aohf pwla";
         public static final String SECRET_KEY = "fruitmkt-super-secret-key-2026-secure-sha256";
-        public static final String GEMINI_API_KEY = "AIzaSyC6rEPhvOksINyqgnUjOlGPjOq_IWKEgBI";
+        public static final String GEMINI_API_KEY = null;
         public static final long ACCESS_TOKEN_EXPIRY_MS   = 15L * 60 * 1000; // 15 phút
         public static final int  REFRESH_TOKEN_EXPIRY_SECS = 7 * 24 * 60 * 60;
         public static final String APP_NAME = "MetaFruit";

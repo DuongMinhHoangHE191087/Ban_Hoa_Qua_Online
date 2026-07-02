@@ -123,8 +123,6 @@ function Find-JavaHome {
                 $resolvedHome = Verify-JavaHome $jdk.FullName
                 if ($resolvedHome) { return $resolvedHome }
             }
-        } elseif (Test-Path "$b\conf") {
-            return (Get-Item $b).FullName
         }
     }
 
@@ -340,6 +338,28 @@ $env:JAVA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.e
 $env:CATALINA_OPTS = "-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Dfile.client.encoding=UTF-8"
 $env:PATH = "$JAVA_HOME\bin;" + $env:PATH
 
+function Assert-RuntimeConfiguration {
+    $errors = @()
+
+    if (-not $JAVA_HOME -or -not (Test-Path "$JAVA_HOME\bin\javac.exe")) {
+        $errors += "JAVA_HOME khong hop le hoac khong co bin\javac.exe"
+    }
+    if (-not $CATALINA_HOME -or -not (Test-Path "$CATALINA_HOME\bin\startup.bat") -or -not (Test-Path "$CATALINA_HOME\lib\catalina.jar")) {
+        $errors += "CATALINA_HOME khong hop le hoac khong co bin\startup.bat / lib\catalina.jar"
+    }
+
+    if ($errors.Count -gt 0) {
+        Write-Host "`n===== RUNTIME CONFIGURATION ERROR =====" -ForegroundColor Red
+        foreach ($errorMsg in $errors) {
+            Write-Host "[ERROR] $errorMsg" -ForegroundColor Red
+        }
+        Write-Host "[INFO] Kiem tra file tomcat_config.ini va bien moi truong hien tai." -ForegroundColor Yellow
+        return $false
+    }
+
+    return $true
+}
+
 
 
 function Show-Help {
@@ -383,6 +403,16 @@ Vi du:
 
 function Show-Status {
     Write-Host "`n===== TOMCAT and PORT STATUS =====" -ForegroundColor Cyan
+
+    Write-Host "`n===== RUNTIME DETECTION =====" -ForegroundColor Cyan
+    $javaCmd = Get-Command java -ErrorAction SilentlyContinue
+    if ($javaCmd) {
+        Write-Host "[INFO] java on PATH: $($javaCmd.Source)" -ForegroundColor Gray
+    }
+    Write-Host "[INFO] JAVA_HOME: $JAVA_HOME" -ForegroundColor Gray
+    Write-Host "[INFO] JRE_HOME: $JRE_HOME" -ForegroundColor Gray
+    Write-Host "[INFO] CATALINA_HOME: $CATALINA_HOME" -ForegroundColor Gray
+    Write-Host "[INFO] CATALINA_BASE: $CATALINA_BASE" -ForegroundColor Gray
     
     # Check ports
     $ports = @(8080, 8005, 5005)  # 5005 for debug port
@@ -1196,8 +1226,8 @@ switch ($Action.ToLower()) {
     "reset" { Reset-All }
     "install-config" { Install-Config }
     "open" { Open-App }
-    "deploy" { Deploy-App }
-    "reload" { Deploy-Reload }
+    "deploy" { if (Assert-RuntimeConfiguration) { Deploy-App } }
+    "reload" { if (Assert-RuntimeConfiguration) { Deploy-Reload } }
     "test" { Run-Tests }
     "setup-db" { Setup-Database }
     "setup-tunnel" { Setup-Tunnel }

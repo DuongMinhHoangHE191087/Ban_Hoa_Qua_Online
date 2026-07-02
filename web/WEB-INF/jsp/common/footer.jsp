@@ -416,6 +416,99 @@
             return (window.csrfToken || (csrfInput ? csrfInput.value : '') || '').trim();
         }
 
+        function removeAiLoadingMessage(loadingId) {
+            const loadingEl = document.getElementById(loadingId);
+            if (loadingEl) {
+                loadingEl.remove();
+            }
+        }
+
+        function parseAiStreamEvent(rawEvent) {
+            if (!rawEvent) {
+                return null;
+            }
+
+            const lines = rawEvent.replace(/\r\n/g, '\n').split('\n');
+            let eventType = 'message';
+            const dataLines = [];
+
+            lines.forEach(line => {
+                if (line.startsWith('event:')) {
+                    eventType = line.slice(6).trim() || 'message';
+                    return;
+                }
+                if (line.startsWith('data:')) {
+                    dataLines.push(line.slice(5).trimStart());
+                }
+            });
+
+            const rawData = dataLines.join('\n').trim();
+            if (!rawData) {
+                return null;
+            }
+
+            try {
+                return {
+                    type: eventType,
+                    data: JSON.parse(rawData)
+                };
+            } catch (parseError) {
+                console.warn('AI stream chunk is not valid JSON:', parseError, rawData);
+                return {
+                    type: eventType,
+                    data: {raw: rawData}
+                };
+            }
+        }
+
+        function updateAiStreamingMessage(loadingId, text) {
+            const textEl = document.getElementById(loadingId + '-stream-text');
+            if (textEl) {
+                textEl.innerHTML = formatMarkdown(text || '');
+            }
+
+            const log = document.getElementById('ai-message-log');
+            if (log) {
+                log.scrollTop = log.scrollHeight;
+            }
+        }
+
+        async function readAiStreamResponse(response, onEvent) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+
+            while (true) {
+                const result = await reader.read();
+                if (result.value) {
+                    buffer += decoder.decode(result.value, {stream: true}).replace(/\r\n/g, '\n');
+                    let eventBoundary = buffer.indexOf('\n\n');
+                    while (eventBoundary !== -1) {
+                        const rawEvent = buffer.slice(0, eventBoundary);
+                        buffer = buffer.slice(eventBoundary + 2);
+                        const parsedEvent = parseAiStreamEvent(rawEvent);
+                        if (parsedEvent) {
+                            onEvent(parsedEvent);
+                        }
+                        eventBoundary = buffer.indexOf('\n\n');
+                    }
+                }
+
+                if (result.done) {
+                    break;
+                }
+            }
+
+            buffer += decoder.decode().replace(/\r\n/g, '\n');
+            const tail = buffer.trim();
+            if (tail) {
+                const parsedEvent = parseAiStreamEvent(tail);
+                if (parsedEvent) {
+                    onEvent(parsedEvent);
+                }
+            }
+        }
+
         async function sendAiChatMessage() {
             const input = document.getElementById('ai-chat-input');
             const message = input.value.trim();
@@ -423,19 +516,22 @@
 
             input.value = '';
             appendMessage('user', message);
-            
-            // Append loading indicator
+
             const log = document.getElementById('ai-message-log');
             const loadingId = 'ai-loading-' + Date.now();
             const contextPath = getAppContextPath();
             const logoUrl = contextPath + '/assets/images/logo_light.png';
             const aiParseErrorMessage = 'Máy chủ AI trả về dữ liệu không hợp lệ. Vui lòng thử lại sau.';
-            const loadingHtml = '<div class="flex items-start gap-2 max-w-[85%] animate-pulse" id="' + loadingId + '">' +
+            const loadingHtml = '<div class="flex items-start gap-2 max-w-[90%]" id="' + loadingId + '">' +
                 '<div class="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-emerald-100/30">' +
                     '<img src="' + logoUrl + '" alt="MetaFruit Logo" class="w-full h-full object-cover">' +
                 '</div>' +
-                '<div class="bg-white border border-emerald-100/50 rounded-2xl rounded-tl-none p-3 text-xs text-on-surface-variant shadow-sm italic flex items-center gap-1.5">' +
-                    '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> AI đang tìm sản phẩm phù hợp...' +
+                '<div class="bg-white border border-emerald-100/50 rounded-2xl rounded-tl-none p-3 text-xs text-on-surface shadow-sm leading-relaxed w-full">' +
+                    '<div class="flex items-center gap-1.5 text-[11px] text-emerald-700 mb-2">' +
+                        '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span>' +
+                        '<span>AI đang trả lời...</span>' +
+                    '</div>' +
+                    '<div id="' + loadingId + '-stream-text" class="text-xs text-on-surface leading-relaxed whitespace-pre-wrap min-h-[1rem]"></div>' +
                 '</div>' +
             '</div>';
             log.insertAdjacentHTML('beforeend', loadingHtml);
@@ -444,30 +540,89 @@
             try {
                 const csrfToken = getAiCsrfToken();
                 if (!csrfToken) {
-                    const loadingEl = document.getElementById(loadingId);
-                    if (loadingEl) loadingEl.remove();
+                    removeAiLoadingMessage(loadingId);
                     appendMessage('ai', 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang rồi thử lại.');
                     return;
                 }
 
-                // Gửi token cả qua query string lẫn header để CsrfFilter luôn đọc được,
-                // kể cả khi proxy / browser / cache làm rơi custom headers.
                 const apiUrl = contextPath + '/api/ai/search';
                 const body = new URLSearchParams({
                     message: message,
-                    _csrf: csrfToken
+                    _csrf: csrfToken,
+                    stream: '1'
                 });
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'Accept': 'text/event-stream',
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-Token': csrfToken,
-                        'X-XSRF-TOKEN': csrfToken
+                        'X-XSRF-TOKEN': csrfToken,
+                        'X-AI-Stream': '1'
                     },
                     credentials: 'same-origin',
                     body: body.toString()
                 });
+                const contentType = response.headers.get('content-type') || '';
+                const isStreamResponse = contentType.includes('text/event-stream')
+                    && response.body
+                    && typeof response.body.getReader === 'function';
+
+                if (isStreamResponse) {
+                    let streamedReply = '';
+                    let finalPayload = null;
+                    let streamErrorMessage = '';
+
+                    await readAiStreamResponse(response, (event) => {
+                        if (!event) {
+                            return;
+                        }
+
+                        if (event.type === 'delta') {
+                            const delta = event.data && (event.data.delta || event.data.text || '');
+                            if (delta) {
+                                streamedReply += delta;
+                                updateAiStreamingMessage(loadingId, streamedReply);
+                            }
+                            return;
+                        }
+
+                        if (event.type === 'done') {
+                            finalPayload = event.data || {};
+                            return;
+                        }
+
+                        if (event.type === 'error') {
+                            finalPayload = event.data || {};
+                            streamErrorMessage = (event.data && (event.data.message || event.data.errorMessage)) || aiParseErrorMessage;
+                        }
+                    });
+
+                    removeAiLoadingMessage(loadingId);
+
+                    if (streamErrorMessage) {
+                        appendMessage('ai', streamErrorMessage);
+                        return;
+                    }
+
+                    const payload = unwrapApiEnvelope(finalPayload || {});
+                    const responseSource = payload.source || '';
+                    if (responseSource === 'upstream_error') {
+                        const errorMessage = payload.errorMessage || payload.message || aiParseErrorMessage;
+                        appendMessage('ai', errorMessage);
+                        return;
+                    }
+
+                    const reply = payload.reply || streamedReply || payload.message || 'Mình chưa nhận được câu trả lời hợp lệ từ AI. Vui lòng thử lại.';
+                    const products = Array.isArray(payload.products) ? payload.products : [];
+                    const suggestedProductIds = Array.isArray(payload.suggestedProductIds)
+                        ? payload.suggestedProductIds
+                        : [];
+                    appendMessage('ai', reply, products, suggestedProductIds);
+                    return;
+                }
+
                 const responseText = await response.text();
                 let data = {};
                 try {
@@ -479,10 +634,8 @@
                         message: aiParseErrorMessage
                     };
                 }
-                
-                // Remove loading
-                const loadingEl = document.getElementById(loadingId);
-                if (loadingEl) loadingEl.remove();
+
+                removeAiLoadingMessage(loadingId);
 
                 if (response.ok && data.success) {
                     const payload = unwrapApiEnvelope(data);
@@ -507,8 +660,7 @@
                 }
             } catch (error) {
                 console.error('Lỗi khi gọi AI:', error);
-                const loadingEl = document.getElementById(loadingId);
-                if (loadingEl) loadingEl.remove();
+                removeAiLoadingMessage(loadingId);
                 appendMessage('ai', 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau ít phút.');
             }
         }
@@ -516,6 +668,44 @@
         // appendMessage ghi vào DOM VÀ lưu history
         function appendMessage(sender, text, products, suggestedIds) {
             appendMessageDOM(sender, text, products, suggestedIds, true);
+        }
+
+        function orderAiProductsBySuggestedIds(products, suggestedIds) {
+            const normalizedProducts = Array.isArray(products) ? products.filter(Boolean) : [];
+            const normalizedSuggestedIds = Array.isArray(suggestedIds)
+                ? suggestedIds
+                    .map(id => Number(id))
+                    .filter(id => Number.isFinite(id))
+                : [];
+
+            if (normalizedProducts.length === 0) {
+                return [];
+            }
+            if (normalizedSuggestedIds.length === 0) {
+                return normalizedProducts;
+            }
+
+            const productById = new Map();
+            normalizedProducts.forEach(product => {
+                const productId = Number(product && product.productId);
+                if (Number.isFinite(productId) && !productById.has(productId)) {
+                    productById.set(productId, product);
+                }
+            });
+
+            const orderedProducts = [];
+            const seenIds = new Set();
+            normalizedSuggestedIds.forEach(productId => {
+                if (seenIds.has(productId)) {
+                    return;
+                }
+                seenIds.add(productId);
+                const product = productById.get(productId);
+                if (product) {
+                    orderedProducts.push(product);
+                }
+            });
+            return orderedProducts;
         }
 
         // appendMessageDOM — render vào DOM, optionally lưu vào sessionStorage
@@ -531,9 +721,10 @@
                 '</div>';
             } else {
                 let productsHtml = '';
-                if (products && products.length > 0) {
+                const orderedProducts = orderAiProductsBySuggestedIds(products, suggestedIds);
+                if (orderedProducts.length > 0) {
                     productsHtml = '<div class="mt-3 grid grid-cols-1 gap-2.5 border-t border-slate-100 pt-3">';
-                    products.forEach(p => {
+                    orderedProducts.forEach((p, index) => {
                         let imgUrl = p.image || 'assets/img/placeholder.png';
                         if (imgUrl && !imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
                             if (!imgUrl.startsWith('/')) imgUrl = '/' + imgUrl;
@@ -551,6 +742,7 @@
                         const safeImgJs = JSON.stringify(String(imgUrl));
                         const productId = Number(p.productId) || 0;
                         const variantId = Number(p.variantId || 0) || 0;
+                        const rankLabel = suggestedIds && suggestedIds.length > 0 ? ('#' + (index + 1)) : '';
 
                         productsHtml += '<div class="flex items-center gap-3 bg-slate-50 border border-slate-100 p-2 rounded-xl hover:bg-emerald-50/20 transition-colors">' +
                                 '<a href="' + detailUrl + '" title="Xem chi tiết sản phẩm" class="shrink-0">' +
@@ -558,7 +750,7 @@
                                 '</a>' +
                                 '<div class="flex-1 min-w-0">' +
                                     '<a href="' + detailUrl + '" class="hover:text-primary transition-colors">' +
-                                        '<h5 class="text-xs font-bold text-on-surface truncate">' + safeName + '</h5>' +
+                                        '<h5 class="text-xs font-bold text-on-surface truncate">' + (rankLabel ? '<span class="text-emerald-700 mr-1">' + rankLabel + '</span>' : '') + safeName + '</h5>' +
                                     '</a>' +
                                     '<p class="text-[11px] font-bold text-primary">' + priceFormatted + ' <span class="text-[9px] text-on-surface-variant font-light">/' + safeUnit + '</span></p>' +
                                 '</div>' +
@@ -593,6 +785,10 @@
                             '</div>';
                         }
                     }
+                } else if (suggestedIds && suggestedIds.length > 0) {
+                    productsHtml = '<div class="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-on-surface-variant">' +
+                        'Không tìm thấy sản phẩm phù hợp trong danh sách gợi ý để hiển thị.' +
+                    '</div>';
                 }
 
                 const contextPath = getAppContextPath();
@@ -612,7 +808,8 @@
             log.scrollTop = log.scrollHeight;
 
             if (saveToHistory) {
-                saveMsgToHistory(sender, text, products || null, suggestedIds || null);
+                const orderedProducts = orderAiProductsBySuggestedIds(products, suggestedIds);
+                saveMsgToHistory(sender, text, orderedProducts.length > 0 ? orderedProducts : (products || null), suggestedIds || null);
             }
         }
 

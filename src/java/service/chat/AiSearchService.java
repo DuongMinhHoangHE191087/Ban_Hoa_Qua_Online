@@ -8,6 +8,9 @@ import model.entity.catalog.Product;
 import util.LoggerUtil;
 
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -58,6 +61,11 @@ public class AiSearchService {
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofMillis(1_200))
             .build();
+
+    @FunctionalInterface
+    public interface DeltaConsumer {
+        void accept(String delta) throws Exception;
+    }
 
     public Map<String, Object> search(String rawUserMessage) throws Exception {
         long startedAt = System.currentTimeMillis();
@@ -195,6 +203,123 @@ public class AiSearchService {
                 lastErrorBody);
     }
 
+    public Map<String, Object> streamSearch(String rawUserMessage, DeltaConsumer deltaConsumer) throws Exception {
+        long startedAt = System.currentTimeMillis();
+        String userMessage = normalizeText(rawUserMessage);
+        if (userMessage == null || userMessage.isBlank()) {
+            throw new IllegalArgumentException("Nội dung tìm kiếm không được để trống.");
+        }
+
+        AiCatalogContextCache.Snapshot snapshot = catalogContextCache.getSnapshot();
+        String apiKey = resolveApiKey();
+        if (apiKey == null) {
+            return buildUpstreamErrorResponse(
+                    startedAt,
+                    "missing_api_key",
+                    "Chưa có Gemini API key hợp lệ. Hãy cấu hình trong Admin hoặc biến môi trường GEMINI_API_KEY.",
+                    null,
+                    null);
+        }
+
+        List<Product> promptProducts = selectRelevantProducts(
+                userMessage,
+                snapshot.getActiveProducts(),
+                snapshot.getCategoryNames(),
+                MAX_AI_CONTEXT_PRODUCTS);
+        String requestBody = mapper.writeValueAsString(buildGeminiStreamingPayload(
+                userMessage,
+                snapshot.getCategories(),
+                promptProducts));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=" + apiKey))
+                .timeout(Duration.ofSeconds(60))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<InputStream> httpResponse;
+        try {
+            httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return buildUpstreamErrorResponse(
+                    startedAt,
+                    "interrupted",
+                    "Gemini stream bị gián đoạn. Vui lòng thử lại sau.",
+                    null,
+                    null);
+        } catch (IOException ioe) {
+            LoggerUtil.warn(log, "Không gọi được Gemini stream API.", ioe);
+            return buildUpstreamErrorResponse(
+                    startedAt,
+                    "network_error",
+                    "Không kết nối được tới Gemini. Vui lòng thử lại sau.",
+                    null,
+                    null);
+        }
+
+        int status = httpResponse.statusCode();
+        if (status != 200) {
+            String errorBody = readAllText(httpResponse.body());
+            if (AI_CONFIG_ERROR_STATUS_CODES.contains(status)) {
+                String errorMessage = extractGeminiErrorMessage(status, errorBody);
+                LoggerUtil.warn(log, "Gemini stream config error status=%d body=%s", status, truncateForLog(errorBody));
+                return buildUpstreamErrorResponse(
+                        startedAt,
+                        "http_" + status,
+                        errorMessage,
+                        status,
+                        truncateForLog(errorBody));
+            }
+            LoggerUtil.warn(log, "Gemini stream HTTP error status=%d body=%s", status, truncateForLog(errorBody));
+            return buildUpstreamErrorResponse(
+                    startedAt,
+                    "http_" + status,
+                    "Gemini không phản hồi hợp lệ. Vui lòng thử lại sau.",
+                    status,
+                    truncateForLog(errorBody));
+        }
+
+        StringBuilder replyBuilder = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.body(), StandardCharsets.UTF_8))) {
+            StringBuilder eventBuffer = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) {
+                    processGeminiStreamEvent(eventBuffer.toString(), replyBuilder, deltaConsumer);
+                    eventBuffer.setLength(0);
+                    continue;
+                }
+                if (line.startsWith("data:")) {
+                    eventBuffer.append(line.substring(5).stripLeading()).append('\n');
+                }
+            }
+            processGeminiStreamEvent(eventBuffer.toString(), replyBuilder, deltaConsumer);
+        }
+
+        String reply = normalizeReply(replyBuilder.toString());
+        List<Product> finalProducts = selectRelevantProducts(
+                userMessage,
+                snapshot.getActiveProducts(),
+                snapshot.getCategoryNames(),
+                MAX_FALLBACK_PRODUCTS);
+        List<Integer> suggestedIds = new ArrayList<>();
+        for (Product product : finalProducts) {
+            suggestedIds.add(product.getProductId());
+        }
+        List<Map<String, Object>> products = loadBriefProducts(suggestedIds);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("reply", reply);
+        response.put("suggestedProductIds", extractValidProductIds(products));
+        response.put("products", products);
+        response.put("source", "gemini");
+        response.put("fallback", false);
+        response.put("latencyMs", System.currentTimeMillis() - startedAt);
+        return response;
+    }
+
     private String resolveApiKey() throws Exception {
         String apiKey = systemConfigDAO.getValue(AppConfig.CONFIG_GEMINI_API_KEY);
         if (apiKey != null) {
@@ -254,25 +379,32 @@ public class AiSearchService {
         StringBuilder catalogBuilder = new StringBuilder();
         catalogBuilder.append("=== DANH MỤC SẢN PHẨM PHÙ HỢP NHẤT ===\n");
         for (model.entity.catalog.Category category : categories) {
-            catalogBuilder.append(String.format("- Tên danh mục: %s\n", category.getName()));
+            catalogBuilder.append(String.format("- %s\n", normalizeText(category.getName())));
         }
-        catalogBuilder.append("\n=== DANH SÁCH SẢN PHẨM KHỚP NHU CẦU ===\n");
+        catalogBuilder.append("\n=== DANH SÁCH SẢN PHẨM KHỚP NHU CẦU (XẾP THEO ĐỘ PHÙ HỢP GIẢM DẦN) ===\n");
         for (Product product : promptProducts) {
             catalogBuilder.append(String.format(
-                    "- ID: %d, Tên: %s, Nguồn gốc: %s, Đã bán: %d, Đánh giá: %s, Mô tả ngắn: %s\n",
+                    "- ID: %d | Tên: %s | Nguồn gốc: %s | Khu vực: %s | Đã bán: %d | Đánh giá: %s | HSD: %s ngày | Mô tả: %s\n",
                     product.getProductId(),
                     normalizeText(product.getName()),
                     normalizeText(product.getOriginCountry()),
+                    normalizeText(product.getOriginRegion()),
                     product.getSoldQuantity(),
                     product.getRating() == null ? "N/A" : product.getRating().toPlainString(),
-                    truncateForPrompt(product.getDescription(), 120)));
+                    product.getShelfLifeDays() == null ? "N/A" : product.getShelfLifeDays().toString(),
+                    truncateForPrompt(product.getDescription(), 160)));
         }
 
-        String systemInstruction = "Bạn là Trợ lý AI chuyên nghiệp tư vấn mua hàng tại MetaFruit.\n"
-                + "Chỉ tư vấn về trái cây, thực phẩm sạch, cách bảo quản và lựa chọn sản phẩm phù hợp.\n"
-                + "Tuyệt đối không nhắc đến ID sản phẩm trong reply; chỉ dùng tên sản phẩm tự nhiên.\n"
-                + "Chỉ trả về ID sản phẩm trong suggestedProductIds.\n"
-                + "Nếu câu hỏi ngoài phạm vi, lịch sự từ chối.\n\n"
+        String systemInstruction = "Bạn là Trợ lý AI tư vấn mua hàng của MetaFruit.\n"
+                + "Mục tiêu: chọn đúng sản phẩm trong danh sách cung cấp, ưu tiên độ phù hợp cao nhất với nhu cầu khách.\n"
+                + "Quy tắc bắt buộc:\n"
+                + "1. Chỉ được nhắc tên những sản phẩm thật sự xuất hiện trong danh sách bên dưới.\n"
+                + "2. Không bịa tên sản phẩm, không tự thêm sản phẩm ngoài danh sách.\n"
+                + "3. suggestedProductIds phải chỉ chứa ID của các sản phẩm đã cho sẵn.\n"
+                + "4. Sắp xếp suggestedProductIds từ phù hợp nhất đến ít phù hợp hơn.\n"
+                + "5. Reply phải thân thiện, ngắn gọn, tự nhiên, dễ mua hàng, và mô tả rõ lý do gợi ý.\n"
+                + "6. Nếu câu hỏi ngoài phạm vi trái cây/thực phẩm sạch/bảo quản/chọn hàng, hãy từ chối lịch sự.\n"
+                + "7. Không nhắc ID trong reply, chỉ nhắc trong suggestedProductIds.\n\n"
                 + catalogBuilder;
 
         Map<String, Object> payload = new HashMap<>();
@@ -297,6 +429,52 @@ public class AiSearchService {
         generationConfig.put("responseMimeType", "application/json");
         generationConfig.put("responseSchema", responseSchema);
         payload.put("generationConfig", generationConfig);
+        return payload;
+    }
+
+    private Map<String, Object> buildGeminiStreamingPayload(String userMessage,
+                                                            List<model.entity.catalog.Category> categories,
+                                                            List<Product> promptProducts) {
+        StringBuilder catalogBuilder = new StringBuilder();
+        catalogBuilder.append("=== DANH MỤC SẢN PHẨM PHÙ HỢP NHẤT ===\n");
+        for (model.entity.catalog.Category category : categories) {
+            catalogBuilder.append(String.format("- %s\n", normalizeText(category.getName())));
+        }
+        catalogBuilder.append("\n=== DANH SÁCH SẢN PHẨM KHỚP NHU CẦU (XẾP THEO ĐỘ PHÙ HỢP GIẢM DẦN) ===\n");
+        for (Product product : promptProducts) {
+            catalogBuilder.append(String.format(
+                    "- ID: %d | Tên: %s | Nguồn gốc: %s | Khu vực: %s | Đã bán: %d | Đánh giá: %s | HSD: %s ngày | Mô tả: %s\n",
+                    product.getProductId(),
+                    normalizeText(product.getName()),
+                    normalizeText(product.getOriginCountry()),
+                    normalizeText(product.getOriginRegion()),
+                    product.getSoldQuantity(),
+                    product.getRating() == null ? "N/A" : product.getRating().toPlainString(),
+                    product.getShelfLifeDays() == null ? "N/A" : product.getShelfLifeDays().toString(),
+                    truncateForPrompt(product.getDescription(), 160)));
+        }
+
+        String systemInstruction = "Bạn là Trợ lý AI tư vấn mua hàng của MetaFruit.\n"
+                + "Mục tiêu: chọn đúng sản phẩm trong danh sách cung cấp, ưu tiên độ phù hợp cao nhất với nhu cầu khách.\n"
+                + "Quy tắc bắt buộc:\n"
+                + "1. Chỉ được nhắc tên những sản phẩm thật sự xuất hiện trong danh sách bên dưới.\n"
+                + "2. Không bịa tên sản phẩm, không tự thêm sản phẩm ngoài danh sách.\n"
+                + "3. suggestedProductIds phải chỉ chứa ID của các sản phẩm đã cho sẵn.\n"
+                + "4. Sắp xếp suggestedProductIds từ phù hợp nhất đến ít phù hợp hơn.\n"
+                + "5. Reply phải thân thiện, ngắn gọn, tự nhiên, dễ mua hàng, và mô tả rõ lý do gợi ý.\n"
+                + "6. Nếu câu hỏi ngoài phạm vi trái cây/thực phẩm sạch/bảo quản/chọn hàng, hãy từ chối lịch sự.\n"
+                + "7. Không nhắc ID trong reply, chỉ nhắc trong suggestedProductIds.\n"
+                + "Hãy trả lời tự nhiên như đang trò chuyện trực tiếp với khách hàng.\n\n"
+                + catalogBuilder;
+
+        Map<String, Object> payload = new HashMap<>();
+        Map<String, Object> systemInstructionMap = new HashMap<>();
+        systemInstructionMap.put("parts", Collections.singletonList(Map.of("text", systemInstruction)));
+        payload.put("systemInstruction", systemInstructionMap);
+        payload.put("contents", Collections.singletonList(Map.of(
+                "role", "user",
+                "parts", Collections.singletonList(Map.of("text", userMessage))
+        )));
         return payload;
     }
 
@@ -339,6 +517,52 @@ public class AiSearchService {
         response.put("fallback", false);
         response.put("latencyMs", System.currentTimeMillis() - startedAt);
         return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void processGeminiStreamEvent(String eventData, StringBuilder replyBuilder, DeltaConsumer deltaConsumer) throws Exception {
+        String normalizedEvent = normalizeText(eventData);
+        if (normalizedEvent == null || "[DONE]".equalsIgnoreCase(normalizedEvent)) {
+            return;
+        }
+
+        Map<String, Object> chunk = mapper.readValue(normalizedEvent, Map.class);
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) chunk.get("candidates");
+        if (candidates == null || candidates.isEmpty()) {
+            return;
+        }
+
+        Map<String, Object> candidate = candidates.get(0);
+        Map<String, Object> contentMap = (Map<String, Object>) candidate.get("content");
+        List<Map<String, Object>> partsList = contentMap != null ? (List<Map<String, Object>>) contentMap.get("parts") : null;
+        if (partsList == null || partsList.isEmpty()) {
+            return;
+        }
+
+        String text = normalizeText(partsList.get(0).get("text"));
+        if (text != null) {
+            replyBuilder.append(text);
+            if (deltaConsumer != null) {
+                deltaConsumer.accept(text);
+            }
+        }
+    }
+
+    private String readAllText(InputStream body) throws IOException {
+        if (body == null) {
+            return null;
+        }
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8))) {
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (builder.length() > 0) {
+                    builder.append('\n');
+                }
+                builder.append(line);
+            }
+            return builder.toString();
+        }
     }
 
     private Map<String, Object> buildFallbackResponse(String userMessage,
