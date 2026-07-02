@@ -204,3 +204,19 @@ req.setAttribute("product", product);
     </div>
 </c:if>
 ```
+
+---
+
+## 4. Giao diện (JSP) tương tác (Mapping UI to Servlet)
+
+Chức năng tùy chỉnh và đóng gói sản phẩm có sự tương tác chặt chẽ giữa giao diện (frontend) và các Servlet (backend):
+
+1. **Trang Quản lý / Thêm / Sửa Sản Phẩm (`web/WEB-INF/jsp/shop/product-list.jsp`)**:
+   - Chứa form HTML (thường được đặt trong modal/popup) cho phép nhập thông tin nhãn (`isOrganic`, `isImported`), chọn mùa vụ (`seasonStartMonth`, `seasonEndMonth`). Ngoài ra có một vùng giao diện cho phép **thêm động** (add row) các quy cách đóng gói bằng Javascript. Các ô input sinh ra sẽ có `name="packagingLabel"` và `name="packagingPriceAdd"`.
+   - **Tương tác API**: Khi chủ shop bấm lưu, dữ liệu form được gom lại bằng đối tượng `FormData` trong JS và gửi đi (submit) thông qua Fetch API/AJAX.
+   - **Đích đến (Servlet)**: Dữ liệu được gửi theo phương thức POST tới URL `/shop/product-create` (do `ProductCreateServlet` bắt) hoặc `/shop/product-edit` (do `ProductEditServlet` bắt). Các servlet này dùng `req.getParameterValues()` để đọc mảng giá trị đóng gói và ghi xuống Database.
+
+2. **Trang Chi Tiết Sản Phẩm (`web/WEB-INF/jsp/guest/product-detail.jsp`)**:
+   - **Chuẩn bị dữ liệu**: Khi có truy cập vào `/products/detail?id=...`, `ProductDetailServlet` sẽ truy vấn Database lấy chi tiết danh sách gói phụ thu. Sau khi `setAttribute`, request được forward về trang JSP này.
+   - **Tương tác UI**: Thẻ `<select id="packaging-selector" onchange="calculateSubtotal()">` dùng vòng lặp JSTL `<c:forEach>` để in ra từng loại bao bì. Javascript ở file này sẽ lắng nghe sự kiện đổi thẻ Select, tự động đọc giá trị `data-price-add` (số tiền phụ thu) và cộng ngay vào giá Tạm tính (Subtotal) cho người dùng thấy.
+   - **Thêm vào giỏ hàng**: Giá trị `packagingId` đã chọn cuối cùng sẽ được kẹp vào payload gửi tới `CartServlet` (hoặc API xử lý Add to Cart) để ghi nhận đơn hàng chứa quy cách đóng gói kèm theo.
