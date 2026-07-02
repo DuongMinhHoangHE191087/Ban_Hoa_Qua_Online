@@ -1591,6 +1591,14 @@ function validateCheckoutForm() {
         return false;
     }
 
+    if (quoteState && quoteState.valid === false) {
+        const firstError = Array.isArray(quoteState.errors) && quoteState.errors.length > 0
+            ? quoteState.errors[0]
+            : 'Vui lòng kiểm tra lại mã giảm giá hoặc thông tin checkout.';
+        alert(firstError);
+        return false;
+    }
+
     const submitBtn = document.getElementById('submitBtn');
     if (submitBtn) {
         submitBtn.disabled = true;
