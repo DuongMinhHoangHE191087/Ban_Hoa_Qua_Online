@@ -85,14 +85,7 @@ public class ShopDashboardServlet extends HttpServlet {
 
             java.util.List<model.entity.catalog.Product> recentProducts = new java.util.ArrayList<>();
             try {
-                java.util.List<model.entity.catalog.Product> allProducts = productService.getProductsByOwner(ownerId);
-                if (allProducts != null) {
-                    if (allProducts.size() > 5) {
-                        recentProducts = allProducts.subList(0, 5);
-                    } else {
-                        recentProducts = allProducts;
-                    }
-                }
+                recentProducts = productService.getRecentProductsByOwner(ownerId, 5);
             } catch (Exception e) {
                 // Ignore product query issues
             }

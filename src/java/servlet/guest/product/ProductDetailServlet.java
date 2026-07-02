@@ -44,7 +44,7 @@ import java.util.Map;
  *
  * @author fruitmkt-team
  */
-@WebServlet("/products/detail")
+@WebServlet({"/products/detail", "/product-detail"})
 public class ProductDetailServlet extends HttpServlet {
 
     private final ProductService productService = new ProductService();
@@ -108,7 +108,7 @@ public class ProductDetailServlet extends HttpServlet {
 
             boolean hasRequestedToday = false;
             model.entity.auth.User currentUser = (model.entity.auth.User) req.getSession().getAttribute(AppConfig.SESSION_USER);
-            if (currentUser != null && isExpiredProduct) {
+            if (currentUser != null && (isExpiredProduct || isOutOfSeason)) {
                 hasRequestedToday = productDAO.hasRequestedRestockToday(product.getOwnerId(), currentUser.getUserId(), product.getProductId());
             }
             req.setAttribute("hasRequestedToday", hasRequestedToday);
@@ -158,8 +158,8 @@ public class ProductDetailServlet extends HttpServlet {
                 }
 
                 // ── Kiểm tra điều kiện tồn tại trước khi trả JSON ──
-                // Sản phẩm hết mùa — khách không thể mua
-                if (isExpiredProduct) {
+                // Sản phẩm hết mùa hoặc đã bị đánh dấu OUT_OF_SEASON — khách không thể mua
+                if (isExpiredProduct || isOutOfSeason) {
                     Map<String, Object> errData = new java.util.HashMap<>();
                     errData.put("success", false);
                     errData.put("reason", "OUT_OF_SEASON");

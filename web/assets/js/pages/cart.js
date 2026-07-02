@@ -3,6 +3,45 @@
  * Hỗ trợ: Lưu Local Storage, Ajax mượt mà, Beacon API khi tắt tab, Check Stock khi Checkout.
  */
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function readStockQuantity(value, fallback = 0) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function buildCartStockState(stockQuantity, requestedQuantity) {
+    const stock = readStockQuantity(stockQuantity, 0);
+    const quantity = readStockQuantity(requestedQuantity, 0);
+    const outOfStock = stock <= 0;
+    const overLimit = stock > 0 && quantity > stock;
+    return {
+        stock,
+        quantity,
+        outOfStock,
+        overLimit,
+        blocked: outOfStock || overLimit
+    };
+}
+
+function getCartStockDisplayText(stockState) {
+    if (stockState.outOfStock) {
+        return 'Đã hết hàng';
+    }
+    if (stockState.overLimit || stockState.stock <= 10) {
+        return `Chỉ còn ${stockState.stock} sản phẩm`;
+    }
+    return `${stockState.stock} sản phẩm`;
+}
+
 const CartPage = {
     isLoggedIn: false,
     contextPath: '',
@@ -143,6 +182,7 @@ const CartPage = {
      */
     getCheckedVariantIdsFromDom() {
         return Array.from(document.querySelectorAll('.chk-item:checked'))
+            .filter(chk => !chk.disabled && chk.closest('.cart-item-row')?.getAttribute('data-stock-blocked') !== 'true')
             .map(chk => parseInt(chk.getAttribute('data-variant-id'), 10))
             .filter(id => Number.isInteger(id) && id > 0);
     },
@@ -155,43 +195,56 @@ const CartPage = {
         const persistedIds = this.getPersistedSelectedVariantIds();
         const hasPersistedState = persistedIds.length > 0;
         const selectedSet = hasPersistedState ? new Set(persistedIds) : null;
-        const availableIds = new Set((items || [])
-            .map(item => parseInt(item.variantId, 10))
-            .filter(id => Number.isInteger(id) && id > 0));
+        const selectableIds = new Set(this.getSelectableVariantIds(items));
 
-        document.querySelectorAll('.chk-item').forEach(chk => {
+        document.querySelectorAll('.cart-item-row').forEach(row => {
+            const chk = row.querySelector('.chk-item');
+            if (!chk) return;
             const variantId = parseInt(chk.getAttribute('data-variant-id'), 10);
+            const stockQuantity = readStockQuantity(row.getAttribute('data-stock-quantity'), 0);
+            const requestedQuantity = readStockQuantity(row.getAttribute('data-requested-quantity'), 0);
+            const stockState = buildCartStockState(stockQuantity, requestedQuantity);
+
+            row.dataset.stockBlocked = stockState.blocked ? 'true' : 'false';
+            row.classList.toggle('opacity-50', stockState.outOfStock);
+            row.classList.toggle('grayscale', stockState.outOfStock);
+            row.classList.toggle('bg-rose-50/60', stockState.outOfStock);
+            row.classList.toggle('border-rose-200', stockState.outOfStock);
+            row.classList.toggle('bg-amber-50/60', stockState.overLimit);
+            row.classList.toggle('border-amber-200', stockState.overLimit);
+
             if (!Number.isInteger(variantId) || variantId <= 0) {
                 chk.checked = false;
+                chk.disabled = true;
                 return;
             }
-            chk.checked = selectedSet ? selectedSet.has(variantId) : true;
-        });
+            chk.disabled = stockState.blocked;
+            chk.checked = stockState.blocked ? false : (selectedSet ? selectedSet.has(variantId) : true);
 
-        // Cập nhật trạng thái checkbox cho từng Shop
-        const shopGroups = document.querySelectorAll('.shop-group');
-        shopGroups.forEach(group => {
-            const shopId = group.getAttribute('data-shop-id');
-            const shopCheckbox = group.querySelector('.chk-shop');
-            if (shopCheckbox) {
-                const itemsInShop = Array.from(group.querySelectorAll('.chk-item'));
-                const allChecked = itemsInShop.length > 0 && itemsInShop.every(chk => chk.checked);
-                shopCheckbox.checked = allChecked;
+            const qtyInput = row.querySelector('.input-qty');
+            const minusBtn = row.querySelector('.btn-qty-minus');
+            const plusBtn = row.querySelector('.btn-qty-plus');
+            if (qtyInput) {
+                qtyInput.disabled = stockState.outOfStock;
+                qtyInput.max = stockState.stock > 0 ? stockState.stock : 1;
+            }
+            if (minusBtn) {
+                minusBtn.disabled = stockState.outOfStock;
+                minusBtn.classList.toggle('opacity-40', stockState.outOfStock);
+                minusBtn.classList.toggle('cursor-not-allowed', stockState.outOfStock);
+            }
+            if (plusBtn) {
+                plusBtn.disabled = stockState.outOfStock;
+                plusBtn.classList.toggle('opacity-40', stockState.outOfStock);
+                plusBtn.classList.toggle('cursor-not-allowed', stockState.outOfStock);
             }
         });
 
-        // Cập nhật chkSelectAll
-        const chkSelectAll = document.getElementById('chk-select-all');
-        if (chkSelectAll) {
-            const checkboxes = Array.from(document.querySelectorAll('.chk-item'));
-            const allChecked = checkboxes.length > 0 && checkboxes.every(chk => chk.checked);
-            chkSelectAll.checked = allChecked;
-        }
-
         const effectiveSelection = hasPersistedState
-            ? persistedIds.filter(id => availableIds.has(id))
-            : Array.from(availableIds);
+            ? persistedIds.filter(id => selectableIds.has(id))
+            : Array.from(selectableIds);
         this.saveSelectedVariantIds(effectiveSelection);
+        this.syncCartSelectionControls();
     },
 
     /**
@@ -210,6 +263,71 @@ const CartPage = {
      */
     getCurrentLocalItems() {
         return this.isLoggedIn ? this.getUserCartFromLocal() : GuestCart.getItems();
+    },
+
+    getSelectableVariantIds(items) {
+        return (items || [])
+            .map(item => {
+                const variantId = parseInt(item.variantId, 10);
+                if (!Number.isInteger(variantId) || variantId <= 0) {
+                    return null;
+                }
+                const stockState = buildCartStockState(item.stockQuantity, item.quantity);
+                return stockState.blocked ? null : variantId;
+            })
+            .filter(id => Number.isInteger(id) && id > 0);
+    },
+
+    hasBlockingStockIssues(items) {
+        return (items || []).some(item => buildCartStockState(item.stockQuantity, item.quantity).blocked);
+    },
+
+    syncCartSelectionControls() {
+        const selectableItemCheckboxes = Array.from(document.querySelectorAll('.chk-item'))
+            .filter(chk => !chk.disabled);
+        const allSelectableChecked = selectableItemCheckboxes.length > 0
+            && selectableItemCheckboxes.every(chk => chk.checked);
+
+        const chkSelectAll = document.getElementById('chk-select-all');
+        if (chkSelectAll) {
+            chkSelectAll.checked = allSelectableChecked;
+            chkSelectAll.disabled = selectableItemCheckboxes.length === 0;
+            chkSelectAll.classList.toggle('opacity-50', selectableItemCheckboxes.length === 0);
+            chkSelectAll.classList.toggle('cursor-not-allowed', selectableItemCheckboxes.length === 0);
+        }
+
+        document.querySelectorAll('.shop-group').forEach(group => {
+            const shopCheckbox = group.querySelector('.chk-shop');
+            if (!shopCheckbox) return;
+
+            const selectableShopCheckboxes = Array.from(group.querySelectorAll('.chk-item'))
+                .filter(chk => !chk.disabled);
+            const allShopChecked = selectableShopCheckboxes.length > 0
+                && selectableShopCheckboxes.every(chk => chk.checked);
+
+            shopCheckbox.checked = allShopChecked;
+            shopCheckbox.disabled = selectableShopCheckboxes.length === 0;
+            shopCheckbox.classList.toggle('opacity-50', selectableShopCheckboxes.length === 0);
+            shopCheckbox.classList.toggle('cursor-not-allowed', selectableShopCheckboxes.length === 0);
+        });
+    },
+
+    updateCheckoutButtonState(items) {
+        const btnCheckout = document.getElementById('btn-cart-checkout');
+        if (!btnCheckout) return;
+
+        const checkedVariantIds = this.getCheckedVariantIdsFromDom();
+        const hasBlockingStockIssues = this.hasBlockingStockIssues(items);
+        const shouldDisable = checkedVariantIds.length === 0 || hasBlockingStockIssues;
+
+        btnCheckout.disabled = shouldDisable;
+        btnCheckout.classList.toggle('opacity-50', shouldDisable);
+        btnCheckout.classList.toggle('cursor-not-allowed', shouldDisable);
+        btnCheckout.title = hasBlockingStockIssues
+            ? 'Vui lòng xử lý các sản phẩm hết hàng trước khi thanh toán.'
+            : (checkedVariantIds.length === 0
+                ? 'Vui lòng chọn ít nhất một sản phẩm để thanh toán.'
+                : '');
     },
 
     /**
@@ -319,10 +437,12 @@ const CartPage = {
                 const spinner = btn.closest('.quantity-spinner');
                 const input = spinner.querySelector('.input-qty');
                 const display = spinner.querySelector('.input-qty-value');
-                const maxStock = parseInt(input.getAttribute('data-stock')) || 999;
+                const maxStock = readStockQuantity(input.getAttribute('data-stock'), 999);
                 let val = parseInt(input.value) || 1;
                 
-                if (val < maxStock) {
+                if (maxStock <= 0) {
+                    this.showToast('Sản phẩm này hiện đã hết hàng. Vui lòng xóa khỏi giỏ hàng hoặc chọn phân loại khác.', 'warning');
+                } else if (val < maxStock) {
                     val++;
                     input.value = val;
                     if (display) display.textContent = val;
@@ -347,15 +467,16 @@ const CartPage = {
         const chkSelectAll = document.getElementById('chk-select-all');
         if (chkSelectAll) {
             chkSelectAll.addEventListener('change', () => {
-                const shopCheckboxes = document.querySelectorAll('.chk-shop');
+                const shopCheckboxes = Array.from(document.querySelectorAll('.chk-shop')).filter(chk => !chk.disabled);
                 shopCheckboxes.forEach(chk => {
                     chk.checked = chkSelectAll.checked;
                 });
-                const checkboxes = document.querySelectorAll('.chk-item');
+                const checkboxes = Array.from(document.querySelectorAll('.chk-item')).filter(chk => !chk.disabled);
                 checkboxes.forEach(chk => {
                     chk.checked = chkSelectAll.checked;
                 });
                 this.saveSelectedVariantIds(this.getCheckedVariantIdsFromDom());
+                this.syncCartSelectionControls();
                 this.recalculateClientSummary(this.getCurrentLocalItems());
             });
         }
@@ -365,17 +486,19 @@ const CartPage = {
             const target = e.target;
             if (target.classList.contains('chk-shop')) {
                 const shopId = target.getAttribute('data-shop-id');
-                const itemsInShop = document.querySelectorAll(`.chk-item[data-shop-id="${shopId}"]`);
+                const itemsInShop = Array.from(document.querySelectorAll(`.chk-item[data-shop-id="${shopId}"]`))
+                    .filter(chk => !chk.disabled);
                 itemsInShop.forEach(chk => {
                     chk.checked = target.checked;
                 });
                 
                 // Cập nhật chkSelectAll
-                const allShopCheckboxes = Array.from(document.querySelectorAll('.chk-shop'));
+                const allShopCheckboxes = Array.from(document.querySelectorAll('.chk-shop')).filter(chk => !chk.disabled);
                 const allChecked = allShopCheckboxes.length > 0 && allShopCheckboxes.every(chk => chk.checked);
                 if (chkSelectAll) chkSelectAll.checked = allChecked;
                 
                 this.saveSelectedVariantIds(this.getCheckedVariantIdsFromDom());
+                this.syncCartSelectionControls();
                 this.recalculateClientSummary(this.getCurrentLocalItems());
             }
         });
@@ -385,17 +508,19 @@ const CartPage = {
             const target = e.target;
             if (target.classList.contains('chk-item')) {
                 const shopId = target.getAttribute('data-shop-id');
-                const itemsInShop = Array.from(document.querySelectorAll(`.chk-item[data-shop-id="${shopId}"]`));
+                const itemsInShop = Array.from(document.querySelectorAll(`.chk-item[data-shop-id="${shopId}"]`))
+                    .filter(chk => !chk.disabled);
                 const allShopItemsChecked = itemsInShop.length > 0 && itemsInShop.every(chk => chk.checked);
                 
                 const shopCheckbox = document.querySelector(`.chk-shop[data-shop-id="${shopId}"]`);
                 if (shopCheckbox) shopCheckbox.checked = allShopItemsChecked;
                 
-                const checkboxes = Array.from(document.querySelectorAll('.chk-item'));
+                const checkboxes = Array.from(document.querySelectorAll('.chk-item')).filter(chk => !chk.disabled);
                 const allChecked = checkboxes.length > 0 && checkboxes.every(chk => chk.checked);
                 if (chkSelectAll) chkSelectAll.checked = allChecked;
                 
                 this.saveSelectedVariantIds(this.getCheckedVariantIdsFromDom());
+                this.syncCartSelectionControls();
                 this.recalculateClientSummary(this.getCurrentLocalItems());
             }
         });
@@ -405,9 +530,15 @@ const CartPage = {
             const target = e.target;
             if (target.classList.contains('input-qty')) {
                 const input = target;
-                const maxStock = parseInt(input.getAttribute('data-stock')) || 999;
+                const maxStock = readStockQuantity(input.getAttribute('data-stock'), 999);
                 let val = parseInt(input.value) || 1;
                 
+                if (maxStock <= 0) {
+                    input.value = 1;
+                    this.showToast('Sản phẩm này hiện đã hết hàng. Vui lòng xóa khỏi giỏ hàng hoặc chọn phân loại khác.', 'warning');
+                    return;
+                }
+
                 if (isNaN(val) || val < 1) {
                     val = 1;
                 } else if (val > maxStock) {
@@ -560,10 +691,14 @@ const CartPage = {
                     } else {
                         this.showToast(data.error || 'Có lỗi xảy ra', 'error');
                     }
+                } else {
+                    this.loadAndSyncFromServer();
                 }
             } catch (err) {
                 console.warn('[CartPage] Lỗi mạng khi cập nhật số lượng:', err);
             }
+        } else {
+            this.renderCart({ items: localItems });
         }
     },
 
@@ -660,16 +795,7 @@ const CartPage = {
         if (spanCheckedCount) spanCheckedCount.textContent = checkedCount;
         if (spanTotalCount) spanTotalCount.textContent = items.length;
 
-        const btnCheckout = document.getElementById('btn-cart-checkout');
-        if (btnCheckout) {
-            if (checkedCount === 0) {
-                btnCheckout.disabled = true;
-                btnCheckout.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                btnCheckout.disabled = false;
-                btnCheckout.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
+        this.updateCheckoutButtonState(items);
     },
 
     /**
@@ -762,6 +888,18 @@ const CartPage = {
         }
 
         // Group items strictly by shopId (if valid), otherwise group by shopName (no merging for different shopIds)
+        const stockIssues = summary.items.reduce((acc, item) => {
+            const stockState = buildCartStockState(item.stockQuantity, item.quantity);
+            if (stockState.blocked) {
+                acc.push({
+                    name: item.productName || 'Sản phẩm',
+                    variant: item.variantLabel || 'Mặc định',
+                    stockState
+                });
+            }
+            return acc;
+        }, []);
+
         const groups = {};
         summary.items.forEach(item => {
             const shopName = (item.shopName || "Cửa hàng Verdant").trim();
@@ -778,6 +916,26 @@ const CartPage = {
         });
 
         let html = '';
+        if (stockIssues.length > 0) {
+            const outOfStockCount = stockIssues.filter(issue => issue.stockState.outOfStock).length;
+            const overLimitCount = stockIssues.length - outOfStockCount;
+            const statusLine = [
+                outOfStockCount > 0 ? `${outOfStockCount} sản phẩm đã hết hàng` : null,
+                overLimitCount > 0 ? `${overLimitCount} sản phẩm vượt số lượng đặt` : null
+            ].filter(Boolean).join(' và ');
+
+            html += `
+                <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 text-amber-900 p-4 shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-xl mt-0.5">warning</span>
+                        <div class="text-sm leading-relaxed">
+                            <p class="font-bold">Có ${stockIssues.length} sản phẩm chưa thể thanh toán ngay.</p>
+                            <p class="mt-1">${statusLine || 'Vui lòng kiểm tra lại số lượng và phân loại còn hàng.'} Hãy đổi sang phân loại còn tồn kho hoặc giảm số lượng trước khi thanh toán.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         Object.values(groups).forEach(group => {
             // Clickable shop link if shopId is valid (>0)
             const shopLinkHtml = group.shopId > 0 
@@ -797,6 +955,12 @@ const CartPage = {
             `;
 
             group.items.forEach(item => {
+                const stockState = buildCartStockState(item.stockQuantity, item.quantity);
+                const rowClass = stockState.outOfStock
+                    ? 'opacity-50 grayscale bg-rose-50/60 border-rose-200'
+                    : stockState.overLimit
+                        ? 'bg-amber-50/60 border-amber-200'
+                        : '';
                 let imgUrl = item.imagePath;
                 if (!imgUrl) {
                     imgUrl = `${this.contextPath}/assets/images/placeholder.png`;
@@ -812,16 +976,25 @@ const CartPage = {
                 const productName = item.productName || (item.name ? item.name.split(' - ')[0] : 'Sản phẩm');
                 const variantLabel = item.variantLabel || (item.name ? item.name.split(' - ')[1] : 'Mặc định');
                 const weightKg = parseFloat(item.weightKg) || 1.0;
+                const stockQuantity = stockState.stock;
+                const stockBadgeClass = stockQuantity <= 0
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : stockState.overLimit
+                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                        : stockQuantity <= 10
+                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+                const stockDisplayText = getCartStockDisplayText(stockState);
 
                 const productLinkHtml = item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== ''
                     ? `<a href="${this.contextPath}/products/detail?id=${item.productId}" class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark hover:underline hover:text-primary transition-all">${productName}</a>`
                     : `${productName}`;
 
                 html += `
-                    <article class="flex flex-row gap-md items-center cart-item-row" data-item-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}" data-shop-id="${group.shopId}">
+                    <article class="flex flex-row gap-md items-center cart-item-row ${rowClass}" data-item-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}" data-shop-id="${group.shopId}" data-stock-quantity="${stockQuantity}" data-requested-quantity="${item.quantity}" data-stock-blocked="${stockState.blocked ? 'true' : 'false'}">
                         <!-- Checkbox từng mặt hàng -->
                         <div class="flex items-center shrink-0 pr-2">
-                            <input type="checkbox" class="chk-item rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer" data-variant-id="${item.variantId}" data-item-id="${item.cartItemId || ''}" data-shop-id="${group.shopId}" checked>
+                            <input type="checkbox" class="chk-item rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer ${stockState.blocked ? 'opacity-50 cursor-not-allowed' : ''}" data-variant-id="${item.variantId}" data-item-id="${item.cartItemId || ''}" data-shop-id="${group.shopId}" ${stockState.blocked ? 'disabled' : 'checked'}>
                         </div>
                         
                         <img alt="${productName}" class="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover flex-shrink-0 border border-white/30" src="${imgUrl}">
@@ -840,6 +1013,12 @@ const CartPage = {
                                         ` : `<span class="bg-[#f3f4f6] text-[#374151] px-2 py-0.5 rounded text-xs font-semibold border border-slate-200">${variantLabel}</span>`}
                                     </p>
                                     <p class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 text-muted">Trọng lượng: <span class="fw-semibold text-dark">${weightKg.toFixed(3)} kg</span></p>
+                                    <p class="font-body-md text-body-md text-on-surface-variant text-xs mt-1 text-muted">
+                                        Tồn kho:
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full border font-semibold ${stockBadgeClass}">
+                                            ${stockDisplayText}
+                                        </span>
+                                    </p>
                                     ${item.packagingLabel ? `
                                     <p class="font-body-md text-body-md text-on-surface-variant text-[11px] mt-1 text-muted">
                                         Đóng gói: <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-semibold border border-[#BBF7D0]/40">${item.packagingLabel} (+${CurrencyFmt.format(packagingPriceAdd)})</span>
@@ -855,11 +1034,11 @@ const CartPage = {
                             <div class="flex justify-between items-center mt-sm w-full">
                                 <!-- Bộ Spinner số lượng bo tròn cao cấp -->
                                 <div class="flex items-center bg-surface-container-low border border-surface-container-highest rounded-full p-1 quantity-spinner">
-                                    <button aria-label="Decrease quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-minus">
+                                    <button aria-label="Decrease quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-minus ${stockQuantity <= 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${stockQuantity <= 0 ? 'disabled' : ''}>
                                         <span class="material-symbols-outlined text-sm">remove</span>
                                     </button>
-                                    <input type="number" class="font-label-md text-label-md w-12 text-center text-inverse-surface fw-bold bg-transparent border-0 focus:ring-0 focus:outline-none input-qty [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" value="${item.quantity}" data-stock="${item.stockQuantity || 99}" min="1">
-                                    <button aria-label="Increase quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-plus">
+                                    <input type="number" class="font-label-md text-label-md w-12 text-center text-inverse-surface fw-bold bg-transparent border-0 focus:ring-0 focus:outline-none input-qty [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${stockQuantity <= 0 ? 'opacity-60 cursor-not-allowed' : ''}" value="${item.quantity}" data-stock="${stockQuantity}" min="1" max="${stockQuantity > 0 ? stockQuantity : 1}" ${stockQuantity <= 0 ? 'disabled' : ''}>
+                                    <button aria-label="Increase quantity" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-high btn-qty-plus ${stockQuantity <= 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${stockQuantity <= 0 ? 'disabled' : ''}>
                                         <span class="material-symbols-outlined text-sm">add</span>
                                     </button>
                                 </div>
@@ -867,7 +1046,7 @@ const CartPage = {
                                 <!-- Nút xóa sản phẩm với micro-animation -->
                                 <button class="flex items-center gap-xs text-error hover:text-on-error-container transition-colors group btn-remove-item" data-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}">
                                     <span class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">delete</span>
-                                    <span class="font-label-md text-label-md hidden sm:inline ml-1 font-semibold text-sm">Remove</span>
+                                    <span class="font-label-md text-label-md hidden sm:inline ml-1 font-semibold text-sm">Xóa</span>
                                 </button>
                             </div>
                         </div>
@@ -927,6 +1106,12 @@ const CartPage = {
             return;
         }
 
+        const blockedRows = document.querySelectorAll('.cart-item-row[data-stock-blocked="true"]');
+        if (blockedRows.length > 0) {
+            this.showToast('Có sản phẩm đã hết hàng hoặc vượt tồn kho. Hãy đổi sang phân loại còn hàng hoặc giảm số lượng trước khi thanh toán.', 'warning');
+            return;
+        }
+
         const checkedVariantIds = this.getCheckedVariantIdsFromDom();
         if (checkedVariantIds.length === 0) {
             this.showToast('Vui lòng chọn ít nhất một sản phẩm để thanh toán!', 'warning');
@@ -962,17 +1147,41 @@ const CartPage = {
                     : Array.isArray(data.errors)
                         ? data.errors
                         : null;
+                const errorCode = data.errorCode || data.meta?.errorCode;
                 if (errors && errors.length > 0) {
                     let errorHtml = '<ul class="mb-0 text-start text-danger">';
                     errors.forEach(err => {
-                        errorHtml += `<li>${err}</li>`;
+                        errorHtml += `<li>${escapeHtml(err)}</li>`;
                     });
                     errorHtml += '</ul>';
-
-                    this.showStockErrorModal(errorHtml);
+                    const isOutOfSeason = errorCode === 'out_of_season';
+                    if (typeof Swal !== 'undefined') {
+                        const intro = isOutOfSeason
+                            ? 'Một số sản phẩm trong giỏ đã hết mùa nên không thể thanh toán ngay lúc này.'
+                            : 'Một số sản phẩm trong giỏ hàng đã thay đổi tồn kho thực tế.';
+                        Swal.fire({
+                            icon: isOutOfSeason ? 'warning' : 'error',
+                            title: isOutOfSeason ? 'Sản phẩm hết mùa' : 'Cảnh báo tồn kho',
+                            html: `<div class="text-left">${intro}<div class="mt-3">${errorHtml}</div></div>`,
+                            confirmButtonText: 'Đã hiểu',
+                            confirmButtonColor: '#14532D',
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'premium-swal-popup',
+                                title: 'premium-swal-title',
+                                confirmButton: 'premium-swal-button'
+                            }
+                        });
+                    } else {
+                        this.showStockErrorModal(errorHtml);
+                    }
                     this.loadAndSyncFromServer();
                 } else {
-                    this.showToast(data.error || 'Không thể kiểm tra tồn kho lúc này.', 'error');
+                    if (blockedRows.length > 0) {
+                        this.showToast('Có sản phẩm trong giỏ đã hết hàng hoặc vượt tồn kho. Hãy đổi phân loại còn hàng hoặc giảm số lượng.', 'warning');
+                    } else {
+                        this.showToast(data.error || 'Không thể kiểm tra tồn kho lúc này.', 'error');
+                    }
                 }
             }
         } catch (err) {

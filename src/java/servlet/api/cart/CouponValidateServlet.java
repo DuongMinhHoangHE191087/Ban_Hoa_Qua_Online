@@ -102,6 +102,8 @@ public class CouponValidateServlet extends HttpServlet {
                 "discountAmount", Long.parseLong(fmtAmt),
                 "promoId", promo.getPromoId(),
                 "discountType", promo.getDiscountType(),
+                "discountScope", promo.getDiscountScope(),
+                "benefitTarget", promo.getBenefitTarget(),
                 "canStack", promo.getCanStack(),
                 "ownerId", promo.getCreatedBy(), // Return ownerId of coupon creator
                 "message", "Áp dụng thành công! Giảm " + displayAmt

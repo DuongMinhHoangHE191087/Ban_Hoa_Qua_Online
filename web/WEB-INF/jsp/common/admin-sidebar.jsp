@@ -197,21 +197,32 @@
                         btn.type = 'button';
                         btn.id = 'sidebarMobileToggle';
                         btn.className = 'sidebar-mobile-toggle';
+                        btn.setAttribute('aria-label', 'Thu gọn hoặc mở sidebar');
+                        btn.title = 'Thu gọn hoặc mở sidebar';
                         btn.innerHTML = '<i class="fa-solid fa-angles-right"></i>';
 
                         const sidebar = document.getElementById('admin-sidebar');
                         if (sidebar) {
+                            const syncTogglePosition = function () {
+                                if (sidebar.classList.contains('active')) {
+                                    const sidebarWidth = sidebar.getBoundingClientRect().width || 270;
+                                    const maxLeft = Math.max(20, window.innerWidth - 64);
+                                    btn.style.left = Math.min(sidebarWidth, maxLeft) + 'px';
+                                } else {
+                                    btn.style.left = '20px';
+                                }
+                            };
+
                             btn.addEventListener('click', function (e) {
                                 e.stopPropagation();
                                 sidebar.classList.toggle('active');
                                 const icon = btn.querySelector('i');
                                 if (sidebar.classList.contains('active')) {
                                     icon.className = 'fa-solid fa-angles-left';
-                                    btn.style.left = '270px';
                                 } else {
                                     icon.className = 'fa-solid fa-angles-right';
-                                    btn.style.left = '20px';
                                 }
+                                syncTogglePosition();
                             });
 
                             document.addEventListener('click', function (ev) {
@@ -219,10 +230,12 @@
                                     sidebar.classList.remove('active');
                                     const icon = btn.querySelector('i');
                                     if (icon) icon.className = 'fa-solid fa-angles-right';
-                                    btn.style.left = '20px';
+                                    syncTogglePosition();
                                 }
                             });
 
+                            window.addEventListener('resize', syncTogglePosition);
+                            syncTogglePosition();
                             document.body.appendChild(btn);
                         }
                     }

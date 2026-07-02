@@ -36,6 +36,8 @@ import java.util.logging.Logger;
 public class InventoryServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(InventoryServlet.class.getName());
+    private static final int RESTOCK_HISTORY_LIMIT = 50;
+    private static final int ACTIVE_BATCH_LIMIT = 25;
 
     private final InventoryService inventoryService = new InventoryService();
     private final ProductDAO productDAO = new ProductDAO();
@@ -62,10 +64,10 @@ public class InventoryServlet extends HttpServlet {
             variantsWithProduct = productVariantDAO.findVariantsWithOwnerDetails(currentUser.getUserId());
 
             // 2. Fetch past restock history logs
-            history = inventoryService.getRestockHistory(currentUser.getUserId());
+            history = inventoryService.getRestockHistory(currentUser.getUserId(), RESTOCK_HISTORY_LIMIT);
 
             // 3. Fetch active batches (lô hàng còn hạn) for batch/expiry panel
-            List<InventoryLog> activeBatches = inventoryService.getActiveBatches(currentUser.getUserId());
+            List<InventoryLog> activeBatches = inventoryService.getActiveBatches(currentUser.getUserId(), ACTIVE_BATCH_LIMIT);
             req.setAttribute("activeBatches", activeBatches);
 
         } catch (SQLException e) {

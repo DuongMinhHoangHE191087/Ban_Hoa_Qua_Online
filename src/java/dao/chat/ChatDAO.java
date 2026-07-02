@@ -3,6 +3,7 @@ package dao.chat;
 import dao.system.BaseDAO;
 import model.entity.chat.ChatMessage;
 import model.entity.chat.ChatSession;
+import util.PaginationHelper;
 import util.LoggerUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -314,6 +316,44 @@ public class ChatDAO extends BaseDAO {
                 }
             }
         }
+        return list;
+    }
+
+    /**
+     * Lấy một trang tin nhắn cũ hơn, trả về theo thứ tự tăng dần để UI append/prepend ổn định.
+     */
+    public List<ChatMessage> findMessages(int sessionId, Integer beforeMessageId, int limit) throws SQLException {
+        List<ChatMessage> list = new ArrayList<>();
+        if (limit <= 0) {
+            return list;
+        }
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT cm.*, u.full_name AS sender_name, u.role AS sender_role "
+                        + "FROM chat_messages cm "
+                        + "LEFT JOIN users u ON cm.sender_id = u.user_id "
+                        + "WHERE cm.session_id = ? ");
+        if (beforeMessageId != null && beforeMessageId > 0) {
+            sql.append("AND cm.message_id < ? ");
+        }
+        sql.append("ORDER BY cm.message_id DESC").append(PaginationHelper.OFFSET_FETCH_SQL);
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            ps.setInt(paramIndex++, sessionId);
+            if (beforeMessageId != null && beforeMessageId > 0) {
+                ps.setInt(paramIndex++, beforeMessageId);
+            }
+            PaginationHelper.bindOffsetFetch(ps, paramIndex, 1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapMessageRow(rs));
+                }
+            }
+        }
+
+        Collections.reverse(list);
         return list;
     }
 

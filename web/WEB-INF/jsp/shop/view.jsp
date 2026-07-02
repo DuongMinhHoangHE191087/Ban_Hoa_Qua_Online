@@ -129,7 +129,7 @@
 
                                 <!-- Info area -->
                                 <div class="p-2.5 flex flex-col flex-1">
-                                    <a href="${pageContext.request.contextPath}/product-detail?id=${p.productId}" class="text-xs md:text-sm font-bold text-on-surface hover:text-primary leading-snug line-clamp-2 mb-1 transition-colors">
+                                    <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}" class="text-xs md:text-sm font-bold text-on-surface hover:text-primary leading-snug line-clamp-2 mb-1 transition-colors">
                                         <c:out value="${p.name}"/>
                                     </a>
 

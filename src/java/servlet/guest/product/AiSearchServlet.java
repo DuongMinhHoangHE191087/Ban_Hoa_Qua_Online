@@ -1,40 +1,25 @@
 package servlet.guest.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import config.AppConfig;
-import dao.catalog.CategoryDAO;
-import dao.catalog.ProductDAO;
-import dao.system.SystemConfigDAO;
-import model.entity.catalog.Category;
-import model.entity.catalog.Product;
-import model.response.ApiResponse;
-import util.JsonUtil;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.entity.catalog.Product;
+import model.response.ApiResponse;
+import service.chat.AiSearchService;
+import util.JsonUtil;
 
-import util.LoggerUtil;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
-import java.sql.SQLException;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -42,301 +27,134 @@ import java.util.logging.Logger;
 public class AiSearchServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(AiSearchServlet.class.getName());
-    private static final int MAX_RETRIES = 2;
-    private static final int INITIAL_RETRY_DELAY_MS = 750;
-    private static final int MAX_FALLBACK_PRODUCTS = 6;
-    private static final int MAX_AI_CONTEXT_PRODUCTS = 12;
-    private static final Set<Integer> TRANSIENT_AI_STATUS_CODES = Set.of(429, 500, 502, 503, 504);
 
-    private final ProductDAO productDAO = new ProductDAO();
-    private final CategoryDAO categoryDAO = new CategoryDAO();
-    private final SystemConfigDAO systemConfigDAO = new SystemConfigDAO();
+    private static final int MAX_FALLBACK_PRODUCTS = 6;
+    private static final Set<String> AI_SEARCH_STOP_WORDS = Set.of(
+            "cho", "voi", "cua", "mot", "nhung", "nay", "ban", "toi", "minh", "tu",
+            "den", "la", "va", "the", "thi", "duoc", "khong");
+    private static final Set<String> VITAMIN_C_HINTS = Set.of(
+            "cam", "quyt", "buoi", "kiwi", "dau tay", "oi", "chanh", "cherry", "dua luoi");
+
     private final ObjectMapper mapper = new ObjectMapper();
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
+    private final AiSearchService aiSearchService = new AiSearchService();
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding("UTF-8");
-        resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
+        boolean streamingRequested = isStreamingRequest(req);
+        if (streamingRequested) {
+            resp.setContentType("text/event-stream;charset=UTF-8");
+            resp.setHeader("Cache-Control", "no-cache, no-transform");
+            resp.setHeader("Connection", "keep-alive");
+            resp.setHeader("X-Accel-Buffering", "no");
+        } else {
+            resp.setContentType("application/json;charset=UTF-8");
+        }
 
+        PrintWriter streamWriter = null;
         try {
-            // 1. Nạp catalog trước để có thể fallback ngay cả khi AI upstream lỗi.
-            List<Category> activeCategories = categoryDAO.findAllActive();
-            Map<Integer, String> categoryNames = new HashMap<>();
-            for (Category category : activeCategories) {
-                categoryNames.put(category.getCategoryId(), category.getName());
-            }
-            List<Product> activeProductsForAI = productDAO.findAllActiveForAI();
-
-            // 2. Đọc câu hỏi/yêu cầu tìm kiếm sớm để có thể fallback ngay khi cần.
             String userMessage = normalizeText(req.getParameter("message"));
             if (userMessage == null) {
                 byte[] bodyBytes = req.getInputStream().readAllBytes();
                 String jsonInput = new String(bodyBytes, StandardCharsets.UTF_8);
-                try {
-                    Map<String, Object> requestData = mapper.readValue(jsonInput, Map.class);
-                    userMessage = normalizeText(requestData.get("message"));
-                } catch (Exception parseError) {
+                if (jsonInput != null && !jsonInput.isBlank()) {
+                    try {
+                        Map<String, Object> requestData = mapper.readValue(jsonInput, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                        userMessage = normalizeText(requestData.get("message"));
+                    } catch (Exception parseError) {
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        JsonUtil.writeJson(resp, ApiResponse.fail(
+                                HttpServletResponse.SC_BAD_REQUEST,
+                                "Nội dung tìm kiếm không hợp lệ."));
+                        return;
+                    }
+                }
+            }
+
+            if (userMessage == null || userMessage.isBlank()) {
+                if (streamingRequested) {
+                    streamWriter = ensureWriter(resp, streamWriter);
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    writeSseEvent(streamWriter, "error", Map.of(
+                            "message", "Nội dung tìm kiếm không được để trống."));
+                } else {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
-                            "Nội dung tìm kiếm không hợp lệ."));
-                    return;
+                    JsonUtil.writeJson(resp, ApiResponse.fail(
+                            HttpServletResponse.SC_BAD_REQUEST,
+                            "Nội dung tìm kiếm không được để trống."));
                 }
-            }
-
-            if (userMessage == null || userMessage.trim().isEmpty()) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Nội dung tìm kiếm không được để trống."));
                 return;
             }
 
-            // 3. Lấy API Key từ DB hoặc AppConfig.GEMINI_API_KEY trực tiếp
-            String apiKey = systemConfigDAO.getValue(AppConfig.CONFIG_GEMINI_API_KEY);
-            if (apiKey == null || apiKey.trim().isEmpty() || "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey.trim())) {
-                apiKey = AppConfig.GEMINI_API_KEY;
-            }
-
-            if (apiKey == null || apiKey.trim().isEmpty() || "AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE".equals(apiKey.trim())) {
-                LoggerUtil.warn(log, "Gemini API key chưa được cấu hình, chuyển sang fallback nội bộ cho AI search.");
-                writeFallbackResponse(req, resp, userMessage, activeCategories, activeProductsForAI);
-                return;
-            }
-
-            List<Product> promptProducts = selectRelevantProducts(userMessage, activeProductsForAI, categoryNames, MAX_AI_CONTEXT_PRODUCTS);
-
-            // Xây dựng chuỗi catalog thông tin cho AI
-            StringBuilder catalogBuilder = new StringBuilder();
-            catalogBuilder.append("=== DANH MỤC SẢN PHẨM PHÙ HỢP NHẤT ===\n");
-            for (Category cat : activeCategories) {
-                catalogBuilder.append(String.format("- Tên danh mục: %s\n", cat.getName()));
-            }
-
-            catalogBuilder.append("\n=== DANH SÁCH SẢN PHẨM KHỚP NHU CẦU ===\n");
-            for (Product product : promptProducts) {
-                catalogBuilder.append(String.format("- ID: %d, Tên: %s, Nguồn gốc: %s, Đã bán: %d, Đánh giá: %s, Mô tả ngắn: %s\n",
-                        product.getProductId(),
-                        normalizeText(product.getName()),
-                        normalizeText(product.getOriginCountry()),
-                        product.getSoldQuantity(),
-                        product.getRating() == null ? "N/A" : product.getRating().toPlainString(),
-                        truncateForPrompt(product.getDescription(), 120)
-                ));
-            }
-
-            // 4. Xây dựng Prompt Hệ thống & Định nghĩa cấu trúc JSON đầu ra cho Gemini 2.5 Flash
-            String systemInstruction = "Bạn là Trợ lý AI chuyên nghiệp tư vấn mua hàng và tìm kiếm nông sản sạch tại website MetaFruit.\n" +
-                    "Nhiệm vụ của bạn là lắng nghe nhu cầu của khách hàng, tư vấn chọn hoa quả chín cây, tươi ngon phù hợp và gợi ý các sản phẩm phù hợp.\n" +
-                    "Danh sách sản phẩm bên dưới đã được lọc theo nhu cầu hiện tại để phản hồi nhanh và chính xác hơn.\n" +
-                    "=== QUY TẮC BẢO MẬT & ĐẦU RA (QUAN TRỌNG) ===\n" +
-                    "1. Tuyệt đối KHÔNG ĐƯỢC nhắc đến hoặc hiển thị bất kỳ ID sản phẩm nào (ví dụ: 'ID: 1', 'mã số 5') trong nội dung câu trả lời văn bản ('reply') gửi cho khách hàng. Hãy trả lời bằng văn phong tự nhiên, chỉ dùng tên sản phẩm.\n" +
-                    "2. Chỉ trả về ID sản phẩm trong trường 'suggestedProductIds' dưới dạng mảng số nguyên. Mảng này được dùng ngầm để thêm sản phẩm vào giỏ hàng và lọc danh mục hiển thị trên giao diện.\n" +
-                    "3. Gợi ý sản phẩm PHẢI lấy từ danh sách thực tế có sẵn dưới đây. Tuyệt đối không tự bịa ra sản phẩm hoặc ID sản phẩm không có trong danh sách.\n" +
-                    "4. Chỉ tư vấn về hoa quả, thực phẩm sạch, cách bảo quản và chế biến. Lịch sự từ chối các câu hỏi ngoài lề (lập trình, toán học, v.v.).\n" +
-                    "5. Khi giới thiệu các sản phẩm gợi ý trong phần trả lời ('reply'), hãy trình bày thật bắt mắt: viết TÊN SẢN PHẨM IN ĐẬM ở một dòng riêng biệt, xuống dòng và viết giá tiền định dạng VNĐ sinh động (Ví dụ: '**Cam Sành Hàm Yên**\\n*Giá bán: 35.000đ / kg*') để tăng tính thuyết phục và tối ưu hiệu quả bán hàng.\n\n" +
-                    catalogBuilder.toString();
-
-            // Payload gọi Gemini API
-            Map<String, Object> payload = new HashMap<>();
-            
-            // System instruction
-            Map<String, Object> systemInstructionMap = new HashMap<>();
-            Map<String, Object> partsMap = new HashMap<>();
-            partsMap.put("text", systemInstruction);
-            systemInstructionMap.put("parts", Collections.singletonList(partsMap));
-            payload.put("systemInstruction", systemInstructionMap);
-
-            // Contents
-            Map<String, Object> userPart = new HashMap<>();
-            userPart.put("text", userMessage);
-            Map<String, Object> userContent = new HashMap<>();
-            userContent.put("role", "user");
-            userContent.put("parts", Collections.singletonList(userPart));
-            payload.put("contents", Collections.singletonList(userContent));
-
-            // Generation Config
-            Map<String, Object> generationConfig = new HashMap<>();
-            generationConfig.put("responseMimeType", "application/json");
-
-            // Response Schema definition
-            Map<String, Object> responseSchema = new HashMap<>();
-            responseSchema.put("type", "OBJECT");
-
-            Map<String, Object> properties = new HashMap<>();
-            
-            Map<String, Object> replyProp = new HashMap<>();
-            replyProp.put("type", "STRING");
-            replyProp.put("description", "Lời tư vấn, giải đáp thân thiện bằng tiếng Việt.");
-            properties.put("reply", replyProp);
-
-            Map<String, Object> suggestedProductIdsProp = new HashMap<>();
-            suggestedProductIdsProp.put("type", "ARRAY");
-            Map<String, Object> itemsType = new HashMap<>();
-            itemsType.put("type", "INTEGER");
-            suggestedProductIdsProp.put("items", itemsType);
-            suggestedProductIdsProp.put("description", "Mảng các ID sản phẩm được gợi ý phù hợp với nhu cầu.");
-            properties.put("suggestedProductIds", suggestedProductIdsProp);
-
-            responseSchema.put("properties", properties);
-            responseSchema.put("required", Arrays.asList("reply", "suggestedProductIds"));
-            generationConfig.put("responseSchema", responseSchema);
-            payload.put("generationConfig", generationConfig);
-
-            String requestBody = mapper.writeValueAsString(payload);
-
-            // 5. Gọi API Gemini với cơ chế tự động thử lại (Retry & Fallback) phòng lỗi 503/429
-            HttpResponse<String> httpResponse = null;
-            String model = "gemini-2.5-flash";
-            String lastErrorBody = null;
-
-            for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
-                
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .timeout(Duration.ofSeconds(15))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                        .build();
-
-                try {
-                    httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    LoggerUtil.warn(log, String.format(
-                            "Gemini API bị gián đoạn ở lần thử %d/%d.",
-                            attempt, MAX_RETRIES), ie);
-                    break;
-                } catch (IOException ioe) {
-                    LoggerUtil.warn(log, String.format(
-                            "Không gọi được Gemini API ở lần thử %d/%d.",
-                            attempt, MAX_RETRIES), ioe);
-                    if (attempt < MAX_RETRIES) {
-                        try {
-                            Thread.sleep((long) INITIAL_RETRY_DELAY_MS * (1L << (attempt - 1)));
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                        continue;
-                    }
-                    break;
-                }
-
-                int status = httpResponse.statusCode();
-                lastErrorBody = httpResponse.body();
-
-                if (status == 200) {
-                    break;
-                }
-
-                // Nếu bị 503 Service Unavailable hoặc 429 Rate Limit thì tiến hành thử lại
-                if (isTransientAiStatus(status)) {
-                    LoggerUtil.warn(log, String.format(
-                            "Gemini API trả về HTTP %d ở lần thử %d/%d. Đang thử lại...",
-                            status, attempt, MAX_RETRIES));
-                    if (attempt < MAX_RETRIES) {
-                        try {
-                            Thread.sleep((long) INITIAL_RETRY_DELAY_MS * (1L << (attempt - 1)));
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                        }
-                        continue;
-                    }
-                }
-                break;
-            }
-
-            if (httpResponse == null) {
-                LoggerUtil.warn(log, String.format(
-                        "Gemini API không phản hồi sau %d lần thử. Chuyển sang fallback nội bộ.",
-                        MAX_RETRIES));
-                writeFallbackResponse(req, resp, userMessage, activeCategories, activeProductsForAI);
-                return;
-            }
-
-            int finalStatus = httpResponse.statusCode();
-            if (finalStatus != 200) {
-                LoggerUtil.warn(log, String.format(
-                        "Gemini API trả về HTTP %d sau %d lần thử. Chuyển sang fallback nội bộ. Body=%s",
-                        finalStatus, MAX_RETRIES, truncateForLog(lastErrorBody)));
-                writeFallbackResponse(req, resp, userMessage, activeCategories, activeProductsForAI);
-                return;
-            }
-
-            try {
-                // 6. Phân tích kết quả trả về từ Gemini
-                Map<String, Object> geminiResponse = mapper.readValue(httpResponse.body(), Map.class);
-                List<Map<String, Object>> candidates = (List<Map<String, Object>>) geminiResponse.get("candidates");
-                if (candidates == null || candidates.isEmpty()) {
-                    throw new IllegalStateException("AI candidates missing");
-                }
-
-                Map<String, Object> candidate = candidates.get(0);
-                Map<String, Object> contentMap = (Map<String, Object>) candidate.get("content");
-                if (contentMap == null) {
-                    throw new IllegalStateException("AI content missing");
-                }
-
-                List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
-                if (partsList == null || partsList.isEmpty()) {
-                    throw new IllegalStateException("AI parts missing");
-                }
-
-                String jsonText = normalizeText(partsList.get(0).get("text"));
-                if (jsonText == null) {
-                    throw new IllegalStateException("AI text missing");
-                }
-                Map<String, Object> aiResult = mapper.readValue(jsonText, Map.class);
-
-                String reply = normalizeReply(aiResult.get("reply"));
-                List<Integer> suggestedIds = extractSuggestedProductIds(aiResult.get("suggestedProductIds"));
-                List<Map<String, Object>> productsDetails = new ArrayList<>();
-                if (suggestedIds != null && !suggestedIds.isEmpty()) {
-                    List<Map<String, Object>> briefProducts = productDAO.findBriefProductsByIds(suggestedIds);
-                    if (briefProducts != null) {
-                        productsDetails = new ArrayList<>(briefProducts);
-                    }
-                }
-
-                // Fix: chỉ giữ lại ID của những sản phẩm thực sự ACTIVE+APPROVED
-                // Tránh trường hợp Gemini gợi ý sản phẩm không có thực hoặc không hợp lệ
-                List<Integer> validIds = new ArrayList<>();
-                for (Map<String, Object> pd : productsDetails) {
-                    Object pid = pd.get("productId");
-                    if (pid instanceof Number number) {
-                        validIds.add(number.intValue());
-                    }
-                }
-                // Giới hạn tối đa 6 gợi ý hiển thị trong widget
-                if (validIds.size() > 6) {
-                    validIds = new ArrayList<>(validIds.subList(0, 6));
-                    productsDetails = new ArrayList<>(productsDetails.subList(0, 6));
-                }
-
-                // Gửi kết quả về cho frontend (đảm bảo cấu trúc reply + suggestedProductIds + products không đổi)
-                Map<String, Object> responseData = new LinkedHashMap<>();
-                responseData.put("reply", reply);
-                responseData.put("suggestedProductIds", validIds);
-                responseData.put("products", productsDetails);
+            if (streamingRequested) {
+                streamWriter = ensureWriter(resp, streamWriter);
+                final PrintWriter finalStreamWriter = streamWriter;
                 resp.setStatus(HttpServletResponse.SC_OK);
-                JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
-            } catch (Exception aiResponseError) {
-                LoggerUtil.warn(log, "Không xử lý được phản hồi Gemini, chuyển sang fallback nội bộ.", aiResponseError);
-                writeFallbackResponse(req, resp, userMessage, activeCategories, activeProductsForAI);
+                Map<String, Object> responseData = aiSearchService.streamSearch(
+                        userMessage,
+                        delta -> writeSseEvent(finalStreamWriter, "delta", eventPayload("delta", delta)));
+                req.setAttribute("requestMetricsFallback", Boolean.TRUE.equals(responseData.get("fallback")));
+                Object products = responseData.get("products");
+                if (products instanceof List<?> list) {
+                    req.setAttribute("requestMetricsItemCount", list.size());
+                }
+
+                if ("upstream_error".equals(responseData.get("source"))) {
+                    writeSseEvent(streamWriter, "error", responseData);
+                } else {
+                    writeSseEvent(streamWriter, "done", responseData);
+                }
+                return;
             }
 
-        } catch (SQLException e) {
-            util.ServletUtil.sendJsonInternalServerError(
-                    req,
-                    resp,
-                    log,
-                    "AiSearchServlet#doPost",
-                    "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage(),
-                    e);
+            Map<String, Object> responseData = aiSearchService.search(userMessage);
+            req.setAttribute("requestMetricsFallback", Boolean.TRUE.equals(responseData.get("fallback")));
+            Object products = responseData.get("products");
+            if (products instanceof List<?> list) {
+                req.setAttribute("requestMetricsItemCount", list.size());
+            }
+
+            resp.setStatus(HttpServletResponse.SC_OK);
+            JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
+        } catch (IllegalArgumentException e) {
+            if (streamingRequested) {
+                try {
+                    streamWriter = ensureWriter(resp, streamWriter);
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    writeSseEvent(streamWriter, "error", eventPayload("message", e.getMessage()));
+                } catch (IOException ioException) {
+                    util.ServletUtil.sendJsonInternalServerError(
+                            req,
+                            resp,
+                            log,
+                            "AiSearchServlet#doPost",
+                            "Lỗi hệ thống khi xử lý AI: " + ioException.getMessage(),
+                            ioException);
+                }
+                return;
+            }
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
         } catch (Exception e) {
+            if (streamingRequested) {
+                try {
+                    streamWriter = ensureWriter(resp, streamWriter);
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    writeSseEvent(streamWriter, "error", eventPayload(
+                            "message",
+                            "Lỗi hệ thống khi xử lý AI: " + e.getMessage()));
+                } catch (IOException ioException) {
+                    util.ServletUtil.sendJsonInternalServerError(
+                            req,
+                            resp,
+                            log,
+                            "AiSearchServlet#doPost",
+                            "Lỗi hệ thống khi xử lý AI: " + ioException.getMessage(),
+                            ioException);
+                }
+                return;
+            }
             util.ServletUtil.sendJsonInternalServerError(
                     req,
                     resp,
@@ -347,6 +165,37 @@ public class AiSearchServlet extends HttpServlet {
         }
     }
 
+    private boolean isStreamingRequest(HttpServletRequest req) {
+        String streamParam = normalizeText(req.getParameter("stream"));
+        if (streamParam != null && ("1".equals(streamParam) || "true".equalsIgnoreCase(streamParam))) {
+            return true;
+        }
+
+        String accept = req.getHeader("Accept");
+        if (accept != null && accept.contains("text/event-stream")) {
+            return true;
+        }
+
+        String requestedWith = normalizeText(req.getHeader("X-AI-Stream"));
+        return requestedWith != null && ("1".equals(requestedWith) || "true".equalsIgnoreCase(requestedWith));
+    }
+
+    private PrintWriter ensureWriter(HttpServletResponse resp, PrintWriter currentWriter) throws IOException {
+        return currentWriter != null ? currentWriter : resp.getWriter();
+    }
+
+    private Map<String, Object> eventPayload(String key, Object value) {
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put(key, value);
+        return payload;
+    }
+
+    private void writeSseEvent(PrintWriter writer, String eventType, Map<String, Object> data) throws IOException {
+        writer.write("event: " + eventType + "\n");
+        writer.write("data: " + mapper.writeValueAsString(data) + "\n\n");
+        writer.flush();
+    }
+
     private String normalizeText(Object value) {
         if (value == null) {
             return null;
@@ -355,93 +204,8 @@ public class AiSearchServlet extends HttpServlet {
         return text.isEmpty() ? null : text;
     }
 
-    private String normalizeReply(Object value) {
-        String reply = normalizeText(value);
-        if (reply != null) {
-            return reply;
-        }
-        return "Mình chưa nhận được câu trả lời hợp lệ từ AI. Vui lòng thử lại.";
-    }
-
-    private List<Integer> extractSuggestedProductIds(Object rawIds) {
-        List<Integer> ids = new ArrayList<>();
-        if (!(rawIds instanceof List<?> rawList)) {
-            return ids;
-        }
-        for (Object rawId : rawList) {
-            if (rawId instanceof Number number) {
-                ids.add(number.intValue());
-                continue;
-            }
-            if (rawId instanceof String text) {
-                try {
-                    ids.add(Integer.parseInt(text.trim()));
-                } catch (NumberFormatException ignored) {
-                    // Bỏ qua giá trị không hợp lệ.
-                }
-            }
-        }
-        return ids;
-    }
-
-    private boolean isTransientAiStatus(int status) {
-        return TRANSIENT_AI_STATUS_CODES.contains(status);
-    }
-
-    private void writeFallbackResponse(HttpServletRequest req, HttpServletResponse resp, String userMessage,
-            List<Category> activeCategories, List<Product> activeProducts) throws SQLException, IOException {
-        if (activeProducts == null) {
-            activeProducts = productDAO.findAllActiveForAI();
-        }
-        Map<Integer, String> categoryNames = new HashMap<>();
-        for (Category category : activeCategories) {
-            categoryNames.put(category.getCategoryId(), category.getName());
-        }
-
-        List<Product> fallbackProducts = selectFallbackProducts(userMessage, activeProducts, categoryNames);
-        List<Integer> suggestedIds = new ArrayList<>();
-        for (Product product : fallbackProducts) {
-            suggestedIds.add(product.getProductId());
-        }
-
-        List<Map<String, Object>> productsDetails = Collections.emptyList();
-        if (!suggestedIds.isEmpty()) {
-            List<Map<String, Object>> briefProducts = productDAO.findBriefProductsByIds(suggestedIds);
-            if (briefProducts != null && !briefProducts.isEmpty()) {
-                Map<Integer, Map<String, Object>> briefById = new HashMap<>();
-                for (Map<String, Object> product : briefProducts) {
-                    Object idValue = product.get("productId");
-                    if (idValue instanceof Number number) {
-                        briefById.put(number.intValue(), product);
-                    }
-                }
-
-                productsDetails = new ArrayList<>();
-                for (Integer productId : suggestedIds) {
-                    Map<String, Object> product = briefById.get(productId);
-                    if (product != null) {
-                        productsDetails.add(product);
-                    }
-                }
-            }
-        }
-
-        Map<String, Object> responseData = new LinkedHashMap<>();
-        responseData.put("reply", buildFallbackReply(userMessage, fallbackProducts));
-        responseData.put("suggestedProductIds", suggestedIds);
-        responseData.put("products", productsDetails);
-        responseData.put("fallback", true);
-        resp.setStatus(HttpServletResponse.SC_OK);
-        JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
-    }
-
-    private List<Product> selectFallbackProducts(String userMessage, List<Product> activeProducts,
-            Map<Integer, String> categoryNames) {
-        return selectRelevantProducts(userMessage, activeProducts, categoryNames, MAX_FALLBACK_PRODUCTS);
-    }
-
     private List<Product> selectRelevantProducts(String userMessage, List<Product> activeProducts,
-            Map<Integer, String> categoryNames, int limit) {
+                                                 Map<Integer, String> categoryNames, int limit) {
         if (activeProducts == null || activeProducts.isEmpty() || limit <= 0) {
             return Collections.emptyList();
         }
@@ -493,7 +257,7 @@ public class AiSearchServlet extends HttpServlet {
     }
 
     private int scoreFallbackProduct(Product product, String normalizedMessage, List<String> keywords,
-            String categoryName) {
+                                     String categoryName) {
         String normalizedName = normalizeSearchText(product.getName());
         String normalizedDescription = normalizeSearchText(product.getDescription());
         String normalizedOriginCountry = normalizeSearchText(product.getOriginCountry());
@@ -587,62 +351,16 @@ public class AiSearchServlet extends HttpServlet {
 
     private String buildFallbackReply(String userMessage, List<Product> products) {
         if (products == null || products.isEmpty()) {
-            return "Chào bạn! Hiện tại các sản phẩm thuộc yêu cầu này tạm thời chưa có sẵn hoặc đã hết mùa vụ. Bạn vui lòng đổi từ khóa hoặc liên hệ hotline để nhận thông tin hàng mới về nhé! 🌿";
+            return "Hiện tại các sản phẩm phù hợp đang tạm hết hoặc chưa sẵn sàng. Bạn thử đổi từ khóa để mình gợi ý chính xác hơn nhé.";
         }
-
-        String normalized = normalizeSearchText(userMessage);
-
-        if (normalized.contains("nguoi om") || normalized.contains("om") || normalized.contains("benh") || normalized.contains("suc khoe")) {
-            return "Chào bạn! Khi chọn hoa quả làm quà biếu cho người ốm hoặc người cần phục hồi sức khỏe, chúng ta nên ưu tiên các loại quả giàu vitamin C, mềm, dễ ăn và có nguồn gốc hữu cơ sạch rõ ràng.\n\nMetaFruit gợi ý các sản phẩm thích hợp nhất bên dưới như Cam Sành Hàm Yên, Kiwi Vàng và Nho Đỏ Không Hạt. Đây đều là những sản phẩm tươi ngon, có hàm lượng dinh dưỡng cao giúp tăng cường hệ miễn dịch rất tốt. Bạn có thể tham khảo danh sách cụ thể:";
-        }
-
-        if (normalized.contains("vitamin c") || normalized.contains("de khang")) {
-            return "Chào bạn! Trái cây giàu Vitamin C là lựa chọn tuyệt vời để tăng cường sức đề kháng và làm đẹp da tự nhiên. Tại MetaFruit, chúng tôi có sẵn nhiều loại trái cây chứa hàm lượng Vitamin C vượt trội như Cam Sành chín mọng, Kiwi Xanh/Vàng nhập khẩu trực tiếp và Dâu Tây hữu cơ thơm ngon.\n\nBạn có thể tham khảo ngay các sản phẩm giàu Vitamin C nổi bật bên dưới:";
-        }
-
-        if (normalized.contains("sau rieng")) {
-            return "Chào bạn! Để chọn được một quả sầu riêng Ri6 chín cây thơm ngon cơm vàng hạt lép, bạn nên chú ý chọn những quả eo tròn đều, vỏ có màu xanh rêu ngả vàng, gai nở to và có mùi thơm nồng đặc trưng tỏa ra ở phần đít quả.\n\nMetaFruit gợi ý sản phẩm Sầu Riêng Ri6 chín cây, múi cơm dày béo ngậy cực kỳ chất lượng đang có sẵn trong kho bên dưới:";
-        }
-
-        if (normalized.contains("bieu") || normalized.contains("qua tang") || normalized.contains("hop qua") || normalized.contains("gio qua") || normalized.contains("set qua")) {
-            return "Chào bạn! Để làm quà biếu tặng sang trọng trong các dịp lễ tết hoặc gặp mặt đối tác, các set giỏ quà hoặc hộp quà trái cây nhập khẩu của MetaFruit là sự lựa chọn hoàn hảo. Các set quà được bài trí tinh tế, kết hợp từ những loại quả thượng hạng nhập khẩu chính ngạch như Nho Móng Tay, Envy và Lê Nam Phi.\n\nBạn có thể tham khảo các set quà tặng cao cấp đang có sẵn bên dưới:";
-        }
-
-        if (normalized.contains("nhap khau") || normalized.contains("import")) {
-            return "Chào bạn! Trái cây nhập khẩu tại MetaFruit luôn cam kết độ tươi ngon tối đa, được bảo quản trong hệ thống kho lạnh chuẩn quốc tế và nhập khẩu chính ngạch từ các quốc gia uy tín như Mỹ, New Zealand, Úc, Nam Phi. Dưới đây là các loại quả nhập khẩu thượng hạng đang có sẵn tại cửa hàng:";
-        }
-
-        if (normalized.contains("cam")) {
-            return "Chào bạn! Quả cam tươi mọng nước là nguồn cung cấp dồi dào chất xơ, vitamin C và chất chống oxy hóa. MetaFruit đang có sẵn dòng Cam Sành Hàm Yên ngọt thanh đậm vị, cam chín tự nhiên rất tốt cho sức khỏe cả gia đình. Gợi ý cụ thể cho bạn bên dưới:";
-        }
-
-        if (normalized.contains("kiwi")) {
-            return "Chào bạn! Kiwi là dòng trái cây thượng hạng giàu dinh dưỡng, đặc biệt tốt cho hệ tiêu hóa và hệ miễn dịch. MetaFruit cung cấp cả Kiwi Vàng ngọt thơm dịu và Kiwi Xanh chua ngọt thanh mát nhập khẩu trực tiếp từ New Zealand. Chi tiết sản phẩm dành cho bạn:";
-        }
-
-        if (normalized.contains("nho")) {
-            return "Chào bạn! Các dòng nho nhập khẩu như Nho Móng Tay Mỹ ngọt lịm, Nho Xanh không hạt giòn ngọt và Nho Đỏ hữu cơ là những lựa chọn được yêu thích nhất tại MetaFruit. Nho chứa hàm lượng lớn chất chống oxy hóa resveratrol rất tốt cho tim mạch. Bạn tham khảo danh sách sau nhé:";
-        }
-
-        if (normalized.contains("tao")) {
-            return "Chào bạn! Táo Envy nhập khẩu nổi tiếng với độ giòn đanh, ngọt đậm và mùi thơm đặc trưng, rất thích hợp để ăn trực tiếp hoặc làm quà biếu. Dưới đây là các loại táo tươi ngon đang có sẵn tại hệ thống cửa hàng của chúng tôi:";
-        }
-
-        // Trường hợp mặc định tìm kiếm chung
         String intentLabel = deriveFallbackIntentLabel(userMessage);
         List<String> highlightNames = extractProductNames(products, 3);
         StringBuilder reply = new StringBuilder();
-        reply.append("Chào bạn! Trợ lý AI MetaFruit đã chọn ra các sản phẩm tươi ngon, phù hợp nhất");
+        reply.append("MetaFruit đã chọn ra các sản phẩm phù hợp nhất");
         if (!intentLabel.isBlank()) {
-            reply.append(" cho yêu cầu tìm kiếm ").append(intentLabel);
+            reply.append(" cho nhu cầu ").append(intentLabel);
         }
-        reply.append(" đang sẵn sàng phục vụ bạn.\n\nNổi bật gồm có ").append(joinNaturalLanguage(highlightNames));
-        if (products.size() > highlightNames.size()) {
-            reply.append(" và một số lựa chọn chất lượng khác bên dưới:");
-        } else {
-            reply.append(" bên dưới:");
-        }
-
+        reply.append(". Nổi bật gồm ").append(joinNaturalLanguage(highlightNames)).append(".");
         return reply.toString();
     }
 
@@ -651,10 +369,8 @@ public class AiSearchServlet extends HttpServlet {
         if (normalizedMessage.isBlank()) {
             return "";
         }
-
         boolean wantsImported = normalizedMessage.contains("nhap khau") || normalizedMessage.contains("import");
         boolean wantsVitaminC = normalizedMessage.contains("vitamin c");
-
         if (wantsImported && wantsVitaminC) {
             return "trái cây nhập khẩu giàu vitamin C";
         }
@@ -667,19 +383,7 @@ public class AiSearchServlet extends HttpServlet {
         if (normalizedMessage.contains("nguoi om")) {
             return "quà cho người ốm";
         }
-        if (normalizedMessage.contains("bieu") || normalizedMessage.contains("qua tang") || normalizedMessage.contains("hop qua")) {
-            return "quà biếu";
-        }
-        if (normalizedMessage.contains("sau rieng")) {
-            return "sầu riêng";
-        }
-        if (normalizedMessage.contains("cam")) {
-            return "cam";
-        }
-        if (normalizedMessage.contains("kiwi")) {
-            return "kiwi";
-        }
-        return "";
+        return "hiện tại";
     }
 
     private List<String> extractProductNames(List<Product> products, int limit) {
@@ -687,7 +391,6 @@ public class AiSearchServlet extends HttpServlet {
         if (products == null || products.isEmpty() || limit <= 0) {
             return names;
         }
-
         for (Product product : products) {
             if (names.size() >= limit) {
                 break;
@@ -710,15 +413,10 @@ public class AiSearchServlet extends HttpServlet {
         if (values.size() == 2) {
             return values.get(0) + " và " + values.get(1);
         }
-
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < values.size(); i++) {
             if (i > 0) {
-                if (i == values.size() - 1) {
-                    builder.append(" và ");
-                } else {
-                    builder.append(", ");
-                }
+                builder.append(i == values.size() - 1 ? " và " : ", ");
             }
             builder.append(values.get(i));
         }
@@ -745,57 +443,5 @@ public class AiSearchServlet extends HttpServlet {
                 && !normalizedOriginCountry.contains("vietnam");
     }
 
-    private String truncateForPrompt(String text, int maxLength) {
-        String value = normalizeText(text);
-        if (value == null) {
-            return "";
-        }
-        if (maxLength <= 0 || value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength).trim() + "...";
-    }
-
-    private String truncateForLog(String text) {
-        if (text == null) {
-            return "";
-        }
-        String sanitized = text.replaceAll("[\\r\\n\\t]+", " ").trim();
-        if (sanitized.length() <= 300) {
-            return sanitized;
-        }
-        return sanitized.substring(0, 300) + "...";
-    }
-
     private record ScoredProduct(Product product, int score) {}
-
-    private static final Set<String> AI_SEARCH_STOP_WORDS = Set.of(
-            "cho",
-            "voi",
-            "cua",
-            "mot",
-            "nhung",
-            "nay",
-            "ban",
-            "toi",
-            "minh",
-            "tu",
-            "den",
-            "la",
-            "va",
-            "the",
-            "thi",
-            "duoc",
-            "khong");
-
-    private static final Set<String> VITAMIN_C_HINTS = Set.of(
-            "cam",
-            "quyt",
-            "buoi",
-            "kiwi",
-            "dau tay",
-            "oi",
-            "chanh",
-            "cherry",
-            "dua luoi");
 }

@@ -123,7 +123,7 @@
                                                 <td class="px-6 py-4 text-txt-2 text-xs max-w-[250px] truncate" title="<c:out value='${n.message}'/>">
                                                     <c:out value="${n.message}"/>
                                                 </td>
-                                                <td class="px-6 py-4 text-xs font-mono text-txt-2 bg-[#f8fafc]/40">User #${n.userId}</td>
+                                                <td class="px-6 py-4 text-xs font-mono text-txt-2 bg-[#f8fafc]/40">Người dùng #${n.userId}</td>
                                             </tr>
                                         </c:forEach>
                                     </c:otherwise>

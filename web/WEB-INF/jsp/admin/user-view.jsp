@@ -107,7 +107,7 @@
                                 <fmt:parseDate value="${user.updatedAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedUpdDate" type="both"/>
                                 <fmt:formatDate pattern="dd/MM/yyyy HH:mm" value="${parsedUpdDate}"/>
                             </c:when>
-                            <c:otherwise><span class="text-txt-3">N/A</span></c:otherwise>
+                            <c:otherwise><span class="text-txt-3">Chưa có</span></c:otherwise>
                         </c:choose>
                     </div>
                 </div>

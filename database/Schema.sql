@@ -209,6 +209,8 @@ CREATE TABLE promotions (
     discount_value DECIMAL(10,2) NOT NULL,
     min_order_value DECIMAL(14,2) NOT NULL DEFAULT 0,
     scope NVARCHAR(15) NOT NULL CHECK (scope IN ('ORDER','PRODUCT')),
+    benefit_target NVARCHAR(20) NOT NULL DEFAULT 'MERCHANDISE'
+        CHECK (benefit_target IN ('MERCHANDISE','SHIPPING','PRODUCT')),
     product_id INT NULL FOREIGN KEY REFERENCES products(product_id),
     max_uses INT NULL,
     used_count INT NOT NULL DEFAULT 0,
@@ -295,6 +297,10 @@ CREATE TABLE order_promotions (
     promo_id INT NOT NULL FOREIGN KEY REFERENCES promotions(promo_id),
     customer_id INT NOT NULL FOREIGN KEY REFERENCES users(user_id), -- Thêm để dễ check giới hạn per user
     discount_applied DECIMAL(12,2) NOT NULL, -- Lưu số tiền giảm thực tế từ mã này
+    coupon_code NVARCHAR(50) NULL,
+    discount_scope NVARCHAR(50) NULL,
+    benefit_target NVARCHAR(20) NULL
+        CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE','SHIPPING','PRODUCT')),
     used_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 

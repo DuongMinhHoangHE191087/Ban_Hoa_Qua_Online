@@ -107,6 +107,33 @@ public class InventoryDAO extends BaseDAO {
         return list;
     }
 
+    public List<InventoryLog> findByOwner(int ownerId, int limit) throws SQLException {
+        List<InventoryLog> list = new ArrayList<>();
+        if (limit <= 0) {
+            return list;
+        }
+        String sql = "SELECT il.*, p.name AS product_name, pv.variant_label, u.full_name AS changed_by_name "
+                + "FROM inventory_logs il "
+                + "JOIN product_variants pv ON il.variant_id = pv.variant_id "
+                + "JOIN products p ON pv.product_id = p.product_id "
+                + "JOIN users u ON il.changed_by = u.user_id "
+                + "WHERE p.owner_id = ? "
+                + "ORDER BY il.changed_at DESC "
+                + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowWithDetails(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     /**
      * Retrieves all inventory history logs for a specific Product Variant.
      */
@@ -207,6 +234,38 @@ public class InventoryDAO extends BaseDAO {
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRowWithDetails(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public List<InventoryLog> findActiveBatchesByOwner(int ownerId, int limit) throws SQLException {
+        List<InventoryLog> list = new ArrayList<>();
+        if (limit <= 0) {
+            return list;
+        }
+        String sql = "SELECT il.log_id, il.variant_id, il.change_type, il.quantity_delta, il.quantity_after, "
+                + "       il.expires_at, il.is_expired, il.changed_at, il.note, il.changed_by, "
+                + "       p.name AS product_name, pv.variant_label, u.full_name AS changed_by_name "
+                + "FROM inventory_logs il "
+                + "JOIN product_variants pv ON il.variant_id = pv.variant_id "
+                + "JOIN products p ON pv.product_id = p.product_id "
+                + "JOIN users u ON il.changed_by = u.user_id "
+                + "WHERE p.owner_id = ? "
+                + "  AND il.change_type = 'MANUAL_ADJUST' "
+                + "  AND il.quantity_delta > 0 "
+                + "  AND il.is_expired = 0 "
+                + "  AND (il.expires_at IS NULL OR il.expires_at > CAST(GETDATE() AS DATE)) "
+                + "ORDER BY il.expires_at ASC, il.changed_at DESC "
+                + "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapRowWithDetails(rs));
