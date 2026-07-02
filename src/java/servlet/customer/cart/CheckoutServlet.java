@@ -25,6 +25,8 @@ import util.SessionUtil;
 
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -58,7 +60,12 @@ public class CheckoutServlet extends HttpServlet {
         HttpSession session = req.getSession();
         User user = SessionUtil.getCurrentUser(session);
         if (user == null) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            SessionUtil.flashError(session, "Bạn cần đăng nhập để tiếp tục thanh toán. Hệ thống sẽ đưa bạn trở lại checkout sau khi đăng nhập.");
+            String redirectUrl = req.getRequestURI();
+            if (req.getQueryString() != null && !req.getQueryString().trim().isEmpty()) {
+                redirectUrl += "?" + req.getQueryString();
+            }
+            resp.sendRedirect(req.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8));
             return;
         }
         if (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {

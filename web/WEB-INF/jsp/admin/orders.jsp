@@ -93,9 +93,9 @@
                                         <c:set var="pt" value="${pendingTxMap[order.orderId]}" />
                                         <tr class="hover:bg-primary-light/10 transition-colors">
                                             <td class="p-3 font-bold text-primary">#${order.orderId}</td>
-                                            <td class="p-3">User ID: ${order.customerId}</td>
-                                            <td class="p-3">Shop ID: ${order.ownerId}</td>
-                                            <td class="p-3 font-mono text-xs font-bold text-slate-600">${pt != null ? pt.sepayReference : 'N/A'}</td>
+                                            <td class="p-3">Mã người dùng: ${order.customerId}</td>
+                                            <td class="p-3">Mã cửa hàng: ${order.ownerId}</td>
+                                            <td class="p-3 font-mono text-xs font-bold text-slate-600">${pt != null ? pt.sepayReference : 'Chưa có'}</td>
                                             <td class="p-3">
                                                 <c:choose>
                                                     <c:when test="${empty pt}">
@@ -221,7 +221,7 @@
                                         <tr class="hover:bg-primary-light/10 transition-colors">
                                             <td class="p-3 font-bold text-primary">#${order.orderId}</td>
                                             <td class="p-3">Khách ID: ${order.customerId}</td>
-                                            <td class="p-3">Shop ID: ${order.ownerId}</td>
+                                            <td class="p-3">Mã cửa hàng: ${order.ownerId}</td>
                                             <td class="p-3">
                                                 <span class="px-2 py-0.5 rounded text-[11px] font-bold ${order.paymentMethod == 'CK' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}">
                                                     ${order.paymentMethod}

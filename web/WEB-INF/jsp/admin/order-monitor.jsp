@@ -80,8 +80,8 @@
                                             <tr>
                                                 <td><strong><a href="${pageContext.request.contextPath}/admin/orders?orderId=${order.orderId}" title="Xem chi tiết">#${order.orderId}</a></strong></td>
                                                 <td><fmt:formatDate value="${order.createdAtAsDate}" pattern="dd/MM/yyyy HH:mm"/></td>
-                                                <td>User #${order.customerId}</td>
-                                                <td>Shop #${order.ownerId}</td>
+                                                <td>Người dùng #${order.customerId}</td>
+                                                <td>Cửa hàng #${order.ownerId}</td>
                                                 <td class="text-danger fw-bold"><fmt:formatNumber value="${order.finalAmount}" type="number"/> đ</td>
                                                 <td>
                                                     <span class="status-badge status-${order.status}">

@@ -574,7 +574,7 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
                     weightKg: 1.0,
                     quantity: parseInt(quantity),
                     imagePath: imagePath || 'assets/img/placeholder.png',
-                    stockQuantity: parseInt(stockQuantity) || 99,
+                    stockQuantity: parseInt(stockQuantity) || 0,
                     productId: parseInt(productId) || null,
                     packagingId: packagingId ? parseInt(packagingId) : null
                 });
@@ -593,7 +593,7 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
                     price: parseFloat(price),
                     quantity: parseInt(quantity),
                     imagePath: imagePath || 'assets/img/placeholder.png',
-                    stockQuantity: parseInt(stockQuantity) || 99,
+                    stockQuantity: parseInt(stockQuantity) || 0,
                     productId: parseInt(productId) || null,
                     packagingId: packagingId ? parseInt(packagingId) : null
                 });
@@ -701,10 +701,30 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
                 window.updateCardAddedQuantities();
             }
         }
-        alert(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
+        window.showCartErrorModal(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
     });
 
     return true; // Return true immediately to unblock frontend execution without delay
+};
+
+window.showCartErrorModal = function(message, title = 'Không thể thêm vào giỏ hàng') {
+    const text = message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.';
+    if (typeof Swal !== 'undefined') {
+        return Swal.fire({
+            icon: 'error',
+            title,
+            text,
+            confirmButtonText: 'Đã hiểu',
+            confirmButtonColor: '#14532D',
+            background: '#ffffff',
+            customClass: {
+                popup: 'premium-swal-popup',
+                title: 'premium-swal-title',
+                confirmButton: 'premium-swal-button'
+            }
+        });
+    }
+    alert(text);
 };
 
 function showCartSuccessToast(productName, quantity) {

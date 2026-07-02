@@ -1,9 +1,9 @@
 package service.cart;
 
+import dao.catalog.ProductDAO;
 import dao.catalog.ProductVariantDAO;
 import dao.shop.PromotionDAO;
 import dao.shop.ShopProfileDAO;
-import exception.BusinessException;
 import model.dto.checkout.CheckoutCouponDTO;
 import model.dto.checkout.CheckoutQuoteDTO;
 import model.dto.checkout.CheckoutQuoteRequestDTO;
@@ -12,6 +12,7 @@ import model.dto.product.CartSummaryDTO;
 import model.entity.Promotion;
 import model.entity.auth.User;
 import model.entity.cart.CartItem;
+import model.entity.catalog.Product;
 import model.entity.catalog.ProductVariant;
 import model.entity.shop.ShopProfile;
 import service.shop.PromotionService;
@@ -38,6 +39,7 @@ public class CheckoutPricingEngine {
     public static final BigDecimal DELIVERY_FEE_PER_SHOP = new BigDecimal("15000");
 
     private final CartService cartService = new CartService();
+    private final ProductDAO productDAO = new ProductDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
     private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final PromotionDAO promotionDAO = new PromotionDAO();
@@ -61,12 +63,19 @@ public class CheckoutPricingEngine {
 
         List<CartItem> checkoutItems = filterCheckoutItems(cartSummary.getItems(), request.getVariantIds());
         Map<Integer, ProductVariant> variantMap = loadVariantMap(checkoutItems);
-        if (validateStock) {
-            validateStock(checkoutItems, variantMap);
-        }
-
         Map<Integer, List<CartItem>> itemsByOwner = groupItemsByOwnerId(checkoutItems, variantMap);
-        validateShopStatus(itemsByOwner);
+        LinkedHashMap<Integer, CheckoutShopSummaryDTO> summariesByOwner = new LinkedHashMap<>();
+        for (Map.Entry<Integer, List<CartItem>> entry : itemsByOwner.entrySet()) {
+            Integer ownerId = entry.getKey();
+            CheckoutShopSummaryDTO summary = new CheckoutShopSummaryDTO();
+            summary.setOwnerId(ownerId);
+            summary.setShopName(resolveShopName(entry.getValue()));
+            summary.setSubtotal(calculateSubtotal(entry.getValue(), variantMap));
+            summary.setDeliveryFee(DELIVERY_FEE_PER_SHOP);
+            summary.setAutomaticDiscountAmount(calculateDirectSaleAmount(entry.getValue()));
+            summary.setEligibleCoupons(loadEligibleShopCoupons(ownerId, summary.getSubtotal()));
+            summariesByOwner.put(ownerId, summary);
+        }
 
         CartSummaryDTO selectedCartSummary = new CartSummaryDTO();
         selectedCartSummary.setItems(checkoutItems);
@@ -81,24 +90,18 @@ public class CheckoutPricingEngine {
         quote.setDeliveryFee(selectedCartSummary.getDeliveryFee());
         quote.setDirectSaleAmount(calculateDirectSaleAmount(checkoutItems));
         quote.setEligibleSystemCoupons(loadEligibleSystemCoupons(selectedCartSummary.getSubtotal()));
-
-        LinkedHashMap<Integer, CheckoutShopSummaryDTO> summariesByOwner = new LinkedHashMap<>();
-        for (Map.Entry<Integer, List<CartItem>> entry : itemsByOwner.entrySet()) {
-            Integer ownerId = entry.getKey();
-            CheckoutShopSummaryDTO summary = new CheckoutShopSummaryDTO();
-            summary.setOwnerId(ownerId);
-            summary.setShopName(resolveShopName(entry.getValue()));
-            summary.setSubtotal(calculateSubtotal(entry.getValue(), variantMap));
-            summary.setDeliveryFee(DELIVERY_FEE_PER_SHOP);
-            summary.setAutomaticDiscountAmount(calculateDirectSaleAmount(entry.getValue()));
-            summary.setEligibleCoupons(loadEligibleShopCoupons(ownerId, summary.getSubtotal()));
-            summariesByOwner.put(ownerId, summary);
-        }
-
         quote.setShopSummaries(new ArrayList<>(summariesByOwner.values()));
 
+        List<String> validationErrors = collectValidationErrors(checkoutItems, variantMap, itemsByOwner, validateStock);
+        if (!validationErrors.isEmpty()) {
+            quote.getErrors().addAll(validationErrors);
+            quote.setValid(false);
+        }
+
         List<PromotionAllocation> promotionAllocations = new ArrayList<>();
-        applyRequestedCoupons(request, itemsByOwner, summariesByOwner, quote, promotionAllocations);
+        if (quote.getErrors().isEmpty()) {
+            applyRequestedCoupons(request, itemsByOwner, summariesByOwner, quote, promotionAllocations);
+        }
 
         finalizeQuote(summariesByOwner, quote);
 
@@ -202,6 +205,66 @@ public class CheckoutPricingEngine {
                 promotionAllocations.add(new PromotionAllocation(promo, ownerId, ownerDiscount));
             }
         }
+    }
+
+    private List<String> collectValidationErrors(List<CartItem> checkoutItems,
+                                                 Map<Integer, ProductVariant> variantMap,
+                                                 Map<Integer, List<CartItem>> itemsByOwner,
+                                                 boolean validateStockFlag) throws SQLException {
+        List<String> errors = new ArrayList<>();
+        if (validateStockFlag) {
+            errors.addAll(validateStock(checkoutItems, variantMap));
+        }
+        errors.addAll(validateProductAvailability(checkoutItems, variantMap));
+        errors.addAll(validateShopStatus(itemsByOwner));
+        return errors;
+    }
+
+    private List<String> validateProductAvailability(List<CartItem> checkoutItems,
+                                                     Map<Integer, ProductVariant> variantMap) throws SQLException {
+        List<String> errors = new ArrayList<>();
+        for (CartItem item : checkoutItems) {
+            ProductVariant variant = variantMap.get(item.getVariantId());
+            if (variant == null) {
+                errors.add(resolveProductName(null, item.getProductName()) + " hiện không còn tồn tại.");
+                continue;
+            }
+            Product product = productDAO.findOneById(variant.getProductId());
+            String productError = validatePurchasableProduct(product, item.getProductName());
+            if (productError != null) {
+                errors.add(productError + " (" + item.getVariantLabel() + ")");
+            }
+        }
+        return errors;
+    }
+
+    private String resolveProductName(Product product, String fallbackName) {
+        if (product != null && product.getName() != null && !product.getName().trim().isEmpty()) {
+            return product.getName().trim();
+        }
+        if (fallbackName != null && !fallbackName.trim().isEmpty()) {
+            return fallbackName.trim();
+        }
+        return "Sản phẩm này";
+    }
+
+    private String validatePurchasableProduct(Product product, String fallbackName) {
+        String productName = resolveProductName(product, fallbackName);
+        if (product == null) {
+            return productName + " hiện không còn tồn tại.";
+        }
+
+        String status = product.getStatus();
+        if ("DELETED".equals(status)) {
+            return productName + " đã bị gỡ khỏi gian hàng.";
+        }
+        if ("INACTIVE".equals(status)) {
+            return productName + " đã ngừng kinh doanh.";
+        }
+        if ("OUT_OF_SEASON".equals(status) || !product.isInSeason()) {
+            return productName + " đã hết mùa. Vui lòng quay lại khi có vụ mới.";
+        }
+        return null;
     }
 
     private void applyOwnerPromotion(CheckoutQuoteDTO quote,
@@ -408,24 +471,22 @@ public class CheckoutPricingEngine {
         return productVariantDAO.findByIds(variantIds);
     }
 
-    private void validateStock(List<CartItem> checkoutItems, Map<Integer, ProductVariant> variantMap) {
+    private List<String> validateStock(List<CartItem> checkoutItems, Map<Integer, ProductVariant> variantMap) {
         List<String> stockErrors = new ArrayList<>();
         for (CartItem item : checkoutItems) {
             if (item.getQuantity() <= 0) {
-                stockErrors.add("So luong san pham " + item.getProductName() + " khong hop le.");
+                stockErrors.add("Số lượng sản phẩm " + item.getProductName() + " không hợp lệ.");
                 continue;
             }
             ProductVariant variant = variantMap.get(item.getVariantId());
             if (variant == null || !variant.getIsActive()) {
                 stockErrors.add(item.getProductName() + " đã ngừng kinh doanh hoặc hết hàng.");
             } else if (item.getQuantity() > variant.getStockQuantity()) {
-                stockErrors.add(item.getProductName() + " (" + item.getVariantLabel() + ") vượt quá tồn kho, chỉ còn "
+                stockErrors.add(item.getProductName() + " (" + item.getVariantLabel() + ") đã hết số lượng bạn cần mua, hiện chỉ còn "
                         + variant.getStockQuantity() + " sản phẩm.");
             }
         }
-        if (!stockErrors.isEmpty()) {
-            throw new IllegalStateException("Một số sản phẩm không đủ tồn kho: " + String.join(". ", stockErrors));
-        }
+        return stockErrors;
     }
 
     private Map<Integer, List<CartItem>> groupItemsByOwnerId(List<CartItem> checkoutItems,
@@ -449,7 +510,8 @@ public class CheckoutPricingEngine {
         return productVariantDAO.getProductOwnerId(item.getVariantId());
     }
 
-    private void validateShopStatus(Map<Integer, List<CartItem>> itemsByOwner) {
+    private List<String> validateShopStatus(Map<Integer, List<CartItem>> itemsByOwner) {
+        List<String> errors = new ArrayList<>();
         for (Integer ownerId : itemsByOwner.keySet()) {
             List<ShopProfile> profiles;
             try {
@@ -459,10 +521,13 @@ public class CheckoutPricingEngine {
             }
             ShopProfile profile = (profiles == null || profiles.isEmpty()) ? null : profiles.get(0);
             if (profile == null || !"APPROVED".equals(profile.getApprovalStatus())) {
-                throw new BusinessException("SHOP-SUSPENDED",
-                        "Cửa hàng bán sản phẩm của bạn đã bị đình chỉ hoạt động. Vui lòng xóa các sản phẩm của cửa hàng này khỏi giỏ hàng.");
+                String shopName = profile != null && profile.getShopName() != null && !profile.getShopName().trim().isEmpty()
+                        ? profile.getShopName().trim()
+                        : "cửa hàng này";
+                errors.add("Cửa hàng \"" + shopName + "\" đã bị đình chỉ hoạt động. Vui lòng xóa các sản phẩm của cửa hàng này khỏi giỏ hàng.");
             }
         }
+        return errors;
     }
 
     private BigDecimal calculateSubtotal(List<CartItem> items, Map<Integer, ProductVariant> variantMap) {

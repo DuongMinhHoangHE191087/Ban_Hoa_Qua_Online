@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -101,7 +102,7 @@
                                 <c:forEach var="s" items="${settlementList}">
                                     <tr>
                                         <td class="px-6 py-4 font-mono font-bold text-primary">#${s.settlementId}</td>
-                                        <td class="px-6 py-4 font-semibold text-txt">Shop #${s.ownerId}</td>
+                                        <td class="px-6 py-4 font-semibold text-txt">Cửa hàng #${s.ownerId}</td>
                                         <td class="px-6 py-4 text-xs text-txt-2 whitespace-nowrap">
                                             <fmt:formatDate value="${s.periodStartAsDate}" pattern="dd/MM/yyyy"/> - 
                                             <fmt:formatDate value="${s.periodEndAsDate}" pattern="dd/MM/yyyy"/>

@@ -162,14 +162,28 @@
                 </h1>
 
                 <c:if test="${isOutOfSeason && !isExpiredProduct}">
-                    <div class="out-of-season-banner bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 my-4 flex items-center gap-3">
-                        <div class="bg-amber-500 text-white min-w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">
-                            <i class="fa-solid fa-cloud-sun-rain"></i>
+                    <div class="out-of-season-banner bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 my-4 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-amber-500 text-white min-w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid fa-cloud-sun-rain"></i>
+                            </div>
+                            <div>
+                                <h4 class="m-0 text-amber-700 font-bold text-sm">Sản phẩm đã hết mùa vụ gieo trồng</h4>
+                                <p class="mt-1 text-amber-900/90 text-xs">Mùa vụ của sản phẩm này từ tháng ${product.seasonStartMonth} đến tháng ${product.seasonEndMonth}. Vui lòng quay lại khi đến mùa vụ hoặc liên hệ shop.</p>
+                            </div>
                         </div>
-                        <div>
-                            <h4 class="m-0 text-amber-700 font-bold text-sm">Sản phẩm đã hết mùa vụ gieo trồng</h4>
-                            <p class="mt-1 text-amber-900/90 text-xs">Mùa vụ của sản phẩm này từ tháng ${product.seasonStartMonth} đến tháng ${product.seasonEndMonth}. Vui lòng quay lại khi đến mùa vụ hoặc liên hệ shop.</p>
-                        </div>
+                        <c:choose>
+                            <c:when test="${hasRequestedToday}">
+                                <button type="button" id="btn-request-restock" disabled class="bg-slate-300 text-slate-500 border-0 px-4 py-2 rounded-lg font-bold text-xs cursor-not-allowed inline-flex items-center gap-2 whitespace-nowrap">
+                                    <i class="fa-solid fa-check"></i> Đã Yêu Cầu Hôm Nay
+                                </button>
+                            </c:when>
+                            <c:otherwise>
+                                <button type="button" id="btn-request-restock" onclick="requestRestock()" class="bg-primary text-white border-0 px-4 py-2 rounded-lg font-bold text-xs cursor-pointer inline-flex items-center gap-2 transition-transform duration-200 hover:-translate-y-0.5 whitespace-nowrap">
+                                    <i class="fa-solid fa-paper-plane"></i> Yêu Cầu Nhập Kho
+                                </button>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                 </c:if>
 
@@ -930,7 +944,7 @@
         currentQty += delta;
         let maxStock = 99;
         const checkedVariant = document.querySelector('input[name="product_variant"]:checked');
-        if (checkedVariant) maxStock = parseInt(checkedVariant.getAttribute('data-stock')) || 99;
+        if (checkedVariant) maxStock = parseInt(checkedVariant.getAttribute('data-stock')) || 0;
         if (currentQty < 1) currentQty = 1;
         if (currentQty > maxStock) {
             currentQty = maxStock;
@@ -1240,7 +1254,7 @@
             setTimeout(() => toast.classList.remove('show'), 2500);
         }
         const origText = btn.textContent;
-        btn.textContent = '✓ ĐÃ SAO';
+        btn.textContent = '✓ ĐÃ SAO CHÉP';
         setTimeout(() => btn.textContent = origText, 2000);
     }
 

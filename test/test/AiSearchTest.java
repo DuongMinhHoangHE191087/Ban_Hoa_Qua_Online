@@ -7,6 +7,7 @@ import dao.system.SystemConfigDAO;
 import model.entity.catalog.Category;
 import model.entity.catalog.Product;
 import model.response.ApiResponse;
+import service.chat.AiSearchService;
 import servlet.guest.product.AiSearchServlet;
 import util.JsonUtil;
 import java.lang.reflect.Method;
@@ -19,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -57,10 +59,10 @@ public class AiSearchTest {
                         + "]");
         System.out.println("=================================");
 
-        String apiKey = dbKey;
-        if (apiKey == null || apiKey.trim().isEmpty()) {
-            apiKey = envKey;
-        }
+        assertTrue("Gemini API key phai duoc cau hinh trong AppConfig",
+                AppConfig.GEMINI_API_KEY != null && !AppConfig.GEMINI_API_KEY.trim().isEmpty());
+        assertTrue("Gemini API key phai duoc seed trong database",
+                dbKey != null && !dbKey.trim().isEmpty());
 
         // The getter path should not crash even when the key is missing.
         assertNotNull(
@@ -125,6 +127,55 @@ public class AiSearchTest {
         assertTrue("ApiResponse thanh cong phai boc payload trong data", json.contains("\"data\":"));
         assertTrue("Payload reply phai con nguyen trong data", json.contains("\"reply\":\"Cam sành ngọt thanh\""));
         assertTrue("Payload suggestedProductIds phai con nguyen trong data", json.contains("\"suggestedProductIds\":[1,2]"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testUpstreamErrorResponseUsesErrorContract() throws Exception {
+        AiSearchService service = new AiSearchService();
+        Method method = AiSearchService.class.getDeclaredMethod(
+                "buildUpstreamErrorResponse",
+                long.class,
+                String.class,
+                String.class,
+                Integer.class,
+                String.class);
+        method.setAccessible(true);
+
+        Map<String, Object> response = (Map<String, Object>) method.invoke(
+                service,
+                System.currentTimeMillis() - 25L,
+                "http_403",
+                "Gemini từ chối yêu cầu với mã HTTP 403: API key bị thu hồi.",
+                403,
+                "{\"error\":{\"message\":\"API key bị thu hồi.\"}}");
+
+        assertNotNull("Payload loi upstream phai ton tai", response);
+        assertEquals("upstream_error", response.get("source"));
+        assertFalse("Payload loi upstream khong duoc danh la fallback", Boolean.TRUE.equals(response.get("fallback")));
+        assertEquals("http_403", response.get("errorCode"));
+        assertTrue("Payload loi phai giu nguyen thong diep loi", String.valueOf(response.get("errorMessage")).contains("API key bị thu hồi"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testEmptyGeminiPayloadDoesNotFallback() throws Exception {
+        AiSearchService service = new AiSearchService();
+        Method method = AiSearchService.class.getDeclaredMethod(
+                "buildGeminiResponse",
+                String.class,
+                long.class);
+        method.setAccessible(true);
+
+        Map<String, Object> response = (Map<String, Object>) method.invoke(
+                service,
+                "{\"candidates\":[]}",
+                System.currentTimeMillis() - 25L);
+
+        assertNotNull("Payload loai nay phai tra ve response", response);
+        assertEquals("upstream_error", response.get("source"));
+        assertFalse("Payload loai nay khong duoc fallback", Boolean.TRUE.equals(response.get("fallback")));
+        assertEquals("empty_candidates", response.get("errorCode"));
     }
 
     @Test

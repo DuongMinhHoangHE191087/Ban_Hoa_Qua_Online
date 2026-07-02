@@ -135,14 +135,6 @@ public class PromotionService {
         validateCouponStack(shops, systems);
     }
 
-    public void validateCouponStack(Promotion shopPromo, Promotion systemPromo) {
-        java.util.List<Promotion> shops = new java.util.ArrayList<>();
-        if (shopPromo != null) shops.add(shopPromo);
-        java.util.List<Promotion> systems = new java.util.ArrayList<>();
-        if (systemPromo != null) systems.add(systemPromo);
-        validateCouponStack(shops, systems);
-    }
-
     /**
      * Re-resolves a shop coupon from DB by code and validates scope ownership.
      * A SHOP coupon's createdBy must match the target shop's ownerId.
