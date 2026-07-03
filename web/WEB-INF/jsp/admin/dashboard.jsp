@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tổng quan – Admin MetaFruit</title>
+    <title>Tổng quan Admin | MetaFruit</title>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
@@ -40,7 +40,7 @@
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
         <%-- KPI Cards Grid --%>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <%-- Total Users --%>
             <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-1 transition-all duration-200 cursor-default">
                 <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-inner">
@@ -80,8 +80,19 @@
                     <i class="fa-solid fa-file-invoice-dollar"></i>
                 </div>
                 <div>
-                    <span class="text-xs font-bold text-txt-3 uppercase tracking-wider">Đối soát cần TT</span>
-                    <h3 class="text-2xl font-black text-txt mt-0.5">${unpaidSettlements != null ? unpaidSettlements : 0}</h3>
+                    <span class="text-xs font-bold text-txt-3 uppercase tracking-wider">Đối soát chờ TT</span>
+                    <h3 class="text-2xl font-black text-txt mt-0.5">${confirmedSettlements != null ? confirmedSettlements : 0}</h3>
+                </div>
+            </div>
+
+            <%-- Settlement Issues --%>
+            <div class="glass-card p-5 flex items-center gap-4 hover:-translate-y-1 transition-all duration-200 cursor-default">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shadow-inner">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold text-txt-3 uppercase tracking-wider">Báo chưa nhận tiền</span>
+                    <h3 class="text-2xl font-black text-txt mt-0.5">${openSettlementIssues != null ? openSettlementIssues : 0}</h3>
                 </div>
             </div>
         </div>

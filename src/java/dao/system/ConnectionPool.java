@@ -177,6 +177,7 @@ public final class ConnectionPool {
 
             DataSource tempDs = (DataSource) ds;
             try (Connection conn = tempDs.getConnection()) {
+                if (conn.isClosed()) {}
                 LoggerUtil.info(log, "[ConnectionPool] Tomcat JDBC Pool validation connection successful");
             }
 
@@ -228,6 +229,7 @@ public final class ConnectionPool {
 
             DataSource tempDs = (DataSource) ds;
             try (Connection conn = tempDs.getConnection()) {
+                if (conn.isClosed()) {}
                 LoggerUtil.info(log, "[ConnectionPool] Tomcat DBCP2 Pool validation connection successful");
             }
 

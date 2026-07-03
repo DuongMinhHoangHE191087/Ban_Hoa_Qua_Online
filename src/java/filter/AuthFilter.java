@@ -103,6 +103,9 @@ public class AuthFilter implements Filter {
             resp.setContentType("application/json;charset=UTF-8");
             resp.getWriter().write("{\"success\":false,\"error\":\"Phiên đăng nhập hết hạn hoặc chưa đăng nhập.\"}");
         } else {
+            if (req.getRequestURI().startsWith(req.getContextPath() + "/checkout")) {
+                SessionUtil.flashError(req.getSession(true), "Bạn cần đăng nhập để tiếp tục thanh toán. Hệ thống sẽ đưa bạn trở lại checkout sau khi đăng nhập.");
+            }
             String redirectUrl = req.getRequestURI();
             if (req.getQueryString() != null) {
                 redirectUrl += "?" + req.getQueryString();

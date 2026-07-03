@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Chi tiết đơn #${order.orderId}"/>
+    <jsp:param name="pageTitle" value="Chi tiết đơn hàng #${order.orderId}"/>
 </jsp:include>
 
 <div class="container py-6">
@@ -13,7 +13,7 @@
         </a>
     </div>
 
-    <h1 class="mb-4">Chi tiết đơn #${order.orderId}</h1>
+    <h1 class="mb-4">Chi tiết đơn hàng #${order.orderId}</h1>
 
 
 
@@ -57,7 +57,7 @@
                                             </strong>
                                             <br>
                                             <span class="text-sm text-muted">
-                                                Subtotal: <fmt:formatNumber value="${item.subtotal}" type="number"/> đ
+                                                Tạm tính: <fmt:formatNumber value="${item.subtotal}" type="number"/> đ
                                             </span>
                                         </div>
                                     </div>
@@ -69,7 +69,7 @@
 
                 <div class="border-t border-border pt-4">
                     <div class="mb-2 flex items-center justify-between">
-                        <span>Subtotal:</span>
+                        <span>Tạm tính:</span>
                         <strong><fmt:formatNumber value="${order.subtotal}" type="number"/> đ</strong>
                     </div>
                     <c:if test="${order.shippingFee > 0}">
@@ -138,7 +138,7 @@
                             ${order.customerId}
                         </div>
                         <div>
-                            <p class="m-0 font-semibold">Khách #${order.customerId}</p>
+                            <p class="m-0 font-semibold">Khách hàng #${order.customerId}</p>
                             <p class="m-0 text-sm text-muted">ID: ${order.customerId}</p>
                         </div>
                     </div>

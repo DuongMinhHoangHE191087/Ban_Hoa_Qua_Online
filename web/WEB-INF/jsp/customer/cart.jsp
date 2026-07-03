@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Giỏ hàng"/></jsp:include>
@@ -160,7 +160,7 @@
                     <span id="summary-total" class="font-headline-lg text-headline-lg text-primary font-bold">0 đ</span>
                 </div>
                 
-                <button id="btn-cart-checkout" class="w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl hover:bg-inverse-surface transition-all shadow-md flex items-center justify-center gap-sm group active:scale-95 transform">
+                <button id="btn-cart-checkout" disabled class="w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl hover:bg-inverse-surface transition-all shadow-md flex items-center justify-center gap-sm group active:scale-95 transform opacity-50 cursor-not-allowed">
                     <span class="checkout-spinner inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent me-1 hidden"></span>
                     <span>Tiến hành thanh toán</span>
                     <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>

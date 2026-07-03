@@ -2,6 +2,7 @@ package servlet.customer.cart;
 
 import config.AppConfig;
 import dao.order.OrderDAO;
+import dao.system.SystemConfigDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -25,6 +26,8 @@ import util.SessionUtil;
 
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -58,7 +61,12 @@ public class CheckoutServlet extends HttpServlet {
         HttpSession session = req.getSession();
         User user = SessionUtil.getCurrentUser(session);
         if (user == null) {
-            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            SessionUtil.flashError(session, "Bạn cần đăng nhập để tiếp tục thanh toán. Hệ thống sẽ đưa bạn trở lại checkout sau khi đăng nhập.");
+            String redirectUrl = req.getRequestURI();
+            if (req.getQueryString() != null && !req.getQueryString().trim().isEmpty()) {
+                redirectUrl += "?" + req.getQueryString();
+            }
+            resp.sendRedirect(req.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8));
             return;
         }
         if (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
@@ -184,8 +192,12 @@ public class CheckoutServlet extends HttpServlet {
         } catch (SQLException e) {
             throw new ServletException("Không thể tải payment summary", e);
         }
-        if (summary == null || !summary.getPaymentRequired()) {
+        if (summary == null) {
             resp.sendRedirect(req.getContextPath() + "/home");
+            return;
+        }
+        if (!summary.getPaymentRequired()) {
+            resp.sendRedirect(req.getContextPath() + "/checkout?action=success&orderId=" + summary.getOrderId());
             return;
         }
 
@@ -206,6 +218,9 @@ public class CheckoutServlet extends HttpServlet {
         PaymentTransaction paymentTx = null;
         try {
             paymentTx = paymentService.getPaymentByOrder(summary.getOrderId());
+            if (paymentTx == null) {
+                paymentTx = paymentService.initPayment(summary.getOrderId(), "SEPAY", req.getRemoteAddr());
+            }
         } catch (Exception e) {
             LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
         }
@@ -215,7 +230,7 @@ public class CheckoutServlet extends HttpServlet {
                 ? paymentTx.getSepayReference()
                 : (summary.getReference() != null ? summary.getReference() : PaymentService.buildSepayReference(summary.getOrderId()));
 
-        dao.system.SystemConfigDAO systemConfigDAO = new dao.system.SystemConfigDAO();
+        SystemConfigDAO systemConfigDAO = new SystemConfigDAO();
         String bankId = null;
         String accountNo = null;
         String accountName = null;

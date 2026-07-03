@@ -285,6 +285,41 @@ public class ReviewDAO extends BaseDAO {
         return list;
     }
 
+    public List<Review> findAllForAdmin(int page, int pageSize) throws SQLException {
+        List<Review> list = new ArrayList<>();
+        String sql = "SELECT r.*, u.full_name AS customer_name, p.name AS product_name FROM reviews r "
+                   + "JOIN users u ON r.customer_id = u.user_id "
+                   + "JOIN order_items oi ON r.order_item_id = oi.order_item_id "
+                   + "JOIN product_variants pv ON oi.variant_id = pv.variant_id "
+                   + "JOIN products p ON pv.product_id = p.product_id "
+                   + "ORDER BY r.created_at DESC "
+                   + PaginationHelper.OFFSET_FETCH_SQL;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            PaginationHelper.bindOffsetFetch(ps, 1, page, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Review r = mapRow(rs);
+                    r.setProductName(rs.getString("product_name"));
+                    list.add(r);
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countAllForAdmin() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM reviews";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
     /**
      * Cập nhật trạng thái ẩn/hiện của đánh giá (Admin).
      */

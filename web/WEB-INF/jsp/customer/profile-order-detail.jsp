@@ -124,7 +124,7 @@
                 <a href="${pageContext.request.contextPath}/profile/order-detail?action=invoice&orderId=${order.orderId}"
                    target="_blank"
                    class="bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm flex items-center gap-2">
-                    <span class="material-symbols-outlined text-lg">description</span> Tải Hóa Đơn PDF
+                    <span class="material-symbols-outlined text-lg">description</span> Tải hóa đơn PDF
                 </a>
             </c:if>
             <a href="${pageContext.request.contextPath}/profile?tab=orders"
@@ -170,7 +170,7 @@
                         <c:choose><c:when test="${activeIdx >= 0}">bg-primary border-primary text-white</c:when><c:otherwise>bg-white border-gray-300 text-gray-400</c:otherwise></c:choose>">
                         <c:choose><c:when test="${activeIdx > 0}"><span class="material-symbols-outlined text-base">check</span></c:when><c:otherwise>1</c:otherwise></c:choose>
                     </div>
-                    <span class="text-[10px] font-semibold text-center leading-tight <c:choose><c:when test="${activeIdx >= 0}">text-primary</c:when><c:otherwise>text-gray-400</c:otherwise></c:choose>">Chờ TT</span>
+                    <span class="text-[10px] font-semibold text-center leading-tight <c:choose><c:when test="${activeIdx >= 0}">text-primary</c:when><c:otherwise>text-gray-400</c:otherwise></c:choose>">Chờ thanh toán</span>
                 </div>
 
                 <%-- Step 2: Đã xác nhận --%>
@@ -179,7 +179,7 @@
                         <c:choose><c:when test="${activeIdx >= 1}">bg-primary border-primary text-white</c:when><c:otherwise>bg-white border-gray-300 text-gray-400</c:otherwise></c:choose>">
                         <c:choose><c:when test="${activeIdx > 1}"><span class="material-symbols-outlined text-base">check</span></c:when><c:otherwise>2</c:otherwise></c:choose>
                     </div>
-                    <span class="text-[10px] font-semibold text-center leading-tight <c:choose><c:when test="${activeIdx >= 1}">text-primary</c:when><c:otherwise>text-gray-400</c:otherwise></c:choose>">Đã nhận</span>
+                    <span class="text-[10px] font-semibold text-center leading-tight <c:choose><c:when test="${activeIdx >= 1}">text-primary</c:when><c:otherwise>text-gray-400</c:otherwise></c:choose>">Đã xác nhận</span>
                 </div>
 
                 <%-- Step 3: Chuẩn bị --%>

@@ -1,6 +1,11 @@
 package servlet.admin.chat;
 
+import config.AppConfig;
+import model.dto.common.PagedResultDTO;
+import model.entity.chat.Notification;
+import service.admin.AdminViewEnrichmentService; // Helper for data enrichment
 import service.chat.NotificationService;
+import util.PaginationUtil;
 import util.SessionUtil;
 
 import util.LoggerUtil;
@@ -10,6 +15,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Logger;
 
 @WebServlet("/admin/notifications")
@@ -18,12 +24,21 @@ public class AdminNotificationServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(AdminNotificationServlet.class.getName());
 
     private final NotificationService notificationService = new NotificationService();
+    private final AdminViewEnrichmentService viewEnrichmentService = new AdminViewEnrichmentService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
-            java.util.List<model.entity.chat.Notification> notifications = notificationService.getAllSystemNotifications();
-            req.setAttribute("notificationList", notifications);
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
+            int pageSize = AppConfig.PAGE_SIZE_ADMIN;
+            PagedResultDTO notificationPage = notificationService.getAllSystemNotificationsPaged(page, pageSize);
+            @SuppressWarnings("unchecked")
+            List<Notification> notifications = (List<Notification>) notificationPage.getItems();
+            viewEnrichmentService.enrichNotifications(notifications);
+            req.setAttribute("notificationList", notificationPage.getItems());
+            req.setAttribute("currentPage", notificationPage.getCurrentPage());
+            req.setAttribute("totalPages", notificationPage.getTotalPages());
+            req.setAttribute("totalItems", notificationPage.getTotalItems());
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-notifications.jsp").forward(req, resp);
         } catch (Exception e) {
             util.ServletUtil.sendPageInternalServerError(

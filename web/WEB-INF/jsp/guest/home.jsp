@@ -27,6 +27,84 @@
                         };
                     </script>
 
+                    <style>
+                        .product-card-link {
+                            display: block;
+                            text-decoration: none;
+                        }
+
+                        .product-card {
+                            position: relative;
+                            overflow: hidden;
+                            transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+                        }
+
+                        .product-card::before {
+                            content: "";
+                            position: absolute;
+                            inset: 0;
+                            border-radius: inherit;
+                            pointer-events: none;
+                            opacity: 0;
+                            transition: opacity 220ms ease;
+                            box-shadow: 0 18px 45px rgba(16, 185, 129, 0.18), 0 0 0 1px rgba(34, 197, 94, 0.16) inset;
+                        }
+
+                        .product-card:hover {
+                            transform: translateY(-6px);
+                        }
+
+                        .product-card:hover::before {
+                            opacity: 1;
+                        }
+
+                        .product-card-media {
+                            overflow: hidden;
+                        }
+
+                        .product-card-image {
+                            transition: transform 550ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 220ms ease;
+                        }
+
+                        .product-card:hover .product-card-image {
+                            transform: scale(1.06);
+                            filter: saturate(1.05) contrast(1.02);
+                        }
+
+                        .product-card-title {
+                            position: relative;
+                            display: block;
+                            width: 100%;
+                            text-align: left;
+                            text-decoration: none !important;
+                            transition: color 180ms ease, transform 180ms ease;
+                        }
+
+                        .product-card-title::after {
+                            content: "";
+                            position: absolute;
+                            left: 0;
+                            right: 0;
+                            bottom: -0.22rem;
+                            height: 2px;
+                            border-radius: 999px;
+                            background: linear-gradient(90deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.95), rgba(20, 184, 166, 0.95), rgba(34, 197, 94, 0.05));
+                            transform: scaleX(0);
+                            transform-origin: left;
+                            opacity: 0;
+                            transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease;
+                        }
+
+                        .product-card:hover .product-card-title {
+                            transform: translateY(-1px);
+                        }
+
+                        .product-card:hover .product-card-title::after {
+                            transform: scaleX(1);
+                            opacity: 1;
+                        }
+                    </style>
+
                     <!-- Main Page Background Wrapping -->
                     <div
                         class="bg-gradient-to-br from-surface-bright via-white to-surface-container-low min-h-screen text-on-surface antialiased font-sans">
@@ -182,8 +260,8 @@
                                 </c:if>
                             </c:forEach>
                             <script>
-                                window.serverTime = <%= System.currentTimeMillis() %>;
-                                window.flashSaleEndTime = ${not empty minValidUntil ? minValidUntil : 'null'};
+                                window.serverTime = Number("<%= System.currentTimeMillis() %>");
+                                window.flashSaleEndTime = Number("${not empty minValidUntil ? minValidUntil : 0}") || null;
                                 window.clientTimeOffset = Date.now() - window.serverTime;
                             </script>
                             <section class="px-6 md:px-12 max-w-7xl mx-auto mb-16">
@@ -247,7 +325,7 @@
                                         class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
                                         <c:forEach var="item" items="${flashSaleProducts}">
                                             <article data-product-id="${item.productId}"
-                                                class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start ${item.stockRemaining == 0 ? 'opacity-75 saturate-50' : ''}">
+                                            class="product-card w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:border-emerald-300/40 snap-start ${item.stockRemaining == 0 ? 'opacity-75 saturate-50' : ''}">
                                                 <!-- Discount Tag Badge -->
                                                 <div
                                                     class="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm">
@@ -257,12 +335,12 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    class="product-card-link block group/link flex-grow flex flex-col justify-between text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
+                                                    <div class="product-card-media relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
-                                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                            class="product-card-image w-full h-full object-cover">
                                                         <!-- Floating added qty badge -->
                                                         <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden"
                                                             id="badge-prod-${item.productId}">
@@ -276,13 +354,13 @@
                                                     </div>
 
                                                     <!-- Content Section -->
-                                                    <div class="flex-grow flex flex-col justify-between px-1">
+                                                    <div class="flex-grow flex flex-col justify-between px-0">
                                                         <div>
                                                             <div class="flex justify-between items-start gap-2 mb-1">
-                                                                <h3
-                                                                    class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
-                                                                    <c:out value="${item.name}" />
-                                                                </h3>
+                                                <h3
+                                                    class="product-card-title font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                                    <c:out value="${item.name}" />
+                                                </h3>
                                                             </div>
 
                                                             <!-- Stars and Unit Info -->
@@ -407,7 +485,7 @@
                                         class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
                                         <c:forEach var="item" items="${bestSellersProducts}">
                                             <article data-product-id="${item.productId}"
-                                                class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start">
+                                                class="product-card w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:border-emerald-300/40 snap-start">
                                                 <c:if test="${item.discountPercent > 0}">
                                                     <!-- Discount Tag Badge -->
                                                     <div
@@ -419,12 +497,12 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    class="product-card-link block group/link flex-grow flex flex-col justify-between text-inherit">
                                                     <!-- Image Section -->
-                                                    <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
+                                                    <div class="product-card-media relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
-                                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                            class="product-card-image w-full h-full object-cover">
                                                         <!-- Floating added qty badge -->
                                                         <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden"
                                                             id="badge-prod-${item.productId}">
@@ -433,11 +511,11 @@
                                                     </div>
 
                                                     <!-- Content Section -->
-                                                    <div class="flex-grow flex flex-col justify-between px-1">
+                                                    <div class="flex-grow flex flex-col justify-between px-0">
                                                         <div>
                                                             <div class="flex justify-between items-start gap-2 mb-1">
                                                                 <h3
-                                                                    class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                                                    class="product-card-title font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
                                                                     <c:out value="${item.name}" />
                                                                 </h3>
                                                             </div>
@@ -544,7 +622,7 @@
                                         class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
                                         <c:forEach var="item" items="${seasonalProducts}">
                                             <article data-product-id="${item.productId}"
-                                                class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start">
+                                                    class="product-card w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:border-emerald-300/40 snap-start">
                                                 <c:if test="${item.discountPercent > 0}">
                                                     <!-- Discount Tag Badge -->
                                                     <div
@@ -556,12 +634,12 @@
 
                                                 <!-- Clickable Product Area -->
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    class="product-card-link block group/link flex-grow flex flex-col justify-between text-inherit">
                                                     <!-- Image Section -->
                                                     <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
-                                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                            class="product-card-image w-full h-full object-cover">
                                                         <!-- Floating added qty badge -->
                                                         <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden"
                                                             id="badge-prod-${item.productId}">
@@ -570,11 +648,11 @@
                                                     </div>
 
                                                     <!-- Content Section -->
-                                                    <div class="flex-grow flex flex-col justify-between px-1">
+                                                    <div class="flex-grow flex flex-col justify-between px-0">
                                                         <div>
                                                             <div class="flex justify-between items-start gap-2 mb-1">
                                                                 <h3
-                                                                    class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                                                    class="product-card-title font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
                                                                     <c:out value="${item.name}" />
                                                                 </h3>
                                                             </div>
@@ -677,7 +755,7 @@
                                         class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
                                         <c:forEach var="item" items="${organicProducts}">
                                             <article data-product-id="${item.productId}"
-                                                class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start">
+                                                class="product-card w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:border-emerald-300/40 snap-start">
                                                 <c:if test="${item.discountPercent > 0}">
                                                     <div
                                                         class="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm">
@@ -686,21 +764,21 @@
                                                     </div>
                                                 </c:if>
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    class="product-card-link block group/link flex-grow flex flex-col justify-between text-inherit">
                                                     <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
-                                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                            class="product-card-image w-full h-full object-cover">
                                                         <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden"
                                                             id="badge-prod-${item.productId}">
                                                             Đã thêm 0
                                                         </div>
                                                     </div>
-                                                    <div class="flex-grow flex flex-col justify-between px-1">
+                                                    <div class="flex-grow flex flex-col justify-between px-0">
                                                         <div>
                                                             <div class="flex justify-between items-start gap-2 mb-1">
                                                                 <h3
-                                                                    class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                                                    class="product-card-title font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
                                                                     <c:out value="${item.name}" />
                                                                 </h3>
                                                             </div>
@@ -796,7 +874,7 @@
                                         class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
                                         <c:forEach var="item" items="${importedProducts}">
                                             <article data-product-id="${item.productId}"
-                                                class="w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden snap-start">
+                                                class="product-card w-[280px] sm:w-[320px] shrink-0 bg-white/90 border border-white/50 rounded-2xl p-3 flex flex-col group hover:border-emerald-300/40 snap-start">
                                                 <c:if test="${item.discountPercent > 0}">
                                                     <div
                                                         class="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm">
@@ -805,21 +883,21 @@
                                                     </div>
                                                 </c:if>
                                                 <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                    class="block group/link flex-grow flex flex-col justify-between no-underline text-inherit">
+                                                    class="product-card-link block group/link flex-grow flex flex-col justify-between text-inherit">
                                                     <div class="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 bg-emerald-50">
                                                         <img src="${item.image}" alt="${item.name}"
                                                             onerror="handleImageError(this)"
-                                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                            class="product-card-image w-full h-full object-cover">
                                                         <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden"
                                                             id="badge-prod-${item.productId}">
                                                             Đã thêm 0
                                                         </div>
                                                     </div>
-                                                    <div class="flex-grow flex flex-col justify-between px-1">
+                                                    <div class="flex-grow flex flex-col justify-between px-0">
                                                         <div>
                                                             <div class="flex justify-between items-start gap-2 mb-1">
                                                                 <h3
-                                                                    class="font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                                                    class="product-card-title font-bold text-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
                                                                     <c:out value="${item.name}" />
                                                                 </h3>
                                                             </div>
@@ -968,16 +1046,16 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <c:forEach var="item" items="${normalProducts}">
                                         <article data-product-id="${item.productId}"
-                                            class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
+                                            class="product-card bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:border-emerald-300/40">
 
                                             <!-- Clickable Product Area -->
-                                            <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
-                                                class="block group/link no-underline text-inherit">
+                                                <a href="${pageContext.request.contextPath}/products/detail?id=${item.productId}"
+                                                    class="product-card-link block group/link text-inherit">
                                                 <!-- High Resolution Image with Zoom Scale on Hover -->
-                                                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
+                                                <div class="product-card-media relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                                                     <img src="${item.image}" alt="${item.name}"
                                                         onerror="handleImageError(this)"
-                                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                        class="product-card-image w-full h-full object-cover">
                                                     <!-- Floating added qty badge -->
                                                     <div class="cart-qty-badge absolute top-3 left-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden"
                                                         id="badge-prod-${item.productId}">
@@ -991,11 +1069,11 @@
                                                 </div>
 
                                                 <!-- Card Body Elements -->
-                                                <div class="px-1 mb-3">
-                                                    <h3
-                                                        class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
-                                                        <c:out value="${item.name}" />
-                                                    </h3>
+                                                <div class="px-0 mb-3">
+                                                        <h3
+                                                            class="product-card-title font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+                                                            <c:out value="${item.name}" />
+                                                        </h3>
                                                     <p
                                                         class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
                                                         <c:out value="${item.description}" />
@@ -1352,12 +1430,12 @@
                                 }
                                 const envelope = await response.json();
                                 if (envelope.success === false) {
-                                    alert(envelope.error || 'Sản phẩm hiện không khả dụng.');
+                                    window.showCartErrorModal(envelope.error || 'Sản phẩm hiện không khả dụng.', 'Không thể tải sản phẩm');
                                     return;
                                 }
                                 const data = envelope.data;
                                 if (!data) {
-                                    alert('Sản phẩm hiện không khả dụng.');
+                                    window.showCartErrorModal('Sản phẩm hiện không khả dụng.', 'Không thể tải sản phẩm');
                                     return;
                                 }
 
@@ -1366,18 +1444,39 @@
                                     const reason = data.reason || '';
                                     const msg = data.message || 'Sản phẩm hiện không khả dụng.';
                                     if (reason === 'OUT_OF_SEASON') {
-                                        if (confirm(msg + '\n\nBạn có muốn gửi yêu cầu nhập kho vụ mới tới cửa hàng không?')) {
+                                        const confirmMessage = `${msg} Bạn có muốn gửi yêu cầu nhập kho vụ mới tới cửa hàng không?`;
+                                        if (typeof Swal !== 'undefined') {
+                                            const result = await Swal.fire({
+                                                icon: 'warning',
+                                                title: 'Sản phẩm đã hết mùa',
+                                                text: confirmMessage,
+                                                showCancelButton: true,
+                                                confirmButtonText: 'Gửi yêu cầu',
+                                                cancelButtonText: 'Đóng',
+                                                confirmButtonColor: '#14532D',
+                                                cancelButtonColor: '#94a3b8',
+                                                background: '#ffffff',
+                                                customClass: {
+                                                    popup: 'premium-swal-popup',
+                                                    title: 'premium-swal-title',
+                                                    confirmButton: 'premium-swal-button'
+                                                }
+                                            });
+                                            if (result.isConfirmed) {
+                                                window.location.href = `${contextPath}/products/detail?id=${productId}`;
+                                            }
+                                        } else if (confirm(confirmMessage)) {
                                             window.location.href = `${contextPath}/products/detail?id=${productId}`;
                                         }
                                     } else if (reason === 'OUT_OF_STOCK') {
-                                        alert('Sản phẩm đã hết hàng. Vui lòng quay lại sau.');
+                                        window.showCartErrorModal('Sản phẩm đã hết hàng. Vui lòng quay lại sau.', 'Sản phẩm hết hàng');
                                     } else {
-                                        alert(msg);
+                                        window.showCartErrorModal(msg, 'Không thể tải sản phẩm');
                                     }
                                     return;
                                 }
                                 if (!data.variants || data.variants.length === 0) {
-                                    alert('Sản phẩm đã hết hàng. Vui lòng quay lại sau.');
+                                    window.showCartErrorModal('Sản phẩm đã hết hàng. Vui lòng quay lại sau.', 'Sản phẩm hết hàng');
                                     return;
                                 }
                                 // Cảnh báo nhẹ khi sản phẩm ngoài mùa vụ nhưng vẫn còn hàng
@@ -1404,7 +1503,7 @@
                                 openQuickAddModal(data.product, data.variants);
                             } catch (err) {
                                 console.error('Lỗi tải thông tin sản phẩm:', err);
-                                alert('Không thể kết nối đến máy chủ.');
+                                window.showCartErrorModal('Không thể kết nối đến máy chủ.', 'Lỗi kết nối');
                             }
                         }
 
@@ -1493,7 +1592,7 @@
                             if (qty < 1) qty = 1;
                             if (qty > v.stockQuantity) {
                                 qty = v.stockQuantity;
-                                alert(`Kho chỉ còn \${v.stockQuantity} sản phẩm khả dụng cho phân loại này!`);
+                                window.showCartErrorModal(`Kho chỉ còn \${v.stockQuantity} sản phẩm khả dụng cho phân loại này!`, 'Cảnh báo tồn kho');
                             }
 
                             window.currentQuickAddData.quantity = qty;
@@ -1607,7 +1706,7 @@
                                             weightKg: 1.0,
                                             quantity: parseInt(quantity),
                                             imagePath: imagePath || 'assets/img/placeholder.png',
-                                            stockQuantity: parseInt(stockQuantity) || 99,
+                                            stockQuantity: parseInt(stockQuantity) || 0,
                                             productId: parseInt(productId) || null
                                         });
                                     }
@@ -1625,7 +1724,7 @@
                                             price: parseFloat(price),
                                             quantity: parseInt(quantity),
                                             imagePath: imagePath || 'assets/img/placeholder.png',
-                                            stockQuantity: parseInt(stockQuantity) || 99,
+                                            stockQuantity: parseInt(stockQuantity) || 0,
                                             productId: parseInt(productId) || null
                                         });
                                     }
@@ -1723,7 +1822,7 @@
                                             window.updateCardAddedQuantities();
                                         }
                                     }
-                                    alert(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
+                                    window.showCartErrorModal(err.message || 'Lỗi kết nối mạng. Không thể thêm vào giỏ hàng.');
                                 });
                         };
 
@@ -1893,15 +1992,15 @@
                                 
                                 html += `
                                     <article data-product-id="\${item.productId}"
-                                        class="bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
-                                        <a href="\${ctx}/products/detail?id=\${item.productId}" class="block group/link no-underline text-inherit">
+                                            class="product-card bg-white/70 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:border-emerald-300/40">
+                                        <a href="\${ctx}/products/detail?id=\${item.productId}" class="product-card-link block group/link text-inherit">
                                             <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
-                                                <img src="\${escapeHtml(item.image || '')}" alt="\${escapeHtml(item.name || '')}" onerror="handleImageError(this)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                <img src="\${escapeHtml(item.image || '')}" alt="\${escapeHtml(item.name || '')}" onerror="handleImageError(this)" class="product-card-image w-full h-full object-cover">
                                                 <div class="cart-qty-badge absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm hidden" id="badge-prod-\${item.productId}">Đã thêm 0</div>
                                                 <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">Nông sản sạch</div>
                                             </div>
-                                            <div class="px-1 mb-3">
-                                                <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">\${escapeHtml(item.name || '')}</h3>
+                                            <div class="px-0 mb-3">
+                                                <h3 class="product-card-title font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">\${escapeHtml(item.name || '')}</h3>
                                                 <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">\${escapeHtml(item.description || '')}</p>
                                                 <div class="flex justify-between items-center">
                                                     <div class="flex items-center gap-1 text-amber-500 scale-90 -ml-1">\${starsHtml}<span class="\${ratingLabelClass}">\${ratingLabel}</span></div>

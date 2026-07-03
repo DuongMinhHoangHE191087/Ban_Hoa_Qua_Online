@@ -201,7 +201,7 @@
                             <a href="${pageContext.request.contextPath}/reviews?action=edit&orderId=${order.orderId}&orderItemId=${item.orderItemId}" class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shadow-sm" title="Sửa đánh giá">
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                             </a>
-                            <form action="${pageContext.request.contextPath}/reviews" method="POST" class="m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?');">
+                            <form action="${pageContext.request.contextPath}/reviews" method="POST" class="m-0" onsubmit="return confirmDeleteReview(event)">
                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="orderId" value="${order.orderId}">
@@ -254,6 +254,21 @@ function previewReviewImage(event, orderItemId) {
     if (event.target.files[0]) {
         reader.readAsDataURL(event.target.files[0]);
     }
+}
+
+function confirmDeleteReview(event) {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Xóa đánh giá này?',
+        text: 'Bạn có chắc chắn muốn xóa đánh giá này không?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ba1a1a',
+        cancelButtonColor: '#e5e7eb',
+        confirmButtonText: 'Đồng ý xóa',
+        cancelButtonText: 'Hủy'
+    }).then(r => { if (r.isConfirmed) event.target.submit(); });
+    return false;
 }
 </script>
 

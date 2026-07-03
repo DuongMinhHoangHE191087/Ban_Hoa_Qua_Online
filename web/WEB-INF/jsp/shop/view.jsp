@@ -35,6 +35,13 @@
                     </div>
                     <p class="text-on-surface-variant text-xs md:text-sm max-w-xl">${shopProfile.shopDescription}</p>
 
+                    <c:if test="${isAdminPreview and shopProfile.approvalStatus != 'APPROVED'}">
+                        <div class="mt-3 inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-[11px] font-semibold text-amber-900">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Admin preview: shop đang ở trạng thái <c:out value="${shopProfile.approvalStatus}"/> nhưng vẫn hiển thị đầy đủ để kiểm tra nội bộ.
+                        </div>
+                    </c:if>
+
                     <!-- Stats Row -->
                     <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-4 text-xs font-medium text-on-surface-variant">
                         <div class="flex items-center gap-1">
@@ -129,7 +136,7 @@
 
                                 <!-- Info area -->
                                 <div class="p-2.5 flex flex-col flex-1">
-                                    <a href="${pageContext.request.contextPath}/product-detail?id=${p.productId}" class="text-xs md:text-sm font-bold text-on-surface hover:text-primary leading-snug line-clamp-2 mb-1 transition-colors">
+                                    <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}" class="text-xs md:text-sm font-bold text-on-surface hover:text-primary leading-snug line-clamp-2 mb-1 transition-colors">
                                         <c:out value="${p.name}"/>
                                     </a>
 

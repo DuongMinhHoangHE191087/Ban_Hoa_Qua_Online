@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
@@ -155,7 +155,7 @@
             <div class="md:col-span-6">
                 <p class="text-xs text-slate-400 italic mt-2 leading-relaxed">
                     Cảm ơn quý khách đã tin dùng nông sản tươi sạch cao cấp của MetaFruit!<br/>
-                    Hệ thống bảo quản lạnh cold-chain giúp giữ trọn vẹn dinh dưỡng của sản phẩm đến tay khách hàng.
+                    Hệ thống bảo quản lạnh đạt chuẩn chuỗi lạnh giúp giữ trọn vẹn dinh dưỡng của sản phẩm đến tay khách hàng.
                 </p>
             </div>
             <div class="md:col-span-6 space-y-3 text-sm">

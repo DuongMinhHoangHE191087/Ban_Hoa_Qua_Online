@@ -1,9 +1,11 @@
 package servlet.admin.product;
 
 import config.AppConfig;
+import model.dto.common.PagedResultDTO;
 import model.entity.catalog.Category;
 import model.entity.auth.User;
 import service.catalog.CategoryService;
+import util.PaginationUtil;
 import util.SessionUtil;
 
 import util.LoggerUtil;
@@ -15,7 +17,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -45,9 +46,13 @@ public class CategoryServlet extends HttpServlet {
         }
 
         try {
-            // Lấy danh sách danh mục thông qua Service
-            List<Category> categories = categoryService.getAllCategories();
-            req.setAttribute("categories", categories);
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
+            int pageSize = AppConfig.PAGE_SIZE_ADMIN;
+            PagedResultDTO categoryPage = categoryService.getAllCategoriesPaged(page, pageSize);
+            req.setAttribute("categories", categoryPage.getItems());
+            req.setAttribute("currentPage", categoryPage.getCurrentPage());
+            req.setAttribute("totalPages", categoryPage.getTotalPages());
+            req.setAttribute("totalItems", categoryPage.getTotalItems());
             
             // Forward tới view quản trị
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-categories.jsp").forward(req, resp);

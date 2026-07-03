@@ -1,4 +1,4 @@
-﻿SET NOCOUNT ON;
+SET NOCOUNT ON;
 GO
 USE [master];
 GO
@@ -308,7 +308,7 @@ BEGIN
         min_order_value DECIMAL(14,2) NOT NULL CONSTRAINT DF_promotions_min_order_value DEFAULT 0,
         scope NVARCHAR(15) NOT NULL CONSTRAINT CK_promotions_scope CHECK (scope IN ('ORDER', 'PRODUCT')),
         benefit_target NVARCHAR(20) NOT NULL CONSTRAINT DF_promotions_benefit_target DEFAULT N'MERCHANDISE'
-            CONSTRAINT CK_promotions_benefit_target CHECK (benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT')),
+            CONSTRAINT CK_promotions_benefit_target CHECK (benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT', 'PAYMENT_METHOD')),
         product_id INT NULL,
         max_uses INT NULL,
         used_count INT NOT NULL CONSTRAINT DF_promotions_used_count DEFAULT 0,
@@ -334,7 +334,7 @@ BEGIN
 
     ALTER TABLE dbo.promotions
     ADD CONSTRAINT CK_promotions_benefit_target_migration
-        CHECK (benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT'));
+        CHECK (benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT', 'PAYMENT_METHOD'));
 END
 GO
 
@@ -573,7 +573,7 @@ BEGIN
         coupon_code NVARCHAR(50) NULL,
         discount_scope NVARCHAR(50) NULL,
         benefit_target NVARCHAR(20) NULL CONSTRAINT CK_order_promotions_benefit_target
-            CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT')),
+            CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT', 'PAYMENT_METHOD')),
         used_at DATETIME NOT NULL CONSTRAINT DF_order_promotions_used_at DEFAULT GETDATE(),
         CONSTRAINT FK_order_promotions_orders FOREIGN KEY (order_id) REFERENCES dbo.orders(order_id) ON DELETE CASCADE,
         CONSTRAINT FK_order_promotions_promotions FOREIGN KEY (promo_id) REFERENCES dbo.promotions(promo_id),
@@ -599,7 +599,7 @@ BEGIN
     ALTER TABLE dbo.order_promotions
     ADD benefit_target NVARCHAR(20) NULL
         CONSTRAINT CK_order_promotions_benefit_target_migration
-        CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT'));
+        CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE', 'SHIPPING', 'PRODUCT', 'PAYMENT_METHOD'));
 END
 GO
 
@@ -659,16 +659,96 @@ BEGIN
         platform_fee_amount DECIMAL(14,2) NOT NULL CONSTRAINT DF_shop_settlements_platform_fee_amount DEFAULT 0,
         refund_amount DECIMAL(14,2) NOT NULL CONSTRAINT DF_shop_settlements_refund_amount DEFAULT 0,
         adjustment_amount DECIMAL(14,2) NOT NULL CONSTRAINT DF_shop_settlements_adjustment_amount DEFAULT 0,
-        net_amount DECIMAL(14,2) NOT NULL CONSTRAINT DF_shop_settlements_net_amount DEFAULT 0,
-        status NVARCHAR(20) NOT NULL CONSTRAINT DF_shop_settlements_status DEFAULT 'PENDING' CONSTRAINT CK_shop_settlements_status CHECK (status IN ('PENDING', 'CONFIRMED', 'PAID', 'CANCELLED')),
-        calculated_at DATETIME NOT NULL CONSTRAINT DF_shop_settlements_calculated_at DEFAULT GETDATE(),
-        confirmed_at DATETIME NULL,
-        paid_at DATETIME NULL,
-        created_by INT NOT NULL,
-        note NVARCHAR(500) NULL,
-        CONSTRAINT FK_shop_settlements_owner FOREIGN KEY (owner_id) REFERENCES dbo.users(user_id),
-        CONSTRAINT FK_shop_settlements_created_by FOREIGN KEY (created_by) REFERENCES dbo.users(user_id)
-    );
+          net_amount DECIMAL(14,2) NOT NULL CONSTRAINT DF_shop_settlements_net_amount DEFAULT 0,
+          status NVARCHAR(20) NOT NULL CONSTRAINT DF_shop_settlements_status DEFAULT 'PENDING' CONSTRAINT CK_shop_settlements_status CHECK (status IN ('PENDING', 'CONFIRMED', 'PAID', 'CANCELLED')),
+          calculated_at DATETIME NOT NULL CONSTRAINT DF_shop_settlements_calculated_at DEFAULT GETDATE(),
+          confirmed_at DATETIME NULL,
+          confirmed_by INT NULL,
+          confirm_note NVARCHAR(500) NULL,
+          cancelled_at DATETIME NULL,
+          cancelled_by INT NULL,
+          cancel_reason NVARCHAR(500) NULL,
+          paid_at DATETIME NULL,
+          paid_by INT NULL,
+          paid_reference NVARCHAR(100) NULL,
+          paid_note NVARCHAR(500) NULL,
+          payment_issue_status NVARCHAR(20) NOT NULL CONSTRAINT DF_shop_settlements_payment_issue_status DEFAULT 'NONE'
+              CONSTRAINT CK_shop_settlements_payment_issue_status CHECK (payment_issue_status IN ('NONE', 'REPORTED', 'UNDER_REVIEW', 'RESOLVED')),
+          payment_issue_at DATETIME NULL,
+          payment_issue_by INT NULL,
+          payment_issue_note NVARCHAR(500) NULL,
+          payment_issue_resolved_at DATETIME NULL,
+          payment_issue_resolved_by INT NULL,
+          payment_issue_resolution_note NVARCHAR(500) NULL,
+          created_by INT NOT NULL,
+          note NVARCHAR(500) NULL,
+          CONSTRAINT FK_shop_settlements_owner FOREIGN KEY (owner_id) REFERENCES dbo.users(user_id),
+          CONSTRAINT FK_shop_settlements_created_by FOREIGN KEY (created_by) REFERENCES dbo.users(user_id),
+          CONSTRAINT FK_shop_settlements_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES dbo.users(user_id),
+          CONSTRAINT FK_shop_settlements_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES dbo.users(user_id),
+          CONSTRAINT FK_shop_settlements_paid_by FOREIGN KEY (paid_by) REFERENCES dbo.users(user_id),
+          CONSTRAINT FK_shop_settlements_payment_issue_by FOREIGN KEY (payment_issue_by) REFERENCES dbo.users(user_id),
+          CONSTRAINT FK_shop_settlements_payment_issue_resolved_by FOREIGN KEY (payment_issue_resolved_by) REFERENCES dbo.users(user_id)
+      );
+END
+GO
+
+IF COL_LENGTH('dbo.shop_settlements', 'payment_issue_status') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements
+        ADD payment_issue_status NVARCHAR(20) NOT NULL CONSTRAINT DF_shop_settlements_payment_issue_status DEFAULT 'NONE';
+    ALTER TABLE dbo.shop_settlements
+        ADD CONSTRAINT CK_shop_settlements_payment_issue_status CHECK (payment_issue_status IN ('NONE', 'REPORTED', 'UNDER_REVIEW', 'RESOLVED'));
+END
+GO
+
+IF COL_LENGTH('dbo.shop_settlements', 'payment_issue_at') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD payment_issue_at DATETIME NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.shop_settlements', 'payment_issue_by') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD payment_issue_by INT NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.shop_settlements', 'payment_issue_note') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD payment_issue_note NVARCHAR(500) NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.shop_settlements', 'payment_issue_resolved_at') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD payment_issue_resolved_at DATETIME NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.shop_settlements', 'payment_issue_resolved_by') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD payment_issue_resolved_by INT NULL;
+END
+GO
+
+IF COL_LENGTH('dbo.shop_settlements', 'payment_issue_resolution_note') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD payment_issue_resolution_note NVARCHAR(500) NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_shop_settlements_payment_issue_by')
+BEGIN
+    ALTER TABLE dbo.shop_settlements
+        ADD CONSTRAINT FK_shop_settlements_payment_issue_by FOREIGN KEY (payment_issue_by) REFERENCES dbo.users(user_id);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_shop_settlements_payment_issue_resolved_by')
+BEGIN
+    ALTER TABLE dbo.shop_settlements
+        ADD CONSTRAINT FK_shop_settlements_payment_issue_resolved_by FOREIGN KEY (payment_issue_resolved_by) REFERENCES dbo.users(user_id);
 END
 GO
 
@@ -882,7 +962,7 @@ BEGIN
         ('sepay_bank_id',           'MBBank', N'Mã ngân hàng thụ hưởng nhận thanh toán SePay.', 'STRING'),
         ('sepay_account_no',         'SBSEPAY3NHWA061W5V2', N'Số tài khoản nhận thanh toán SePay.', 'STRING'),
         ('sepay_account_name',       'CONG TY TNHH METAFRUIT', N'Tên chủ tài khoản nhận thanh toán SePay.', 'STRING'),
-        ('gemini_api_key',          'AIzaSyDOb1pEhCxsWfeJa1Zn5-a9TM6z-OxiqnE',     N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING');
+        ('gemini_api_key',          '',                                               N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING');
 
     PRINT 'Created system_config table and seeded defaults.';
 END
@@ -1998,9 +2078,9 @@ UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -15, GETDATE()) AS DATE
 UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -20, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 13;
 UPDATE dbo.products SET harvest_date = CAST(DATEADD(day, -10, GETDATE()) AS DATE), shelf_life_days = 6, status = 'ACTIVE' WHERE product_id = 15;
 
--- Loại C: Không có hạn sử dụng (shelf_life_days = 0 hoặc NULL, luôn giữ ACTIVE)
-UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 0, status = 'ACTIVE' WHERE product_id = 5;
-UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = NULL, status = 'ACTIVE' WHERE product_id = 11;
+-- Loại C: Các sản phẩm khác (đặt hạn sử dụng = 5 ngày, luôn giữ ACTIVE)
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 5, status = 'ACTIVE' WHERE product_id = 5;
+UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 5, status = 'ACTIVE' WHERE product_id = 11;
 
 -- Loại D: Các sản phẩm hữu cơ/nhập khẩu nâng cấp (51-53, 56-70) giữ ACTIVE
 UPDATE dbo.products SET harvest_date = CAST(GETDATE() AS DATE), shelf_life_days = 30, status = 'ACTIVE' WHERE product_id BETWEEN 51 AND 53;
@@ -2071,6 +2151,7 @@ GO
   - PRODUCT: discount applies to a specific product / product page sale
   - MERCHANDISE: discount applies to merchandise subtotal in checkout
   - SHIPPING: discount applies to shipping fee
+  - PAYMENT_METHOD: discount applies after checkout, at the payment stage
 
   product_variants.discount_price / discount_start / discount_end:
   - Use these columns for time-based sale pricing on a variant.
@@ -2199,7 +2280,7 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.inventory_logs OFF;
 
     PRINT N'3/4 - Seeding promotions...';
-    PRINT N'    benefit_target = PRODUCT / MERCHANDISE / SHIPPING';
+    PRINT N'    benefit_target = PRODUCT / MERCHANDISE / SHIPPING / PAYMENT_METHOD';
     SET IDENTITY_INSERT dbo.promotions ON;
     INSERT INTO dbo.promotions (
         promo_id,
@@ -2254,7 +2335,9 @@ BEGIN TRY
         (7007, N'TEST-SHIP-FREE', N'FIXED', N'SHOP', 0.00, 30000.00, 50000.00, N'ORDER', N'SHIPPING', NULL, 250, 4, 0, DATEADD(day, -30, GETDATE()), DATEADD(day, 75, GETDATE()), 7, DATEADD(day, -5, GETDATE()), GETDATE(), 0, 1),
         (7008, N'TEST-EXPIRED-ENVY', N'PERCENT', N'ALL', 50000.00, 18.00, 30000.00, N'PRODUCT', N'PRODUCT', 16, 50, 50, 0, DATEADD(day, -90, GETDATE()), DATEADD(day, -1, GETDATE()), 1, DATEADD(day, -60, GETDATE()), DATEADD(day, -1, GETDATE()), 0, 0),
         (7009, N'TEST-STACK-10K', N'FIXED', N'ALL', 0.00, 10000.00, 30000.00, N'ORDER', N'MERCHANDISE', NULL, 1000, 0, 1, DATEADD(day, -10, GETDATE()), DATEADD(day, 120, GETDATE()), 1, DATEADD(day, -2, GETDATE()), GETDATE(), 0, 1),
-        (7010, N'TEST-SHIPPING-10P', N'PERCENT', N'ALL', 40000.00, 10.00, 50000.00, N'ORDER', N'SHIPPING', NULL, 300, 5, 1, DATEADD(day, -10, GETDATE()), DATEADD(day, 120, GETDATE()), 4, DATEADD(day, -2, GETDATE()), GETDATE(), 0, 1)
+        (7010, N'TEST-SHIPPING-10P', N'PERCENT', N'ALL', 40000.00, 10.00, 50000.00, N'ORDER', N'SHIPPING', NULL, 300, 5, 1, DATEADD(day, -10, GETDATE()), DATEADD(day, 120, GETDATE()), 4, DATEADD(day, -2, GETDATE()), GETDATE(), 0, 1),
+        (7011, N'TEST-PAY-8K', N'FIXED', N'ALL', 0.00, 8000.00, 100000.00, N'ORDER', N'PAYMENT_METHOD', NULL, 500, 0, 1, DATEADD(day, -10, GETDATE()), DATEADD(day, 90, GETDATE()), 1, DATEADD(day, -2, GETDATE()), GETDATE(), 0, 1),
+        (7012, N'TEST-PAY-12P-NOSTACK', N'PERCENT', N'ALL', 60000.00, 12.00, 150000.00, N'ORDER', N'PAYMENT_METHOD', NULL, 200, 0, 0, DATEADD(day, -10, GETDATE()), DATEADD(day, 90, GETDATE()), 1, DATEADD(day, -2, GETDATE()), GETDATE(), 0, 1)
     ) AS src (
         promo_id,
         code,
@@ -2313,7 +2396,9 @@ BEGIN TRY
         (8003, 12, 7001, 12, 12000.00, N'TEST-ENVY-12P', N'ALL', N'PRODUCT', DATEADD(hour, -2, GETDATE())),
         (8004, 13, 7005, 13, 35000.00, N'TEST-MERCH-35K', N'ALL', N'MERCHANDISE', DATEADD(hour, -1, GETDATE())),
         (8005, 14, 7007, 14, 15000.00, N'TEST-SHIP-FREE', N'SHOP', N'SHIPPING', GETDATE()),
-        (8006, 15, 7002, 15, 20000.00, N'TEST-ROCKIT-20K', N'ALL', N'PRODUCT', DATEADD(minute, -30, GETDATE()))
+        (8006, 15, 7002, 15, 20000.00, N'TEST-ROCKIT-20K', N'ALL', N'PRODUCT', DATEADD(minute, -30, GETDATE())),
+        (8007, 100, 7011, 5, 8000.00, N'TEST-PAY-8K', N'ALL', N'PAYMENT_METHOD', DATEADD(minute, -20, GETDATE())),
+        (8008, 101, 7012, 5, 12000.00, N'TEST-PAY-12P-NOSTACK', N'ALL', N'PAYMENT_METHOD', DATEADD(minute, -10, GETDATE()))
     ) AS src (
         usage_id,
         order_id,
@@ -2403,7 +2488,7 @@ SELECT
     valid_until,
     is_active
 FROM dbo.promotions
-WHERE promo_id BETWEEN 7001 AND 7010
+WHERE promo_id BETWEEN 7001 AND 7012
 ORDER BY promo_id;
 
 SELECT
@@ -2418,13 +2503,13 @@ SELECT
     benefit_target,
     used_at
 FROM dbo.order_promotions
-WHERE usage_id BETWEEN 8001 AND 8006
+WHERE usage_id BETWEEN 8001 AND 8008
 ORDER BY usage_id;
 
 SELECT
     (SELECT COUNT(*) FROM dbo.product_variants WHERE variant_id BETWEEN 901 AND 908) AS seeded_product_variants,
     (SELECT COUNT(*) FROM dbo.inventory_logs WHERE log_id BETWEEN 5001 AND 5015) AS seeded_inventory_logs,
-    (SELECT COUNT(*) FROM dbo.promotions WHERE promo_id BETWEEN 7001 AND 7010) AS seeded_promotions,
-    (SELECT COUNT(*) FROM dbo.order_promotions WHERE usage_id BETWEEN 8001 AND 8006) AS seeded_order_promotions;
+    (SELECT COUNT(*) FROM dbo.promotions WHERE promo_id BETWEEN 7001 AND 7012) AS seeded_promotions,
+    (SELECT COUNT(*) FROM dbo.order_promotions WHERE usage_id BETWEEN 8001 AND 8008) AS seeded_order_promotions;
 
 

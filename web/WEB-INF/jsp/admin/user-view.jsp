@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
@@ -46,7 +46,7 @@
                 </div>
                 <div>
                     <h2 class="text-xl font-bold">${user.fullName}</h2>
-                    <p class="text-white/80 text-sm mt-1">ID: #${user.userId} • Đăng ký: <fmt:parseDate value="${user.createdAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both"/><fmt:formatDate pattern="dd/MM/yyyy HH:mm" value="${parsedDate}"/></p>
+                    <p class="text-white/80 text-sm mt-1">Đăng ký: <fmt:parseDate value="${user.createdAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDate" type="both"/><fmt:formatDate pattern="dd/MM/yyyy HH:mm" value="${parsedDate}"/></p>
                 </div>
                 <div class="ml-auto">
                     <c:choose>
@@ -107,7 +107,7 @@
                                 <fmt:parseDate value="${user.updatedAt}" pattern="yyyy-MM-dd'T'HH:mm" var="parsedUpdDate" type="both"/>
                                 <fmt:formatDate pattern="dd/MM/yyyy HH:mm" value="${parsedUpdDate}"/>
                             </c:when>
-                            <c:otherwise><span class="text-txt-3">N/A</span></c:otherwise>
+                            <c:otherwise><span class="text-txt-3">Chưa có</span></c:otherwise>
                         </c:choose>
                     </div>
                 </div>

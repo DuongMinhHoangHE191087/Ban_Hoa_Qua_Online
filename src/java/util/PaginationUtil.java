@@ -1,6 +1,9 @@
 package util;
 
 import config.AppConfig;
+import model.dto.common.PagedResultDTO;
+
+import java.util.List;
 
 /**
  * PaginationUtil — Tính toán offset và tổng trang cho phân trang.
@@ -73,6 +76,17 @@ public final class PaginationUtil {
             return DEFAULT_PAGE_SIZE;
         }
         return Math.min(pageSize, MAX_PAGE_SIZE);
+    }
+
+    public static PagedResultDTO buildPagedResult(List<?> items, int page, int pageSize, long totalItems) {
+        int validatedPageSize = validatePageSize(pageSize);
+        long safeTotalItems = Math.max(0L, totalItems);
+        int totalPages = Math.max(1, getTotalPages(safeTotalItems, validatedPageSize));
+        int validatedPage = validatePage(page);
+        if (validatedPage > totalPages) {
+            validatedPage = totalPages;
+        }
+        return new PagedResultDTO(items, validatedPage, totalPages, safeTotalItems, validatedPageSize);
     }
 
     private PaginationUtil() {}

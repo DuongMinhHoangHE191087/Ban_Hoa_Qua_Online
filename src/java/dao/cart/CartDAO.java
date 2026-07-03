@@ -337,7 +337,7 @@ public class CartDAO extends BaseDAO {
         ci.setProductId(rs.getInt("product_id"));
         ci.setShopId(rs.getInt("shop_id"));
         String shopName = rs.getString("shop_name");
-        ci.setShopName(shopName != null ? shopName.trim() : "Cửa hàng Verdant");
+        ci.setShopName(shopName != null ? shopName.trim() : "Cửa hàng");
         ci.setPackagingLabel(rs.getString("packaging_label"));
         ci.setPackagingPriceAdd(rs.getBigDecimal("packaging_price_add"));
         return ci;

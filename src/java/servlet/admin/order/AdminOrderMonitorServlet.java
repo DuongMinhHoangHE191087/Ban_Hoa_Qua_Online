@@ -2,11 +2,12 @@ package servlet.admin.order;
 
 import config.AppConfig;
 import dao.order.OrderDAO;
-import model.entity.order.Order;
-import model.entity.auth.User;
 import model.dto.common.PagedResultDTO;
+import model.entity.auth.User;
+import model.entity.order.Order;
+import service.admin.AdminViewEnrichmentService; // Helper for data enrichment
+import util.PaginationUtil;
 import util.SessionUtil;
-
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * AdminOrderMonitorServlet — Monitor và giám sát tất cả đơn hàng trên sàn.
+ * AdminOrderMonitorServlet - Monitor và giám sát tất cả đơn hàng trên sàn.
  * URL: /admin/order-monitor
  */
 @WebServlet("/admin/order-monitor")
@@ -29,6 +30,7 @@ public class AdminOrderMonitorServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(AdminOrderMonitorServlet.class.getName());
 
     private final OrderDAO orderDAO = new OrderDAO();
+    private final AdminViewEnrichmentService viewEnrichmentService = new AdminViewEnrichmentService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -43,26 +45,14 @@ public class AdminOrderMonitorServlet extends HttpServlet {
         String statusFilter = req.getParameter("status");
         String paymentMethod = req.getParameter("paymentMethod");
         String paymentStatus = req.getParameter("paymentStatus");
-        String pageStr = req.getParameter("page");
-        int page = 1;
-        try {
-            if (pageStr != null) {
-                page = Integer.parseInt(pageStr);
-            }
-        } catch (NumberFormatException e) {
-            LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
-        }
 
         try {
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
             int pageSize = AppConfig.PAGE_SIZE_ORDERS;
             List<Order> orders = orderDAO.findAll(statusFilter, paymentMethod, paymentStatus, page, pageSize);
+            viewEnrichmentService.enrichOrders(orders);
             int totalCount = orderDAO.countAll(statusFilter, paymentMethod, paymentStatus);
-            int totalPages = (int) Math.ceil((double) totalCount / pageSize);
-            if (totalPages < 1) {
-                totalPages = 1;
-            }
-
-            PagedResultDTO pagedResult = new PagedResultDTO(orders, page, totalPages, totalCount, pageSize);
+            PagedResultDTO pagedResult = PaginationUtil.buildPagedResult(orders, page, pageSize, totalCount);
 
             req.setAttribute("pagedResult", pagedResult);
             req.setAttribute("statusFilter", statusFilter);

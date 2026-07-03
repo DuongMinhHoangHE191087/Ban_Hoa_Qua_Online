@@ -581,8 +581,11 @@ public class PaymentService {
         summary.setOrderId(rootOrder.getOrderId());
         summary.setOrderType(rootOrder.getOrderType());
         summary.setPaymentMethod(rootOrder.getPaymentMethod());
-        summary.setFinalAmount(rootOrder.getFinalAmount() != null ? rootOrder.getFinalAmount() : BigDecimal.ZERO);
-        summary.setPaymentRequired(AppConfig.PAYMENT_CK.equals(rootOrder.getPaymentMethod()));
+        BigDecimal finalAmount = rootOrder.getFinalAmount() != null ? rootOrder.getFinalAmount() : BigDecimal.ZERO;
+        boolean paymentRequired = AppConfig.PAYMENT_CK.equals(rootOrder.getPaymentMethod())
+                && finalAmount.compareTo(BigDecimal.ZERO) > 0;
+        summary.setFinalAmount(finalAmount);
+        summary.setPaymentRequired(paymentRequired);
         summary.setCancelled(AppConfig.ORDER_CANCELLED.equals(rootOrder.getStatus()));
 
         String paymentStatus = paymentTx != null ? paymentTx.getStatus() : null;
@@ -592,13 +595,16 @@ public class PaymentService {
         }
 
         String effectiveOrderStatus = rootOrder.getStatus();
-        boolean paid = "completed".equalsIgnoreCase(paymentStatus);
+        boolean paid = !paymentRequired || "completed".equalsIgnoreCase(paymentStatus);
+        if (!paymentRequired && AppConfig.ORDER_PENDING_PAYMENT.equals(effectiveOrderStatus)) {
+            effectiveOrderStatus = AppConfig.ORDER_CONFIRMED;
+        }
         if (AppConfig.ORDER_PENDING_PAYMENT.equals(effectiveOrderStatus) && paid) {
             effectiveOrderStatus = AppConfig.ORDER_CONFIRMED;
         }
         summary.setOrderStatus(effectiveOrderStatus);
         summary.setPaid(paid);
-        summary.setPendingPayment(summary.getPaymentRequired()
+        summary.setPendingPayment(paymentRequired
                 && AppConfig.ORDER_PENDING_PAYMENT.equals(rootOrder.getStatus())
                 && !paid
                 && !summary.getCancelled());

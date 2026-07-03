@@ -19,6 +19,7 @@ public class CheckoutShopSummaryDTO {
     private BigDecimal systemMerchandiseDiscountAmount = BigDecimal.ZERO;
     private BigDecimal shopShippingDiscountAmount = BigDecimal.ZERO;
     private BigDecimal systemShippingDiscountAmount = BigDecimal.ZERO;
+    private BigDecimal paymentDiscountAmount = BigDecimal.ZERO;
     private BigDecimal discountAmount = BigDecimal.ZERO;
     private BigDecimal finalAmount = BigDecimal.ZERO;
     private List<CheckoutCouponDTO> eligibleCoupons = new ArrayList<>();
@@ -94,6 +95,14 @@ public class CheckoutShopSummaryDTO {
 
     public void setSystemShippingDiscountAmount(BigDecimal systemShippingDiscountAmount) {
         this.systemShippingDiscountAmount = systemShippingDiscountAmount;
+    }
+
+    public BigDecimal getPaymentDiscountAmount() {
+        return paymentDiscountAmount;
+    }
+
+    public void setPaymentDiscountAmount(BigDecimal paymentDiscountAmount) {
+        this.paymentDiscountAmount = paymentDiscountAmount;
     }
 
     public BigDecimal getDiscountAmount() {

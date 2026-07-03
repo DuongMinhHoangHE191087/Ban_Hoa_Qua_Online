@@ -10,6 +10,7 @@ import model.entity.catalog.Product;
 import model.entity.catalog.ProductImage;
 import model.entity.catalog.ProductVariant;
 import model.entity.auth.User;
+import model.dto.common.PagedResultDTO;
 import util.SessionUtil;
 
 import util.LoggerUtil;
@@ -45,6 +46,7 @@ public class ProductManageServlet extends HttpServlet {
     private final ProductImageDAO productImageDAO = new ProductImageDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
+    private final service.catalog.ProductService productService = new service.catalog.ProductService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -68,8 +70,21 @@ public class ProductManageServlet extends HttpServlet {
         String sellStatus = req.getParameter("sellStatus");
 
         try {
-            // 2. Lấy danh sách sản phẩm chưa bị xóa mềm của shop
-            List<Product> rawProducts = productDAO.findByOwner(currentUser.getUserId());
+            int page = util.PaginationUtil.parsePage(req.getParameter("page"));
+            int pageSize = AppConfig.DEFAULT_PAGE_SIZE;
+
+            Integer categoryId = null;
+            if (categoryIdStr != null && !categoryIdStr.trim().isEmpty()) {
+                try {
+                    categoryId = Integer.parseInt(categoryIdStr.trim());
+                } catch (NumberFormatException ignored) {}
+            }
+
+            PagedResultDTO pagedResult = productService.getProductsByOwner(
+                    currentUser.getUserId(), page, pageSize, keyword, categoryId, filterApprovalStatus, sellStatus, stockStatus);
+
+            @SuppressWarnings("unchecked")
+            List<Product> rawProducts = (List<Product>) pagedResult.getItems();
             List<Map<String, Object>> products = new ArrayList<>();
 
             // 3. Tải danh mục một lần rồi tách ra map hiển thị + danh sách active cho modal
@@ -92,58 +107,7 @@ public class ProductManageServlet extends HttpServlet {
             Map<Integer, List<ProductVariant>> variantsByProduct = productVariantDAO.findByProductIds(productIds);
 
             for (Product p : rawProducts) {
-                // a. Lọc theo keyword (chỉ lọc theo tên sản phẩm)
-                if (keyword != null && !keyword.trim().isEmpty()) {
-                    String kw = keyword.toLowerCase().trim();
-                    boolean matchName = p.getName() != null && p.getName().toLowerCase().contains(kw);
-                    if (!matchName) {
-                        continue;
-                    }
-                }
-
-                // b. Lọc theo categoryId
-                if (categoryIdStr != null && !categoryIdStr.trim().isEmpty()) {
-                    try {
-                        int catId = Integer.parseInt(categoryIdStr);
-                        if (p.getCategoryId() != catId) {
-                            continue;
-                        }
-                    } catch (NumberFormatException ignored) {}
-                }
-
-                // c. Lọc theo approvalStatus
-                if (filterApprovalStatus != null && !filterApprovalStatus.trim().isEmpty() && !"ALL".equals(filterApprovalStatus)) {
-                    if (!filterApprovalStatus.equals(p.getApprovalStatus())) {
-                        continue;
-                    }
-                }
-
-                // d. Lọc theo sellStatus
-                if (sellStatus != null && !sellStatus.trim().isEmpty() && !"ALL".equals(sellStatus)) {
-                    if (!sellStatus.equals(p.getStatus())) {
-                        continue;
-                    }
-                }
-
-                // Lấy thông tin variants & tính tổng tồn kho để lọc stockStatus
                 List<ProductVariant> variants = variantsByProduct.get(p.getProductId());
-                int totalStock = 0;
-                if (variants != null) {
-                    for (ProductVariant v : variants) {
-                        totalStock += v.getStockQuantity();
-                    }
-                }
-
-                // e. Lọc theo stockStatus
-                if (stockStatus != null && !stockStatus.trim().isEmpty() && !"ALL".equals(stockStatus)) {
-                    if ("IN_STOCK".equals(stockStatus) && totalStock <= 0) {
-                        continue;
-                    }
-                    if ("OUT_OF_STOCK".equals(stockStatus) && totalStock > 0) {
-                        continue;
-                    }
-                }
-
                 products.add(buildManageProductCard(req, p, categoryMap,
                         primaryImages.get(p.getProductId()),
                         variants));
@@ -156,6 +120,9 @@ public class ProductManageServlet extends HttpServlet {
             req.setAttribute("approvalStatus", filterApprovalStatus);
             req.setAttribute("sellStatus", sellStatus);
             req.setAttribute("products", products);
+            req.setAttribute("currentPage", pagedResult.getCurrentPage());
+            req.setAttribute("totalPages", pagedResult.getTotalPages());
+            req.setAttribute("totalItems", pagedResult.getTotalItems());
 
             // 5. Forward đến trang danh sách JSP
             req.getRequestDispatcher("/WEB-INF/jsp/shop/product-list.jsp").forward(req, resp);

@@ -210,7 +210,7 @@ CREATE TABLE promotions (
     min_order_value DECIMAL(14,2) NOT NULL DEFAULT 0,
     scope NVARCHAR(15) NOT NULL CHECK (scope IN ('ORDER','PRODUCT')),
     benefit_target NVARCHAR(20) NOT NULL DEFAULT 'MERCHANDISE'
-        CHECK (benefit_target IN ('MERCHANDISE','SHIPPING','PRODUCT')),
+        CHECK (benefit_target IN ('MERCHANDISE','SHIPPING','PRODUCT','PAYMENT_METHOD')),
     product_id INT NULL FOREIGN KEY REFERENCES products(product_id),
     max_uses INT NULL,
     used_count INT NOT NULL DEFAULT 0,
@@ -300,7 +300,7 @@ CREATE TABLE order_promotions (
     coupon_code NVARCHAR(50) NULL,
     discount_scope NVARCHAR(50) NULL,
     benefit_target NVARCHAR(20) NULL
-        CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE','SHIPPING','PRODUCT')),
+        CHECK (benefit_target IS NULL OR benefit_target IN ('MERCHANDISE','SHIPPING','PRODUCT','PAYMENT_METHOD')),
     used_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
@@ -339,7 +339,22 @@ CREATE TABLE shop_settlements (
     status NVARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','CONFIRMED','PAID','CANCELLED')),
     calculated_at DATETIME NOT NULL DEFAULT GETDATE(),
     confirmed_at DATETIME NULL,
+    confirmed_by INT NULL FOREIGN KEY REFERENCES users(user_id),
+    confirm_note NVARCHAR(500) NULL,
+    cancelled_at DATETIME NULL,
+    cancelled_by INT NULL FOREIGN KEY REFERENCES users(user_id),
+    cancel_reason NVARCHAR(500) NULL,
     paid_at DATETIME NULL,
+    paid_by INT NULL FOREIGN KEY REFERENCES users(user_id),
+    paid_reference NVARCHAR(100) NULL,
+    paid_note NVARCHAR(500) NULL,
+    payment_issue_status NVARCHAR(20) NOT NULL DEFAULT 'NONE' CHECK (payment_issue_status IN ('NONE','REPORTED','UNDER_REVIEW','RESOLVED')),
+    payment_issue_at DATETIME NULL,
+    payment_issue_by INT NULL FOREIGN KEY REFERENCES users(user_id),
+    payment_issue_note NVARCHAR(500) NULL,
+    payment_issue_resolved_at DATETIME NULL,
+    payment_issue_resolved_by INT NULL FOREIGN KEY REFERENCES users(user_id),
+    payment_issue_resolution_note NVARCHAR(500) NULL,
     created_by INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     note NVARCHAR(500) NULL
 );

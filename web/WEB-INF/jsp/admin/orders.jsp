@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -7,26 +7,22 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giám sát đơn hàng - Admin MetaFruit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <!-- Tailwind & SweetAlert -->
     <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
 <body class="antialiased text-txt bg-background">
     <div class="admin-layout">
-        <!-- Sidebar -->
         <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
             <jsp:param name="activeMenu" value="orders"/>
         </jsp:include>
 
-        <!-- Main Content -->
         <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
-            <%-- Page header --%>
             <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
                 <div>
                     <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Giám Sát Đơn Hàng</h1>
@@ -38,7 +34,6 @@
                 </div>
             </div>
 
-            <!-- Flash Message (PRG pattern support) -->
             <c:if test="${not empty sessionScope.flashMsg}">
                 <div id="flashData" hidden
                      data-icon="<c:out value="${sessionScope.flashType == 'success' ? 'success' : 'error'}"/>"
@@ -62,8 +57,6 @@
                 <c:remove var="flashType" scope="session"/>
             </c:if>
 
-
-            <!-- Section 1: Đơn hàng chuyển khoản cần xác nhận thanh toán -->
             <div class="premium-glass-card rounded-[1.5rem] p-6 mb-8 border-l-4 border-l-amber-500">
                 <h3 class="text-lg font-bold text-amber-700 flex items-center gap-2 mb-4">
                     <span class="material-symbols-outlined">payments</span> Đơn Chuyển Khoản Chờ Phê Duyệt (${pendingPayments.size()})
@@ -93,9 +86,14 @@
                                         <c:set var="pt" value="${pendingTxMap[order.orderId]}" />
                                         <tr class="hover:bg-primary-light/10 transition-colors">
                                             <td class="p-3 font-bold text-primary">#${order.orderId}</td>
-                                            <td class="p-3">User ID: ${order.customerId}</td>
-                                            <td class="p-3">Shop ID: ${order.ownerId}</td>
-                                            <td class="p-3 font-mono text-xs font-bold text-slate-600">${pt != null ? pt.sepayReference : 'N/A'}</td>
+                                            <td class="p-3">
+                                                <div class="font-semibold text-txt">${order.customerName}</div>
+                                            </td>
+                                            <td class="p-3">
+                                                <div class="font-semibold text-txt">${order.shopName}</div>
+                                                <div class="text-[11px] text-txt-3">Chủ: ${order.ownerName}</div>
+                                            </td>
+                                            <td class="p-3 font-mono text-xs font-bold text-slate-600">${pt != null ? pt.sepayReference : 'Chưa có'}</td>
                                             <td class="p-3">
                                                 <c:choose>
                                                     <c:when test="${empty pt}">
@@ -140,13 +138,11 @@
                 </div>
             </div>
 
-            <!-- Section 2: Bộ lọc và danh sách tất cả các đơn hàng -->
             <div class="premium-glass-card rounded-[1.5rem] p-6">
                 <h3 class="text-lg font-bold text-primary-dark flex items-center gap-2 mb-6 border-b border-border pb-3">
                     <span class="material-symbols-outlined">list_alt</span> Lịch Sử Giao Dịch Toàn Sàn
                 </h3>
-                
-                <!-- Dynamic Filters Form -->
+
                 <form action="" method="GET" class="flex flex-wrap gap-4 items-end bg-slate-50/50 p-4 rounded-2xl border border-border mb-6">
                     <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
                         <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Trạng thái Đơn hàng</span>
@@ -161,7 +157,7 @@
                             <option value="CANCELLED" ${statusFilter == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
                         </select>
                     </div>
-                    
+
                     <div class="flex flex-col gap-1 flex-1 min-w-[150px]">
                         <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Hình thức thanh toán</span>
                         <select name="paymentMethod" class="w-full rounded-xl border border-border/80 p-2 bg-white text-xs focus:ring-2 focus:ring-primary focus:outline-none">
@@ -220,8 +216,13 @@
                                         <c:set var="pt" value="${txMap[order.orderId]}" />
                                         <tr class="hover:bg-primary-light/10 transition-colors">
                                             <td class="p-3 font-bold text-primary">#${order.orderId}</td>
-                                            <td class="p-3">Khách ID: ${order.customerId}</td>
-                                            <td class="p-3">Shop ID: ${order.ownerId}</td>
+                                            <td class="p-3">
+                                                <div class="font-semibold text-txt">${order.customerName}</div>
+                                            </td>
+                                            <td class="p-3">
+                                                <div class="font-semibold text-txt">${order.shopName}</div>
+                                                <div class="text-[11px] text-txt-3">Chủ: ${order.ownerName}</div>
+                                            </td>
                                             <td class="p-3">
                                                 <span class="px-2 py-0.5 rounded text-[11px] font-bold ${order.paymentMethod == 'CK' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}">
                                                     ${order.paymentMethod}
@@ -240,7 +241,7 @@
                                                             <c:otherwise>
                                                                 <div class="flex flex-col text-xs">
                                                                     <span class="font-bold text-slate-700">Ref: ${pt.sepayReference}</span>
-                                                                    <span class="text-text-muted text-[10px]">Trạng thái: 
+                                                                    <span class="text-text-muted text-[10px]">Trạng thái:
                                                                         <strong class="${pt.status == 'completed' ? 'text-emerald-600' : (pt.status == 'processing' ? 'text-amber-600' : 'text-slate-600')}">${pt.status}</strong>
                                                                     </span>
                                                                 </div>
@@ -275,14 +276,12 @@
                                             <td class="p-3 text-text-muted text-xs">${order.createdAt}</td>
                                             <td class="p-3 text-center">
                                                 <div class="flex gap-2 justify-center flex-wrap">
-                                                    <!-- Chỉ định shipper: chỉ khi APPROVED -->
                                                     <c:if test="${order.status == 'APPROVED'}">
                                                         <button class="bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer"
                                                                 onclick="openAssignModal('${order.orderId}')">
                                                             <i class="fa-solid fa-motorcycle"></i> Chỉ định Shipper
                                                         </button>
                                                     </c:if>
-                                                    <!-- Nút Hủy đơn cho các đơn chưa kết thúc -->
                                                     <c:if test="${order.status != 'DELIVERED' && order.status != 'CANCELLED'}">
                                                         <button class="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-100 text-xs font-bold px-2.5 py-1 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer" onclick="showCancelModal('${order.orderId}')">
                                                             <i class="fa-solid fa-trash-can"></i> Hủy đơn
@@ -301,7 +300,6 @@
                     </table>
                 </div>
 
-                <!-- Pagination UI with advanced parameters preserved -->
                 <div class="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-border gap-4">
                     <span class="text-xs text-text-secondary font-medium">Trang ${currentPage} / ${totalPages}</span>
                     <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?status=${fn:escapeXml(statusFilter)}&paymentMethod=${fn:escapeXml(paymentMethod)}&paymentStatus=${fn:escapeXml(paymentStatus)}" />
@@ -310,7 +308,30 @@
         </main>
     </div>
 
-    <!-- Modal Hủy Đơn -->
+    <div id="assignModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-border animate-fade-in">
+            <h3 class="text-lg font-bold text-text-primary mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600">local_shipping</span> Chỉ định Shipper
+            </h3>
+            <p class="text-text-secondary text-xs mb-4 leading-relaxed">Chọn nhân viên giao hàng cho đơn này.</p>
+            <form action="${pageContext.request.contextPath}/admin/orders" method="POST" onsubmit="return submitAssign(event)">
+                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                <input type="hidden" name="action" value="assignDelivery">
+                <input type="hidden" name="orderId" id="assignOrderId">
+                <select name="shipperId" id="shipperId" class="w-full rounded-xl border border-border/80 p-3 text-sm focus:ring-2 focus:ring-primary focus:outline-none mb-4" required>
+                    <option value="">-- Chọn shipper --</option>
+                    <c:forEach var="shipper" items="${deliveryStaff}">
+                        <option value="${shipper.userId}">${shipper.fullName}</option>
+                    </c:forEach>
+                </select>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="bg-white border border-border text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all active:scale-95 cursor-pointer" onclick="closeAssignModal()">Hủy bỏ</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer">Xác nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="cancelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-border animate-fade-in">
             <h3 class="text-lg font-bold text-text-primary mb-2 flex items-center gap-2">
@@ -356,34 +377,14 @@
             document.getElementById('cancelModal').classList.remove('hidden');
         }
 
-        function closeCancelModal() {
-            document.getElementById('cancelModal').classList.add('hidden');
-        }
-
-        function submitCancel(event) {
-            event.preventDefault();
-            const reason = document.getElementById('cancelReason').value.trim();
-            if(!reason) {
-                Swal.fire('Lỗi', 'Vui lòng nhập lý do hủy đơn hàng', 'error');
-                return false;
-            }
-            event.target.submit();
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const cancelModal = document.getElementById('cancelModal');
-            const assignModal = document.getElementById('assignModal');
-            if (event.target === cancelModal) closeCancelModal();
-            if (event.target === assignModal) closeAssignModal();
-        }
-
-        // Delivery assignment modal
         function openAssignModal(orderId) {
             document.getElementById('assignOrderId').value = orderId;
-            document.getElementById('assignOrderLabel').textContent = '#' + orderId;
-            document.getElementById('assignShipperId').value = '';
+            document.getElementById('shipperId').value = '';
             document.getElementById('assignModal').classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancelModal').classList.add('hidden');
         }
 
         function closeAssignModal() {
@@ -392,51 +393,46 @@
 
         function submitAssign(event) {
             event.preventDefault();
-            const shipperId = document.getElementById('assignShipperId').value;
+            const shipperId = document.getElementById('shipperId').value;
             if (!shipperId) {
-                Swal.fire('Lỗi', 'Vui lòng chọn shipper để chỉ định', 'error');
+                Swal.fire('Lỗi', 'Vui lòng chọn shipper.', 'error');
                 return false;
             }
-            event.target.submit();
+            Swal.fire({
+                title: 'Chỉ định shipper?',
+                text: 'Xác nhận gán shipper cho đơn hàng này.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#d1d5db',
+                confirmButtonText: 'Gán shipper',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    event.target.submit();
+                }
+            });
+            return false;
+        }
+
+        function submitCancel(event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Xác nhận hủy đơn?',
+                text: 'Hành động này sẽ hủy đơn hàng và có thể hoàn trả tồn kho.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#d1d5db',
+                confirmButtonText: 'Hủy đơn',
+                cancelButtonText: 'Bỏ qua'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    event.target.submit();
+                }
+            });
+            return false;
         }
     </script>
-
-    <!-- Modal Chỉ định Shipper -->
-    <div id="assignModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-border">
-            <h3 class="text-lg font-bold text-text-primary mb-2 flex items-center gap-2">
-                <span class="material-symbols-outlined text-indigo-600">local_shipping</span>
-                Chỉ định Shipper — Đơn <span id="assignOrderLabel" class="text-primary"></span>
-            </h3>
-            <p class="text-text-secondary text-xs mb-4 leading-relaxed">Chọn nhân viên giao hàng để chỉ định cho đơn hàng này. Đơn sẽ chuyển sang trạng thái <strong>Đang giao</strong>.</p>
-            <form action="${pageContext.request.contextPath}/admin/orders" method="POST" onsubmit="return submitAssign(event)">
-                <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                <input type="hidden" name="action" value="assignDelivery">
-                <input type="hidden" name="orderId" id="assignOrderId">
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-text-secondary mb-1.5">Shipper <span class="text-red-500">*</span></label>
-                    <select id="assignShipperId" name="shipperId" required
-                            class="w-full rounded-xl border border-border/80 p-2.5 bg-white text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none">
-                        <option value="">-- Chọn shipper --</option>
-                        <c:forEach var="staff" items="${deliveryStaff}">
-                            <option value="${staff.userId}">
-                                <c:out value="${staff.fullName}"/> (<c:out value="${staff.email}"/>)
-                            </option>
-                        </c:forEach>
-                        <c:if test="${empty deliveryStaff}">
-                            <option disabled>Chưa có shipper nào đăng ký</option>
-                        </c:if>
-                    </select>
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" class="bg-white border border-border text-text-secondary font-bold px-4 py-2 rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
-                            onclick="closeAssignModal()">Hủy bỏ</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer">
-                        <i class="fa-solid fa-motorcycle mr-1"></i>Chỉ định Shipper
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </body>
 </html>

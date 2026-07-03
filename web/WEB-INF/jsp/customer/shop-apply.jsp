@@ -50,10 +50,6 @@
             <span class="text-2xl font-bold text-primary tracking-wide">MetaFruit</span>
         </a>
         <div class="flex items-center gap-3">
-            <a href="${pageContext.request.contextPath}/customer/profile" class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1">
-                <span class="material-symbols-outlined text-[18px]">account_circle</span>
-                <c:out value="${sessionScope.currentUser.fullName}"/>
-            </a>
             <a href="${pageContext.request.contextPath}/" class="text-sm font-medium text-primary hover:text-primary-hover flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors">
                 <span class="material-symbols-outlined text-[18px]">home</span>
                 Trang chủ
@@ -65,7 +61,7 @@
     <main class="relative z-10 pt-28 pb-16 px-4 md:px-8 flex justify-center">
         <div class="w-full max-w-3xl">
 
-            <!-- Page Title -->
+            <!-- Banner Header -->
             <div class="text-center mb-8">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 mb-4">
                     <span class="material-symbols-outlined text-primary text-3xl">storefront</span>
@@ -78,11 +74,36 @@
             <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
             <!-- TRẠNG THÁI ĐÃ NỘP ĐƠN (nếu có) -->
-            
+            <c:if test="${not empty existingProfile}">
+                <div class="premium-glass-card rounded-2xl p-6 mb-8 border border-white/40 bg-white/60 space-y-4">
+                    <h2 class="text-base font-bold text-primary flex items-center gap-2">
+                        <span class="material-symbols-outlined">info</span>
+                        Trạng thái đơn đăng ký hiện tại
+                    </h2>
+                    <div class="p-4 rounded-xl text-sm flex flex-col gap-2 ${existingProfile.approvalStatus == 'PENDING' ? 'bg-amber-50 text-amber-800 border border-amber-200' : (existingProfile.approvalStatus == 'APPROVED' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200')}">
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold">Trạng thái:</span>
+                            <span class="font-bold">
+                                <c:choose>
+                                    <c:when test="${existingProfile.approvalStatus == 'PENDING'}">CHỜ DUYỆT</c:when>
+                                    <c:when test="${existingProfile.approvalStatus == 'APPROVED'}">ĐÃ DUYỆT</c:when>
+                                    <c:when test="${existingProfile.approvalStatus == 'REJECTED'}">BỊ TỪ CHỐI</c:when>
+                                </c:choose>
+                            </span>
+                        </div>
+                        <c:if test="${not empty existingProfile.rejectionReason}">
+                            <div class="mt-2 text-xs border-t border-red-200 pt-2">
+                                <strong>Lý do từ chối:</strong> <c:out value="${existingProfile.rejectionReason}"/>
+                            </div>
+                        </c:if>
+                    </div>
+                </div>
+            </c:if>
 
             <c:set var="canApply" value="${empty existingProfile or existingProfile.approvalStatus == 'REJECTED'}"/>
-            <c:if test="${canApply}">
-                <div class="glass-card rounded-2xl p-6 md:p-10">
+
+            <c:if var="applyAllowed" test="${canApply}">
+                <div class="premium-glass-card rounded-2xl p-6 md:p-8 border border-white/40 bg-white/70 shadow-lg">
                     <h2 class="text-base font-bold text-primary mb-6 flex items-center gap-2">
                         <span class="material-symbols-outlined text-[20px]">edit_document</span>
                         <c:choose>
@@ -122,7 +143,7 @@
 
                         <!-- Yêu cầu bổ sung Số điện thoại liên hệ -->
                         <c:if test="${empty sessionScope.currentUser.phone}">
-                            <div class="bg-amber-50/80 p-5 rounded-xl border border-amber-200/60 space-y-3 shadow-sm">
+                            <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
                                 <h3 class="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-[16px] text-amber-700">phone</span>
                                     Yêu cầu bổ sung Số điện thoại liên hệ *
@@ -247,7 +268,7 @@
                                 <span class="material-symbols-outlined text-[16px]">upload_file</span>
                                 Tài liệu xác minh kinh doanh
                             </h3>
-                            <p class="text-[10px] text-outline">Tối đa 10 tài liệu • Mỗi file ≤ 25MB • PDF, JPG, PNG, DOCX</p>
+                            <p class="text-[10px] text-outline">Tải tối đa 10 tài liệu (Mỗi file &lt; 25MB) PDF, JPG, PNG, DOCX</p>
                             <p class="text-xs text-on-surface-variant">Ví dụ: Giấy phép kinh doanh (GPKD), Chứng nhận ATTP, Giấy chứng nhận VietGAP...</p>
 
                             <div class="border-2 border-dashed border-primary/20 rounded-xl p-6 text-center bg-white/20 hover:bg-emerald-50/50 transition-colors cursor-pointer group relative" id="shopDropzone">
@@ -291,19 +312,19 @@
                         <!-- Terms -->
                         <div class="flex items-start gap-3">
                             <div class="flex items-center h-5 mt-0.5">
-                                <input class="w-4 h-4 rounded border-outline/30 text-primary focus:ring-primary bg-white cursor-pointer"
+                                <input class="rounded text-primary focus:ring-primary border-outline/30 bg-white" 
                                        id="agreeTerms" name="agreeTerms" type="checkbox" <c:if test="${not empty param.agreeTerms}">checked</c:if> required>
                             </div>
                             <label class="text-xs text-on-surface-variant leading-relaxed cursor-pointer" for="agreeTerms">
                                 Tôi cam kết thông tin cung cấp là chính xác và đồng ý với
-                                <a class="text-primary font-bold hover:underline" href="#">Điều khoản dành cho đối tác bán hàng</a>
+                                <a class="text-primary font-bold hover:underline" href="#"> điều khoản dành cho đối tác bán hàng</a>
                                 của MetaFruit.
                             </label>
                         </div>
 
                         <!-- Submit -->
                         <button type="submit" id="submitBtn"
-                                class="w-full bg-primary text-white text-sm font-semibold py-3.5 px-6 rounded-lg shadow-md hover:bg-primary-hover hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 group cursor-pointer">
+                                class="w-full bg-primary text-white text-sm font-semibold py-3.5 px-6 rounded-lg shadow-md hover:bg-primary-hover hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 group cursor-pointer border-0">
                             <span class="material-symbols-outlined text-[20px]">send</span>
                             <span>Gửi đơn đăng ký</span>
                         </button>
@@ -331,7 +352,7 @@
             let errors = [];
 
             if (files.length > MAX_DOC) {
-                errors.push(`Chỉ được chọn tối đa ${'${'}MAX_DOC} tài liệu.`);
+                errors.push(`Chỉ được chọn tối đa ${MAX_DOC} tài liệu.`);
             }
 
             files.slice(0, MAX_DOC).forEach(file => {
@@ -339,25 +360,24 @@
                 const li = document.createElement('li');
                 li.className = 'flex items-center gap-2 text-xs py-1.5 px-3 bg-white/60 rounded-lg border border-outline/20';
                 if (!ALLOWED.includes(ext)) {
-                    errors.push(`"${'${'}file.name}" — sai định dạng.`);
-                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${'${'}file.name} — Không hỗ trợ</span>`;
+                    errors.push(`"${file.name}" sai định dạng.`);
+                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} Không hỗ trợ</span>`;
                 } else if (file.size > MAX_SIZE) {
-                    errors.push(`"${'${'}file.name}" — vượt quá 25MB.`);
-                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${'${'}file.name} — ${'${'}(file.size/1024/1024).toFixed(1)}MB (quá 25MB)</span>`;
+                    errors.push(`"${file.name}" vượt quá 25MB.`);
+                    li.innerHTML = `<span class="material-symbols-outlined text-red-500 text-[16px]">error</span><span class="text-red-600">${file.name} ${(file.size/1024/1024).toFixed(1)}MB (quá 25MB)</span>`;
                 } else {
-                    li.innerHTML = `<span class="material-symbols-outlined text-primary text-[16px]">description</span><span>${'${'}file.name}</span><span class="ml-auto text-outline">${'${'}(file.size/1024/1024).toFixed(1)}MB</span>`;
+                    li.innerHTML = `<span class="material-symbols-outlined text-primary text-[16px]">description</span><span>${file.name}</span><span class="ml-auto text-outline">${(file.size/1024/1024).toFixed(1)}MB</span>`;
                 }
                 listEl.appendChild(li);
             });
 
             if (files.length > 0) {
                 listEl.classList.remove('hidden');
-                label.innerHTML = `Đã chọn <span class="text-primary font-bold">${'${'}Math.min(files.length, MAX_DOC)} tệp</span>`;
+                label.innerHTML = `Đã chọn <span class="text-primary font-bold">${Math.min(files.length, MAX_DOC)} tệp</span>`;
             }
             if (errors.length > 0) {
                 errorEl.textContent = errors[0];
                 errorEl.classList.remove('hidden');
-                // Block submit nếu có lỗi
                 document.getElementById('submitBtn').disabled = true;
             } else {
                 document.getElementById('submitBtn').disabled = false;

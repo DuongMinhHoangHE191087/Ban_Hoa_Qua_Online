@@ -31,12 +31,14 @@ public class AdminDashboardServlet extends HttpServlet {
             int totalUsers = userService.countUsers(null, null);
             int totalOrders = orderService.countAllOrders(null);
             int pendingRefunds = returnRequestService.countAllRequests("REQUESTED"); // Assuming "REQUESTED" is pending status
-            int unpaidSettlements = settlementService.countAllSettlements("PENDING");
+            int confirmedSettlements = settlementService.countAllSettlements("CONFIRMED");
+            int openSettlementIssues = settlementService.countOpenPaymentIssues();
 
             req.setAttribute("totalUsers", totalUsers);
             req.setAttribute("totalOrders", totalOrders);
             req.setAttribute("pendingRefunds", pendingRefunds);
-            req.setAttribute("unpaidSettlements", unpaidSettlements);
+            req.setAttribute("confirmedSettlements", confirmedSettlements);
+            req.setAttribute("openSettlementIssues", openSettlementIssues);
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/dashboard.jsp").forward(req, resp);
         } catch (Exception e) {

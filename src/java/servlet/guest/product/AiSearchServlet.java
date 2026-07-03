@@ -12,6 +12,7 @@ import service.chat.AiSearchService;
 import util.JsonUtil;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -40,9 +41,18 @@ public class AiSearchServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setCharacterEncoding("UTF-8");
-        resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
+        boolean streamingRequested = isStreamingRequest(req);
+        if (streamingRequested) {
+            resp.setContentType("text/event-stream;charset=UTF-8");
+            resp.setHeader("Cache-Control", "no-cache, no-transform");
+            resp.setHeader("Connection", "keep-alive");
+            resp.setHeader("X-Accel-Buffering", "no");
+        } else {
+            resp.setContentType("application/json;charset=UTF-8");
+        }
 
+        PrintWriter streamWriter = null;
         try {
             String userMessage = normalizeText(req.getParameter("message"));
             if (userMessage == null) {
@@ -63,10 +73,38 @@ public class AiSearchServlet extends HttpServlet {
             }
 
             if (userMessage == null || userMessage.isBlank()) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JsonUtil.writeJson(resp, ApiResponse.fail(
-                        HttpServletResponse.SC_BAD_REQUEST,
-                        "Nội dung tìm kiếm không được để trống."));
+                if (streamingRequested) {
+                    streamWriter = ensureWriter(resp, streamWriter);
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    writeSseEvent(streamWriter, "error", Map.of(
+                            "message", "Nội dung tìm kiếm không được để trống."));
+                } else {
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    JsonUtil.writeJson(resp, ApiResponse.fail(
+                            HttpServletResponse.SC_BAD_REQUEST,
+                            "Nội dung tìm kiếm không được để trống."));
+                }
+                return;
+            }
+
+            if (streamingRequested) {
+                streamWriter = ensureWriter(resp, streamWriter);
+                final PrintWriter finalStreamWriter = streamWriter;
+                resp.setStatus(HttpServletResponse.SC_OK);
+                Map<String, Object> responseData = aiSearchService.streamSearch(
+                        userMessage,
+                        delta -> writeSseEvent(finalStreamWriter, "delta", eventPayload("delta", delta)));
+                req.setAttribute("requestMetricsFallback", Boolean.TRUE.equals(responseData.get("fallback")));
+                Object products = responseData.get("products");
+                if (products instanceof List<?> list) {
+                    req.setAttribute("requestMetricsItemCount", list.size());
+                }
+
+                if ("upstream_error".equals(responseData.get("source"))) {
+                    writeSseEvent(streamWriter, "error", responseData);
+                } else {
+                    writeSseEvent(streamWriter, "done", responseData);
+                }
                 return;
             }
 
@@ -80,9 +118,43 @@ public class AiSearchServlet extends HttpServlet {
             resp.setStatus(HttpServletResponse.SC_OK);
             JsonUtil.writeJson(resp, ApiResponse.ok(responseData));
         } catch (IllegalArgumentException e) {
+            if (streamingRequested) {
+                try {
+                    streamWriter = ensureWriter(resp, streamWriter);
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    writeSseEvent(streamWriter, "error", eventPayload("message", e.getMessage()));
+                } catch (IOException ioException) {
+                    util.ServletUtil.sendJsonInternalServerError(
+                            req,
+                            resp,
+                            log,
+                            "AiSearchServlet#doPost",
+                            "Lỗi hệ thống khi xử lý AI: " + ioException.getMessage(),
+                            ioException);
+                }
+                return;
+            }
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
         } catch (Exception e) {
+            if (streamingRequested) {
+                try {
+                    streamWriter = ensureWriter(resp, streamWriter);
+                    resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    writeSseEvent(streamWriter, "error", eventPayload(
+                            "message",
+                            "Lỗi hệ thống khi xử lý AI: " + e.getMessage()));
+                } catch (IOException ioException) {
+                    util.ServletUtil.sendJsonInternalServerError(
+                            req,
+                            resp,
+                            log,
+                            "AiSearchServlet#doPost",
+                            "Lỗi hệ thống khi xử lý AI: " + ioException.getMessage(),
+                            ioException);
+                }
+                return;
+            }
             util.ServletUtil.sendJsonInternalServerError(
                     req,
                     resp,
@@ -91,6 +163,37 @@ public class AiSearchServlet extends HttpServlet {
                     "Lỗi hệ thống khi xử lý AI: " + e.getMessage(),
                     e);
         }
+    }
+
+    private boolean isStreamingRequest(HttpServletRequest req) {
+        String streamParam = normalizeText(req.getParameter("stream"));
+        if (streamParam != null && ("1".equals(streamParam) || "true".equalsIgnoreCase(streamParam))) {
+            return true;
+        }
+
+        String accept = req.getHeader("Accept");
+        if (accept != null && accept.contains("text/event-stream")) {
+            return true;
+        }
+
+        String requestedWith = normalizeText(req.getHeader("X-AI-Stream"));
+        return requestedWith != null && ("1".equals(requestedWith) || "true".equalsIgnoreCase(requestedWith));
+    }
+
+    private PrintWriter ensureWriter(HttpServletResponse resp, PrintWriter currentWriter) throws IOException {
+        return currentWriter != null ? currentWriter : resp.getWriter();
+    }
+
+    private Map<String, Object> eventPayload(String key, Object value) {
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put(key, value);
+        return payload;
+    }
+
+    private void writeSseEvent(PrintWriter writer, String eventType, Map<String, Object> data) throws IOException {
+        writer.write("event: " + eventType + "\n");
+        writer.write("data: " + mapper.writeValueAsString(data) + "\n\n");
+        writer.flush();
     }
 
     private String normalizeText(Object value) {

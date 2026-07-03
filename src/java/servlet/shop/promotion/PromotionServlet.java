@@ -1,5 +1,6 @@
 package servlet.shop.promotion;
 import service.shop.PromotionService;
+import model.dto.common.PagedResultDTO;
 
 import config.AppConfig;
 import model.entity.Promotion;
@@ -107,9 +108,17 @@ public class PromotionServlet extends HttpServlet {
                 : "Tạo, sửa, bật/tắt và xóa mềm voucher sàn cho toàn hệ thống.");
         req.setAttribute("promotionBadge", mode == PromotionMode.SHOP ? "VOUCHER SHOP" : "VOUCHER SÀN");
         req.setAttribute("promotionFixedScope", mode == PromotionMode.SHOP ? "SHOP" : "ALL");
-        req.setAttribute("promotions", mode == PromotionMode.SHOP
-                ? promotionService.getShopPromos(currentUser.getUserId())
-                : promotionService.getGlobalPromotions());
+        int page = util.PaginationUtil.parsePage(req.getParameter("page"));
+        int pageSize = mode == PromotionMode.SHOP ? AppConfig.DEFAULT_PAGE_SIZE : AppConfig.PAGE_SIZE_ADMIN;
+        PagedResultDTO pagedResult = mode == PromotionMode.SHOP
+                ? promotionService.getShopPromos(currentUser.getUserId(), page, pageSize)
+                : promotionService.getGlobalPromotions(page, pageSize);
+
+        req.setAttribute("promotions", pagedResult.getItems());
+        req.setAttribute("currentPage", pagedResult.getCurrentPage());
+        req.setAttribute("totalPages", pagedResult.getTotalPages());
+        req.setAttribute("totalItems", pagedResult.getTotalItems());
+
         req.setAttribute("products", mode == PromotionMode.SHOP
                 ? productService.getProductsByOwner(currentUser.getUserId())
                 : promotionService.getPromotionProductsForAdmin());
@@ -211,6 +220,7 @@ public class PromotionServlet extends HttpServlet {
         promo.setDiscountType(normalize(req.getParameter("discountType")));
         promo.setDiscountScope(normalize(req.getParameter("discountScope")));
         promo.setScope(normalize(req.getParameter("scope")));
+        promo.setBenefitTarget(normalize(req.getParameter("benefitTarget")));
         promo.setProductId(parseOptionalInt(req.getParameter("productId")));
         promo.setDiscountValue(parseBigDecimal(req.getParameter("discountValue"), "Giá trị giảm giá không hợp lệ."));
         promo.setDiscountMax(parseOptionalBigDecimal(req.getParameter("discountMax")));

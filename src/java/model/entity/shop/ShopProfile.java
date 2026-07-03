@@ -9,6 +9,7 @@ public class ShopProfile {
 
     private int profileId;
     private int userId;
+    private String ownerName;
     private String shopName;
     private String shopDescription;
     private String approvalStatus;
@@ -33,6 +34,9 @@ public class ShopProfile {
 
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
+
+    public String getOwnerName() { return ownerName; }
+    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
 
     public String getShopName() { return shopName; }
     public void setShopName(String shopName) { this.shopName = shopName; }

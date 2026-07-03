@@ -24,6 +24,7 @@ public class SettlementServiceTest {
     private SettlementService settlementService;
 
     private int testOwnerId = -1;
+    private int testAdminId = -1;
     private int testSettlementId = -1;
 
     @Before
@@ -35,6 +36,8 @@ public class SettlementServiceTest {
         // 1. Create owner
         String ownerPhone = "09" + String.format("%08d", Math.abs((System.nanoTime()) % 100000000L));
         testOwnerId = userDAO.saveNewCustomer("Set Test Owner", "set_owner_" + System.currentTimeMillis() + "@test.com", "pwd", ownerPhone, "SHOP_OWNER", "ACTIVE", true);
+        String adminPhone = "08" + String.format("%08d", Math.abs((System.nanoTime() + 1) % 100000000L));
+        testAdminId = userDAO.saveNewCustomer("Set Test Admin", "set_admin_" + System.currentTimeMillis() + "@test.com", "pwd", adminPhone, "ADMIN", "ACTIVE", true);
     }
 
     @After
@@ -45,6 +48,9 @@ public class SettlementServiceTest {
             }
             if (testOwnerId != -1) {
                 userDAO.deleteUser(testOwnerId);
+            }
+            if (testAdminId != -1) {
+                userDAO.deleteUser(testAdminId);
             }
         } catch (Exception e) {
             System.err.println("Cleanup error: " + e.getMessage());
@@ -66,8 +72,57 @@ public class SettlementServiceTest {
         int count = settlementService.countAllSettlements("PENDING");
         assertTrue(count > 0);
 
-        // Mark paid
-        settlementService.markPaid(testSettlementId);
+        // Shop confirms
+        settlementService.confirmSettlement(testSettlementId, testOwnerId, "Shop xác nhận settlement test");
+        ShopSettlement confirmed = settlementService.getSettlementById(testSettlementId);
+        assertEquals("CONFIRMED", confirmed.getStatus());
+        assertNotNull(confirmed.getConfirmedAt());
+        assertEquals(Integer.valueOf(testOwnerId), confirmed.getConfirmedBy());
+        assertEquals("Shop xác nhận settlement test", confirmed.getConfirmNote());
+
+        // Admin marks paid
+        settlementService.markPaid(testSettlementId, testAdminId, "BANK-REF-001", "Đã chuyển khoản");
+        ShopSettlement paid = settlementService.getSettlementById(testSettlementId);
+        assertEquals("PAID", paid.getStatus());
+        assertNotNull(paid.getPaidAt());
+        assertEquals(Integer.valueOf(testAdminId), paid.getPaidBy());
+        assertEquals("BANK-REF-001", paid.getPaidReference());
+
+        // Shop reports money not received, admin reopens and pays again
+        settlementService.reportPaymentIssue(testSettlementId, testOwnerId, "Chưa thấy tiền vào tài khoản sau khi admin xác nhận");
+        ShopSettlement reported = settlementService.getSettlementById(testSettlementId);
+        assertEquals("REPORTED", reported.getPaymentIssueStatus());
+        assertNotNull(reported.getPaymentIssueAt());
+        assertEquals(Integer.valueOf(testOwnerId), reported.getPaymentIssueBy());
+        assertTrue(reported.getPaymentIssueNote().contains("Chưa thấy tiền"));
+
+        List<ShopSettlement> openIssues = settlementService.getAllSettlements(null, "OPEN", 1, 10);
+        boolean openIssueFound = false;
+        for (ShopSettlement s : openIssues) {
+            if (s.getSettlementId() == testSettlementId) {
+                openIssueFound = true;
+                break;
+            }
+        }
+        assertTrue(openIssueFound);
+
+        settlementService.reopenPaymentRetry(testSettlementId, testAdminId, "Ngân hàng chưa ghi nhận giao dịch, mở lại để kiểm tra");
+        ShopSettlement reopened = settlementService.getSettlementById(testSettlementId);
+        assertEquals("CONFIRMED", reopened.getStatus());
+        assertEquals("UNDER_REVIEW", reopened.getPaymentIssueStatus());
+        assertNotNull(reopened.getPaymentIssueResolvedAt());
+        assertEquals(Integer.valueOf(testAdminId), reopened.getPaymentIssueResolvedBy());
+
+        settlementService.markPaid(testSettlementId, testAdminId, "BANK-REF-002", "Thanh toán lại sau đối soát");
+        ShopSettlement repaid = settlementService.getSettlementById(testSettlementId);
+        assertEquals("PAID", repaid.getStatus());
+        assertEquals("RESOLVED", repaid.getPaymentIssueStatus());
+        assertNotNull(repaid.getPaymentIssueResolvedAt());
+
+        List<ShopSettlement> openIssuesAfterResolve = settlementService.getAllSettlements(null, "OPEN", 1, 10);
+        for (ShopSettlement s : openIssuesAfterResolve) {
+            assertNotEquals(testSettlementId, s.getSettlementId());
+        }
 
         List<ShopSettlement> paidSettlements = settlementService.getAllSettlements("PAID", 1, 10);
         boolean found = false;
@@ -78,6 +133,12 @@ public class SettlementServiceTest {
             }
         }
         assertTrue(found);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testAdminCannotPayPendingSettlement() throws Exception {
+        testSettlementId = insertSettlement(testOwnerId, new BigDecimal("300000.00"), "PENDING");
+        settlementService.markPaid(testSettlementId, testAdminId, "BANK-REF-002", "Should fail");
     }
 
     @Test

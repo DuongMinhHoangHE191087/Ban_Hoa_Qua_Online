@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -10,11 +10,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-<main class="flex-1 overflow-hidden bg-[#eaffea] text-[#00210d] flex chat-layout relative bg-[radial-gradient(circle_at_top_right,rgba(217,249,157,0.15),transparent_40%)]">
-    
-    <aside class="w-full md:w-[300px] lg:w-[340px] flex-shrink-0 flex flex-col border-r border-white/30 glass-panel bg-white/40 relative z-10 hidden md:flex">
+<c:set var="hasActiveSession" value="${activeSessionId > 0}" />
+
+<main class="flex-1 overflow-hidden bg-[#eaffea] text-[#00210d] flex flex-col md:flex-row chat-layout relative bg-[radial-gradient(circle_at_top_right,rgba(217,249,157,0.15),transparent_40%)]" data-has-session="${hasActiveSession}">
+    <c:if test="${hasActiveSession}">
+        <div id="chatDrawerBackdrop" class="chat-drawer-backdrop" aria-hidden="true"></div>
+    </c:if>
+
+    <aside id="sessionPanel" class="chat-sessions ${hasActiveSession ? 'chat-sessions--drawer' : 'chat-sessions--list'} w-full md:w-[300px] lg:w-[340px] flex-shrink-0 flex flex-col border-r border-white/30 glass-panel bg-white/40 relative z-10">
         <div class="p-4 border-b border-white/20">
-            <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center justify-between gap-3 mb-3">
                 <h1 class="text-lg font-bold text-[#4d661c] flex items-center gap-2">
                     <span class="material-symbols-outlined">forum</span> Tin nhắn
                     <c:if test="${not empty chatSessions}">
@@ -23,10 +28,17 @@
                         <c:if test="${totalUnread > 0}"><span class="unread-badge ml-auto">${totalUnread > 99 ? '99+' : totalUnread}</span></c:if>
                     </c:if>
                 </h1>
-                <button id="btnChatAdmin" title="Chat với Admin hỗ trợ"
+                <div class="flex items-center gap-2">
+                    <c:if test="${hasActiveSession}">
+                        <button type="button" id="btnCloseSessionsDrawer" class="chat-drawer-close md:hidden" aria-label="Đóng danh sách hội thoại">
+                            <span class="material-symbols-outlined text-base">close</span>
+                        </button>
+                    </c:if>
+                    <button id="btnChatAdmin" title="Chat với Admin hỗ trợ"
                         class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full bg-[#ceee93] hover:bg-[#b3d17a] text-[#364e03] transition-colors shadow-sm shrink-0">
-                    <span class="material-symbols-outlined text-sm">support_agent</span> Admin
-                </button>
+                        <span class="material-symbols-outlined text-sm">support_agent</span> Admin
+                    </button>
+                </div>
             </div>
             <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
@@ -94,16 +106,14 @@
         </div>
     </aside>
     
-    <section class="flex-1 flex flex-col relative bg-white/40 min-w-0">
+    <section class="chat-main ${hasActiveSession ? 'chat-main--active' : 'chat-main--empty hidden md:flex'} flex-1 flex flex-col relative bg-white/40 min-w-0">
         <c:choose>
             <c:when test="${activeSessionId > 0}">
-                <div class="px-4 py-3 border-b border-white/40 glass-panel bg-white/70 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <div class="md:hidden">
-                            <a href="${pageContext.request.contextPath}/chat" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined">arrow_back</span>
-                            </a>
-                        </div>
+                <div class="px-4 py-3 border-b border-white/40 glass-panel bg-white/70 flex justify-between items-center sticky top-0 z-20 shadow-sm gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <button type="button" id="btnOpenSessionsDrawer" class="chat-mobile-action md:hidden" aria-label="Mở danh sách hội thoại">
+                            <span class="material-symbols-outlined">forum</span>
+                        </button>
                         <div class="relative">
                             <c:choose>
                                 <c:when test="${not empty activeSession.partnerAvatar}">
@@ -132,11 +142,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" id="btnToggleInfoMobile" class="chat-mobile-action md:hidden" aria-label="Mở thông tin cuộc trò chuyện">
+                            <span class="material-symbols-outlined">info</span>
+                        </button>
                         <div id="wsStatusBadge" class="ws-status text-amber-600 hidden lg:flex">
                             <span class="ws-dot connecting"></span> Đang kết nối...
                         </div>
-                        <button id="btnToggleInfo" title="Thông tin chi tiết" class="p-2 text-slate-500 hover:text-[#4d661c] hover:bg-[#eaffea] rounded-full transition-colors flex items-center justify-center">
+                        <button id="btnToggleInfo" title="Thông tin chi tiết" class="hidden md:flex p-2 text-slate-500 hover:text-[#4d661c] hover:bg-[#eaffea] rounded-full transition-colors items-center justify-center">
                             <span class="material-symbols-outlined text-xl">info</span>
                         </button>
                     </div>
@@ -202,7 +215,7 @@
     </section>
 
     <c:if test="${activeSessionId > 0}">
-    <aside id="infoPanel" class="w-[260px] flex-shrink-0 flex flex-col border-l border-white/30 glass-panel bg-white/40 overflow-y-auto collapsed">
+    <aside id="infoPanel" class="chat-info-panel collapsed w-[260px] flex-shrink-0 flex flex-col border-l border-white/30 glass-panel bg-white/40 overflow-y-auto">
         <div class="p-4 border-b border-white/20 flex items-center justify-between">
             <h3 class="text-sm font-bold text-[#4d661c] flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-base">person_info</span> Thông tin chi tiết
@@ -267,8 +280,13 @@
     const wsBadge = document.getElementById('wsStatusBadge');
     const partnerDot = document.getElementById('partnerOnlineDot');
     const partnerStatus = document.getElementById('partnerStatusText');
+    const sessionPanel = document.getElementById('sessionPanel');
+    const sessionDrawerBackdrop = document.getElementById('chatDrawerBackdrop');
+    const btnOpenSessionsDrawer = document.getElementById('btnOpenSessionsDrawer');
+    const btnCloseSessionsDrawer = document.getElementById('btnCloseSessionsDrawer');
     const infoPanel = document.getElementById('infoPanel');
     const btnToggleInfo = document.getElementById('btnToggleInfo');
+    const btnToggleInfoMobile = document.getElementById('btnToggleInfoMobile');
     const btnCloseInfo = document.getElementById('btnCloseInfo');
     const skeletonLoader = document.getElementById('skeletonLoader');
     const chatStart = document.getElementById('chatStart');
@@ -286,17 +304,171 @@
     let pendingMedia = null;
     let sharedMedia = [];
     let lastMsgEl = null;
+    const mobileQuery = window.matchMedia('(max-width: 767px)');
+    let sessionDrawerOpen = false;
+    let infoDrawerOpen = !mobileQuery.matches;
+
+    function updateDrawerBackdrop() {
+        if (!sessionDrawerBackdrop) {
+            return;
+        }
+        const showBackdrop = mobileQuery.matches && (sessionDrawerOpen || infoDrawerOpen);
+        sessionDrawerBackdrop.classList.toggle('is-open', showBackdrop);
+        sessionDrawerBackdrop.setAttribute('aria-hidden', String(!showBackdrop));
+    }
+
+    function syncBodyLock() {
+        document.body.classList.toggle('chat-drawer-lock', mobileQuery.matches && (sessionDrawerOpen || infoDrawerOpen));
+    }
+
+    function syncSessionDrawerState(open) {
+        if (!sessionPanel) {
+            return;
+        }
+
+        if (!mobileQuery.matches) {
+            sessionDrawerOpen = false;
+            sessionPanel.classList.remove('is-open');
+            sessionPanel.setAttribute('aria-hidden', 'false');
+            if ('inert' in sessionPanel) {
+                sessionPanel.inert = false;
+            }
+            return;
+        }
+
+        sessionDrawerOpen = !!open;
+        sessionPanel.classList.toggle('is-open', sessionDrawerOpen);
+        sessionPanel.setAttribute('aria-hidden', String(!sessionDrawerOpen));
+        if ('inert' in sessionPanel) {
+            sessionPanel.inert = !sessionDrawerOpen;
+        }
+    }
+
+    function syncInfoPanelState(visible) {
+        if (!infoPanel) {
+            return;
+        }
+
+        if (!mobileQuery.matches) {
+            infoPanel.classList.toggle('collapsed', !visible);
+            infoPanel.classList.remove('is-open');
+            infoPanel.setAttribute('aria-hidden', String(!visible));
+            if ('inert' in infoPanel) {
+                infoPanel.inert = !visible;
+            }
+            return;
+        }
+
+        infoDrawerOpen = !!visible;
+        infoPanel.classList.toggle('is-open', infoDrawerOpen);
+        infoPanel.classList.toggle('collapsed', !infoDrawerOpen);
+        infoPanel.setAttribute('aria-hidden', String(!infoDrawerOpen));
+        if ('inert' in infoPanel) {
+            infoPanel.inert = !infoDrawerOpen;
+        }
+    }
+
+    function closeMobileDrawers() {
+        sessionDrawerOpen = false;
+        infoDrawerOpen = false;
+        syncSessionDrawerState(false);
+        syncInfoPanelState(false);
+        updateDrawerBackdrop();
+        syncBodyLock();
+    }
+
+    function openSessionDrawer() {
+        if (!sessionPanel || !mobileQuery.matches) {
+            return;
+        }
+        infoDrawerOpen = false;
+        syncInfoPanelState(false);
+        syncSessionDrawerState(true);
+        updateDrawerBackdrop();
+        syncBodyLock();
+    }
+
+    function toggleInfoPanel() {
+        if (!infoPanel) {
+            return;
+        }
+        if (mobileQuery.matches) {
+            const nextState = !infoDrawerOpen;
+            sessionDrawerOpen = false;
+            syncSessionDrawerState(false);
+            syncInfoPanelState(nextState);
+            updateDrawerBackdrop();
+            syncBodyLock();
+            return;
+        }
+
+        syncInfoPanelState(infoPanel.classList.contains('collapsed'));
+    }
+
+    function syncResponsiveChatState() {
+        if (mobileQuery.matches) {
+            syncSessionDrawerState(false);
+            syncInfoPanelState(false);
+        } else {
+            syncSessionDrawerState(false);
+            syncInfoPanelState(true);
+        }
+        updateDrawerBackdrop();
+        syncBodyLock();
+    }
 
     if (btnToggleInfo) {
         btnToggleInfo.addEventListener('click', () => {
-            infoPanel && infoPanel.classList.toggle('collapsed');
+            toggleInfoPanel();
+        });
+    }
+    if (btnToggleInfoMobile) {
+        btnToggleInfoMobile.addEventListener('click', () => {
+            toggleInfoPanel();
         });
     }
     if (btnCloseInfo) {
         btnCloseInfo.addEventListener('click', () => {
-            infoPanel && infoPanel.classList.add('collapsed');
+            syncInfoPanelState(false);
+            updateDrawerBackdrop();
+            syncBodyLock();
         });
     }
+    if (btnOpenSessionsDrawer) {
+        btnOpenSessionsDrawer.addEventListener('click', () => {
+            openSessionDrawer();
+        });
+    }
+    if (btnCloseSessionsDrawer) {
+        btnCloseSessionsDrawer.addEventListener('click', () => {
+            closeMobileDrawers();
+        });
+    }
+    if (sessionPanel) {
+        sessionPanel.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href]');
+            if (link && mobileQuery.matches) {
+                closeMobileDrawers();
+            }
+        });
+    }
+    if (sessionDrawerBackdrop) {
+        sessionDrawerBackdrop.addEventListener('click', closeMobileDrawers);
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || !mobileQuery.matches) {
+            return;
+        }
+        if (sessionDrawerOpen || infoDrawerOpen) {
+            closeMobileDrawers();
+        }
+    });
+    if (typeof mobileQuery.addEventListener === 'function') {
+        mobileQuery.addEventListener('change', syncResponsiveChatState);
+    } else if (typeof mobileQuery.addListener === 'function') {
+        mobileQuery.addListener(syncResponsiveChatState);
+    }
+    syncResponsiveChatState();
 
     function setWsStatus(state, label) {
         if (!wsBadge) return;

@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -136,7 +136,7 @@
                         <input type="checkbox" id="confirmDangerAction" class="rounded text-red-600 focus:ring-red-500 cursor-pointer" onchange="toggleDangerButton(this)">
                         <label for="confirmDangerAction" class="text-xs font-semibold text-red-800 cursor-pointer select-none">Tôi xác nhận hiểu rõ rủi ro và muốn kích hoạt hành động này</label>
                     </div>
-                    <form method="POST" action="${pageContext.request.contextPath}/admin/config" onsubmit="return confirm('Bạn có CHẮC CHẮN muốn xóa TOÀN BỘ phiên đăng nhập của tất cả người dùng không?');">
+                    <form method="POST" action="${pageContext.request.contextPath}/admin/config" onsubmit="return confirmClearSessions(event)">
                         <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                         <input type="hidden" name="action" value="clearAllSessions">
                         <button type="submit" id="btnDangerSubmit" disabled class="bg-slate-400 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow cursor-not-allowed opacity-50">
@@ -244,6 +244,21 @@
             btn.disabled = true;
             btn.className = "bg-slate-400 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow cursor-not-allowed opacity-50";
         }
+    }
+
+    function confirmClearSessions(event) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Xóa toàn bộ phiên đăng nhập?',
+            html: 'Bạn có <b>CHẮC CHẮN</b> muốn xóa toàn bộ phiên đăng nhập của tất cả người dùng không?<br><small class="text-red-600 font-semibold">Hành động này sẽ buộc mọi người dùng phải đăng nhập lại!</small>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy'
+        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        return false;
     }
 </script>
 </body>

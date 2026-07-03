@@ -82,18 +82,18 @@
     }
 </script>
 
-<main class="max-w-4xl mx-auto px-4 py-12 font-body-md text-on-background">
+<main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 font-body-md text-on-background">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 border-b border-outline-variant/30 pb-4 gap-4">
-        <div>
+    <div class="flex flex-col gap-4 sm:gap-5 mb-6 sm:mb-8 border-b border-outline-variant/30 pb-4 sm:pb-5">
+        <div class="space-y-1">
             <h1 class="font-display-lg text-3xl text-inverse-surface font-bold tracking-tight">Thông báo của bạn</h1>
             <p class="text-on-surface-variant font-medium text-sm mt-1">Cập nhật những tin tức, đơn hàng và ưu đãi mới nhất</p>
         </div>
         <c:if test="${not empty notifications}">
-            <form action="${pageContext.request.contextPath}/notifications" method="POST" class="shrink-0">
+            <form action="${pageContext.request.contextPath}/notifications" method="POST" class="w-full sm:w-auto shrink-0">
                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                 <input type="hidden" name="action" value="markAllRead">
-                <button type="submit" class="bg-primary text-on-primary hover:bg-inverse-surface px-5 py-2.5 rounded-xl font-semibold transition-all text-sm flex items-center gap-2 active:scale-95 transform shadow-md">
+                <button type="submit" class="bg-primary text-on-primary hover:bg-inverse-surface px-5 py-2.5 rounded-xl font-semibold transition-all text-sm flex items-center justify-center gap-2 active:scale-95 transform shadow-md w-full sm:w-auto">
                     <span class="material-symbols-outlined text-lg">done_all</span> Đánh dấu đã đọc tất cả
                 </button>
             </form>
@@ -103,48 +103,43 @@
 
 
     <!-- Notifications List -->
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-3 sm:gap-4">
         <c:forEach var="n" items="${notifications}">
-            <div class="premium-glass-card rounded-2xl p-5 flex items-start gap-4 transition-all duration-200 border-l-4 ${n.isRead ? 'border-transparent' : 'border-primary bg-primary/5'}">
+            <c:set var="notificationTone" value="info" />
+            <c:set var="notificationIcon" value="notifications" />
+            <c:choose>
+                <c:when test="${n.type == 'ORDER_UPDATE'}">
+                    <c:set var="notificationTone" value="success" />
+                    <c:set var="notificationIcon" value="box" />
+                </c:when>
+                <c:when test="${n.type == 'PROMOTION'}">
+                    <c:set var="notificationTone" value="warning" />
+                    <c:set var="notificationIcon" value="sell" />
+                </c:when>
+                <c:when test="${n.type == 'SYSTEM'}">
+                    <c:set var="notificationTone" value="info" />
+                    <c:set var="notificationIcon" value="info" />
+                </c:when>
+                <c:when test="${n.type == 'INVENTORY_ALERT'}">
+                    <c:set var="notificationTone" value="error" />
+                    <c:set var="notificationIcon" value="warning" />
+                </c:when>
+                <c:when test="${n.type == 'PAYMENT'}">
+                    <c:set var="notificationTone" value="success" />
+                    <c:set var="notificationIcon" value="credit_card" />
+                </c:when>
+            </c:choose>
+
+            <article class="notification-status-card premium-glass-card transition-all duration-200 ${n.isRead ? '' : 'bg-primary/5'}" data-tone="${notificationTone}">
+                <div class="notification-status-card__surface">
                 <!-- Icon theo loại thông báo -->
-                <div class="shrink-0">
-                    <c:choose>
-                        <c:when test="${n.type == 'ORDER_UPDATE'}">
-                            <div class="bg-emerald-100 text-emerald-800 p-3 rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined">box</span>
-                            </div>
-                        </c:when>
-                        <c:when test="${n.type == 'PROMOTION'}">
-                            <div class="bg-orange-100 text-orange-800 p-3 rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined">sell</span>
-                            </div>
-                        </c:when>
-                        <c:when test="${n.type == 'SYSTEM'}">
-                            <div class="bg-blue-100 text-blue-800 p-3 rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined">info</span>
-                            </div>
-                        </c:when>
-                        <c:when test="${n.type == 'INVENTORY_ALERT'}">
-                            <div class="bg-red-100 text-red-800 p-3 rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined">warning</span>
-                            </div>
-                        </c:when>
-                        <c:when test="${n.type == 'PAYMENT'}">
-                            <div class="bg-green-100 text-green-800 p-3 rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined">credit_card</span>
-                            </div>
-                        </c:when>
-                        <c:otherwise>
-                            <div class="bg-gray-100 text-gray-800 p-3 rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined">notifications</span>
-                            </div>
-                        </c:otherwise>
-                    </c:choose>
+                <div class="notification-status-card__icon">
+                    <span class="material-symbols-outlined"><c:out value="${notificationIcon}"/></span>
                 </div>
 
                 <!-- Nội dung thông báo -->
-                <div class="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div class="flex flex-col gap-1">
+                <div class="notification-status-card__body">
+                    <div class="flex flex-col gap-3">
                         <div class="flex items-center gap-2 flex-wrap">
                             <h3 class="font-bold text-inverse-surface text-base"><c:out value="${n.title}"/></h3>
                             <c:if test="${not n.isRead}">
@@ -158,14 +153,14 @@
                     </div>
 
                     <!-- Hành động -->
-                    <div class="shrink-0 flex items-center gap-2">
+                    <div class="notification-status-card__actions flex flex-col sm:flex-row sm:items-center gap-2">
                         <!-- Nút đánh dấu đã đọc (chỉ hiện khi chưa đọc) -->
                         <c:if test="${not n.isRead}">
                             <form action="${pageContext.request.contextPath}/notifications" method="POST" class="inline">
                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                 <input type="hidden" name="action" value="markRead">
                                 <input type="hidden" name="notificationId" value="${n.notificationId}">
-                                <button type="submit" class="text-primary hover:bg-primary/10 p-2 rounded-xl transition-all font-semibold text-xs flex items-center gap-1" title="Đánh dấu đã đọc">
+                                <button type="submit" class="w-full sm:w-auto text-primary hover:bg-primary/10 p-2 rounded-xl transition-all font-semibold text-xs flex items-center justify-center gap-1" title="Đánh dấu đã đọc">
                                     <span class="material-symbols-outlined text-base">check</span> Đã đọc
                                 </button>
                             </form>
@@ -178,19 +173,20 @@
                                 <input type="hidden" name="action" value="markRead">
                                 <input type="hidden" name="notificationId" value="${n.notificationId}">
                                 <input type="hidden" name="redirectUrl" value="${n.actionUrl}">
-                                <button type="submit" class="bg-primary text-on-primary hover:bg-inverse-surface px-4 py-2 rounded-xl transition-all font-semibold text-xs flex items-center gap-1 active:scale-95 transform shadow-sm">
+                                <button type="submit" class="notification-status-card__button w-full sm:w-auto bg-primary text-on-primary hover:bg-inverse-surface px-4 py-2 rounded-xl transition-all font-semibold text-xs flex items-center justify-center gap-1 active:scale-95 transform shadow-sm">
                                     Chi tiết <span class="material-symbols-outlined text-base">arrow_forward</span>
                                 </button>
                             </form>
                         </c:if>
                     </div>
                 </div>
-            </div>
+                </div>
+            </article>
         </c:forEach>
 
         <!-- Trạng thái trống -->
         <c:if test="${empty notifications}">
-            <div class="text-center py-16 bg-white/50 premium-glass-card rounded-[2rem] border border-white/30">
+            <div class="text-center py-12 sm:py-16 bg-white/50 premium-glass-card rounded-[2rem] border border-white/30">
                 <span class="material-symbols-outlined text-6xl text-on-surface-variant opacity-60 mb-4">notifications_off</span>
                 <h4 class="text-lg font-bold text-inverse-surface mb-2">Không có thông báo nào</h4>
                 <p class="text-on-surface-variant text-sm">Hộp thư thông báo của bạn hiện đang trống sạch.</p>

@@ -9,7 +9,7 @@
     <meta charset="UTF-8">
     <title>Monitor Đơn hàng - Admin MetaFruit</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
@@ -80,8 +80,13 @@
                                             <tr>
                                                 <td><strong><a href="${pageContext.request.contextPath}/admin/orders?orderId=${order.orderId}" title="Xem chi tiết">#${order.orderId}</a></strong></td>
                                                 <td><fmt:formatDate value="${order.createdAtAsDate}" pattern="dd/MM/yyyy HH:mm"/></td>
-                                                <td>User #${order.customerId}</td>
-                                                <td>Shop #${order.ownerId}</td>
+                                                <td>
+                                                    <div class="font-semibold">${order.customerName}</div>
+                                                </td>
+                                                <td>
+                                                    <div class="font-semibold">${order.shopName}</div>
+                                                    <div class="text-[11px] text-txt-3">Chủ: ${order.ownerName}</div>
+                                                </td>
                                                 <td class="text-danger fw-bold"><fmt:formatNumber value="${order.finalAmount}" type="number"/> đ</td>
                                                 <td>
                                                     <span class="status-badge status-${order.status}">
