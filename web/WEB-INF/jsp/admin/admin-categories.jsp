@@ -1,5 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -10,27 +10,22 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <!-- Tailwind & SweetAlert -->
     <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
 <body class="antialiased text-txt bg-background">
 <div class="admin-layout">
-    <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="categories"/>
     </jsp:include>
 
-    <%-- Main --%>
     <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
-
-        <%-- Page header --%>
         <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Danh Mục Sản Phẩm</h1>
                 <p class="text-txt-2 text-xs md:text-sm mt-1">Cấu hình các phân nhóm trái cây hiển thị trên website bán hàng.</p>
             </div>
-            <button onclick="openModal('addModal')" 
+            <button onclick="openModal('addModal')"
                     class="bg-surface hover:bg-primary-lt text-primary border border-primary-fixed font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer">
                 <i class="fa-solid fa-plus text-sm text-primary"></i> Thêm danh mục mới
             </button>
@@ -41,7 +36,7 @@
             <div class="px-6 py-4 border-b border-border bg-slate-50/50 flex items-center justify-between">
                 <h3 class="font-bold text-txt text-sm"><i class="fa-solid fa-tags text-primary mr-1"></i> Danh Sách Danh Mục</h3>
                 <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-primary-lt border border-[#d9f99d] text-primary text-xs font-bold">
-                    ${categories.size()} nhóm hàng
+                    ${totalItems} nhóm hàng
                 </span>
             </div>
 
@@ -49,7 +44,6 @@
                 <table class="w-full text-left text-sm">
                     <thead>
                         <tr class="bg-surface-2 border-b border-border text-txt-2 text-xs uppercase tracking-wider">
-                            <th class="px-6 py-3.5 font-bold">ID</th>
                             <th class="px-6 py-3.5 font-bold">Tên Danh Mục</th>
                             <th class="px-6 py-3.5 font-bold">Slug (URL)</th>
                             <th class="px-6 py-3.5 font-bold text-center">Thứ tự hiển thị</th>
@@ -61,7 +55,7 @@
                         <c:choose>
                             <c:when test="${empty categories}">
                                 <tr>
-                                    <td colspan="6" class="px-6 py-12 text-center text-txt-3">
+                                    <td colspan="5" class="px-6 py-12 text-center text-txt-3">
                                         <i class="fa-solid fa-inbox text-3xl mb-2 block text-slate-300"></i>
                                         Chưa có danh mục nào trên hệ thống.
                                     </td>
@@ -70,8 +64,13 @@
                             <c:otherwise>
                                 <c:forEach var="c" items="${categories}">
                                     <tr>
-                                        <td class="px-6 py-4 font-mono font-bold text-primary">#${c.categoryId}</td>
-                                        <td class="px-6 py-4 font-bold text-txt"><c:out value="${c.name}"/></td>
+                                        <td class="px-6 py-4 font-bold text-txt">
+                                            <a href="${pageContext.request.contextPath}/admin/products?categoryId=${c.categoryId}"
+                                               class="hover:text-primary transition-colors"
+                                               title="Xem sản phẩm trong danh mục này">
+                                                <c:out value="${c.name}"/>
+                                            </a>
+                                        </td>
                                         <td class="px-6 py-4 font-mono text-xs text-txt-2 bg-[#f8fafc]/40"><c:out value="${c.slug}"/></td>
                                         <td class="px-6 py-4 text-center font-semibold text-txt-2"><c:out value="${c.displayOrder}"/></td>
                                         <td class="px-6 py-4 text-center">
@@ -100,24 +99,24 @@
                                                         class="bg-white hover:bg-slate-50 border border-slate-200 text-txt-2 hover:text-primary font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
                                                     <i class="fa-solid fa-pen mr-0.5"></i> Sửa
                                                 </button>
-                                                
+
                                                 <form method="POST" action="${pageContext.request.contextPath}/admin/categories" class="inline">
                                                     <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                     <input type="hidden" name="action" value="toggle">
                                                     <input type="hidden" name="categoryId" value="${c.categoryId}">
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="bg-white hover:bg-slate-50 border border-slate-200 ${c.getIsActive() ? 'text-red-500' : 'text-emerald-600'} font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
                                                         <i class="fa-solid ${c.getIsActive() ? 'fa-eye-slash' : 'fa-eye'}"></i>
                                                     </button>
                                                 </form>
-                                                
+
                                                 <form method="POST" action="${pageContext.request.contextPath}/admin/categories" class="inline"
                                                       data-category-name="<c:out value='${c.name}'/>"
                                                       onsubmit="return confirmDelete(event, this)">
                                                     <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="categoryId" value="${c.categoryId}">
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="bg-white hover:bg-red-50 border border-red-100 text-red-600 hover:text-red-700 font-bold px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer">
                                                         <i class="fa-solid fa-trash"></i>
                                                     </button>
@@ -131,12 +130,17 @@
                     </tbody>
                 </table>
             </div>
-        </div>
 
+            <c:if test="${totalPages > 1}">
+                <div class="px-6 py-4 border-t border-border flex items-center justify-between bg-slate-50/50">
+                    <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?" />
+                </div>
+            </c:if>
+        </div>
     </main>
 </div>
 
-<%-- Add Modal --%>
 <div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-border">
         <div class="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -146,30 +150,30 @@
         <form method="POST" action="${pageContext.request.contextPath}/admin/categories" class="p-6">
             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
             <input type="hidden" name="action" value="create">
-            
+
             <div class="mb-4">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Tên danh mục <span class="text-red-500">*</span></label>
-                <input type="text" name="name" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all" 
+                <input type="text" name="name" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all"
                        required placeholder="Nhập tên (ví dụ: Trái Cây Nhập Khẩu)" onkeyup="generateSlug(this.value, 'addSlug')">
             </div>
-            
+
             <div class="mb-4">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Slug (URL thân thiện)</label>
-                <input type="text" name="slug" id="addSlug" class="w-full rounded-xl border border-slate-300 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm font-mono transition-all" 
+                <input type="text" name="slug" id="addSlug" class="w-full rounded-xl border border-slate-300 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm font-mono transition-all"
                        required placeholder="slug-danh-muc">
             </div>
-            
+
             <div class="mb-5">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Thứ tự hiển thị</label>
-                <input type="number" name="displayOrder" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all" 
+                <input type="number" name="displayOrder" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all"
                        value="0" required>
             </div>
-            
+
             <div class="mb-6 flex items-center gap-2">
                 <input type="checkbox" name="isActive" id="addActive" checked class="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300">
                 <label for="addActive" class="text-sm font-semibold text-txt-2 cursor-pointer select-none">Hiển thị ngay trên website (Active)</label>
             </div>
-            
+
             <button type="submit" class="w-full py-3 bg-primary hover:bg-primary-dk text-white font-bold rounded-xl text-xs tracking-wider uppercase transition-all shadow-md active:scale-95 cursor-pointer">
                 Lưu danh mục
             </button>
@@ -177,7 +181,6 @@
     </div>
 </div>
 
-<%-- Edit Modal --%>
 <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-border">
         <div class="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -188,30 +191,30 @@
             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="categoryId" id="editCategoryId">
-            
+
             <div class="mb-4">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Tên danh mục <span class="text-red-500">*</span></label>
-                <input type="text" name="name" id="editName" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all" 
+                <input type="text" name="name" id="editName" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all"
                        required onkeyup="generateSlug(this.value, 'editSlug')">
             </div>
-            
+
             <div class="mb-4">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Slug (URL)</label>
-                <input type="text" name="slug" id="editSlug" class="w-full rounded-xl border border-slate-300 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm font-mono transition-all" 
+                <input type="text" name="slug" id="editSlug" class="w-full rounded-xl border border-slate-300 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm font-mono transition-all"
                        required>
             </div>
-            
+
             <div class="mb-5">
                 <label class="block text-xs font-bold text-txt-2 mb-1.5 uppercase tracking-wide">Thứ tự hiển thị</label>
-                <input type="number" name="displayOrder" id="editOrder" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all" 
+                <input type="number" name="displayOrder" id="editOrder" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm transition-all"
                        required>
             </div>
-            
+
             <div class="mb-6 flex items-center gap-2">
                 <input type="checkbox" name="isActive" id="editActive" class="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300">
                 <label for="editActive" class="text-sm font-semibold text-txt-2 cursor-pointer select-none">Hiển thị trên website (Active)</label>
             </div>
-            
+
             <button type="submit" class="w-full py-3 bg-primary hover:bg-primary-dk text-white font-bold rounded-xl text-xs tracking-wider uppercase transition-all shadow-md active:scale-95 cursor-pointer">
                 Cập nhật thay đổi
             </button>
@@ -223,55 +226,48 @@
     function openModal(id) {
         document.getElementById(id).classList.remove('hidden');
     }
-    
+
     function closeModal(id) {
         document.getElementById(id).classList.add('hidden');
     }
-    
+
+    function generateSlug(text, targetId) {
+        var slug = (text || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+        document.getElementById(targetId).value = slug;
+    }
+
     function openEditModal(button) {
         document.getElementById('editCategoryId').value = button.dataset.categoryId;
-        document.getElementById('editName').value = button.dataset.categoryName || '';
-        document.getElementById('editSlug').value = button.dataset.categorySlug || '';
-        document.getElementById('editOrder').value = button.dataset.categoryOrder || '';
-        document.getElementById('editActive').checked = (button.dataset.categoryActive === 'true');
+        document.getElementById('editName').value = button.dataset.categoryName;
+        document.getElementById('editSlug').value = button.dataset.categorySlug;
+        document.getElementById('editOrder').value = button.dataset.categoryOrder;
+        document.getElementById('editActive').checked = button.dataset.categoryActive === 'true';
         openModal('editModal');
     }
 
     function confirmDelete(event, form) {
         event.preventDefault();
-        const categoryName = form.dataset.categoryName || '';
+        const categoryName = form.dataset.categoryName || 'danh mục này';
         Swal.fire({
             title: 'Xóa danh mục?',
-            text: 'Bạn có chắc chắn muốn xóa danh mục "' + categoryName + '"? Lưu ý: Chỉ xóa được nếu không có sản phẩm nào thuộc danh mục này.',
+            text: 'Bạn có chắc muốn xóa ' + categoryName + '?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
             cancelButtonColor: '#e5e7eb',
-            confirmButtonText: 'Đúng, xóa ngay',
+            confirmButtonText: 'Xóa',
             cancelButtonText: 'Hủy'
-        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        }).then(r => { if (r.isConfirmed) form.submit(); });
         return false;
     }
-
-    function generateSlug(text, targetId) {
-        let slug = text.toLowerCase();
-        slug = slug.replace(/á|à|ả|ạ|ã|ă|ắ|ằ|ẳ|ẵ|ặ|â|ấ|ầ|ẩ|ẫ|ậ/gi, 'a');
-        slug = slug.replace(/é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ/gi, 'e');
-        slug = slug.replace(/i|í|ì|ỉ|ĩ|ị/gi, 'i');
-        slug = slug.replace(/ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ/gi, 'o');
-        slug = slug.replace(/ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự/gi, 'u');
-        slug = slug.replace(/ý|ỳ|ỷ|ỹ|ỵ/gi, 'y');
-        slug = slug.replace(/đ/gi, 'd');
-        slug = slug.replace(/[^a-z0-9 -]/g, ''); 
-        slug = slug.replace(/\s+/g, '-'); 
-        slug = slug.replace(/-+/g, '-');
-        document.getElementById(targetId).value = slug;
-    }
-
-    window.onclick = e => {
-        if (e.target === document.getElementById('addModal')) closeModal('addModal');
-        if (e.target === document.getElementById('editModal')) closeModal('editModal');
-    };
 </script>
 </body>
 </html>

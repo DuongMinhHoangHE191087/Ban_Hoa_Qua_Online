@@ -99,6 +99,37 @@ public class PromotionDAO extends BaseDAO {
         return list;
     }
 
+    public List<Promotion> findByOwner(int ownerId, int page, int pageSize) throws SQLException {
+        List<Promotion> list = new ArrayList<>();
+        String sql = "SELECT * FROM promotions WHERE created_by = ? AND is_deleted = 0 ORDER BY promo_id DESC"
+                   + util.PaginationHelper.OFFSET_FETCH_SQL;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            util.PaginationHelper.bindOffsetFetch(ps, 2, page, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countByOwner(int ownerId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM promotions WHERE created_by = ? AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
     /**
      * Lấy danh sách khuyến mãi toàn cục (discount_scope = ALL).
      */
@@ -113,6 +144,34 @@ public class PromotionDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    public List<Promotion> findGlobalPromotions(int page, int pageSize) throws SQLException {
+        List<Promotion> list = new ArrayList<>();
+        String sql = "SELECT * FROM promotions WHERE discount_scope = 'ALL' AND is_deleted = 0 ORDER BY promo_id DESC"
+                   + util.PaginationHelper.OFFSET_FETCH_SQL;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            util.PaginationHelper.bindOffsetFetch(ps, 1, page, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countGlobalPromotions() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM promotions WHERE discount_scope = 'ALL' AND is_deleted = 0";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        }
+        return 0;
     }
 
     /**
@@ -146,9 +205,9 @@ public class PromotionDAO extends BaseDAO {
 
         Set<Integer> distinctIds = new LinkedHashSet<>(productIds);
         StringBuilder placeholders = new StringBuilder();
-        int index = 0;
-        for (Integer ignored : distinctIds) {
-            if (index++ > 0) {
+        int size = distinctIds.size();
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
                 placeholders.append(",");
             }
             placeholders.append("?");
@@ -376,7 +435,7 @@ public class PromotionDAO extends BaseDAO {
                    + "WHERE code = ? AND created_by = ? AND discount_scope = 'SHOP' AND scope = 'ORDER' "
                    + "AND is_active = 1 AND is_deleted = 0 "
                    + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
-                   + "AND min_order_value <= ?";
+                   + "AND (min_order_value IS NULL OR min_order_value <= ?)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);
@@ -398,7 +457,7 @@ public class PromotionDAO extends BaseDAO {
                    + "WHERE code = ? AND discount_scope = 'ALL' AND scope = 'ORDER' "
                    + "AND is_active = 1 AND is_deleted = 0 "
                    + "AND valid_from <= GETDATE() AND valid_until >= GETDATE() "
-                   + "AND min_order_value <= ?";
+                   + "AND (min_order_value IS NULL OR min_order_value <= ?)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code);

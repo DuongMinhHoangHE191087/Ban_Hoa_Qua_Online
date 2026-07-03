@@ -3,8 +3,10 @@ package servlet.admin.chat;
 import config.AppConfig;
 import dao.chat.ChatDAO;
 import dao.auth.UserDAO;
+import model.dto.common.PagedResultDTO;
 import model.entity.chat.ChatSession;
 import model.entity.auth.User;
+import util.PaginationUtil;
 import util.SessionUtil;
 
 import util.LoggerUtil;
@@ -46,18 +48,26 @@ public class AdminChatServlet extends HttpServlet {
 
         try {
             int activeSessionId = -1;
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
+            int pageSize = AppConfig.PAGE_SIZE_ADMIN;
             String sessionIdStr = req.getParameter("sessionId");
             if (sessionIdStr != null && !sessionIdStr.trim().isEmpty()) {
                 activeSessionId = Integer.parseInt(sessionIdStr);
             }
 
             // Admin xem TẤT CẢ sessions
-            List<ChatSession> sessions = chatDAO.findAllSessions();
+            int totalCount = chatDAO.countAllSessions();
+            int totalPages = Math.max(1, PaginationUtil.getTotalPages(totalCount, pageSize));
+            int currentPage = Math.min(Math.max(page, 1), totalPages);
+
+            List<ChatSession> sessions = chatDAO.findAllSessions(currentPage, pageSize);
+            PagedResultDTO pagedResult = PaginationUtil.buildPagedResult(sessions, currentPage, pageSize, totalCount);
             if (activeSessionId == -1 && !sessions.isEmpty()) {
                 activeSessionId = sessions.get(0).getSessionId();
             }
 
             req.setAttribute("chatSessions", sessions);
+            req.setAttribute("pagedResult", pagedResult);
             req.setAttribute("activeSessionId", activeSessionId);
             req.setAttribute("adminId", admin.getUserId());
 

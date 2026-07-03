@@ -33,6 +33,84 @@
     };
 </script>
 
+<style>
+    .product-card-link {
+        display: block;
+        text-decoration: none;
+    }
+
+    .product-card {
+        position: relative;
+        overflow: hidden;
+        transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+    }
+
+    .product-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 220ms ease;
+        box-shadow: 0 18px 45px rgba(16, 185, 129, 0.18), 0 0 0 1px rgba(34, 197, 94, 0.16) inset;
+    }
+
+    .product-card:hover {
+        transform: translateY(-6px);
+    }
+
+    .product-card:hover::before {
+        opacity: 1;
+    }
+
+    .product-card-media {
+        overflow: hidden;
+    }
+
+    .product-card-image {
+        transition: transform 550ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 220ms ease;
+    }
+
+    .product-card:hover .product-card-image {
+        transform: scale(1.06);
+        filter: saturate(1.05) contrast(1.02);
+    }
+
+    .product-card-title {
+        position: relative;
+        display: block;
+        width: 100%;
+        text-align: left;
+        text-decoration: none !important;
+        transition: color 180ms ease, transform 180ms ease;
+    }
+
+    .product-card-title::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -0.22rem;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.95), rgba(20, 184, 166, 0.95), rgba(34, 197, 94, 0.05));
+        transform: scaleX(0);
+        transform-origin: left;
+        opacity: 0;
+        transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease;
+    }
+
+    .product-card:hover .product-card-title {
+        transform: translateY(-1px);
+    }
+
+    .product-card:hover .product-card-title::after {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+</style>
+
 <div class="bg-gradient-to-br from-emerald-50/50 via-white to-emerald-100/40 min-h-screen pt-28 pb-20">
     <div class="max-w-7xl mx-auto px-4 md:px-8">
         
@@ -229,15 +307,15 @@
                                          data-sold="${p.soldQuantity}"
                                          data-category-id="${p.categoryId}"
                                          data-in-stock="${p.inStock}"
-                                         class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
+                                        class="product-card bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:border-emerald-300/40">
                                     
                                     <a href="${pageContext.request.contextPath}/products/detail?id=${p.productId}"
-                                       class="block group/link flex-grow no-underline text-inherit">
+                                       class="product-card-link block group/link flex-grow text-inherit">
                                         <!-- Image Aspect Ratio block -->
-                                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
-                                            <img src="${p.image}" alt="${fn:escapeXml(p.name)}"
-                                                 onerror="handleImageError(this)"
-                                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                                <div class="product-card-media relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
+                                                    <img src="${p.image}" alt="${fn:escapeXml(p.name)}"
+                                                         onerror="handleImageError(this)"
+                                                         class="product-card-image w-full h-full object-cover">
                                             
                                             <!-- Category tag standard badge -->
                                             <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
@@ -246,8 +324,8 @@
                                         </div>
 
                                         <!-- Content Block -->
-                                        <div class="px-1 mb-3">
-                                            <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+                                        <div class="px-0 mb-3">
+                                            <h3 class="product-card-title font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
                                                 <c:out value="${p.name}"/>
                                             </h3>
                                             <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">
@@ -566,22 +644,22 @@
                          data-sold="\${p.soldQuantity}"
                          data-category-id="\${p.categoryId}"
                          data-in-stock="\${p.inStock}"
-                         class="bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-300/40 transition-all duration-300">
+                                        class="product-card bg-white/80 glass-panel rounded-3xl p-3 ambient-shadow flex flex-col group hover:border-emerald-300/40">
                     
                     <a href="\${detailUrl}"
-                       class="block group/link flex-grow no-underline text-inherit">
-                        <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
+                       class="product-card-link block group/link flex-grow text-inherit">
+                        <div class="product-card-media relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-emerald-50">
                              <img src="\${escapeHtml(p.image || '')}" alt="\${escapeHtml(p.name)}"
                                  onerror="handleImageError(this)"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                 class="product-card-image w-full h-full object-cover">
                             
                             <div class="absolute top-3 right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
                                 Nông sản sạch
                             </div>
                         </div>
 
-                        <div class="px-1 mb-3">
-                            <h3 class="font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+                        <div class="px-0 mb-3">
+                            <h3 class="product-card-title font-bold text-sm text-on-surface line-clamp-1 mb-1 group-hover:text-primary transition-colors">
                                 \${escapeHtml(p.name)}
                             </h3>
                             <p class="text-xs text-on-surface-variant/80 font-light line-clamp-2 mb-2 h-8 leading-relaxed">

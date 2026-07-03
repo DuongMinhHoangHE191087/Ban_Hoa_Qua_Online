@@ -9,7 +9,10 @@ public class Product {
 
     private int productId;
     private int ownerId;
+    private String ownerName;
     private int categoryId;
+    private String shopName;
+    private String categoryName;
     private String name;
     private String description;
     private String originCountry;
@@ -41,8 +44,17 @@ public class Product {
     public int getOwnerId() { return ownerId; }
     public void setOwnerId(int ownerId) { this.ownerId = ownerId; }
 
+    public String getOwnerName() { return ownerName; }
+    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
+
     public int getCategoryId() { return categoryId; }
     public void setCategoryId(int categoryId) { this.categoryId = categoryId; }
+
+    public String getShopName() { return shopName; }
+    public void setShopName(String shopName) { this.shopName = shopName; }
+
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

@@ -266,11 +266,11 @@
                         <section class="glass-card rounded-xl p-6 md:p-8" id="coupon-section">
                             <div class="flex items-center gap-3 mb-4 text-primary border-b border-[#b1f2be] pb-3">
                                 <span class="material-symbols-outlined text-2xl">loyalty</span>
-                                <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sàn</h2>
+                                <h2 class="font-headline-md text-headline-md font-bold">Voucher shop / Voucher sàn / Freeship</h2>
                             </div>
-                            <!-- Một ô nhập mã giảm giá duy nhất -->
+                            <!-- Một ô nhập mã giảm giá duy nhất cho cả 3 slot -->
                             <div>
-                                <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã voucher shop hoặc voucher sàn</label>
+                                <label class="block text-sm font-bold text-[#14532D] mb-1" for="couponInput">Nhập mã voucher shop, voucher sàn, freeship hoặc voucher thanh toán</label>
                                 <div class="flex gap-2">
                                     <input type="text" id="couponInput" placeholder="Nhập mã voucher (VD: SHOP10, SAAN5, SALE20)"
                                         class="form-input rounded-lg px-3 py-2.5 text-sm flex-1 uppercase font-semibold tracking-wider"
@@ -596,6 +596,14 @@
                                 <span class="text-on-surface-variant">Voucher sàn</span>
                                 <span class="font-bold text-red-600" id="summary-system-discount">- 0 đ</span>
                             </div>
+                            <div class="flex justify-between items-center" id="payment-discount-row" style="display:none!important">
+                                <span class="text-on-surface-variant">Voucher thanh toán</span>
+                                <span class="font-bold text-red-600" id="summary-payment-discount">- 0 đ</span>
+                            </div>
+                            <div class="flex justify-between items-center" id="shipping-discount-row" style="display:none!important">
+                                <span class="text-on-surface-variant">Freeship</span>
+                                <span class="font-bold text-red-600" id="summary-shipping-discount">- 0 đ</span>
+                            </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-on-surface-variant">Tổng trọng lượng</span>
                                 <span class="font-bold text-inverse-surface"><c:out value="${cartSummary.totalWeight}"/> kg</span>
@@ -650,6 +658,7 @@
 const SUBTOTAL    = parseFloat(document.getElementById('js-subtotal').value || '0');
 const DELIVERY    = parseFloat(document.getElementById('js-delivery').value || '0');
 const CTX         = document.getElementById('js-ctx').value;
+const QUOTE_API   = CTX + '/api/checkout/quote';
 const OWNER_ID    = document.getElementById('js-owner-id').value;
 const CSRF_TOKEN  = document.getElementById('js-csrf').value;
 
@@ -663,6 +672,8 @@ let shopCouponCode   = '';
 let shopDiscount     = 0;
 let systemCouponCode = '';
 let systemDiscount   = 0;
+let paymentDiscount   = 0;
+let shippingDiscount  = 0;
 
 function getSelectedVariantIds() {
     const raw = document.querySelector('input[name="variantIds"]')?.value || '';
@@ -685,6 +696,56 @@ function parseMoneyValue(value) {
     }
     const parsed = Number(String(value).replace(/,/g, '').trim());
     return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function resolveCouponSlot(coupon) {
+    const benefitTarget = (coupon && coupon.benefitTarget ? coupon.benefitTarget : 'MERCHANDISE')
+        .toString()
+        .trim()
+        .toUpperCase();
+    if (benefitTarget === 'SHIPPING') {
+        return 'FREE_SHIPPING';
+    }
+    if (benefitTarget === 'PAYMENT_METHOD') {
+        return 'PAYMENT_METHOD';
+    }
+
+    const discountScope = normalizeCouponScope(coupon && coupon.discountScope ? coupon.discountScope : 'SHOP');
+    if (discountScope === 'SYSTEM' || discountScope === 'ALL') {
+        return 'PLATFORM_MERCHANDISE';
+    }
+    return 'SELLER_MERCHANDISE';
+}
+
+function getCouponSlotLabel(slot) {
+    switch ((slot || '').toString().trim().toUpperCase()) {
+        case 'PLATFORM_MERCHANDISE':
+            return 'Voucher sàn';
+        case 'FREE_SHIPPING':
+            return 'Freeship';
+        case 'PAYMENT_METHOD':
+            return 'Voucher phương thức thanh toán';
+        default:
+            return 'Voucher shop';
+    }
+}
+
+function getCouponTargetLabel(coupon) {
+    const slot = resolveCouponSlot(coupon);
+    if (slot === 'FREE_SHIPPING') {
+        return 'Phí ship';
+    }
+    if (slot === 'PAYMENT_METHOD') {
+        return 'Phương thức thanh toán';
+    }
+    return 'Sản phẩm';
+}
+
+function sumQuoteSummaryField(quote, field) {
+    if (!quote || !Array.isArray(quote.shopSummaries)) {
+        return 0;
+    }
+    return quote.shopSummaries.reduce((sum, summary) => sum + parseMoneyValue(summary && summary[field]), 0);
 }
 
 function getCouponCodePayload() {
@@ -743,12 +804,17 @@ function renderQuoteSummary(quote) {
     const subtotal = parseMoneyValue(quote.subtotal);
     const directSale = parseMoneyValue(quote.directSaleAmount);
     const delivery = parseMoneyValue(quote.deliveryFee);
-    const shopDisc = parseMoneyValue(quote.shopDiscountAmount);
-    const systemDisc = parseMoneyValue(quote.systemDiscountAmount);
+    const shopDisc = sumQuoteSummaryField(quote, 'shopMerchandiseDiscountAmount');
+    const systemDisc = sumQuoteSummaryField(quote, 'systemMerchandiseDiscountAmount');
+    const paymentDisc = sumQuoteSummaryField(quote, 'paymentDiscountAmount');
+    const shippingDisc = sumQuoteSummaryField(quote, 'shopShippingDiscountAmount')
+        + sumQuoteSummaryField(quote, 'systemShippingDiscountAmount');
     const finalAmount = parseMoneyValue(quote.finalAmount);
 
     shopDiscount = shopDisc;
     systemDiscount = systemDisc;
+    paymentDiscount = paymentDisc;
+    shippingDiscount = shippingDisc;
     syncCouponHiddenFields();
 
     const subtotalEl = document.getElementById('summary-subtotal');
@@ -757,8 +823,12 @@ function renderQuoteSummary(quote) {
     const totalEl = document.getElementById('summary-total');
     const shopRow = document.getElementById('shop-discount-row');
     const systemRow = document.getElementById('system-discount-row');
+    const paymentRow = document.getElementById('payment-discount-row');
+    const shippingRow = document.getElementById('shipping-discount-row');
     const shopAmountEl = document.getElementById('summary-shop-discount');
     const systemAmountEl = document.getElementById('summary-system-discount');
+    const paymentAmountEl = document.getElementById('summary-payment-discount');
+    const shippingAmountEl = document.getElementById('summary-shipping-discount');
 
     if (subtotalEl) subtotalEl.textContent = fmt(subtotal);
     if (directSaleEl) directSaleEl.textContent = '- ' + fmt(directSale);
@@ -782,6 +852,24 @@ function renderQuoteSummary(quote) {
             systemRow.style.setProperty('display', 'none', 'important');
         }
     }
+
+    if (paymentRow && paymentAmountEl) {
+        if (paymentDisc > 0) {
+            paymentRow.style.removeProperty('display');
+            paymentAmountEl.textContent = '- ' + fmt(paymentDisc);
+        } else {
+            paymentRow.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    if (shippingRow && shippingAmountEl) {
+        if (shippingDisc > 0) {
+            shippingRow.style.removeProperty('display');
+            shippingAmountEl.textContent = '- ' + fmt(shippingDisc);
+        } else {
+            shippingRow.style.setProperty('display', 'none', 'important');
+        }
+    }
 }
 
 function refreshQuotePreview(options = {}) {
@@ -790,6 +878,7 @@ function refreshQuotePreview(options = {}) {
         return Promise.resolve(null);
     }
 
+    const preserveCouponMessage = options.preserveCouponMessage === true;
     syncCouponHiddenFields();
     if (quoteRefreshInFlight) {
         return quoteRefreshInFlight;
@@ -819,7 +908,7 @@ function refreshQuotePreview(options = {}) {
                     showCouponMsg(quoteState.errors[0], 'text-red-600 font-bold');
                 } else if (Array.isArray(quoteState.warnings) && quoteState.warnings.length > 0) {
                     showCouponMsg(quoteState.warnings[0], 'text-amber-700 font-bold');
-                } else {
+                } else if (!preserveCouponMessage) {
                     clearCouponMessage();
                 }
             }
@@ -832,7 +921,7 @@ function refreshQuotePreview(options = {}) {
                 updateSummary();
                 renderAppliedCoupons();
                 populateConfirmationCard();
-                if (!options.silent) {
+                if (!options.silent && !preserveCouponMessage) {
                     showCouponMsg('Không thể cập nhật quote tức thời. Đang dùng cơ chế dự phòng.', 'text-amber-700 font-bold');
                 }
                 return null;
@@ -866,21 +955,30 @@ function applyCoupon() {
                     showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại trang thanh toán.', 'text-red-600 font-bold');
                     return;
                 }
+                const couponSlot = resolveCouponSlot({
+                    discountScope: data.discountScope,
+                    benefitTarget: benefitTarget
+                });
+                const existingCoupons = appliedShopCoupons.concat(appliedSystemCoupons);
                 const ownerId = data.ownerId;
-                const shopCouponsForThisOwnerAndTarget = appliedShopCoupons.filter(c => c.ownerId === ownerId && (c.benefitTarget || 'MERCHANDISE') === benefitTarget);
-                if (shopCouponsForThisOwnerAndTarget.length >= 1) {
-                    showCouponMsg('Mỗi shop chỉ được dùng tối đa 1 voucher cho cùng loại ưu đãi.', 'text-red-600 font-bold');
+                const slotConflict = describeCouponSlotConflict({
+                    code: code,
+                    discountScope: data.discountScope,
+                    benefitTarget: benefitTarget
+                }, existingCoupons);
+                if (slotConflict) {
+                    showCouponMsg(slotConflict, 'text-red-600 font-bold');
                     return;
                 }
-                const hasExisting = appliedShopCoupons.length > 0 || appliedSystemCoupons.length > 0;
-                if (hasExisting) {
-                    const anyCannotStack = !data.canStack || 
-                        appliedShopCoupons.some(c => !c.canStack) || 
-                        appliedSystemCoupons.some(c => !c.canStack);
-                    if (anyCannotStack) {
-                        showCouponMsg('Mã voucher này không hỗ trợ cộng dồn với mã đã áp dụng.', 'text-red-600 font-bold');
-                        return;
-                    }
+                const stackConflict = describeCouponStackConflict({
+                    code: code,
+                    discountScope: data.discountScope,
+                    benefitTarget: benefitTarget,
+                    canStack: data.canStack
+                }, existingCoupons);
+                if (stackConflict) {
+                    showCouponMsg(stackConflict, 'text-red-600 font-bold');
+                    return;
                 }
 
                 appliedShopCoupons.push({
@@ -888,12 +986,16 @@ function applyCoupon() {
                     ownerId: ownerId,
                     benefitTarget: benefitTarget,
                     discountScope: (data.discountScope || 'SHOP').toString().toUpperCase(),
+                    couponSlot: couponSlot,
                     canStack: data.canStack,
                 });
                 
-                showCouponMsg('✔ ' + data.message + ' (Mã của Shop)', 'text-emerald-700 font-bold');
+                const successMessage = benefitTarget === 'SHIPPING'
+                    ? '✔ Đã áp dụng ' + getCouponSlotLabel(couponSlot) + '.'
+                    : '✔ ' + data.message + ' (' + getCouponSlotLabel(couponSlot) + ')';
+                showCouponMsg(successMessage, 'text-emerald-700 font-bold');
                 inputEl.value = '';
-                refreshQuotePreview();
+                refreshQuotePreview({ silent: true, preserveCouponMessage: true });
             } else {
                 return validateCouponAPI(code, 'SYSTEM')
                     .then(sysData => {
@@ -903,32 +1005,45 @@ function applyCoupon() {
                                 showCouponMsg('Mã này là giảm tự động theo sản phẩm và không thể áp dụng thủ công tại trang thanh toán.', 'text-red-600 font-bold');
                                 return;
                             }
-                            const systemCouponsForThisTarget = appliedSystemCoupons.filter(c => (c.benefitTarget || 'MERCHANDISE') === benefitTarget);
-                            if (systemCouponsForThisTarget.length >= 1) {
-                                showCouponMsg('Mỗi loại voucher sàn chỉ áp dụng được một mã.', 'text-red-600 font-bold');
+                            const couponSlot = resolveCouponSlot({
+                                discountScope: sysData.discountScope,
+                                benefitTarget: benefitTarget
+                            });
+                            const existingCoupons = appliedShopCoupons.concat(appliedSystemCoupons);
+                            const slotConflict = describeCouponSlotConflict({
+                                code: code,
+                                discountScope: sysData.discountScope,
+                                benefitTarget: benefitTarget
+                            }, existingCoupons);
+                            if (slotConflict) {
+                                showCouponMsg(slotConflict, 'text-red-600 font-bold');
                                 return;
                             }
-                            const hasExisting = appliedShopCoupons.length > 0 || appliedSystemCoupons.length > 0;
-                            if (hasExisting) {
-                                const anyCannotStack = !sysData.canStack || 
-                                    appliedShopCoupons.some(c => !c.canStack) || 
-                                    appliedSystemCoupons.some(c => !c.canStack);
-                                if (anyCannotStack) {
-                                    showCouponMsg('Mã voucher này không hỗ trợ cộng dồn với mã đã áp dụng.', 'text-red-600 font-bold');
-                                    return;
-                                }
+                            const stackConflict = describeCouponStackConflict({
+                                code: code,
+                                discountScope: sysData.discountScope,
+                                benefitTarget: benefitTarget,
+                                canStack: sysData.canStack
+                            }, existingCoupons);
+                            if (stackConflict) {
+                                showCouponMsg(stackConflict, 'text-red-600 font-bold');
+                                return;
                             }
 
                             appliedSystemCoupons.push({
                                 code: code,
                                 benefitTarget: benefitTarget,
                                 discountScope: (sysData.discountScope || 'SYSTEM').toString().toUpperCase(),
+                                couponSlot: couponSlot,
                                 canStack: sysData.canStack
                             });
                             
-                            showCouponMsg('✔ ' + sysData.message + ' (Mã của Sàn)', 'text-emerald-700 font-bold');
+                            const successMessage = benefitTarget === 'SHIPPING'
+                                ? '✔ Đã áp dụng ' + getCouponSlotLabel(couponSlot) + '.'
+                                : '✔ ' + sysData.message + ' (' + getCouponSlotLabel(couponSlot) + ')';
+                            showCouponMsg(successMessage, 'text-emerald-700 font-bold');
                             inputEl.value = '';
-                            refreshQuotePreview();
+                            refreshQuotePreview({ silent: true, preserveCouponMessage: true });
                         } else {
                             showCouponMsg('✘ ' + (sysData.message || data.message || 'Mã voucher không hợp lệ, đã hết hạn, hoặc không đủ điều kiện tối thiểu.'), 'text-red-600 font-bold');
                         }
@@ -941,46 +1056,85 @@ function applyCoupon() {
         });
 }
 
-function recalculateAllAppliedCoupons() {
-    let tempSubtotal = SUBTOTAL;
-    const shopPromises = appliedShopCoupons.map((c) => {
-        return validateCouponAPIWithSubtotal(c.code, 'SHOP', SUBTOTAL)
-            .then(data => {
-                if (data.valid) {
-                    c.discountAmount = data.discountAmount || 0;
-                    tempSubtotal = Math.max(0, tempSubtotal - c.discountAmount);
-                } else {
-                    c.discountAmount = 0;
-                }
-            });
-    });
-    
-    return Promise.all(shopPromises).then(() => {
-        let systemPromiseChain = Promise.resolve();
-        appliedSystemCoupons.forEach((c) => {
-            const currentSub = tempSubtotal;
-            systemPromiseChain = systemPromiseChain.then(() => {
-                return validateCouponAPIWithSubtotal(c.code, 'SYSTEM', currentSub)
-                    .then(data => {
-                        if (data.valid) {
-                            c.discountAmount = data.discountAmount || 0;
-                            tempSubtotal = Math.max(0, tempSubtotal - c.discountAmount);
-                        } else {
-                            c.discountAmount = 0;
-                        }
-                    });
-            });
-        });
-        return systemPromiseChain;
-    }).then(() => {
-        shopDiscount = appliedShopCoupons.reduce((sum, c) => sum + c.discountAmount, 0);
-        shopCouponCode = appliedShopCoupons.map(c => c.code).join(',');
-        document.getElementById('shopCouponCode').value = shopCouponCode;
-        
-        systemDiscount = appliedSystemCoupons.reduce((sum, c) => sum + c.discountAmount, 0);
-        systemCouponCode = appliedSystemCoupons.map(c => c.code).join(',');
-        document.getElementById('systemCouponCode').value = systemCouponCode;
-    });
+async function recalculateAllAppliedCoupons() {
+    let merchandiseBase = SUBTOTAL;
+    let shippingBase = DELIVERY;
+    let sellerTotal = 0;
+    let platformTotal = 0;
+    let shippingTotal = 0;
+    let paymentTotal = 0;
+
+    const allCoupons = appliedShopCoupons.concat(appliedSystemCoupons);
+    const sellerCoupons = allCoupons.filter(c => resolveCouponSlot(c) === 'SELLER_MERCHANDISE');
+    const platformCoupons = allCoupons.filter(c => resolveCouponSlot(c) === 'PLATFORM_MERCHANDISE');
+    const shippingCoupons = allCoupons.filter(c => resolveCouponSlot(c) === 'FREE_SHIPPING');
+    const paymentCoupons = allCoupons.filter(c => resolveCouponSlot(c) === 'PAYMENT_METHOD');
+
+    for (const coupon of sellerCoupons) {
+        const scope = normalizeCouponScope(coupon.discountScope || 'SHOP');
+        const data = await validateCouponAPIWithSubtotal(coupon.code, scope, merchandiseBase);
+        if (data.valid) {
+            coupon.discountAmount = data.discountAmount || 0;
+            sellerTotal += coupon.discountAmount;
+            merchandiseBase = Math.max(0, merchandiseBase - coupon.discountAmount);
+        } else {
+            coupon.discountAmount = 0;
+        }
+    }
+
+    for (const coupon of platformCoupons) {
+        const scope = normalizeCouponScope(coupon.discountScope || 'SYSTEM');
+        const data = await validateCouponAPIWithSubtotal(coupon.code, scope, merchandiseBase);
+        if (data.valid) {
+            coupon.discountAmount = data.discountAmount || 0;
+            platformTotal += coupon.discountAmount;
+            merchandiseBase = Math.max(0, merchandiseBase - coupon.discountAmount);
+        } else {
+            coupon.discountAmount = 0;
+        }
+    }
+
+    for (const coupon of shippingCoupons) {
+        const scope = normalizeCouponScope(coupon.discountScope || 'SYSTEM');
+        const data = await validateCouponAPIWithSubtotal(coupon.code, scope, shippingBase);
+        if (data.valid) {
+            coupon.discountAmount = data.discountAmount || 0;
+            shippingTotal += coupon.discountAmount;
+            shippingBase = Math.max(0, shippingBase - coupon.discountAmount);
+        } else {
+            coupon.discountAmount = 0;
+        }
+    }
+
+    let paymentBase = Math.max(0, merchandiseBase + shippingBase);
+    for (const coupon of paymentCoupons) {
+        const scope = normalizeCouponScope(coupon.discountScope || 'SYSTEM');
+        const data = await validateCouponAPIWithSubtotal(coupon.code, scope, paymentBase);
+        if (data.valid) {
+            coupon.discountAmount = data.discountAmount || 0;
+            paymentTotal += coupon.discountAmount;
+            paymentBase = Math.max(0, paymentBase - coupon.discountAmount);
+        } else {
+            coupon.discountAmount = 0;
+        }
+    }
+
+    shopDiscount = sellerTotal;
+    shopCouponCode = appliedShopCoupons.map(c => c.code).join(',');
+    const shopInput = document.getElementById('shopCouponCode');
+    if (shopInput) {
+        shopInput.value = shopCouponCode;
+    }
+
+    systemDiscount = platformTotal;
+    systemCouponCode = appliedSystemCoupons.map(c => c.code).join(',');
+    const systemInput = document.getElementById('systemCouponCode');
+    if (systemInput) {
+        systemInput.value = systemCouponCode;
+    }
+
+    shippingDiscount = shippingTotal;
+    paymentDiscount = paymentTotal;
 }
 
 function validateCouponAPI(code, scope) {
@@ -1040,13 +1194,72 @@ function normalizeCouponResponse(resp) {
     };
 }
 
+function describeCouponSlotConflict(newCoupon, existingCoupons) {
+    if (!newCoupon || !Array.isArray(existingCoupons) || existingCoupons.length === 0) {
+        return '';
+    }
+
+    const newSlot = resolveCouponSlot(newCoupon);
+    const blockingCoupon = existingCoupons.find(c => c && resolveCouponSlot(c) === newSlot);
+    if (!blockingCoupon) {
+        return '';
+    }
+
+    const slotLabel = getCouponSlotLabel(newSlot).toLowerCase();
+    const blockingCode = (blockingCoupon.code || '').toString().trim();
+    if (blockingCode) {
+        return 'Mỗi checkout chỉ được tối đa 1 ' + slotLabel + '. Mã ' + blockingCode + ' đã chiếm slot này.';
+    }
+    return 'Mỗi checkout chỉ được tối đa 1 ' + slotLabel + '.';
+}
+
+function describeCouponStackConflict(newCoupon, existingCoupons) {
+    if (!newCoupon || !Array.isArray(existingCoupons) || existingCoupons.length === 0) {
+        return '';
+    }
+
+    const newSlot = resolveCouponSlot(newCoupon);
+    const couponCode = (newCoupon.code || '').toString().trim();
+    if (newSlot === 'PAYMENT_METHOD') {
+        const blockingCoupon = existingCoupons.find(c => c && resolveCouponSlot(c) === 'PLATFORM_MERCHANDISE');
+        if (blockingCoupon && (newCoupon.canStack === false || blockingCoupon.canStack === false)) {
+            return 'Voucher sàn ' + (blockingCoupon.code || '') + ' và voucher phương thức thanh toán ' + couponCode + ' không thể cộng dồn.';
+        }
+    }
+
+    if (newSlot === 'PLATFORM_MERCHANDISE') {
+        const blockingCoupon = existingCoupons.find(c => c && resolveCouponSlot(c) === 'PAYMENT_METHOD');
+        if (blockingCoupon && (newCoupon.canStack === false || blockingCoupon.canStack === false)) {
+            return 'Voucher sàn ' + couponCode + ' và voucher phương thức thanh toán ' + (blockingCoupon.code || '') + ' không thể cộng dồn.';
+        }
+    }
+
+    return '';
+}
+
+function normalizeCouponScope(scope) {
+    const value = (scope || '').toString().trim().toUpperCase();
+    if (value === 'ALL') {
+        return 'SYSTEM';
+    }
+    if (value === 'SYSTEM' || value === 'SHOP') {
+        return value;
+    }
+    return 'SHOP';
+}
+
 function removeCoupon(scope, code) {
+    scope = normalizeCouponScope(scope);
+    const removedCoupon = scope === 'SHOP'
+        ? appliedShopCoupons.find(c => c.code === code)
+        : appliedSystemCoupons.find(c => c.code === code);
+    const removedLabel = removedCoupon ? getCouponSlotLabel(resolveCouponSlot(removedCoupon)) : (scope === 'SYSTEM' ? 'Voucher sàn' : 'Voucher shop');
     if (scope === 'SHOP') {
         appliedShopCoupons = appliedShopCoupons.filter(c => c.code !== code);
-        showCouponMsg('Đã xóa mã của Shop.', 'text-on-surface-variant');
+        showCouponMsg('Đã xóa ' + removedLabel.toLowerCase() + '.', 'text-on-surface-variant');
     } else if (scope === 'SYSTEM') {
         appliedSystemCoupons = appliedSystemCoupons.filter(c => c.code !== code);
-        showCouponMsg('Đã xóa mã của Sàn.', 'text-on-surface-variant');
+        showCouponMsg('Đã xóa ' + removedLabel.toLowerCase() + '.', 'text-on-surface-variant');
     }
     
     refreshQuotePreview({ silent: true });
@@ -1069,15 +1282,19 @@ function renderAppliedCoupons() {
     if (quoteState && Array.isArray(quoteState.appliedCoupons) && quoteState.appliedCoupons.length > 0) {
         quoteState.appliedCoupons.forEach(c => {
             hasCoupon = true;
-            const scopeLabel = c.discountScope === 'SYSTEM' ? 'Voucher sàn' : 'Voucher shop';
-            const targetLabel = c.benefitTarget === 'SHIPPING' ? 'Phí ship' : 'Sản phẩm';
+            const couponScope = normalizeCouponScope(c.discountScope || 'SHOP');
+            const couponSlot = resolveCouponSlot(c);
+            const scopeLabel = getCouponSlotLabel(couponSlot);
+            const targetLabel = getCouponTargetLabel(c);
             const ownerLabel = c.ownerId ? 'Cửa hàng #' + c.ownerId : '';
-            const couponScope = c.discountScope || 'SHOP';
             const couponCode = c.code || '';
+            const badgeClass = couponSlot === 'FREE_SHIPPING'
+                ? 'text-teal-800 bg-teal-200'
+                : 'text-emerald-800 bg-emerald-200';
             const item = document.createElement('div');
             item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
             item.innerHTML = '<div>' +
-                '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">' + scopeLabel + '</span>' +
+                '<span class="font-bold ' + badgeClass + ' px-1.5 py-0.5 rounded mr-1">' + scopeLabel + '</span>' +
                 '<span class="font-bold text-on-surface">' + c.code + '</span>' +
                 '<span class="text-on-surface-variant ml-1">(Giảm ' + fmt(c.discountAmount) + (ownerLabel ? ', ' + ownerLabel : '') + ', ' + targetLabel + ')</span>' +
                 '</div>' +
@@ -1087,12 +1304,18 @@ function renderAppliedCoupons() {
     } else {
         appliedShopCoupons.forEach(c => {
             hasCoupon = true;
+            const couponSlot = resolveCouponSlot(c);
+            const slotLabel = getCouponSlotLabel(couponSlot);
+            const targetLabel = getCouponTargetLabel(c);
+            const badgeClass = couponSlot === 'FREE_SHIPPING'
+                ? 'text-teal-800 bg-teal-200'
+                : 'text-emerald-800 bg-emerald-200';
             const item = document.createElement('div');
             item.className = 'flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-xs';
             item.innerHTML = '<div>' +
-                '<span class="font-bold text-emerald-800 bg-emerald-200 px-1.5 py-0.5 rounded mr-1">Voucher shop</span>' +
+                '<span class="font-bold ' + badgeClass + ' px-1.5 py-0.5 rounded mr-1">' + slotLabel + '</span>' +
                 '<span class="font-bold text-on-surface">' + c.code + '</span>' +
-                '<span class="text-on-surface-variant ml-1">(Đang tính...)</span>' +
+                '<span class="text-on-surface-variant ml-1">(Đang tính..., ' + targetLabel + ')</span>' +
                 '</div>' +
                 '<button type="button" onclick="removeCoupon(\'SHOP\', \'' + (c.code || '') + '\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
             listEl.appendChild(item);
@@ -1100,12 +1323,18 @@ function renderAppliedCoupons() {
     
         appliedSystemCoupons.forEach(c => {
             hasCoupon = true;
+            const couponSlot = resolveCouponSlot(c);
+            const slotLabel = getCouponSlotLabel(couponSlot);
+            const targetLabel = getCouponTargetLabel(c);
+            const badgeClass = couponSlot === 'FREE_SHIPPING'
+                ? 'text-teal-800 bg-teal-200'
+                : 'text-emerald-800 bg-emerald-200';
             const item = document.createElement('div');
             item.className = 'flex justify-between items-center bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs';
             item.innerHTML = '<div>' +
-                '<span class="font-bold text-teal-800 bg-teal-200 px-1.5 py-0.5 rounded mr-1">Voucher sàn</span>' +
+                '<span class="font-bold ' + badgeClass + ' px-1.5 py-0.5 rounded mr-1">' + slotLabel + '</span>' +
                 '<span class="font-bold text-on-surface">' + c.code + '</span>' +
-                '<span class="text-on-surface-variant ml-1">(Đang tính...)</span>' +
+                '<span class="text-on-surface-variant ml-1">(Đang tính..., ' + targetLabel + ')</span>' +
                 '</div>' +
                 '<button type="button" onclick="removeCoupon(\'SYSTEM\', \'' + (c.code || '') + '\')" class="text-red-600 hover:text-red-800 font-bold ml-2 focus:outline-none">Xóa</button>';
             listEl.appendChild(item);
@@ -1125,11 +1354,13 @@ function updateSummary() {
         return;
     }
 
-    const total = Math.max(0, SUBTOTAL - shopDiscount - systemDiscount + DELIVERY);
+    const total = Math.max(0, SUBTOTAL - shopDiscount - systemDiscount - paymentDiscount - shippingDiscount + DELIVERY);
     const fmt = (n) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(n);
 
     const shopRow   = document.getElementById('shop-discount-row');
     const systemRow = document.getElementById('system-discount-row');
+    const paymentRow = document.getElementById('payment-discount-row');
+    const shippingRow = document.getElementById('shipping-discount-row');
 
     if (shopDiscount > 0) {
         shopRow.style.removeProperty('display');
@@ -1143,6 +1374,20 @@ function updateSummary() {
         document.getElementById('summary-system-discount').textContent = '- ' + fmt(systemDiscount);
     } else {
         systemRow.style.setProperty('display', 'none', 'important');
+    }
+
+    if (paymentDiscount > 0) {
+        paymentRow.style.removeProperty('display');
+        document.getElementById('summary-payment-discount').textContent = '- ' + fmt(paymentDiscount);
+    } else {
+        paymentRow.style.setProperty('display', 'none', 'important');
+    }
+
+    if (shippingDiscount > 0) {
+        shippingRow.style.removeProperty('display');
+        document.getElementById('summary-shipping-discount').textContent = '- ' + fmt(shippingDiscount);
+    } else {
+        shippingRow.style.setProperty('display', 'none', 'important');
     }
 
     document.getElementById('summary-total').textContent = fmt(total);
@@ -1507,8 +1752,8 @@ function populateConfirmationCard() {
         if (quoteState && Array.isArray(quoteState.appliedCoupons) && quoteState.appliedCoupons.length > 0) {
             const fmtCurrency = (value) => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(parseMoneyValue(value));
             quoteState.appliedCoupons.forEach(c => {
-                const scopeLabel = c.discountScope === 'SYSTEM' ? 'Voucher sàn' : 'Voucher shop';
-                const targetLabel = c.benefitTarget === 'SHIPPING' ? 'phí ship' : 'sản phẩm';
+                const scopeLabel = getCouponSlotLabel(resolveCouponSlot(c));
+                const targetLabel = getCouponTargetLabel(c).toLowerCase();
                 html += '<p class="text-emerald-700 font-semibold">' + scopeLabel + ': ' + c.code + ' (' + targetLabel + ', -' + fmtCurrency(c.discountAmount) + ')</p>';
             });
         } else {

@@ -1,7 +1,10 @@
 package servlet.admin.order;
 
+import config.AppConfig;
+import model.dto.common.PagedResultDTO;
 import service.order.ReviewService;
 import model.entity.order.Review;
+import util.PaginationUtil;
 
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -24,8 +27,13 @@ public class AdminReviewServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         try {
-            List<Review> reviews = reviewService.getAllReviewsForAdmin();
-            req.setAttribute("reviewList", reviews);
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
+            int pageSize = AppConfig.PAGE_SIZE_ADMIN;
+            PagedResultDTO reviewPage = reviewService.getAllReviewsForAdminPaged(page, pageSize);
+            req.setAttribute("reviewList", reviewPage.getItems());
+            req.setAttribute("currentPage", reviewPage.getCurrentPage());
+            req.setAttribute("totalPages", reviewPage.getTotalPages());
+            req.setAttribute("totalItems", reviewPage.getTotalItems());
             req.getRequestDispatcher("/WEB-INF/jsp/admin/review-management.jsp").forward(req, resp);
         } catch (Exception e) {
             util.ServletUtil.sendPageInternalServerError(

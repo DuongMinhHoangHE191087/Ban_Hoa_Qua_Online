@@ -10,7 +10,7 @@
 
 /* ── 1. CSS Custom Properties (Design Tokens) ─────────────────────────────── */
 :root {
-    /* Brand Colors (Upgraded to Verdant Market Emerald Premium Palette) */
+    /* Brand Colors (MetaFruit Emerald Premium Palette) */
     --color-primary: #4D661C;
     /* Emerald Green */
     --color-primary-dark: #364E03;
@@ -1309,7 +1309,7 @@ select:disabled {
     opacity: 0.7;
 }
 
-/* Beautiful Custom styling for SweetAlert2 popups to match the Verdant design theme */
+/* Beautiful Custom styling for SweetAlert2 popups to match the MetaFruit design theme */
 .premium-swal-popup {
     border-radius: var(--radius-xl, 16px) !important;
     font-family: var(--font-family) !important;

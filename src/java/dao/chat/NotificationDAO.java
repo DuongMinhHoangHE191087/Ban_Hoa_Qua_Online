@@ -10,6 +10,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import util.PaginationHelper;
 
 /**
  * NotificationDAO — DAO cho entity Notification.
@@ -141,6 +142,34 @@ public class NotificationDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    public List<Notification> findAllSystemNotifications(int page, int pageSize) throws SQLException {
+        List<Notification> list = new ArrayList<>();
+        String sql = "SELECT * FROM notifications WHERE type = 'SYSTEM' ORDER BY created_at DESC, notification_id DESC "
+                + PaginationHelper.OFFSET_FETCH_SQL;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            PaginationHelper.bindOffsetFetch(ps, 1, page, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countAllSystemNotifications() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM notifications WHERE type = 'SYSTEM'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        }
+        return 0;
     }
 
     public void insertForRole(String title, String message, String role) throws SQLException {

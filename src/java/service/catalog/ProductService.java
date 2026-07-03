@@ -96,6 +96,17 @@ public class ProductService {
         return productDAO.findByOwner(ownerId);
     }
 
+    public PagedResultDTO getProductsByOwner(int ownerId, int page, int pageSize, String keyword, Integer categoryId, String approvalStatus, String sellStatus, String stockStatus) throws SQLException {
+        if (ownerId <= 0) {
+            throw new IllegalArgumentException("ownerId không hợp lệ.");
+        }
+        int validatedPage = util.PaginationUtil.validatePage(page);
+        int validatedPageSize = util.PaginationUtil.validatePageSize(pageSize);
+        List<Product> items = productDAO.findByOwner(ownerId, validatedPage, validatedPageSize, keyword, categoryId, approvalStatus, sellStatus, stockStatus);
+        int total = productDAO.countByOwner(ownerId, keyword, categoryId, approvalStatus, sellStatus, stockStatus);
+        return util.PaginationUtil.buildPagedResult(items, validatedPage, validatedPageSize, total);
+    }
+
     /**
      * Lấy một số sản phẩm gần nhất của shop owner để render dashboard nhanh hơn.
      */
@@ -177,13 +188,13 @@ public class ProductService {
      * @return danh sách sản phẩm thỏa mãn điều kiện
      * @throws SQLException nếu xảy ra lỗi cơ sở dữ liệu
      */
-    public List<Product> getAllAdminProducts(int page, int pageSize, String approvalStatus) throws SQLException {
+    public List<Product> getAllAdminProducts(int page, int pageSize, String approvalStatus, Integer categoryId) throws SQLException {
         if (page < 1) page = 1;
-        return productDAO.findAllAdminProducts(page, pageSize, approvalStatus);
+        return productDAO.findAllAdminProducts(page, pageSize, approvalStatus, categoryId);
     }
 
-    public int countAllAdminProducts(String approvalStatus) throws SQLException {
-        return productDAO.countAllAdminProducts(approvalStatus);
+    public int countAllAdminProducts(String approvalStatus, Integer categoryId) throws SQLException {
+        return productDAO.countAllAdminProducts(approvalStatus, categoryId);
     }
 
     /**

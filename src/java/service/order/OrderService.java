@@ -17,6 +17,7 @@ import model.entity.order.Order;
 import model.entity.order.OrderItem;
 import model.entity.auth.User;
 import util.LoggerUtil;
+import util.PaginationUtil;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -127,10 +128,8 @@ public class OrderService {
     public PagedResultDTO shopOrders(int ownerId, String status, int page) throws SQLException {
         int pageSize = 10;
         List<Order> list = orderDAO.findByOwner(ownerId, status, page, pageSize);
-        PagedResultDTO dto = new PagedResultDTO();
-        dto.setItems(list);
-        dto.setCurrentPage(page);
-        return dto;
+        int total = orderDAO.countByOwner(ownerId, status);
+        return PaginationUtil.buildPagedResult(list, page, pageSize, total);
     }
 
     public void dispatchOrder(int orderId, int ownerId) throws SQLException {

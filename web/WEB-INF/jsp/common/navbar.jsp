@@ -32,8 +32,8 @@
         </c:choose>
 
         <!-- Hamburger Menu Toggle Button for Mobile -->
-        <button type="button" id="navbarToggle" class="navbar__toggle" aria-label="Toggle Navigation">
-            <i class="fa-solid fa-bars"></i>
+        <button type="button" id="navbarToggle" class="navbar__toggle" aria-label="Mở menu điều hướng" aria-controls="navbarMenu" aria-expanded="false">
+            <i id="navbarToggleIcon" class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>
 
         <ul class="navbar__menu" id="navbarMenu">
@@ -204,6 +204,104 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        const navbar = document.querySelector('.navbar');
+        const navbarToggle = document.getElementById('navbarToggle');
+        const navbarToggleIcon = document.getElementById('navbarToggleIcon');
+        const navbarMenu = document.getElementById('navbarMenu');
+        const mobileQuery = window.matchMedia('(max-width: 1024px)');
+        let isMenuOpen = false;
+
+        function applyMenuState(open) {
+            if (!navbarToggle || !navbarMenu) {
+                return;
+            }
+
+            const isMobile = mobileQuery.matches;
+            isMenuOpen = isMobile && open;
+
+            navbarToggle.setAttribute('aria-expanded', String(isMenuOpen));
+            navbarToggle.setAttribute('aria-label', isMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng');
+            navbarMenu.classList.toggle('active', isMenuOpen);
+            navbarMenu.setAttribute('aria-hidden', isMobile ? String(!isMenuOpen) : 'false');
+
+            if ('inert' in navbarMenu) {
+                navbarMenu.inert = isMobile && !isMenuOpen;
+            }
+
+            if (navbarToggleIcon) {
+                navbarToggleIcon.classList.toggle('fa-bars', !isMenuOpen);
+                navbarToggleIcon.classList.toggle('fa-xmark', isMenuOpen);
+            }
+        }
+
+        function closeMenu() {
+            if (!navbarToggle || !navbarMenu) {
+                return;
+            }
+            isMenuOpen = false;
+            applyMenuState(false);
+        }
+
+        function toggleMenu() {
+            if (!navbarToggle || !navbarMenu || !mobileQuery.matches) {
+                return;
+            }
+            applyMenuState(!isMenuOpen);
+        }
+
+        if (navbarToggle && navbarMenu) {
+            applyMenuState(false);
+
+            navbarToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleMenu();
+            });
+
+            navbarMenu.addEventListener('click', function(e) {
+                const link = e.target.closest('a[href]');
+                if (!link) {
+                    return;
+                }
+
+                const href = (link.getAttribute('href') || '').trim().toLowerCase();
+                if (!mobileQuery.matches || href.startsWith('javascript:') || href === '#') {
+                    return;
+                }
+
+                closeMenu();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!mobileQuery.matches || !isMenuOpen || !navbar || navbar.contains(e.target)) {
+                    return;
+                }
+
+                closeMenu();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && mobileQuery.matches && isMenuOpen) {
+                    closeMenu();
+                    navbarToggle.focus();
+                }
+            });
+
+            const handleViewportChange = function() {
+                if (!mobileQuery.matches) {
+                    closeMenu();
+                    return;
+                }
+
+                applyMenuState(isMenuOpen);
+            };
+
+            if (typeof mobileQuery.addEventListener === 'function') {
+                mobileQuery.addEventListener('change', handleViewportChange);
+            } else if (typeof mobileQuery.addListener === 'function') {
+                mobileQuery.addListener(handleViewportChange);
+            }
+        }
+
         if (!window.isLoggedIn) {
             return;
         }

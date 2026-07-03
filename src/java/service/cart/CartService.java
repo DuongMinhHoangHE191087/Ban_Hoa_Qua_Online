@@ -79,18 +79,39 @@ public class CartService {
         return productDAO.findOneById(variant.getProductId());
     }
 
+    private Integer getExistingCartId(int customerId) throws SQLException {
+        List<Cart> carts = cartDAO.findByCustomer(customerId);
+        if (carts.isEmpty()) {
+            return null;
+        }
+        return carts.get(0).getCartId();
+    }
+
+    private int getOrCreateCartId(int customerId) throws SQLException {
+        Integer cartId = getExistingCartId(customerId);
+        if (cartId != null) {
+            return cartId;
+        }
+        return cartDAO.createForCustomer(customerId);
+    }
+
+    private void assertCartOwnership(int customerId, CartItem item) throws SQLException {
+        Integer cartId = getExistingCartId(customerId);
+        if (cartId == null || item == null || item.getCartId() != cartId) {
+            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
+        }
+    }
+
+    private String buildStockExceededMessage(Product product, String fallbackName, int stockQuantity) {
+        return resolveProductName(product, fallbackName)
+                + " vượt quá tồn kho, hiện chỉ còn " + stockQuantity + " sản phẩm.";
+    }
+
     /**
      * Lấy hoặc khởi tạo giỏ hàng cho khách hàng.
      */
     public CartSummaryDTO getCart(int customerId) throws SQLException {
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        int cartId;
-        if (carts.isEmpty()) {
-            cartId = cartDAO.createForCustomer(customerId);
-        } else {
-            cartId = carts.get(0).getCartId();
-        }
-
+        int cartId = getOrCreateCartId(customerId);
         List<CartItem> items = cartDAO.findItems(cartId);
         long accumulativeSubtotal = 0;
         long accumulativeGrams = 0;
@@ -148,13 +169,7 @@ public class CartService {
             throw new IllegalArgumentException(productError);
         }
 
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        int cartId;
-        if (carts.isEmpty()) {
-            cartId = cartDAO.createForCustomer(customerId);
-        } else {
-            cartId = carts.get(0).getCartId();
-        }
+        int cartId = getOrCreateCartId(customerId);
 
         // Kiểm tra xem đã có sản phẩm này trong giỏ với cùng tùy chọn bao bì chưa
         List<CartItem> items = cartDAO.findItems(cartId);
@@ -169,8 +184,7 @@ public class CartService {
 
         int totalRequested = existingQty + qty;
         if (totalRequested > variant.getStockQuantity()) {
-            throw new IllegalArgumentException(resolveProductName(product, null)
-                    + " đã hết số lượng bạn cần mua, hiện chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
+            throw new IllegalArgumentException(buildStockExceededMessage(product, null, variant.getStockQuantity()));
         }
 
         cartDAO.addItem(cartId, variantId, qty, packagingId);
@@ -189,11 +203,7 @@ public class CartService {
             throw new IllegalArgumentException("Không tìm thấy sản phẩm này trong giỏ hàng.");
         }
 
-        // Kiểm tra quyền sở hữu giỏ hàng (IDOR Prevention)
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        if (carts.isEmpty() || item.getCartId() != carts.get(0).getCartId()) {
-            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
-        }
+        assertCartOwnership(customerId, item);
 
         ProductVariant variant = productVariantDAO.findById(item.getVariantId());
         if (variant == null || !variant.getIsActive()) {
@@ -206,8 +216,8 @@ public class CartService {
         }
 
         if (qty > variant.getStockQuantity()) {
-            throw new IllegalArgumentException(resolveProductName(product, item.getProductName())
-                    + " đã hết số lượng bạn cần mua, hiện chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
+            throw new IllegalArgumentException(buildStockExceededMessage(product, item.getProductName(),
+                    variant.getStockQuantity()));
         }
 
         cartDAO.updateItemQuantity(cartItemId, qty);
@@ -222,11 +232,7 @@ public class CartService {
             return;
         }
 
-        // Kiểm tra quyền sở hữu giỏ hàng (IDOR Prevention)
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        if (carts.isEmpty() || item.getCartId() != carts.get(0).getCartId()) {
-            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
-        }
+        assertCartOwnership(customerId, item);
 
         cartDAO.removeItem(cartItemId);
     }
@@ -241,11 +247,7 @@ public class CartService {
             throw new IllegalArgumentException("Không tìm thấy sản phẩm này trong giỏ hàng.");
         }
 
-        // Kiểm tra quyền sở hữu giỏ hàng (IDOR Prevention)
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        if (carts.isEmpty() || item.getCartId() != carts.get(0).getCartId()) {
-            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
-        }
+        assertCartOwnership(customerId, item);
 
         ProductVariant newVariant = productVariantDAO.findById(newVariantId);
         if (newVariant == null || !newVariant.getIsActive()) {
@@ -258,7 +260,7 @@ public class CartService {
         }
 
         if (newVariant.getStockQuantity() <= 0) {
-            throw new IllegalArgumentException("Sản phẩm này đã hết số lượng bạn cần mua, hiện chỉ còn 0 sản phẩm.");
+            throw new IllegalArgumentException(buildStockExceededMessage(newProduct, item.getProductName(), 0));
         }
 
         int cartId = item.getCartId();
@@ -331,13 +333,7 @@ public class CartService {
     public void syncOnUnload(int customerId, String guestCartJson) throws SQLException {
         if (guestCartJson == null) return;
 
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        int cartId;
-        if (carts.isEmpty()) {
-            cartId = cartDAO.createForCustomer(customerId);
-        } else {
-            cartId = carts.get(0).getCartId();
-        }
+        int cartId = getOrCreateCartId(customerId);
 
         try {
             List<Map<String, Object>> parsedItems = JsonUtil.fromJson(guestCartJson, List.class);
@@ -397,12 +393,11 @@ public class CartService {
      */
     public List<String> checkCartStockBeforeCheckout(int customerId, List<Integer> variantIds) throws SQLException {
         List<String> errors = new ArrayList<>();
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        if (carts.isEmpty()) {
+        Integer cartId = getExistingCartId(customerId);
+        if (cartId == null) {
             return errors;
         }
 
-        int cartId = carts.get(0).getCartId();
         List<CartItem> items = cartDAO.findItems(cartId);
         if (items.isEmpty()) {
             return errors;
@@ -453,9 +448,9 @@ public class CartService {
      * Xóa sạch toàn bộ sản phẩm trong giỏ hàng.
      */
     public void clearCart(int customerId) throws SQLException {
-        List<Cart> carts = cartDAO.findByCustomer(customerId);
-        if (!carts.isEmpty()) {
-            cartDAO.clearCart(carts.get(0).getCartId());
+        Integer cartId = getExistingCartId(customerId);
+        if (cartId != null) {
+            cartDAO.clearCart(cartId);
         }
     }
 

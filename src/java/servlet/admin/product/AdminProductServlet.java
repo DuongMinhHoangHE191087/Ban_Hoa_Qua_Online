@@ -4,8 +4,10 @@ import config.AppConfig;
 import model.entity.catalog.Category;
 import model.entity.catalog.Product;
 import model.entity.auth.User;
+import service.admin.AdminViewEnrichmentService; // Helper for data enrichment
 import service.catalog.CategoryService;
 import service.catalog.ProductService;
+import util.PaginationUtil;
 import util.SessionUtil;
 import util.ErrorMessageUtil;
 
@@ -37,6 +39,7 @@ public class AdminProductServlet extends HttpServlet {
 
     private final ProductService productService = new ProductService();
     private final CategoryService categoryService = new CategoryService();
+    private final AdminViewEnrichmentService viewEnrichmentService = new AdminViewEnrichmentService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -49,34 +52,45 @@ public class AdminProductServlet extends HttpServlet {
         }
 
         try {
-            int page = 1;
-            String pageStr = req.getParameter("page");
-            if (pageStr != null && !pageStr.trim().isEmpty()) {
-                try {
-                    page = Integer.parseInt(pageStr.trim());
-                    if (page < 1) page = 1;
-                } catch (NumberFormatException e) {
-                    LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
-                }
-            }
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
 
             String approvalStatus = req.getParameter("approvalStatus");
-            if (approvalStatus != null && approvalStatus.trim().isEmpty()) {
+            if (approvalStatus == null) {
+                approvalStatus = "PENDING";
+            } else if (approvalStatus.trim().isEmpty() || "ALL".equalsIgnoreCase(approvalStatus.trim())) {
                 approvalStatus = null;
+            } else {
+                approvalStatus = approvalStatus.trim();
+            }
+
+            Integer categoryId = null;
+            String categoryIdParam = req.getParameter("categoryId");
+            if (categoryIdParam != null && !categoryIdParam.trim().isEmpty()) {
+                try {
+                    int parsedCategoryId = Integer.parseInt(categoryIdParam.trim());
+                    if (parsedCategoryId > 0) {
+                        categoryId = parsedCategoryId;
+                    }
+                } catch (NumberFormatException ignored) {
+                    categoryId = null;
+                }
             }
 
             int pageSize = AppConfig.PAGE_SIZE_ADMIN;
             // Gọi qua Service Layer thay vì trực tiếp DAO
-            List<Product> products = productService.getAllAdminProducts(page, pageSize, approvalStatus);
+            List<Product> products = productService.getAllAdminProducts(page, pageSize, approvalStatus, categoryId);
             List<Category> categories = categoryService.getAllCategories();
-            int totalCount = productService.countAllAdminProducts(approvalStatus);
+            int totalCount = productService.countAllAdminProducts(approvalStatus, categoryId);
             int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
+            viewEnrichmentService.enrichProducts(products);
 
             req.setAttribute("products", products);
             req.setAttribute("categories", categories);
             req.setAttribute("currentPage", page);
             req.setAttribute("totalPages", totalPages);
-            req.setAttribute("paramApprovalStatus", approvalStatus);
+            req.setAttribute("paramApprovalStatus", req.getParameter("approvalStatus") == null ? "PENDING" : req.getParameter("approvalStatus").trim());
+            req.setAttribute("paramCategoryId", categoryId);
+            req.setAttribute("totalItems", totalCount);
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-products.jsp").forward(req, resp);
 
@@ -157,7 +171,7 @@ public class AdminProductServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, e.getMessage());
         }
-        resp.sendRedirect(req.getContextPath() + "/admin/products");
+        resp.sendRedirect(buildRedirectUrl(req));
     }
 
     private void rejectProduct(HttpServletRequest req, HttpServletResponse resp, HttpSession session)
@@ -183,7 +197,7 @@ public class AdminProductServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, e.getMessage());
         }
-        resp.sendRedirect(req.getContextPath() + "/admin/products");
+        resp.sendRedirect(buildRedirectUrl(req));
     }
 
     private void banProduct(HttpServletRequest req, HttpServletResponse resp, HttpSession session)
@@ -208,6 +222,34 @@ public class AdminProductServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             SessionUtil.flashError(session, e.getMessage());
         }
-        resp.sendRedirect(req.getContextPath() + "/admin/products");
+        resp.sendRedirect(buildRedirectUrl(req));
+    }
+
+    private String buildRedirectUrl(HttpServletRequest req) {
+        StringBuilder url = new StringBuilder(req.getContextPath()).append("/admin/products");
+        boolean hasQuery = false;
+
+        String page = req.getParameter("page");
+        if (page != null && page.trim().matches("\\d+")) {
+            url.append("?page=").append(page.trim());
+            hasQuery = true;
+        }
+
+        String approvalStatus = trim(req.getParameter("approvalStatus"));
+        if (approvalStatus != null && !approvalStatus.isEmpty()) {
+            url.append(hasQuery ? "&" : "?").append("approvalStatus=").append(approvalStatus);
+            hasQuery = true;
+        }
+
+        String categoryId = trim(req.getParameter("categoryId"));
+        if (categoryId != null && categoryId.matches("\\d+")) {
+            url.append(hasQuery ? "&" : "?").append("categoryId=").append(categoryId);
+        }
+
+        return url.toString();
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
     }
 }

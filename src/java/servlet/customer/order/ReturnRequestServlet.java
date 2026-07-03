@@ -11,7 +11,6 @@ import service.order.ReturnService;
 import util.FileUploadUtil;
 import util.SessionUtil;
 import util.ErrorMessageUtil;
-
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -30,16 +29,16 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * ReturnRequestServlet — Quản lý yêu cầu Hủy/Đổi/Trả của khách hàng và Phán quyết của Admin.
+ * ReturnRequestServlet - Quản lý yêu cầu Hủy/Đổi/Trả của khách hàng và Phán quyết của Admin.
  *
  * URL: /returns
  *
  * REF-02: Yêu cầu đổi trả bắt buộc đính kèm ít nhất 1 video HOẶC ít nhất 2 ảnh làm bằng chứng.
  */
 @MultipartConfig(
-    maxFileSize    = 50L * 1024 * 1024,   // 50 MB mỗi file (video có thể lớn)
-    maxRequestSize = 150L * 1024 * 1024,  // 150 MB toàn request
-    fileSizeThreshold = 1024 * 1024       // 1 MB — ghi xuống disk nếu vượt
+    maxFileSize    = 50L * 1024 * 1024,
+    maxRequestSize = 150L * 1024 * 1024,
+    fileSizeThreshold = 1024 * 1024
 )
 @WebServlet("/returns")
 public class ReturnRequestServlet extends HttpServlet {
@@ -52,7 +51,7 @@ public class ReturnRequestServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         req.setCharacterEncoding("UTF-8");
         resp.setContentType("text/html;charset=UTF-8");
 
@@ -73,19 +72,14 @@ public class ReturnRequestServlet extends HttpServlet {
                 return;
             }
             try {
-                List<ReturnRequest> list;
                 if (AppConfig.ROLE_ADMIN.equals(user.getRole())) {
-                    list = returnService.getAllRequests();
-                } else {
-                    list = returnService.getRequestsByOwner(user.getUserId());
+                    resp.sendRedirect(req.getContextPath() + "/admin/refunds");
+                    return;
                 }
+
+                List<ReturnRequest> list = returnService.getRequestsByOwner(user.getUserId());
                 req.setAttribute("returnRequests", list);
-                
-                if (AppConfig.ROLE_ADMIN.equals(user.getRole())) {
-                    req.getRequestDispatcher("/WEB-INF/jsp/admin/return-requests.jsp").forward(req, resp);
-                } else {
-                    req.getRequestDispatcher("/WEB-INF/jsp/shop/return-requests.jsp").forward(req, resp);
-                }
+                req.getRequestDispatcher("/WEB-INF/jsp/shop/return-requests.jsp").forward(req, resp);
             } catch (SQLException e) {
                 util.ServletUtil.sendPageInternalServerError(
                         req,
@@ -115,15 +109,13 @@ public class ReturnRequestServlet extends HttpServlet {
                 return;
             }
 
-            // Guard: chỉ customer sở hữu đơn mới được gửi yêu cầu đổi trả
             if (order.getCustomerId() != user.getUserId()) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.");
                 return;
             }
 
-            // Guard: chỉ đơn hàng đã giao thành công (DELIVERED) mới được gửi yêu cầu đổi trả
             if (!"DELIVERED".equals(order.getStatus())) {
-                SessionUtil.flashError(session, "Chỉ có đơn hàng giao thành công mới được yêu cầu đổi trả / hoàn tiền.");
+                SessionUtil.flashError(session, "Chỉ có đơn hàng giao thành công mới được gửi yêu cầu đổi trả / hoàn tiền.");
                 resp.sendRedirect(req.getContextPath() + "/orders");
                 return;
             }
@@ -144,7 +136,7 @@ public class ReturnRequestServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         req.setCharacterEncoding("UTF-8");
 
         HttpSession session = req.getSession();
@@ -157,7 +149,7 @@ public class ReturnRequestServlet extends HttpServlet {
 
         String action = req.getParameter("action");
 
-        // --- Admin phán quyết duyệt/từ chối ---
+        // --- Admin decision approve/reject ---
         if ("decide".equals(action)) {
             if (!AppConfig.ROLE_ADMIN.equals(user.getRole())) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ Admin mới có quyền phê duyệt đổi trả.");
@@ -165,7 +157,7 @@ public class ReturnRequestServlet extends HttpServlet {
             }
 
             String reqIdStr = req.getParameter("requestId");
-            String status = req.getParameter("status"); // APPROVED hoặc REJECTED
+            String status = req.getParameter("status");
             String reason = req.getParameter("reason");
 
             if (reqIdStr == null || status == null || reason == null || reason.trim().isEmpty()) {
@@ -186,10 +178,10 @@ public class ReturnRequestServlet extends HttpServlet {
             return;
         }
 
-        // --- Customer tạo mới yêu cầu đổi trả ---
+        // --- Customer create new return request ---
         String orderIdStr = req.getParameter("orderId");
         String orderItemIdStr = req.getParameter("orderItemId");
-        String requestType = req.getParameter("requestType"); // RETURN hoặc EXCHANGE
+        String requestType = req.getParameter("requestType");
         String reasonCode = req.getParameter("reasonCode");
         String description = req.getParameter("description");
         String qtyStr = req.getParameter("requestedQuantity");
@@ -206,7 +198,6 @@ public class ReturnRequestServlet extends HttpServlet {
             int orderItemId = Integer.parseInt(orderItemIdStr);
             int requestedQuantity = qtyStr != null ? Integer.parseInt(qtyStr) : 1;
 
-            // REF-02: Đếm và phân loại bằng chứng từ multipart (ảnh / video)
             Collection<Part> evidenceParts = req.getParts();
             int photoCount = 0;
             int videoCount = 0;
@@ -216,36 +207,30 @@ public class ReturnRequestServlet extends HttpServlet {
 
             for (Part part : evidenceParts) {
                 if (!"evidence".equals(part.getName())) {
-                    continue; // chỉ xử lý field có name="evidence"
+                    continue;
                 }
                 if (part.getSize() == 0 || part.getSubmittedFileName() == null
                         || part.getSubmittedFileName().trim().isEmpty()) {
-                    continue; // bỏ qua slot rỗng
+                    continue;
                 }
 
                 String filename = part.getSubmittedFileName().toLowerCase();
                 if (isVideoExtension(filename)) {
                     videoCount++;
                     if (firstEvidenceUrl == null) {
-                        // Lưu video bằng FileUploadUtil nếu extension là ảnh được phép;
-                        // video thường không nằm trong ALLOWED_IMAGE_EXTS nên lưu tên file thôi
-                        // (multi-row storage bị DEFER — xem ghi chú bên dưới)
                         firstEvidenceUrl = part.getSubmittedFileName();
                     }
                 } else if (FileUploadUtil.isAllowedImage(filename)) {
                     photoCount++;
                     if (firstEvidenceUrl == null) {
-                        // Lưu ảnh đầu tiên qua FileUploadUtil (validate extension + magic bytes)
                         String saved = FileUploadUtil.save(part, uploadDir);
                         if (saved != null) {
                             firstEvidenceUrl = saved;
                         }
                     }
                 }
-                // File không phải ảnh và không phải video — bỏ qua
             }
 
-            // REF-02: Kiểm tra điều kiện bằng chứng bắt buộc
             if (videoCount < 1 && photoCount < 2) {
                 SessionUtil.flashError(session,
                     "Yêu cầu đổi trả cần đính kèm ít nhất 1 video hoặc ít nhất 2 ảnh làm bằng chứng.");
@@ -253,9 +238,6 @@ public class ReturnRequestServlet extends HttpServlet {
                 return;
             }
 
-            // DEFER: schema hiện tại chỉ có 1 cột evidence_url (VARCHAR).
-            // Multi-row evidence storage cần migration (return_request_evidence table).
-            // Hiện tại lưu bằng chứng đầu tiên — count đã được kiểm tra ở trên.
             ReturnRequest rr = new ReturnRequest();
             rr.setOrderId(orderId);
             rr.setOrderItemId(orderItemId);

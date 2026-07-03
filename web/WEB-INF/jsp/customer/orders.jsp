@@ -4,7 +4,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
-    <jsp:param name="pageTitle" value="Lịch sử đơn hàng" />
+    <jsp:param name="pageTitle" value="Lịch sử đơn hàng của bạn" />
 </jsp:include>
 
 <!-- Tích hợp Tailwind CSS CDN, Lexend Font và Material Symbols Outlined -->
@@ -80,7 +80,7 @@
                 }
             }
         }
-    }
+    };
 </script>
 
 <main class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-xl font-body-md text-on-background">
@@ -90,10 +90,8 @@
         <p class="text-on-surface-variant font-medium">Theo dõi và quản lý các đơn đặt hàng trái cây sạch</p>
     </div>
 
-
-
-    <!-- Filter Tabs (DEL-03 và timeline status) -->
-    <div class="flex flex-wrap gap-2 mb-8 bg-white/40 p-2 rounded-2xl border border-white/30 backdrop-blur-[8px]">
+    <!-- Filter Tabs -->
+    <div class="flex flex-wrap gap-2 mb-8 bg-white/60 p-2 rounded-2xl border border-white/40 shadow-sm backdrop-blur-[8px]">
         <a href="${pageContext.request.contextPath}/orders" class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm flex items-center gap-2 ${empty selectedStatus ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant/30'}">
             <span class="material-symbols-outlined text-lg">all_inbox</span> Tất cả
         </a>
@@ -107,19 +105,19 @@
             <span class="material-symbols-outlined text-lg">task_alt</span> Đã giao thành công
         </a>
         <a href="${pageContext.request.contextPath}/orders?status=CANCELLED" class="px-5 py-2.5 rounded-xl font-semibold transition-all text-sm flex items-center gap-2 ${selectedStatus == 'CANCELLED' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant/30'}">
-            <span class="material-symbols-outlined text-lg">cancel</span> Đã hủy
+            <span class="material-symbols-outlined text-lg">cancel</span> Đã huỷ
         </a>
     </div>
 
     <!-- Orders List -->
     <div class="flex flex-col gap-6">
         <c:forEach var="order" items="${orders}">
-            <div class="premium-glass-card rounded-[1.5rem] p-6 flex flex-col gap-6">
+            <div class="premium-glass-card rounded-[1.5rem] p-6 flex flex-col gap-6 bg-white/70 border border-white/40 shadow-sm">
                 
                 <!-- Order Card Top Bar -->
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4 gap-3">
                     <div class="flex items-center gap-3">
-                        <a href="${pageContext.request.contextPath}/orders?action=detail&orderId=${order.orderId}" class="font-headline-md text-xl text-primary font-bold hover:underline">
+                        <a href="${pageContext.request.contextPath}/orders?action=detail&orderId=${order.orderId}" class="text-primary font-bold hover:underline">
                             Đơn hàng #${order.orderId}
                         </a>
                         <span class="text-on-surface-variant text-sm font-medium">Đặt ngày: ${order.createdAt}</span>
@@ -142,7 +140,7 @@
                             </c:when>
                             <c:when test="${order.status == 'CONFIRMED'}">
                                 <c:choose>
-                                    <c:when test="${order.paymentMethod == 'CK'}">
+                                    <c:when test="${order.paymentMethod == 'BANK_TRANSFER'}">
                                         <span class="bg-emerald-100 text-emerald-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Đã thanh toán (Chờ shop gửi hàng)</span>
                                     </c:when>
                                     <c:otherwise>
@@ -163,7 +161,7 @@
                                 <span class="bg-emerald-100 text-emerald-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Giao thành công</span>
                             </c:when>
                             <c:when test="${order.status == 'CANCELLED'}">
-                                <span class="bg-rose-100 text-rose-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Đã hủy</span>
+                                <span class="bg-rose-100 text-rose-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Đã huỷ</span>
                             </c:when>
                             <c:otherwise>
                                 <span class="bg-slate-100 text-slate-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">${order.status}</span>
@@ -183,32 +181,32 @@
                             <span class="material-symbols-outlined text-on-surface-variant mt-0.5">notes</span>
                             <p class="text-on-surface-variant"><strong class="text-inverse-surface">Ghi chú:</strong> ${order.notes != null ? order.notes : 'Không có'}</p>
                         </div>
-                        <div class="flex items-start gap-2">
+                        <div class="flex items-start gap-2 mt-2">
                             <span class="material-symbols-outlined text-on-surface-variant mt-0.5">shopping_bag</span>
                             <p class="text-on-surface-variant"><strong class="text-inverse-surface">Tổng cộng thanh toán:</strong> <span class="text-[#d32f2f] font-bold text-lg"><ft:currency value="${order.finalAmount}" /></span></p>
                         </div>
                     </div>
-                    
+
                     <!-- Action buttons -->
                     <div class="md:col-span-4 flex flex-col gap-3 items-stretch justify-center px-2">
-                        <!-- Nút hủy đơn hàng -->
+                        <!-- Nút huỷ đơn hàng -->
                         <c:if test="${order.status == 'PENDING_PAYMENT' || order.status == 'CONFIRMED'}">
-                            <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                            <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full" onsubmit="return confirmCancel(event, '${order.orderId}')">
                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                 <input type="hidden" name="action" value="cancel">
                                 <input type="hidden" name="orderId" value="${order.orderId}">
-                                <input type="hidden" name="reason" value="Khách hàng tự hủy đơn từ lịch sử đơn hàng">
-                                <button type="submit" class="w-full bg-[#fef2f2] text-error hover:bg-[#ba1a1a] hover:text-white py-3 rounded-xl transition-all font-semibold border border-error/20 flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Bạn có chắc muốn hủy đơn hàng #${order.orderId} không?');">
-                                    <span class="material-symbols-outlined text-lg">cancel</span> Hủy đơn hàng
+                                <input type="hidden" name="reason" value="Khách hàng tự huỷ đơn từ lịch sử đơn hàng">
+                                <button type="submit" class="w-full bg-[#fef2f2] text-error hover:bg-[#ba1a1a] hover:text-white py-3 rounded-xl transition-all font-semibold border border-error/20 flex items-center justify-center gap-2 active:scale-95 transform">
+                                    <span class="material-symbols-outlined text-lg">cancel</span> Huỷ đơn hàng
                                 </button>
                             </form>
                         </c:if>
 
-                        <!-- Nút đã nhận được hàng -->
+                        <!-- Nút xác nhận đã nhận được hàng -->
                         <c:if test="${order.status == 'DISPATCHED' || order.status == 'SHIPPED'}">
                             <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
                                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                <input type="hidden" name="action" value="confirmDelivery">
+                                <input type="hidden" name="action" value="confirm_delivered">
                                 <input type="hidden" name="orderId" value="${order.orderId}">
                                 <button type="submit" class="w-full bg-primary text-on-primary hover:bg-inverse-surface py-3 rounded-xl transition-all font-semibold flex items-center justify-center gap-2 shadow-md active:scale-95 transform">
                                     <span class="material-symbols-outlined text-lg">check_circle</span> Đã nhận được hàng
@@ -233,10 +231,10 @@
                                     </button>
                                 </form>
                                 <a href="${pageContext.request.contextPath}/returns?orderId=${order.orderId}" class="w-full bg-[#fff5f5] text-error hover:bg-[#ba1a1a] hover:text-white py-2.5 rounded-xl transition-all font-semibold border border-error/20 text-center flex items-center justify-center gap-2 text-sm">
-                                    <span class="material-symbols-outlined text-base">rotate_left</span> Yêu cầu Đổi / Trả hàng
+                                    <span class="material-symbols-outlined text-base">rotate_left</span> Yêu cầu đổi / Trả hàng
                                 </a>
                                 <a href="${pageContext.request.contextPath}/orders?action=invoice&orderId=${order.orderId}" class="w-full bg-tertiary-container text-on-tertiary-container hover:bg-tertiary hover:text-on-primary py-2.5 rounded-xl transition-all font-semibold text-center flex items-center justify-center gap-2 text-sm">
-                                    <span class="material-symbols-outlined text-base">description</span> Xem hóa đơn điện tử
+                                    <span class="material-symbols-outlined text-base">description</span> Xem hoá đơn điện tử
                                 </a>
                             </div>
                         </c:if>
@@ -270,4 +268,20 @@
     </div>
 </main>
 
+<script>
+    function confirmCancel(event, orderId) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Xác nhận hủy đơn hàng?',
+            html: 'Bạn có chắc chắn muốn hủy đơn hàng <b>#' + orderId + '</b> không?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ba1a1a',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Đồng ý hủy',
+            cancelButtonText: 'Không'
+        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        return false;
+    }
+</script>
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />

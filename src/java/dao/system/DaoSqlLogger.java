@@ -8,7 +8,6 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,7 +38,6 @@ final class DaoSqlLogger {
     private static final String UPDATE_LABEL = "UPDATE";
     private static final String BATCH_LABEL = "BATCH";
     private static final String TX_LABEL = "TX";
-    private static final String RESULT_LABEL = "RESULT";
     private static final String GENERATED_KEYS_LABEL = "GENERATED_KEYS";
     private static final String[] SENSITIVE_SQL_KEYWORDS = {
         "password", "secret", "token", "refresh", "access_token",
@@ -319,7 +317,6 @@ final class DaoSqlLogger {
         private final List<Map<Integer, Object>> batchSnapshots = new ArrayList<>();
         private long lastExecutionStartedAt = 0L;
         private String lastExecutionLabel = QUERY_LABEL;
-        private boolean closed = false;
 
         private StatementHandler(PreparedStatement delegate, String sqlTemplate) {
             this.delegate = delegate;
@@ -451,7 +448,6 @@ final class DaoSqlLogger {
                 } finally {
                     currentParams.clear();
                     batchSnapshots.clear();
-                    closed = true;
                 }
             }
 

@@ -1,14 +1,25 @@
 package test;
 
 import service.cart.CheckoutService;
+import service.shop.PaymentService;
 import model.dto.checkout.CheckoutRequestDTO;
+import model.dto.checkout.CheckoutResultDTO;
+import model.dto.checkout.CheckoutPaymentSummaryDTO;
+import model.dto.checkout.CheckoutQuoteDTO;
+import model.dto.checkout.CheckoutViewData;
+import model.entity.Promotion;
 import model.entity.auth.User;
+import model.entity.order.Order;
+import dao.order.OrderDAO;
 import dao.cart.CartDAO;
 import dao.catalog.ProductVariantDAO;
+import dao.shop.PromotionDAO;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.Before;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -26,11 +37,14 @@ import static org.junit.Assert.*;
 public class CheckoutServiceExceptionHandlingTest {
 
     private CheckoutService checkoutService;
+    private final PaymentService paymentService = new PaymentService();
     private final CartDAO cartDAO = new CartDAO();
     private final ProductVariantDAO variantDAO = new ProductVariantDAO();
+    private final PromotionDAO promotionDAO = new PromotionDAO();
     private User testUser;
     private Integer ownerCartId;
     private Integer testUserCartId;
+    private final List<Integer> createdPromotionIds = new ArrayList<>();
 
     @Before
     public void setUp() throws SQLException {
@@ -42,6 +56,7 @@ public class CheckoutServiceExceptionHandlingTest {
     @After
     public void tearDown() {
         try {
+            cleanupPromotions();
             cleanupOwnerCart();
             cleanupTestUserCart();
             resetVariant1();
@@ -156,6 +171,39 @@ public class CheckoutServiceExceptionHandlingTest {
             ps.setInt(3, 1);
             ps.executeUpdate();
         }
+    }
+
+    private void cleanupPromotions() throws SQLException {
+        for (Integer promoId : createdPromotionIds) {
+            if (promoId != null && promoId > 0) {
+                promotionDAO.softDelete(promoId);
+            }
+        }
+        createdPromotionIds.clear();
+    }
+
+    private Promotion createSystemPromotion(String code, String benefitTarget, BigDecimal discountValue) throws SQLException {
+        Promotion promotion = new Promotion();
+        promotion.setCode(code);
+        promotion.setDiscountType("FIXED");
+        promotion.setDiscountScope("ALL");
+        promotion.setDiscountValue(discountValue);
+        promotion.setDiscountMax(discountValue);
+        promotion.setMinOrderValue(BigDecimal.ZERO);
+        promotion.setScope("ORDER");
+        promotion.setBenefitTarget(benefitTarget);
+        promotion.setProductId(null);
+        promotion.setMaxUses(null);
+        promotion.setUsedCount(0);
+        promotion.setCanStack(true);
+        promotion.setValidFrom(LocalDateTime.now().minusDays(1));
+        promotion.setValidUntil(LocalDateTime.now().plusDays(7));
+        promotion.setCreatedBy(testUser.getUserId());
+        promotion.setIsActive(true);
+        int promoId = promotionDAO.save(promotion);
+        promotion.setPromoId(promoId);
+        createdPromotionIds.add(promoId);
+        return promotion;
     }
 
     // ============= BUILD CHECKOUT VIEW - INPUT VALIDATION ERRORS =============
@@ -453,6 +501,43 @@ public class CheckoutServiceExceptionHandlingTest {
             assertTrue(e.getMessage().contains("tối thiểu") ||
                       e.getMessage().contains("minimum"));
         }
+    }
+
+    @Test
+    public void placeOrder_ckZeroAmount_shouldSkipPaymentFlow() throws Exception {
+        CheckoutViewData viewData = checkoutService.buildCheckoutView(testUser, Arrays.asList(1, 2));
+        CheckoutQuoteDTO quote = viewData.getQuote();
+        assertNotNull(quote);
+
+        String suffix = String.valueOf(System.currentTimeMillis());
+        String merchandiseCode = "FREE-MERCH-" + suffix;
+        String shippingCode = "FREE-SHIP-" + suffix;
+        createSystemPromotion(merchandiseCode, "MERCHANDISE", quote.getSubtotal());
+        createSystemPromotion(shippingCode, "SHIPPING", quote.getDeliveryFee());
+
+        CheckoutRequestDTO request = createValidCheckoutRequest();
+        request.setPaymentMethod("CK");
+        request.setDeliveryTimeSlot("08:00-12:00");
+        request.setVariantIds(Arrays.asList(1, 2));
+        request.setSystemCouponCodes(Arrays.asList(merchandiseCode, shippingCode));
+
+        CheckoutResultDTO result = checkoutService.placeOrder(testUser, request, "127.0.0.1");
+
+        assertFalse("Đơn 0 đồng không được chuyển sang payment flow", result.isPaymentRequired());
+        assertTrue("Order phải được tạo", result.getOrderId() > 0);
+
+        List<Order> orders = new OrderDAO().findById(result.getOrderId());
+        assertFalse("Order phải tồn tại", orders.isEmpty());
+        Order order = orders.get(0);
+        assertEquals("CONFIRMED", order.getStatus());
+        assertEquals(0, order.getFinalAmount().compareTo(BigDecimal.ZERO));
+
+        CheckoutPaymentSummaryDTO summary = paymentService.getCustomerPaymentSummary(order.getOrderId(), testUser.getUserId());
+        assertNotNull(summary);
+        assertFalse(summary.getPaymentRequired());
+        assertFalse(summary.getPendingPayment());
+        assertTrue(summary.getPaid());
+        assertEquals("CONFIRMED", summary.getOrderStatus());
     }
 
     // ============= PLACE ORDER - PRODUCT/SHOP STATUS VALIDATION =============

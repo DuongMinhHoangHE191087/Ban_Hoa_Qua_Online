@@ -86,6 +86,7 @@ public class CheckoutServletPricingRegressionTest {
     private int createdOrderId = -1;
     private String customerPhone;
     private String shopCouponCode;
+    private String shippingCouponCode;
 
     @Before
     public void setUp() throws SQLException {
@@ -124,7 +125,7 @@ public class CheckoutServletPricingRegressionTest {
         shopPromo.setProductId(null);
         shopPromo.setMaxUses(1000);
         shopPromo.setUsedCount(0);
-        shopPromo.setCanStack(true);
+        shopPromo.setCanStack(false);
         shopPromo.setValidFrom(LocalDateTime.now().minusDays(1));
         shopPromo.setValidUntil(LocalDateTime.now().plusDays(30));
         shopPromo.setCreatedBy(ownerAId);
@@ -154,6 +155,13 @@ public class CheckoutServletPricingRegressionTest {
                 try (Connection conn = orderDAO.openConnection();
                      PreparedStatement ps = conn.prepareStatement("DELETE FROM promotions WHERE code = ?")) {
                     ps.setString(1, shopCouponCode);
+                    ps.executeUpdate();
+                }
+            }
+            if (shippingCouponCode != null) {
+                try (Connection conn = orderDAO.openConnection();
+                     PreparedStatement ps = conn.prepareStatement("DELETE FROM promotions WHERE code = ?")) {
+                    ps.setString(1, shippingCouponCode);
                     ps.executeUpdate();
                 }
             }
@@ -278,6 +286,106 @@ public class CheckoutServletPricingRegressionTest {
         assertEquals(2, children.size());
         assertChildOrder(findChildByOwner(children, ownerAId), ownerAId, new BigDecimal("100000"), new BigDecimal("10000"), new BigDecimal("105000"));
         assertChildOrder(findChildByOwner(children, ownerBId), ownerBId, new BigDecimal("80000"), BigDecimal.ZERO, new BigDecimal("95000"));
+    }
+
+    @Test
+    public void shopShippingVoucherInMultiShopCheckoutDiscountsOnlyMatchingChildOrder() throws Exception {
+        shippingCouponCode = "SHOP-SHIP-" + System.currentTimeMillis();
+        Promotion shippingPromo = new Promotion();
+        shippingPromo.setCode(shippingCouponCode);
+        shippingPromo.setDiscountType("FIXED");
+        shippingPromo.setDiscountScope("SHOP");
+        shippingPromo.setDiscountValue(new BigDecimal("15000"));
+        shippingPromo.setDiscountMax(BigDecimal.ZERO);
+        shippingPromo.setMinOrderValue(new BigDecimal("50000"));
+        shippingPromo.setScope("ORDER");
+        shippingPromo.setProductId(null);
+        shippingPromo.setMaxUses(1000);
+        shippingPromo.setUsedCount(0);
+        shippingPromo.setCanStack(true);
+        shippingPromo.setValidFrom(LocalDateTime.now().minusDays(1));
+        shippingPromo.setValidUntil(LocalDateTime.now().plusDays(30));
+        shippingPromo.setCreatedBy(ownerAId);
+        shippingPromo.setIsActive(true);
+        shippingPromo.setBenefitTarget("SHIPPING");
+        promotionService.createShopPromotion(shippingPromo, ownerAId);
+
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", variantAId + "," + variantBId);
+        env.putParam("shopCouponCode", shippingCouponCode);
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        assertTrue(env.redirectLocation.contains("/checkout?action=success&orderId="));
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        Order parent = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_TYPE_PARENT, parent.getOrderType());
+        assertEquals(0, new BigDecimal("15000").compareTo(parent.getShopDiscountAmount()));
+        assertEquals(0, new BigDecimal("15000").compareTo(parent.getDiscountAmount()));
+        assertEquals(0, new BigDecimal("195000").compareTo(parent.getFinalAmount()));
+
+        List<Order> children = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, children.size());
+        assertChildOrder(findChildByOwner(children, ownerAId), ownerAId, new BigDecimal("100000"), new BigDecimal("15000"), new BigDecimal("100000"));
+        assertChildOrder(findChildByOwner(children, ownerBId), ownerBId, new BigDecimal("80000"), BigDecimal.ZERO, new BigDecimal("95000"));
+    }
+
+    @Test
+    public void checkoutSupportsSellerPlatformAndFreeShippingSlots() throws Exception {
+        shippingCouponCode = "SHOP-SHIP-STACK-" + System.currentTimeMillis();
+        Promotion shippingPromo = new Promotion();
+        shippingPromo.setCode(shippingCouponCode);
+        shippingPromo.setDiscountType("FIXED");
+        shippingPromo.setDiscountScope("SHOP");
+        shippingPromo.setDiscountValue(new BigDecimal("15000"));
+        shippingPromo.setDiscountMax(BigDecimal.ZERO);
+        shippingPromo.setMinOrderValue(new BigDecimal("50000"));
+        shippingPromo.setScope("ORDER");
+        shippingPromo.setProductId(null);
+        shippingPromo.setMaxUses(1000);
+        shippingPromo.setUsedCount(0);
+        shippingPromo.setCanStack(true);
+        shippingPromo.setValidFrom(LocalDateTime.now().minusDays(1));
+        shippingPromo.setValidUntil(LocalDateTime.now().plusDays(30));
+        shippingPromo.setCreatedBy(ownerAId);
+        shippingPromo.setIsActive(true);
+        shippingPromo.setBenefitTarget("SHIPPING");
+        promotionService.createShopPromotion(shippingPromo, ownerAId);
+
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("variantIds", String.valueOf(variantAId));
+        env.putParam("shopCouponCode", shopCouponCode + "," + shippingCouponCode);
+        env.putParam("systemCouponCode", "SAAN5");
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        assertTrue(env.redirectLocation.contains("/checkout?action=success&orderId="));
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        Order order = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(0, new BigDecimal("100000").compareTo(order.getTotalAmount()));
+        assertEquals(0, new BigDecimal("15000").compareTo(order.getDeliveryFee()));
+        assertEquals(0, new BigDecimal("30000").compareTo(order.getDiscountAmount()));
+        assertEquals(0, new BigDecimal("25000").compareTo(order.getShopDiscountAmount()));
+        assertEquals(0, new BigDecimal("5000").compareTo(order.getSystemDiscountAmount()));
+        assertEquals(0, new BigDecimal("85000").compareTo(order.getFinalAmount()));
+        assertEquals(ownerAId, order.getOwnerId());
+        assertEquals(AppConfig.PAYMENT_COD, order.getPaymentMethod());
     }
 
     @Test
@@ -1060,5 +1168,62 @@ public class CheckoutServletPricingRegressionTest {
         p.setRating(java.math.BigDecimal.ZERO);
         p.setBusinessEmail("reg_biz_" + userId + "_" + System.currentTimeMillis() + "@company.com");
         shopProfileDAO.save(p);
+    }
+
+    @Test
+    public void voucherDiscountExceedingOrderValueCappedToZero() throws Exception {
+        String giantCouponCode = "GIANT" + System.currentTimeMillis();
+        Promotion giantPromo = new Promotion();
+        giantPromo.setCode(giantCouponCode);
+        giantPromo.setDiscountType("FIXED");
+        giantPromo.setDiscountScope("SHOP");
+        giantPromo.setDiscountMax(BigDecimal.ZERO);
+        giantPromo.setDiscountValue(new BigDecimal("150000"));
+        giantPromo.setMinOrderValue(new BigDecimal("50000"));
+        giantPromo.setScope("ORDER");
+        giantPromo.setProductId(null);
+        giantPromo.setMaxUses(1000);
+        giantPromo.setUsedCount(0);
+        giantPromo.setCanStack(true);
+        giantPromo.setValidFrom(LocalDateTime.now().minusDays(1));
+        giantPromo.setValidUntil(LocalDateTime.now().plusDays(30));
+        giantPromo.setCreatedBy(ownerAId);
+        giantPromo.setIsActive(true);
+        promotionService.createShopPromotion(giantPromo, ownerAId);
+
+        try {
+            env.clearRequestState();
+            env.putParam("_csrf", CSRF_TOKEN);
+            env.putParam("fullName", "Checkout Customer");
+            env.putParam("phone", customerPhone);
+            env.putParam("deliveryAddress", "123 Test Street, District 1");
+            env.putParam("deliveryTimeSlot", "08:00-12:00");
+            env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+            env.putParam("variantIds", String.valueOf(variantAId));
+            env.putParam("shopCouponCode", giantCouponCode);
+
+            servlet.doPostPublic(env.request, env.response);
+
+            assertNotNull(env.redirectLocation);
+            createdOrderId = parseOrderId(env.redirectLocation);
+            List<Order> orders = orderDAO.findById(createdOrderId);
+            assertFalse(orders.isEmpty());
+            Order order = orders.get(0);
+
+            assertEquals(0, new BigDecimal("100000").compareTo(order.getTotalAmount()));
+            assertEquals(0, new BigDecimal("15000").compareTo(order.getDeliveryFee()));
+            assertEquals(0, new BigDecimal("100000").compareTo(order.getDiscountAmount()));
+            assertEquals(0, new BigDecimal("15000").compareTo(order.getFinalAmount()));
+        } finally {
+            if (createdOrderId > 0) {
+                hardDeleteOrder(createdOrderId);
+                createdOrderId = -1;
+            }
+            try (Connection conn = orderDAO.openConnection();
+                 PreparedStatement ps = conn.prepareStatement("DELETE FROM promotions WHERE code = ?")) {
+                ps.setString(1, giantCouponCode);
+                ps.executeUpdate();
+            }
+        }
     }
 }

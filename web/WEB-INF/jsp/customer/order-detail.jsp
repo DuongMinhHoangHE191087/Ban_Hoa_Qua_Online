@@ -707,7 +707,7 @@
                     </button>
                     
                     <div id="cancelFormContainer" class="hidden mt-2 p-4 border border-outline-variant/40 rounded-2xl bg-slate-50 flex flex-col gap-3">
-                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="flex flex-col gap-3">
+                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="flex flex-col gap-3" onsubmit="return confirmCancel(event)">
                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                             <input type="hidden" name="action" value="cancel">
                             <input type="hidden" name="orderId" value="${order.orderId}">
@@ -720,7 +720,7 @@
                                     <option value="Khác">Lý do khác</option>
                                 </select>
                             </div>
-                            <button type="submit" class="w-full bg-error text-on-error py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-inverse-surface transition-all active:scale-95 transform" onclick="return confirm('Hành động này sẽ giải phóng toàn bộ số lượng sản phẩm đang giữ trong kho. Bạn chắc chắn muốn hủy?');">
+                            <button type="submit" class="w-full bg-error text-on-error py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-inverse-surface transition-all active:scale-95 transform">
                                 Xác nhận hủy đơn
                             </button>
                         </form>
@@ -730,20 +730,20 @@
                 <!-- Nút xác nhận nhận hàng hoặc báo chưa nhận được hàng -->
                 <c:if test="${(order.status == 'DISPATCHED' || order.status == 'DELIVERED') && (empty order.receivedStatus || order.receivedStatus == 'PENDING')}">
                     <div class="flex flex-col gap-3 w-full">
-                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full" onsubmit="return confirmReceived(event)">
                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                             <input type="hidden" name="action" value="confirmDelivery">
                             <input type="hidden" name="orderId" value="${order.orderId}">
-                            <button type="submit" class="w-full bg-primary text-on-primary hover:bg-inverse-surface py-3.5 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Nhấn xác nhận khi bạn đã nhận được gói hàng tươi ngon và kiểm tra đúng số lượng.');">
+                            <button type="submit" class="w-full bg-primary text-on-primary hover:bg-inverse-surface py-3.5 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 transform">
                                 <span class="material-symbols-outlined text-lg">verified</span> Đã nhận được hàng
                             </button>
                         </form>
                         
-                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full">
+                        <form action="${pageContext.request.contextPath}/orders" method="POST" class="w-full" onsubmit="return confirmNotReceived(event)">
                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                             <input type="hidden" name="action" value="reportNotReceived">
                             <input type="hidden" name="orderId" value="${order.orderId}">
-                            <button type="submit" class="w-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white py-3 rounded-xl font-bold transition-all border border-red-200 flex items-center justify-center gap-2 active:scale-95 transform" onclick="return confirm('Bạn xác nhận chưa nhận được hàng? Hệ thống sẽ báo cáo lên quản trị viên để giải quyết tranh chấp.');">
+                            <button type="submit" class="w-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white py-3 rounded-xl font-bold transition-all border border-red-200 flex items-center justify-center gap-2 active:scale-95 transform">
                                 <span class="material-symbols-outlined text-lg">report_problem</span> Chưa nhận được hàng
                             </button>
                         </form>
@@ -780,7 +780,7 @@
         const list = document.getElementById('suborder-items-' + childId);
         const arrow = document.getElementById('arrow-' + childId);
         if (!list) return;
-        const isHidden = list.style.display === 'none' || list.style.display === ';
+        const isHidden = list.style.display === 'none' || list.style.display === '';
         list.style.display = isHidden ? 'block' : 'none';
         arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
     }
@@ -803,6 +803,51 @@
             el.style.width = value + '%';
         });
     });
+
+    function confirmCancel(event) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Xác nhận hủy đơn hàng?',
+            text: 'Hành động này sẽ giải phóng toàn bộ số lượng sản phẩm đang giữ trong kho. Bạn chắc chắn muốn hủy?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ba1a1a',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Đồng ý hủy',
+            cancelButtonText: 'Không, giữ lại'
+        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        return false;
+    }
+
+    function confirmReceived(event) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Đã nhận được hàng?',
+            text: 'Nhấn xác nhận khi bạn đã nhận được gói hàng tươi ngon và kiểm tra đúng số lượng.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4d661c',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy'
+        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        return false;
+    }
+
+    function confirmNotReceived(event) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Báo cáo chưa nhận được hàng?',
+            text: 'Bạn xác nhận chưa nhận được hàng? Hệ thống sẽ báo cáo lên quản trị viên để giải quyết tranh chấp.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Xác nhận chưa nhận',
+            cancelButtonText: 'Hủy'
+        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        return false;
+    }
 </script>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />
