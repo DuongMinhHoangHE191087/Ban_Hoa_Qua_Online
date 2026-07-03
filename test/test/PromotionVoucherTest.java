@@ -430,78 +430,153 @@ public class PromotionVoucherTest {
     public void test13_VoucherStackingLogic() {
         service.shop.PromotionService service = new service.shop.PromotionService();
         
-        Promotion stackableShop1 = new Promotion();
-        stackableShop1.setCanStack(true);
-        stackableShop1.setCreatedBy(3);
-        
-        Promotion stackableShop2 = new Promotion();
-        stackableShop2.setCanStack(true);
-        stackableShop2.setCreatedBy(3);
-        
-        Promotion nonStackableShop = new Promotion();
-        nonStackableShop.setCanStack(false);
-        nonStackableShop.setCreatedBy(3);
-        
-        Promotion stackableSystem1 = new Promotion();
-        stackableSystem1.setCanStack(true);
-        
-        Promotion stackableSystem2 = new Promotion();
-        stackableSystem2.setCanStack(true);
-        
-        Promotion nonStackableSystem = new Promotion();
-        nonStackableSystem.setCanStack(false);
+        Promotion sellerVoucher = new Promotion();
+        sellerVoucher.setCanStack(true);
+        sellerVoucher.setCreatedBy(3);
+        sellerVoucher.setDiscountScope("SHOP");
+        sellerVoucher.setBenefitTarget("MERCHANDISE");
 
-        // 1. Stack 2 shop vouchers that can stack -> OK
+        Promotion sellerVoucher2 = new Promotion();
+        sellerVoucher2.setCanStack(true);
+        sellerVoucher2.setCreatedBy(4);
+        sellerVoucher2.setDiscountScope("SHOP");
+        sellerVoucher2.setBenefitTarget("MERCHANDISE");
+
+        Promotion platformVoucher = new Promotion();
+        platformVoucher.setCanStack(true);
+        platformVoucher.setDiscountScope("ALL");
+        platformVoucher.setBenefitTarget("MERCHANDISE");
+
+        Promotion platformVoucher2 = new Promotion();
+        platformVoucher2.setCanStack(true);
+        platformVoucher2.setDiscountScope("ALL");
+        platformVoucher2.setBenefitTarget("MERCHANDISE");
+
+        Promotion shippingVoucher = new Promotion();
+        shippingVoucher.setCanStack(true);
+        shippingVoucher.setDiscountScope("ALL");
+        shippingVoucher.setBenefitTarget("SHIPPING");
+
+        Promotion shippingVoucher2 = new Promotion();
+        shippingVoucher2.setCanStack(true);
+        shippingVoucher2.setDiscountScope("SHOP");
+        shippingVoucher2.setBenefitTarget("SHIPPING");
+
+        Promotion nonStackableSeller = new Promotion();
+        nonStackableSeller.setCanStack(false);
+        nonStackableSeller.setCreatedBy(3);
+        nonStackableSeller.setDiscountScope("SHOP");
+        nonStackableSeller.setBenefitTarget("MERCHANDISE");
+
+        Promotion paymentVoucher = new Promotion();
+        paymentVoucher.setCanStack(true);
+        paymentVoucher.setDiscountScope("ALL");
+        paymentVoucher.setBenefitTarget("PAYMENT_METHOD");
+        paymentVoucher.setScope("ORDER");
+
+        Promotion nonStackablePayment = new Promotion();
+        nonStackablePayment.setCanStack(false);
+        nonStackablePayment.setDiscountScope("ALL");
+        nonStackablePayment.setBenefitTarget("PAYMENT_METHOD");
+        nonStackablePayment.setScope("ORDER");
+
+        // 1. 1 seller + 1 platform + 1 freeship -> OK
         try {
             service.validateCouponStack(
-                java.util.List.of(stackableShop1, stackableShop2), 
+                java.util.List.of(sellerVoucher),
+                java.util.List.of(platformVoucher, shippingVoucher)
+            );
+        } catch (Exception e) {
+            fail("3 slot voucher hợp lệ bị báo lỗi: " + e.getMessage());
+        }
+
+        // 2. Two seller vouchers -> reject second voucher in the seller slot
+        try {
+            service.validateCouponStack(
+                java.util.List.of(sellerVoucher, sellerVoucher2),
                 java.util.List.of()
             );
-        } catch (Exception e) {
-            fail("Cộng dồn 2 voucher shop hợp lệ bị báo lỗi: " + e.getMessage());
-        }
-
-        // 2. Stack 2 system vouchers that can stack -> OK
-        try {
-            service.validateCouponStack(
-                java.util.List.of(), 
-                java.util.List.of(stackableSystem1, stackableSystem2)
-            );
-        } catch (Exception e) {
-            fail("Cộng dồn 2 voucher sàn hợp lệ bị báo lỗi: " + e.getMessage());
-        }
-
-        // 3. Stack 2 system + 2 shop vouchers that can stack -> OK
-        try {
-            service.validateCouponStack(
-                java.util.List.of(stackableShop1, stackableShop2), 
-                java.util.List.of(stackableSystem1, stackableSystem2)
-            );
-        } catch (Exception e) {
-            fail("Cộng dồn 2 voucher shop + 2 voucher sàn hợp lệ bị báo lỗi: " + e.getMessage());
-        }
-
-        // 4. Stacking including a non-stackable coupon -> Should fail with BusinessException PRO-01
-        try {
-            service.validateCouponStack(
-                java.util.List.of(stackableShop1, nonStackableShop), 
-                java.util.List.of()
-            );
-            fail("Cộng dồn voucher có chứa mã không cho phép cộng dồn đáng lẽ phải bị chặn.");
+            fail("Hai voucher shop cùng slot phải bị chặn.");
         } catch (exception.BusinessException e) {
             assertEquals("PRO-01", e.getErrorCode());
         }
 
-        // 5. Exceeding 2 vouchers limit -> Should fail
+        // 3. Two platform vouchers -> reject second voucher in the platform slot
         try {
-            Promotion stackableShop3 = new Promotion();
-            stackableShop3.setCanStack(true);
-            stackableShop3.setCreatedBy(3);
             service.validateCouponStack(
-                java.util.List.of(stackableShop1, stackableShop2, stackableShop3), 
+                java.util.List.of(),
+                java.util.List.of(platformVoucher, platformVoucher2)
+            );
+            fail("Hai voucher sàn cùng slot phải bị chặn.");
+        } catch (exception.BusinessException e) {
+            assertEquals("PRO-01", e.getErrorCode());
+        }
+
+        // 4. Two shipping vouchers -> reject second voucher in the free-shipping slot
+        try {
+            service.validateCouponStack(
+                java.util.List.of(shippingVoucher2),
+                java.util.List.of(shippingVoucher)
+            );
+            fail("Hai voucher freeship cùng slot phải bị chặn.");
+        } catch (exception.BusinessException e) {
+            assertEquals("PRO-01", e.getErrorCode());
+        }
+
+        // 5. Non-stackable coupon vẫn có thể đi cùng voucher khác nếu khác slot
+        try {
+            service.validateCouponStack(
+                java.util.List.of(nonStackableSeller),
                 java.util.List.of()
             );
-            fail("Dùng quá 2 voucher shop đáng lẽ phải bị chặn.");
+        } catch (Exception e) {
+            fail("Voucher seller đứng một mình vẫn phải hợp lệ: " + e.getMessage());
+        }
+
+        try {
+            service.validateCouponStack(
+                java.util.List.of(nonStackableSeller),
+                java.util.List.of(platformVoucher, shippingVoucher)
+            );
+        } catch (Exception e) {
+            fail("Voucher seller khác slot vẫn phải cộng dồn được: " + e.getMessage());
+        }
+
+        // 6. Voucher phương thức thanh toán có thể cộng dồn với voucher sàn khi được phép
+        try {
+            service.validateCouponStack(
+                java.util.List.of(),
+                java.util.List.of(platformVoucher, paymentVoucher)
+            );
+        } catch (Exception e) {
+            fail("Payment voucher có canStack=true phải đi cùng voucher sàn: " + e.getMessage());
+        }
+
+        // 7. Voucher phương thức thanh toán canStack=false phải chặn khi đi cùng voucher sàn
+        try {
+            service.validateCouponStack(
+                java.util.List.of(),
+                java.util.List.of(platformVoucher, nonStackablePayment)
+            );
+            fail("Payment voucher canStack=false phải không cộng dồn với voucher sàn.");
+        } catch (exception.BusinessException e) {
+            assertEquals("PRO-01", e.getErrorCode());
+        }
+
+        // 8. Voucher sàn canStack=false phải chặn khi đi cùng voucher thanh toán
+        Promotion nonStackablePlatform = new Promotion();
+        nonStackablePlatform.setCanStack(false);
+        nonStackablePlatform.setCreatedBy(1);
+        nonStackablePlatform.setDiscountScope("ALL");
+        nonStackablePlatform.setBenefitTarget("MERCHANDISE");
+        nonStackablePlatform.setScope("ORDER");
+
+        try {
+            service.validateCouponStack(
+                java.util.List.of(),
+                java.util.List.of(nonStackablePlatform, paymentVoucher)
+            );
+            fail("Voucher sàn canStack=false phải không cộng dồn với voucher thanh toán.");
         } catch (exception.BusinessException e) {
             assertEquals("PRO-01", e.getErrorCode());
         }
@@ -530,6 +605,7 @@ public class PromotionVoucherTest {
         p.setMaxUses(maxUses);
         p.setUsedCount(0);
         p.setCanStack(false);
+        p.setBenefitTarget("PRODUCT".equalsIgnoreCase(scope) ? "PRODUCT" : "MERCHANDISE");
         p.setValidFrom(validFrom);
         p.setValidUntil(validUntil);
         p.setCreatedBy(createdBy);

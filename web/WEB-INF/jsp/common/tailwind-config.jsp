@@ -1,4 +1,4 @@
-﻿<%-- Shared Tailwind CSS configurations for MetaFruit --%>
+<%-- Shared Tailwind CSS configurations for MetaFruit --%>
 <script src="${pageContext.request.contextPath}/assets/js/tailwind.js"></script>
 <script>
     tailwind.config = {

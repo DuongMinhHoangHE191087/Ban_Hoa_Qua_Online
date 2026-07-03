@@ -9,7 +9,10 @@ public class Order {
 
     private int orderId;
     private int customerId;
+    private String customerName;
     private Integer ownerId;
+    private String shopName;
+    private String ownerName;
     private Integer parentOrderId;
     private String orderType;
     private String deliveryAddress;
@@ -29,6 +32,7 @@ public class Order {
     private java.math.BigDecimal platformFee;
     private java.math.BigDecimal finalAmount;
     private String paymentMethod;
+    private String paymentStatus;
     private String refundStatus;
     private String receivedStatus; // PENDING, RECEIVED, NOT_RECEIVED
     private java.time.LocalDateTime shopAcceptanceDeadline;
@@ -47,10 +51,19 @@ public class Order {
     public int getCustomerId() { return customerId; }
     public void setCustomerId(int customerId) { this.customerId = customerId; }
 
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+
     public int getOwnerId() { return ownerId != null ? ownerId : 0; }
     public Integer getOwnerIdObject() { return ownerId; }
     public void setOwnerId(int ownerId) { this.ownerId = ownerId; }
     public void setOwnerId(Integer ownerId) { this.ownerId = ownerId; }
+
+    public String getShopName() { return shopName; }
+    public void setShopName(String shopName) { this.shopName = shopName; }
+
+    public String getOwnerName() { return ownerName; }
+    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
 
     public Integer getParentOrderId() { return parentOrderId; }
     public void setParentOrderId(Integer parentOrderId) { this.parentOrderId = parentOrderId; }
@@ -108,6 +121,9 @@ public class Order {
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
 
     public String getRefundStatus() { return refundStatus; }
     public void setRefundStatus(String refundStatus) { this.refundStatus = refundStatus; }

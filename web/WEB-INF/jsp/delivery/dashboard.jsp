@@ -194,7 +194,7 @@ tailwind.config = {
                     </c:if>
                 </div>
 
-                <%-- Card Footer — Action Buttons --%>
+                <%-- Card Footer - Action Buttons --%>
                 <div class="px-5 pb-5 mt-auto">
                     <c:choose>
                         <c:when test="${empty dto.delivery.staffId}">

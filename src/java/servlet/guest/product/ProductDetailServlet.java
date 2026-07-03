@@ -83,9 +83,12 @@ public class ProductDetailServlet extends HttpServlet {
         }
 
         try {
+            model.entity.auth.User currentUser = (model.entity.auth.User) req.getSession().getAttribute(AppConfig.SESSION_USER);
+            boolean isAdminPreview = currentUser != null && AppConfig.ROLE_ADMIN.equals(currentUser.getRole());
+
             // 2. Đọc thông tin chi tiết sản phẩm (Đồng thời tự động tăng lượt xem)
             Product product = productService.getProductDetail(productId);
-            if (product == null || "DELETED".equals(product.getStatus())) {
+            if (product == null || (!isAdminPreview && "DELETED".equals(product.getStatus()))) {
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Sản phẩm yêu cầu không tồn tại hoặc đã bị ẩn.");
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "warning");
                 resp.sendRedirect(req.getContextPath() + "/home");
@@ -93,7 +96,7 @@ public class ProductDetailServlet extends HttpServlet {
             }
 
             // Nếu sản phẩm INACTIVE thì là ngừng bán, chặn truy cập hoàn toàn
-            if ("INACTIVE".equals(product.getStatus())) {
+            if (!isAdminPreview && "INACTIVE".equals(product.getStatus())) {
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Sản phẩm này hiện đã ngừng bán.");
                 req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "warning");
                 resp.sendRedirect(req.getContextPath() + "/home");
@@ -106,8 +109,9 @@ public class ProductDetailServlet extends HttpServlet {
             boolean isOutOfSeason = !product.isInSeason();
             req.setAttribute("isOutOfSeason", isOutOfSeason);
 
+            req.setAttribute("isAdminPreview", isAdminPreview);
+
             boolean hasRequestedToday = false;
-            model.entity.auth.User currentUser = (model.entity.auth.User) req.getSession().getAttribute(AppConfig.SESSION_USER);
             if (currentUser != null && (isExpiredProduct || isOutOfSeason)) {
                 hasRequestedToday = productDAO.hasRequestedRestockToday(product.getOwnerId(), currentUser.getUserId(), product.getProductId());
             }
@@ -117,7 +121,7 @@ public class ProductDetailServlet extends HttpServlet {
             List<ProductVariant> variants = productVariantDAO.findByProduct(productId);
 
             // Đọc danh sách bao bì đóng gói chọn thêm
-            dao.catalog.ProductPackagingOptionDAO packagingOptionDAO = new dao.catalog.ProductPackagingOptionDAO();
+            ProductPackagingOptionDAO packagingOptionDAO = new ProductPackagingOptionDAO();
             List<model.entity.catalog.ProductPackagingOption> packagingOptions = packagingOptionDAO.findByProduct(productId);
             req.setAttribute("packagingOptions", packagingOptions);
 
@@ -188,7 +192,7 @@ public class ProductDetailServlet extends HttpServlet {
                 
                 // Fetch shop details for cart page / client display
                 ShopProfile shopProfile = shopProfileDAO.findOneByUserId(product.getOwnerId());
-                String shopName = (shopProfile != null) ? shopProfile.getShopName() : "Cửa hàng Verdant";
+                String shopName = (shopProfile != null) ? shopProfile.getShopName() : "Cửa hàng";
                 productMap.put("shopId", product.getOwnerId());
                 productMap.put("shopName", shopName);
 

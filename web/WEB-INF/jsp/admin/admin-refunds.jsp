@@ -12,21 +12,16 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <!-- Tailwind & SweetAlert -->
     <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
 <body class="antialiased text-txt bg-background">
 <div class="admin-layout">
-    <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="returns"/>
     </jsp:include>
 
-    <%-- Main --%>
     <main class="admin-main p-6 md:p-8 overflow-y-auto animate-fade-in-up opacity-0">
-
-        <%-- Page header --%>
         <div class="flex items-center justify-between bg-gradient-to-r from-primary-lt to-secondary-container/20 border border-primary-fixed/60 p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Quản Lý Đổi Trả / Hoàn Tiền</h1>
@@ -39,9 +34,8 @@
         </div>
 
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
-        <%-- Filter and Lists Card --%>
+
         <div class="glass-card">
-            <%-- Filter bar --%>
             <form action="" method="GET" class="px-6 py-4 border-b border-border bg-slate-50/50 flex flex-wrap gap-4 items-center justify-between">
                 <div class="flex items-center gap-2">
                     <h3 class="font-bold text-txt text-sm"><i class="fa-solid fa-list-check text-primary mr-1"></i> Danh Sách Yêu Cầu</h3>
@@ -98,7 +92,9 @@
                                     <tr>
                                         <td class="px-6 py-4 font-mono font-bold text-primary">#${r.returnRequestId}</td>
                                         <td class="px-6 py-4 font-bold text-txt">Đơn #${r.orderId}</td>
-                                        <td class="px-6 py-4 text-txt-2 text-xs">UID #${r.customerId}</td>
+                                        <td class="px-6 py-4 text-txt-2 text-xs">
+                                            <div class="font-semibold text-txt">${r.customerName}</div>
+                                        </td>
                                         <td class="px-6 py-4 font-medium text-txt-2">${reasonText}</td>
                                         <td class="px-6 py-4 text-xs text-txt-2 max-w-[200px] truncate" title="${r.description}">
                                             ${r.description}
@@ -176,7 +172,7 @@
                                                         </form>
                                                     </c:when>
                                                     <c:when test="${r.status == 'APPROVED'}">
-                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" class="w-full" onsubmit="return confirm('Xác nhận đã chuyển khoản / hoàn tiền thành công?');">
+                                                        <form action="${pageContext.request.contextPath}/admin/refunds" method="POST" class="w-full" onsubmit="return confirmComplete(event, '${r.returnRequestId}')">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
                                                             <input type="hidden" name="action" value="complete">
                                                             <input type="hidden" name="requestId" value="${r.returnRequestId}">
@@ -201,7 +197,6 @@
                 </table>
             </div>
 
-            <%-- Pagination --%>
             <c:if test="${totalPages > 1}">
                 <div class="flex justify-between items-center px-6 py-4 border-t border-border gap-4">
                     <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
@@ -209,7 +204,6 @@
                 </div>
             </c:if>
         </div>
-
     </main>
 </div>
 
@@ -251,6 +245,21 @@
             confirmButtonColor: '#ef4444',
             cancelButtonColor: '#e5e7eb',
             confirmButtonText: 'Xác nhận từ chối',
+            cancelButtonText: 'Hủy'
+        }).then(r => { if (r.isConfirmed) event.target.submit(); });
+        return false;
+    }
+
+    function confirmComplete(event, requestId) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Xác nhận hoàn tiền?',
+            html: 'Đã thực hiện chuyển khoản/hoàn tiền cho yêu cầu <b>#' + requestId + '</b> thành công.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Xác nhận',
             cancelButtonText: 'Hủy'
         }).then(r => { if (r.isConfirmed) event.target.submit(); });
         return false;

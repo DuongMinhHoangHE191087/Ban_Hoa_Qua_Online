@@ -98,7 +98,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-txt-2 uppercase tracking-wider mb-1">Phạm vi áp dụng</label>
-                            <select name="scope" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none px-4 py-2 text-sm bg-white">
+                            <select id="promotionScope" name="scope" onchange="syncPromotionTargetFields()" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none px-4 py-2 text-sm bg-white">
                                 <option value="ORDER" ${not empty editPromotion && editPromotion.scope == 'ORDER' ? 'selected' : ''}>Đơn hàng</option>
                                 <option value="PRODUCT" ${not empty editPromotion && editPromotion.scope == 'PRODUCT' ? 'selected' : ''}>Sản phẩm</option>
                             </select>
@@ -114,6 +114,18 @@
                                 </c:forEach>
                             </select>
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-txt-2 uppercase tracking-wider mb-1">Mục tiêu giảm</label>
+                        <select id="benefitTargetSelect" name="benefitTarget" class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none px-4 py-2 text-sm bg-white">
+                            <option value="MERCHANDISE" ${not empty editPromotion && editPromotion.benefitTarget == 'MERCHANDISE' ? 'selected' : ''}>Giảm tiền hàng</option>
+                            <option value="SHIPPING" ${not empty editPromotion && editPromotion.benefitTarget == 'SHIPPING' ? 'selected' : ''}>Miễn phí vận chuyển</option>
+                            <c:if test="${promotionMode eq 'GLOBAL'}">
+                                <option value="PAYMENT_METHOD" ${not empty editPromotion && editPromotion.benefitTarget == 'PAYMENT_METHOD' ? 'selected' : ''}>Giảm theo phương thức thanh toán</option>
+                            </c:if>
+                        </select>
+                        <p class="mt-1 text-[11px] text-txt-3">Khi chọn "Phạm vi áp dụng" = Sản phẩm, hệ thống sẽ tự chuyển voucher sang target PRODUCT.</p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -203,16 +215,16 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto pb-6">
+                <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
-                        <tr class="bg-slate-50/50">
-                            <th class="p-3 border-b border-border font-semibold text-txt-2">Mã voucher</th>
-                            <th class="p-3 border-b border-border font-semibold text-txt-2">Áp dụng</th>
-                            <th class="p-3 border-b border-border font-semibold text-txt-2">Mức giảm</th>
-                            <th class="p-3 border-b border-border font-semibold text-txt-2">Thời gian</th>
-                            <th class="p-3 border-b border-border font-semibold text-txt-2 text-center">Trạng thái</th>
-                            <th class="p-3 border-b border-border font-semibold text-txt-2 text-center">Hành động</th>
+                        <tr class="bg-slate-50/50 sticky top-0 bg-white z-10 border-b border-border">
+                            <th class="p-3 font-semibold text-txt-2 bg-slate-50/80 backdrop-blur-sm">Mã voucher</th>
+                            <th class="p-3 font-semibold text-txt-2 bg-slate-50/80 backdrop-blur-sm">Áp dụng</th>
+                            <th class="p-3 font-semibold text-txt-2 bg-slate-50/80 backdrop-blur-sm">Mức giảm</th>
+                            <th class="p-3 font-semibold text-txt-2 bg-slate-50/80 backdrop-blur-sm">Thời gian</th>
+                            <th class="p-3 font-semibold text-txt-2 bg-slate-50/80 backdrop-blur-sm text-center">Trạng thái</th>
+                            <th class="p-3 font-semibold text-txt-2 bg-slate-50/80 backdrop-blur-sm text-center">Hành động</th>
                         </tr>
                         </thead>
                         <tbody id="voucherTableBody" class="divide-y divide-border/60">
@@ -289,7 +301,7 @@
                                                             <input type="hidden" name="promoId" value="${p.promoId}">
                                                             <button type="submit" class="group flex w-full items-center px-4 py-2 text-xs text-txt-2 hover:bg-slate-50 hover:text-amber-600 font-bold text-left transition-all border-0 bg-transparent cursor-pointer">
                                                                 <i class="fa-solid fa-power-off mr-2 text-slate-400 group-hover:text-amber-600"></i> ${p.isActive ? 'Tắt' : 'Bật'}
-                                                            </button>
+                                                             </button>
                                                         </form>
                                                         <form action="${pageContext.request.contextPath}${promotionBasePath}" method="POST" class="m-0" onsubmit="return confirmDelete(event, '${p.code}')">
                                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
@@ -309,6 +321,9 @@
                         </c:choose>
                         </tbody>
                     </table>
+                </div>
+                <div class="px-6 py-4 border-t border-border flex justify-end bg-white">
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="${pageContext.request.contextPath}${promotionBasePath}" />
                 </div>
             </div>
         </div>
@@ -360,11 +375,25 @@
         document.getElementById(id).classList.toggle('hidden');
     }
 
+    function syncPromotionTargetFields() {
+        const scopeEl = document.getElementById('promotionScope');
+        const targetEl = document.getElementById('benefitTargetSelect');
+        if (!scopeEl || !targetEl) {
+            return;
+        }
+        const isProductScope = scopeEl.value === 'PRODUCT';
+        targetEl.disabled = isProductScope;
+        targetEl.classList.toggle('bg-slate-100', isProductScope);
+        targetEl.classList.toggle('text-slate-500', isProductScope);
+    }
+
     document.addEventListener('click', function () {
         document.querySelectorAll('[id^="dropdown-"]').forEach(function (el) {
             el.classList.add('hidden');
         });
     });
+
+    document.addEventListener('DOMContentLoaded', syncPromotionTargetFields);
 </script>
 </body>
 </html>

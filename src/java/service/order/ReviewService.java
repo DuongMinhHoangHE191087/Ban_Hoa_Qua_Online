@@ -7,6 +7,7 @@ import model.entity.order.Review;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import util.PaginationUtil;
 
 /**
  * ReviewService — Tầng business logic cho nghiệp vụ đánh giá sản phẩm.
@@ -197,6 +198,14 @@ public class ReviewService {
      */
     public List<Review> getAllReviewsForAdmin() throws SQLException {
         return reviewDAO.findAllForAdmin();
+    }
+
+    public PagedResultDTO getAllReviewsForAdminPaged(int page, int pageSize) throws SQLException {
+        int validatedPage = PaginationUtil.validatePage(page);
+        int validatedPageSize = PaginationUtil.validatePageSize(pageSize);
+        List<Review> reviews = reviewDAO.findAllForAdmin(validatedPage, validatedPageSize);
+        int totalCount = reviewDAO.countAllForAdmin();
+        return PaginationUtil.buildPagedResult(reviews, validatedPage, validatedPageSize, totalCount);
     }
 
     /**

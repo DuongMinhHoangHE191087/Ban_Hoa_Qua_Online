@@ -149,7 +149,13 @@ public class ProductStatusServlet extends HttpServlet {
                 for (int i = 0; i < idParts.length; i++) {
                     try {
                         int imgId = Integer.parseInt(idParts[i].trim());
-                        productImageDAO.updateDisplayOrder(imgId, i);
+                        ProductImage img = productImageDAO.findById(imgId);
+                        if (img != null) {
+                            List<Product> products = productDAO.findById(img.getProductId());
+                            if (products != null && !products.isEmpty() && products.get(0).getOwnerId() == currentUser.getUserId()) {
+                                productImageDAO.updateDisplayOrder(imgId, i);
+                            }
+                        }
                     } catch (NumberFormatException e) {
                         LoggerUtil.warn(log, "ID ảnh không hợp lệ khi sắp xếp: " + idParts[i], e);
                     }

@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
@@ -110,34 +110,7 @@
                 <c:remove var="flashType" scope="session"/>
             </c:if>
 
-            <c:if test="${not empty requestScope.prefilledUser}">
-                <div class="mb-6 overflow-hidden rounded-[1.75rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 shadow-[0_18px_45px_rgba(20,83,45,0.10)]">
-                    <div class="flex items-start gap-4 p-5 md:p-6">
-                        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-primary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[26px]">assignment</span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
-                                Trạng thái đăng ký
-                            </span>
-                            <h2 class="mt-2 text-lg md:text-xl font-extrabold text-on-surface">Xem lại đơn shop_owner của bạn</h2>
-                            <p class="mt-2 text-sm leading-6 text-on-surface-variant">
-                                Tài khoản của bạn đang ở luồng nâng cấp. Mở trang trạng thái để xem hồ sơ đang chờ duyệt, bị từ chối hay đã bị đình chỉ.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-3">
-                                <a href="${pageContext.request.contextPath}/shop/status" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-hover">
-                                    <span class="material-symbols-outlined text-[18px]">open_in_new</span>
-                                    Xem trạng thái đăng ký
-                                </a>
-                                <a href="#registerForm" class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-bold text-primary transition-all hover:border-emerald-300 hover:bg-emerald-50">
-                                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                                    Quay lại form
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </c:if>
+
 
             <!-- Unified Form -->
             <form action="${pageContext.request.contextPath}/auth/register" method="post" enctype="multipart/form-data" class="space-y-6" id="registerForm">
@@ -438,7 +411,7 @@
         const MAX_DOC_SIZE_MB = 25;
         const MAX_DOC_SIZE_BYTES = MAX_DOC_SIZE_MB * 1024 * 1024;
         const ALLOWED_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'docx'];
-        const hasDraftDocs = ${not empty requestScope.registerDraftDocPaths};
+        const hasDraftDocs = "${not empty requestScope.registerDraftDocPaths ? true : false}" === "true";
 
         /**
          * Chuyển giữa tab Đăng ký khách hàng / Chủ cửa hàng

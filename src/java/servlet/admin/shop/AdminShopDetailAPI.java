@@ -1,5 +1,6 @@
 package servlet.admin.shop;
 
+import config.AppConfig;
 import dao.auth.UserDAO;
 import dao.shop.ShopProfileDAO;
 import model.entity.auth.User;
@@ -7,6 +8,7 @@ import model.entity.shop.ShopProfile;
 import model.response.ApiResponse;
 import util.JsonUtil;
 import util.LoggerUtil;
+import util.SessionUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -34,6 +36,13 @@ public class AdminShopDetailAPI extends HttpServlet {
         resp.setContentType("application/json;charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
 
+        User currentUser = SessionUtil.getCurrentUser(req.getSession());
+        if (currentUser == null || !AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
+            resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập."));
+            return;
+        }
+
         try {
             int shopId = Integer.parseInt(req.getParameter("id"));
             ShopProfile profile = shopProfileDAO.findById(shopId);
@@ -51,16 +60,18 @@ public class AdminShopDetailAPI extends HttpServlet {
                 return;
             }
 
-            // Gộp dữ liệu trả về client
             Map<String, Object> data = new HashMap<>();
             data.put("shopId", profile.getProfileId());
             data.put("shopName", profile.getShopName());
+            data.put("ownerId", user.getUserId());
+            data.put("ownerName", user.getFullName() != null && !user.getFullName().trim().isEmpty() ? user.getFullName() : user.getEmail());
+            data.put("ownerEmail", user.getEmail());
             data.put("businessEmail", profile.getBusinessEmail() != null ? profile.getBusinessEmail() : user.getEmail());
             data.put("deliveryAddress", profile.getDeliveryAddress());
             data.put("shopDescription", profile.getShopDescription());
             data.put("approvalStatus", profile.getApprovalStatus());
-            data.put("preferredCategories", profile.getPreferredCategories()); // Chuỗi JSON "[1,2]"
-            data.put("docPaths", profile.getDocPaths()); // Chuỗi JSON "['/path/to/doc']"
+            data.put("preferredCategories", profile.getPreferredCategories());
+            data.put("docPaths", profile.getDocPaths());
 
             resp.setStatus(HttpServletResponse.SC_OK);
             JsonUtil.writeJson(resp, ApiResponse.ok(data, "Lấy thông tin thành công"));

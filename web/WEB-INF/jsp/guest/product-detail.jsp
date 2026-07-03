@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
@@ -210,6 +210,13 @@
                                 </button>
                             </c:otherwise>
                         </c:choose>
+                    </div>
+                </c:if>
+
+                <c:if test="${isAdminPreview and (product.status == 'INACTIVE' or product.status == 'DELETED')}">
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 my-4 text-xs text-amber-900">
+                        <strong class="font-bold">Admin preview:</strong>
+                        Sản phẩm đang ở trạng thái <c:out value="${product.status}"/> nhưng vẫn hiển thị đầy đủ để kiểm tra nội bộ.
                     </div>
                 </c:if>
 

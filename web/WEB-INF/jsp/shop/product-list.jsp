@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ taglib prefix="c" uri="jakarta.tags.core" %>
         <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+            <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
             <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
                 <!DOCTYPE html>
                 <html lang="vi">
@@ -408,6 +409,9 @@
                                                     </c:forEach>
                                                 </tbody>
                                             </table>
+                                        </div>
+                                        <div class="px-6 py-4 border-t border-border flex justify-end">
+                                            <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="${pageContext.request.contextPath}/shop/products?keyword=${fn:escapeXml(keyword)}&categoryId=${categoryId}&stockStatus=${stockStatus}&approvalStatus=${approvalStatus}&sellStatus=${sellStatus}" />
                                         </div>
                                     </c:otherwise>
                                 </c:choose>

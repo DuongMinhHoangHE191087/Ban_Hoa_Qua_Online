@@ -24,6 +24,9 @@ public final class ShopStatusRedirectUtil {
         if (user == null) {
             return false;
         }
+        if ("true".equals(req.getParameter("edit"))) {
+            return false;
+        }
         try {
             List<ShopProfile> profiles = SHOP_PROFILE_DAO.findByUserId(user.getUserId());
             if (!profiles.isEmpty()) {

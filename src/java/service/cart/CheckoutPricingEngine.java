@@ -37,6 +37,10 @@ import java.util.Set;
 public class CheckoutPricingEngine {
 
     public static final BigDecimal DELIVERY_FEE_PER_SHOP = new BigDecimal("15000");
+    private static final String COUPON_SLOT_SELLER_MERCHANDISE = "SELLER_MERCHANDISE";
+    private static final String COUPON_SLOT_PLATFORM_MERCHANDISE = "PLATFORM_MERCHANDISE";
+    private static final String COUPON_SLOT_FREE_SHIPPING = "FREE_SHIPPING";
+    private static final String COUPON_SLOT_PAYMENT_METHOD = "PAYMENT_METHOD";
 
     private final CartService cartService = new CartService();
     private final ProductDAO productDAO = new ProductDAO();
@@ -58,7 +62,7 @@ public class CheckoutPricingEngine {
             throw new IllegalStateException("Giỏ hàng của bạn đang trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
         }
         if (request == null || request.getVariantIds() == null || request.getVariantIds().isEmpty()) {
-            throw new IllegalArgumentException("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+            throw new IllegalStateException("Danh sách sản phẩm chọn thanh toán đang trống.");
         }
 
         List<CartItem> checkoutItems = filterCheckoutItems(cartSummary.getItems(), request.getVariantIds());
@@ -157,13 +161,31 @@ public class CheckoutPricingEngine {
             BigDecimal base = sumValues(remainingMerchandiseByOwner);
             BigDecimal discount = promotionService.calculateDiscount(promo, base);
             Map<Integer, BigDecimal> allocated = allocateDiscount(discount, remainingMerchandiseByOwner);
-            appendTopLevelAppliedCoupon(quote, promo, null, discount);
+
+            BigDecimal totalAllocated = BigDecimal.ZERO;
+            Map<Integer, BigDecimal> actualAllocations = new LinkedHashMap<>();
             for (Map.Entry<Integer, BigDecimal> entry : allocated.entrySet()) {
                 BigDecimal ownerDiscount = entry.getValue();
                 if (ownerDiscount.compareTo(BigDecimal.ZERO) <= 0) {
                     continue;
                 }
                 Integer ownerId = entry.getKey();
+                BigDecimal remainingMerchandise = remainingMerchandiseByOwner.get(ownerId);
+                if (remainingMerchandise == null) {
+                    remainingMerchandise = BigDecimal.ZERO;
+                }
+                BigDecimal actualOwnerDiscount = ownerDiscount.min(remainingMerchandise);
+                if (actualOwnerDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                actualAllocations.put(ownerId, actualOwnerDiscount);
+                totalAllocated = totalAllocated.add(actualOwnerDiscount);
+            }
+
+            appendTopLevelAppliedCoupon(quote, promo, null, totalAllocated);
+            for (Map.Entry<Integer, BigDecimal> entry : actualAllocations.entrySet()) {
+                Integer ownerId = entry.getKey();
+                BigDecimal ownerDiscount = entry.getValue();
                 CheckoutShopSummaryDTO summary = summariesByOwner.get(ownerId);
                 summary.setSystemMerchandiseDiscountAmount(
                         summary.getSystemMerchandiseDiscountAmount().add(ownerDiscount));
@@ -188,13 +210,31 @@ public class CheckoutPricingEngine {
             BigDecimal base = sumValues(remainingShippingByOwner);
             BigDecimal discount = promotionService.calculateDiscount(promo, base);
             Map<Integer, BigDecimal> allocated = allocateDiscount(discount, remainingShippingByOwner);
-            appendTopLevelAppliedCoupon(quote, promo, null, discount);
+
+            BigDecimal totalAllocated = BigDecimal.ZERO;
+            Map<Integer, BigDecimal> actualAllocations = new LinkedHashMap<>();
             for (Map.Entry<Integer, BigDecimal> entry : allocated.entrySet()) {
                 BigDecimal ownerDiscount = entry.getValue();
                 if (ownerDiscount.compareTo(BigDecimal.ZERO) <= 0) {
                     continue;
                 }
                 Integer ownerId = entry.getKey();
+                BigDecimal remainingShipping = remainingShippingByOwner.get(ownerId);
+                if (remainingShipping == null) {
+                    remainingShipping = BigDecimal.ZERO;
+                }
+                BigDecimal actualOwnerDiscount = ownerDiscount.min(remainingShipping);
+                if (actualOwnerDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                actualAllocations.put(ownerId, actualOwnerDiscount);
+                totalAllocated = totalAllocated.add(actualOwnerDiscount);
+            }
+
+            appendTopLevelAppliedCoupon(quote, promo, null, totalAllocated);
+            for (Map.Entry<Integer, BigDecimal> entry : actualAllocations.entrySet()) {
+                Integer ownerId = entry.getKey();
+                BigDecimal ownerDiscount = entry.getValue();
                 CheckoutShopSummaryDTO summary = summariesByOwner.get(ownerId);
                 summary.setSystemShippingDiscountAmount(
                         summary.getSystemShippingDiscountAmount().add(ownerDiscount));
@@ -202,6 +242,60 @@ public class CheckoutPricingEngine {
                 summary.getAppliedCoupons().add(buildCouponDTO(promo, ownerId, ownerDiscount, true, null));
                 remainingShippingByOwner.put(ownerId,
                         remainingShippingByOwner.get(ownerId).subtract(ownerDiscount).max(BigDecimal.ZERO));
+                promotionAllocations.add(new PromotionAllocation(promo, ownerId, ownerDiscount));
+            }
+        }
+
+        Map<Integer, BigDecimal> remainingPaymentByOwner = new LinkedHashMap<>();
+        for (Map.Entry<Integer, CheckoutShopSummaryDTO> entry : summariesByOwner.entrySet()) {
+            Integer ownerId = entry.getKey();
+            CheckoutShopSummaryDTO summary = entry.getValue();
+            BigDecimal netMerchandise = summary.getSubtotal()
+                    .subtract(summary.getShopMerchandiseDiscountAmount()
+                            .add(summary.getSystemMerchandiseDiscountAmount()))
+                    .max(BigDecimal.ZERO);
+            BigDecimal netShipping = summary.getDeliveryFee()
+                    .subtract(summary.getShopShippingDiscountAmount()
+                            .add(summary.getSystemShippingDiscountAmount()))
+                    .max(BigDecimal.ZERO);
+            remainingPaymentByOwner.put(ownerId, netMerchandise.add(netShipping));
+        }
+
+        for (Promotion promo : resolvedCoupons.paymentPromos) {
+            BigDecimal base = sumValues(remainingPaymentByOwner);
+            BigDecimal discount = promotionService.calculateDiscount(promo, base);
+            Map<Integer, BigDecimal> allocated = allocateDiscount(discount, remainingPaymentByOwner);
+
+            BigDecimal totalAllocated = BigDecimal.ZERO;
+            Map<Integer, BigDecimal> actualAllocations = new LinkedHashMap<>();
+            for (Map.Entry<Integer, BigDecimal> entry : allocated.entrySet()) {
+                BigDecimal ownerDiscount = entry.getValue();
+                if (ownerDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                Integer ownerId = entry.getKey();
+                BigDecimal remainingPayment = remainingPaymentByOwner.get(ownerId);
+                if (remainingPayment == null) {
+                    remainingPayment = BigDecimal.ZERO;
+                }
+                BigDecimal actualOwnerDiscount = ownerDiscount.min(remainingPayment);
+                if (actualOwnerDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                actualAllocations.put(ownerId, actualOwnerDiscount);
+                totalAllocated = totalAllocated.add(actualOwnerDiscount);
+            }
+
+            appendTopLevelAppliedCoupon(quote, promo, null, totalAllocated);
+            for (Map.Entry<Integer, BigDecimal> entry : actualAllocations.entrySet()) {
+                Integer ownerId = entry.getKey();
+                BigDecimal ownerDiscount = entry.getValue();
+                CheckoutShopSummaryDTO summary = summariesByOwner.get(ownerId);
+                summary.setPaymentDiscountAmount(summary.getPaymentDiscountAmount().add(ownerDiscount));
+                summary.setDiscountAmount(summary.getDiscountAmount().add(ownerDiscount));
+                summary.getAppliedCoupons().add(buildCouponDTO(promo, ownerId, ownerDiscount, true, null));
+                remainingPaymentByOwner.put(ownerId,
+                        remainingPaymentByOwner.get(ownerId).subtract(ownerDiscount).max(BigDecimal.ZERO));
                 promotionAllocations.add(new PromotionAllocation(promo, ownerId, ownerDiscount));
             }
         }
@@ -280,21 +374,39 @@ public class CheckoutPricingEngine {
         if (discount == null || discount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
+
+        BigDecimal actualDiscount;
         if (shippingCoupon) {
-            summary.setShopShippingDiscountAmount(summary.getShopShippingDiscountAmount().add(discount));
+            BigDecimal remainingShipping = remainingShippingByOwner.get(ownerId);
+            if (remainingShipping == null) {
+                remainingShipping = BigDecimal.ZERO;
+            }
+            actualDiscount = discount.min(remainingShipping);
+            if (actualDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
+            summary.setShopShippingDiscountAmount(summary.getShopShippingDiscountAmount().add(actualDiscount));
             remainingShippingByOwner.put(ownerId,
-                    remainingShippingByOwner.get(ownerId).subtract(discount).max(BigDecimal.ZERO));
+                    remainingShippingByOwner.get(ownerId).subtract(actualDiscount).max(BigDecimal.ZERO));
         } else {
-            summary.setShopMerchandiseDiscountAmount(summary.getShopMerchandiseDiscountAmount().add(discount));
+            BigDecimal remainingMerchandise = remainingMerchandiseByOwner.get(ownerId);
+            if (remainingMerchandise == null) {
+                remainingMerchandise = BigDecimal.ZERO;
+            }
+            actualDiscount = discount.min(remainingMerchandise);
+            if (actualDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
+            summary.setShopMerchandiseDiscountAmount(summary.getShopMerchandiseDiscountAmount().add(actualDiscount));
             remainingMerchandiseByOwner.put(ownerId,
-                    remainingMerchandiseByOwner.get(ownerId).subtract(discount).max(BigDecimal.ZERO));
+                    remainingMerchandiseByOwner.get(ownerId).subtract(actualDiscount).max(BigDecimal.ZERO));
         }
-        summary.setDiscountAmount(summary.getDiscountAmount().add(discount));
-        summary.getAppliedCoupons().add(buildCouponDTO(promo, ownerId, discount, true, null));
+        summary.setDiscountAmount(summary.getDiscountAmount().add(actualDiscount));
+        summary.getAppliedCoupons().add(buildCouponDTO(promo, ownerId, actualDiscount, true, null));
         if (topLevel) {
-            appendTopLevelAppliedCoupon(quote, promo, ownerId, discount);
+            appendTopLevelAppliedCoupon(quote, promo, ownerId, actualDiscount);
         }
-        promotionAllocations.add(new PromotionAllocation(promo, ownerId, discount));
+        promotionAllocations.add(new PromotionAllocation(promo, ownerId, actualDiscount));
     }
 
     private ResolvedCoupons resolveCoupons(CheckoutQuoteRequestDTO request,
@@ -302,6 +414,10 @@ public class CheckoutPricingEngine {
                                            Map<Integer, CheckoutShopSummaryDTO> summariesByOwner,
                                            CheckoutQuoteDTO quote) throws SQLException {
         ResolvedCoupons resolved = new ResolvedCoupons();
+        Promotion sellerMerchandisePromo = null;
+        Promotion platformMerchandisePromo = null;
+        Promotion freeShippingPromo = null;
+        Promotion paymentMethodPromo = null;
         for (String code : normalizeCouponCodes(request.getShopCouponCodes())) {
             Promotion matchedPromo = null;
             Integer matchedOwnerId = null;
@@ -315,15 +431,72 @@ public class CheckoutPricingEngine {
                 }
             }
             if (matchedPromo == null || matchedOwnerId == null) {
+                Promotion existingPromo = promotionDAO.findAnyByCode(code);
+                String invalidMessage = existingPromo != null
+                        ? "Mã voucher shop chưa đạt giá trị đơn tối thiểu hoặc không thuộc shop nào trong giỏ hàng."
+                        : "Mã voucher shop không hợp lệ, chưa đạt giá trị đơn tối thiểu, hoặc không thuộc shop nào trong giỏ hàng.";
                 appendInvalidCoupon(quote, code, "SHOP",
-                        "Mã voucher shop không hợp lệ hoặc không thuộc shop nào trong giỏ hàng.");
+                        invalidMessage);
                 continue;
             }
             String benefitTarget = promotionService.resolveBenefitTarget(matchedPromo);
-            resolved.shopPromotions.add(matchedPromo);
-            if (PromotionService.BENEFIT_TARGET_SHIPPING.equalsIgnoreCase(benefitTarget)) {
+            if (PromotionService.BENEFIT_TARGET_PRODUCT.equalsIgnoreCase(benefitTarget)) {
+                appendInvalidCoupon(quote, code, "SHOP",
+                        "Mã này là voucher theo sản phẩm và không thể áp dụng ở bước thanh toán.");
+                continue;
+            }
+            String slot = resolveCouponSlot(matchedPromo);
+            if (COUPON_SLOT_FREE_SHIPPING.equals(slot)) {
+                if (freeShippingPromo != null) {
+                    appendInvalidCoupon(quote, code, "SHOP",
+                            describeSlotConflict(code, slot, freeShippingPromo.getCode()));
+                    continue;
+                }
+                freeShippingPromo = matchedPromo;
+                resolved.shopPromotions.add(matchedPromo);
                 resolved.shopShippingPromos.put(matchedOwnerId, matchedPromo);
+            } else if (COUPON_SLOT_PAYMENT_METHOD.equals(slot)) {
+                if (paymentMethodPromo != null) {
+                    appendInvalidCoupon(quote, code, "SHOP",
+                            describeSlotConflict(code, slot, paymentMethodPromo.getCode()));
+                    continue;
+                }
+                if (platformMerchandisePromo != null
+                        && (!matchedPromo.getCanStack() || !platformMerchandisePromo.getCanStack())) {
+                    appendInvalidCoupon(quote, code, "SHOP",
+                            "Voucher sàn " + platformMerchandisePromo.getCode()
+                                    + " và voucher phương thức thanh toán " + code
+                                    + " không thể cộng dồn.");
+                    continue;
+                }
+                paymentMethodPromo = matchedPromo;
+                resolved.shopPromotions.add(matchedPromo);
+                resolved.paymentPromos.add(matchedPromo);
+            } else if (COUPON_SLOT_PLATFORM_MERCHANDISE.equals(slot)) {
+                if (platformMerchandisePromo != null) {
+                    appendInvalidCoupon(quote, code, "SHOP",
+                            describeSlotConflict(code, slot, platformMerchandisePromo.getCode()));
+                    continue;
+                }
+                if (paymentMethodPromo != null
+                        && (!matchedPromo.getCanStack() || !paymentMethodPromo.getCanStack())) {
+                    appendInvalidCoupon(quote, code, "SHOP",
+                            "Voucher sàn " + code
+                                    + " và voucher phương thức thanh toán " + paymentMethodPromo.getCode()
+                                    + " không thể cộng dồn.");
+                    continue;
+                }
+                platformMerchandisePromo = matchedPromo;
+                resolved.shopPromotions.add(matchedPromo);
+                resolved.shopMerchandisePromos.put(matchedOwnerId, matchedPromo);
             } else {
+                if (sellerMerchandisePromo != null) {
+                    appendInvalidCoupon(quote, code, "SHOP",
+                            describeSlotConflict(code, slot, sellerMerchandisePromo.getCode()));
+                    continue;
+                }
+                sellerMerchandisePromo = matchedPromo;
+                resolved.shopPromotions.add(matchedPromo);
                 resolved.shopMerchandisePromos.put(matchedOwnerId, matchedPromo);
             }
         }
@@ -337,10 +510,63 @@ public class CheckoutPricingEngine {
                 continue;
             }
             String benefitTarget = promotionService.resolveBenefitTarget(promo);
-            resolved.systemPromotions.add(promo);
-            if (PromotionService.BENEFIT_TARGET_SHIPPING.equalsIgnoreCase(benefitTarget)) {
+            if (PromotionService.BENEFIT_TARGET_PRODUCT.equalsIgnoreCase(benefitTarget)) {
+                appendInvalidCoupon(quote, code, "ALL",
+                        "Mã này là voucher theo sản phẩm và không thể áp dụng ở bước thanh toán.");
+                continue;
+            }
+            String slot = resolveCouponSlot(promo);
+            if (COUPON_SLOT_FREE_SHIPPING.equals(slot)) {
+                if (freeShippingPromo != null) {
+                    appendInvalidCoupon(quote, code, "ALL",
+                            describeSlotConflict(code, slot, freeShippingPromo.getCode()));
+                    continue;
+                }
+                freeShippingPromo = promo;
+                resolved.systemPromotions.add(promo);
                 resolved.systemShippingPromos.add(promo);
+            } else if (COUPON_SLOT_PAYMENT_METHOD.equals(slot)) {
+                if (paymentMethodPromo != null) {
+                    appendInvalidCoupon(quote, code, "ALL",
+                            describeSlotConflict(code, slot, paymentMethodPromo.getCode()));
+                    continue;
+                }
+                if (platformMerchandisePromo != null
+                        && (!promo.getCanStack() || !platformMerchandisePromo.getCanStack())) {
+                    appendInvalidCoupon(quote, code, "ALL",
+                            "Voucher sàn " + platformMerchandisePromo.getCode()
+                                    + " và voucher phương thức thanh toán " + code
+                                    + " không thể cộng dồn.");
+                    continue;
+                }
+                paymentMethodPromo = promo;
+                resolved.systemPromotions.add(promo);
+                resolved.paymentPromos.add(promo);
+            } else if (COUPON_SLOT_PLATFORM_MERCHANDISE.equals(slot)) {
+                if (platformMerchandisePromo != null) {
+                    appendInvalidCoupon(quote, code, "ALL",
+                            describeSlotConflict(code, slot, platformMerchandisePromo.getCode()));
+                    continue;
+                }
+                if (paymentMethodPromo != null
+                        && (!promo.getCanStack() || !paymentMethodPromo.getCanStack())) {
+                    appendInvalidCoupon(quote, code, "ALL",
+                            "Voucher sàn " + code
+                                    + " và voucher phương thức thanh toán " + paymentMethodPromo.getCode()
+                                    + " không thể cộng dồn.");
+                    continue;
+                }
+                platformMerchandisePromo = promo;
+                resolved.systemPromotions.add(promo);
+                resolved.systemMerchandisePromos.add(promo);
             } else {
+                if (sellerMerchandisePromo != null) {
+                    appendInvalidCoupon(quote, code, "ALL",
+                            describeSlotConflict(code, slot, sellerMerchandisePromo.getCode()));
+                    continue;
+                }
+                sellerMerchandisePromo = promo;
+                resolved.systemPromotions.add(promo);
                 resolved.systemMerchandisePromos.add(promo);
             }
         }
@@ -360,6 +586,45 @@ public class CheckoutPricingEngine {
 
     private void appendTopLevelAppliedCoupon(CheckoutQuoteDTO quote, Promotion promo, Integer ownerId, BigDecimal discountAmount) {
         quote.getAppliedCoupons().add(buildCouponDTO(promo, ownerId, discountAmount, true, null));
+    }
+
+    private String resolveCouponSlot(Promotion promo) {
+        String benefitTarget = promotionService.resolveBenefitTarget(promo);
+        if (PromotionService.BENEFIT_TARGET_SHIPPING.equalsIgnoreCase(benefitTarget)) {
+            return COUPON_SLOT_FREE_SHIPPING;
+        }
+        if (PromotionService.BENEFIT_TARGET_PAYMENT_METHOD.equalsIgnoreCase(benefitTarget)) {
+            return COUPON_SLOT_PAYMENT_METHOD;
+        }
+        String discountScope = promo != null && promo.getDiscountScope() != null
+                ? promo.getDiscountScope().trim().toUpperCase()
+                : "";
+        if ("ALL".equals(discountScope)) {
+            return COUPON_SLOT_PLATFORM_MERCHANDISE;
+        }
+        return COUPON_SLOT_SELLER_MERCHANDISE;
+    }
+
+    private String humanizeCouponSlot(String slot) {
+        if (COUPON_SLOT_PLATFORM_MERCHANDISE.equals(slot)) {
+            return "voucher sàn";
+        }
+        if (COUPON_SLOT_FREE_SHIPPING.equals(slot)) {
+            return "voucher miễn phí vận chuyển";
+        }
+        if (COUPON_SLOT_PAYMENT_METHOD.equals(slot)) {
+            return "voucher phương thức thanh toán";
+        }
+        return "voucher shop";
+    }
+
+    private String describeSlotConflict(String code, String slot, String existingCode) {
+        String slotLabel = humanizeCouponSlot(slot);
+        if (existingCode != null && !existingCode.trim().isEmpty()) {
+            return "Mỗi checkout chỉ được tối đa 1 " + slotLabel + ". Mã ["
+                    + existingCode + "] đã chiếm slot này, nên không thể áp dụng [" + code + "].";
+        }
+        return "Mỗi checkout chỉ được tối đa 1 " + slotLabel + ".";
     }
 
     private CheckoutCouponDTO buildCouponDTO(Promotion promo,
@@ -418,15 +683,17 @@ public class CheckoutPricingEngine {
         BigDecimal shopDiscountAmount = BigDecimal.ZERO;
         BigDecimal systemDiscountAmount = BigDecimal.ZERO;
         BigDecimal shippingDiscountAmount = BigDecimal.ZERO;
+        BigDecimal paymentDiscountAmount = BigDecimal.ZERO;
         BigDecimal finalAmount = BigDecimal.ZERO;
         for (CheckoutShopSummaryDTO summary : summariesByOwner.values()) {
             BigDecimal shippingDiscount = summary.getShopShippingDiscountAmount()
                     .add(summary.getSystemShippingDiscountAmount());
             BigDecimal merchandiseDiscount = summary.getShopMerchandiseDiscountAmount()
                     .add(summary.getSystemMerchandiseDiscountAmount());
+            BigDecimal paymentDiscount = summary.getPaymentDiscountAmount();
             BigDecimal netMerchandise = summary.getSubtotal().subtract(merchandiseDiscount).max(BigDecimal.ZERO);
             BigDecimal netShipping = summary.getDeliveryFee().subtract(shippingDiscount).max(BigDecimal.ZERO);
-            summary.setFinalAmount(netMerchandise.add(netShipping));
+            summary.setFinalAmount(netMerchandise.add(netShipping).subtract(paymentDiscount).max(BigDecimal.ZERO));
             finalAmount = finalAmount.add(summary.getFinalAmount());
 
             shopDiscountAmount = shopDiscountAmount
@@ -435,13 +702,15 @@ public class CheckoutPricingEngine {
             systemDiscountAmount = systemDiscountAmount
                     .add(summary.getSystemMerchandiseDiscountAmount())
                     .add(summary.getSystemShippingDiscountAmount());
+            paymentDiscountAmount = paymentDiscountAmount.add(paymentDiscount);
             shippingDiscountAmount = shippingDiscountAmount.add(shippingDiscount);
         }
 
         quote.setShopDiscountAmount(shopDiscountAmount);
-        quote.setSystemDiscountAmount(systemDiscountAmount);
+        quote.setSystemDiscountAmount(systemDiscountAmount.add(paymentDiscountAmount));
         quote.setShippingDiscountAmount(shippingDiscountAmount);
-        quote.setDiscountAmount(shopDiscountAmount.add(systemDiscountAmount));
+        quote.setPaymentDiscountAmount(paymentDiscountAmount);
+        quote.setDiscountAmount(shopDiscountAmount.add(systemDiscountAmount).add(paymentDiscountAmount));
         quote.setFinalAmount(finalAmount.max(BigDecimal.ZERO));
         quote.setValid(quote.getErrors().isEmpty());
     }
@@ -649,6 +918,7 @@ public class CheckoutPricingEngine {
         private final Map<Integer, Promotion> shopShippingPromos = new LinkedHashMap<>();
         private final List<Promotion> systemMerchandisePromos = new ArrayList<>();
         private final List<Promotion> systemShippingPromos = new ArrayList<>();
+        private final List<Promotion> paymentPromos = new ArrayList<>();
         private final List<Promotion> shopPromotions = new ArrayList<>();
         private final List<Promotion> systemPromotions = new ArrayList<>();
     }

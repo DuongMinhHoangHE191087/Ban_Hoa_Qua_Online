@@ -1,7 +1,7 @@
 package service.shop;
 import dao.shop.PromotionDAO;
-
 import dao.catalog.ProductDAO;
+import model.dto.common.PagedResultDTO;
 
 import exception.BusinessException;
 import model.entity.catalog.Product;
@@ -18,7 +18,12 @@ public class PromotionService {
 
     public static final String BENEFIT_TARGET_MERCHANDISE = "MERCHANDISE";
     public static final String BENEFIT_TARGET_SHIPPING = "SHIPPING";
+    public static final String BENEFIT_TARGET_PAYMENT_METHOD = "PAYMENT_METHOD";
     public static final String BENEFIT_TARGET_PRODUCT = "PRODUCT";
+    private static final String CHECKOUT_SLOT_SELLER_MERCHANDISE = "SELLER_MERCHANDISE";
+    private static final String CHECKOUT_SLOT_PLATFORM_MERCHANDISE = "PLATFORM_MERCHANDISE";
+    private static final String CHECKOUT_SLOT_FREE_SHIPPING = "FREE_SHIPPING";
+    private static final String CHECKOUT_SLOT_PAYMENT_METHOD = "PAYMENT_METHOD";
 
     private final PromotionDAO promotionDAO = new PromotionDAO();
     private final ProductDAO productDAO = new ProductDAO();
@@ -47,6 +52,9 @@ public class PromotionService {
             return null;
         }
         normalizeBenefitTarget(promo);
+        if (BENEFIT_TARGET_PAYMENT_METHOD.equalsIgnoreCase(promo.getBenefitTarget())) {
+            return null;
+        }
         return promo;
     }
 
@@ -103,14 +111,13 @@ public class PromotionService {
     }
 
     /**
-     * PRO-01: A customer may NOT use two discount-type coupons together.
-     * Allowed combo: 1 discount coupon + 1 free-shipping coupon (SHIPPING scope — currently
-     * free-shipping vouchers are not in this schema, so any two ORDER-discount coupons are rejected).
-     * Call this before saving the order to enforce server-side stacking rules.
+     * PRO-01: checkout chỉ được tối đa 1 voucher shop, 1 voucher sàn, 1 voucher freeship
+     * và 1 voucher phương thức thanh toán.
+     * Quy tắc này phải được kiểm tra ở server trước khi ghi nhận đơn.
      *
      * Returns the DB record; never trusts a client-supplied discount value.
      *
-     * @throws BusinessException with code COUPON-SCOPE when scope mismatch is detected
+     * @throws BusinessException with code PRO-01 when a slot conflict is detected
      */
     public void validateCouponStack(java.util.List<Promotion> shopPromos, java.util.List<Promotion> systemPromos) {
         int totalCoupons = (shopPromos != null ? shopPromos.size() : 0) + (systemPromos != null ? systemPromos.size() : 0);
@@ -172,8 +179,24 @@ public class PromotionService {
         return promotionDAO.findByOwner(ownerId);
     }
 
+    public PagedResultDTO getShopPromos(int ownerId, int page, int pageSize) throws SQLException {
+        int validatedPage = util.PaginationUtil.validatePage(page);
+        int validatedPageSize = util.PaginationUtil.validatePageSize(pageSize);
+        List<Promotion> items = promotionDAO.findByOwner(ownerId, validatedPage, validatedPageSize);
+        int total = promotionDAO.countByOwner(ownerId);
+        return util.PaginationUtil.buildPagedResult(items, validatedPage, validatedPageSize, total);
+    }
+
     public List<Promotion> getGlobalPromotions() throws SQLException {
         return promotionDAO.findGlobalPromotions();
+    }
+
+    public PagedResultDTO getGlobalPromotions(int page, int pageSize) throws SQLException {
+        int validatedPage = util.PaginationUtil.validatePage(page);
+        int validatedPageSize = util.PaginationUtil.validatePageSize(pageSize);
+        List<Promotion> items = promotionDAO.findGlobalPromotions(validatedPage, validatedPageSize);
+        int total = promotionDAO.countGlobalPromotions();
+        return util.PaginationUtil.buildPagedResult(items, validatedPage, validatedPageSize, total);
     }
 
     public int createShopPromotion(Promotion promo, int ownerId) throws SQLException {
@@ -206,7 +229,7 @@ public class PromotionService {
     }
 
     public List<Product> getPromotionProductsForAdmin() throws SQLException {
-        return productDAO.findAllAdminProducts(1, 1000, "APPROVED");
+        return productDAO.findAllAdminProducts(1, 1000, "APPROVED", null);
     }
 
     public void deactivate(int promoId) throws SQLException {
@@ -238,6 +261,20 @@ public class PromotionService {
                 || (!"ORDER".equalsIgnoreCase(promo.getScope())
                 && !"PRODUCT".equalsIgnoreCase(promo.getScope()))) {
             throw new IllegalArgumentException("Quy tắc áp dụng không hợp lệ.");
+        }
+        String scope = promo.getScope().trim().toUpperCase();
+        String benefitTarget = promo.getBenefitTarget() != null ? promo.getBenefitTarget().trim().toUpperCase() : "";
+        if ("PRODUCT".equals(scope)) {
+            if (!benefitTarget.isEmpty() && !BENEFIT_TARGET_PRODUCT.equals(benefitTarget)) {
+                throw new IllegalArgumentException("Khuyến mãi theo sản phẩm chỉ cho phép benefit target PRODUCT.");
+            }
+        } else {
+            if (BENEFIT_TARGET_PRODUCT.equals(benefitTarget)) {
+                throw new IllegalArgumentException("Khuyến mãi theo sản phẩm chỉ áp dụng với phạm vi PRODUCT.");
+            }
+            if (BENEFIT_TARGET_PAYMENT_METHOD.equals(benefitTarget)) {
+                throw new IllegalArgumentException("Voucher phương thức thanh toán chỉ áp dụng cho đơn hàng.");
+            }
         }
         normalizeBenefitTarget(promo);
         if (promo.getDiscountValue() == null
@@ -271,6 +308,9 @@ public class PromotionService {
         // Task 5: force coupon's owner_id to the authenticated shop owner — never trust client-supplied id
         promo.setCreatedBy(ownerId);
         enforceDiscountScope(promo, "SHOP");
+        if (BENEFIT_TARGET_PAYMENT_METHOD.equalsIgnoreCase(resolveBenefitTarget(promo))) {
+            throw new IllegalArgumentException("Voucher phương thức thanh toán chỉ được tạo ở voucher sàn.");
+        }
         // Task 5: expiry must be in the future
         if (promo.getValidUntil() != null && !promo.getValidUntil().isAfter(java.time.LocalDateTime.now())) {
             throw new IllegalArgumentException("Ngày kết thúc phải ở tương lai.");
@@ -435,12 +475,60 @@ public class PromotionService {
         if (allPromos.size() <= 1) {
             return;
         }
+        java.util.Map<String, Promotion> slotPromos = new java.util.LinkedHashMap<>();
+        Promotion platformPromo = null;
+        Promotion paymentPromo = null;
         for (Promotion promo : allPromos) {
-            if (!promo.getCanStack()) {
+            String slot = resolveCheckoutSlot(promo);
+            Promotion existing = slotPromos.putIfAbsent(slot, promo);
+            if (existing != null) {
                 throw new BusinessException("PRO-01",
-                        "Mã giảm giá [" + promo.getCode() + "] là voucher độc quyền và không được cộng dồn.");
+                        "Mỗi checkout chỉ được tối đa 1 " + humanizeCheckoutSlot(slot) + ".");
+            }
+            if (CHECKOUT_SLOT_PLATFORM_MERCHANDISE.equals(slot)) {
+                platformPromo = promo;
+            } else if (CHECKOUT_SLOT_PAYMENT_METHOD.equals(slot)) {
+                paymentPromo = promo;
             }
         }
+        if (platformPromo != null && paymentPromo != null
+                && (!platformPromo.getCanStack() || !paymentPromo.getCanStack())) {
+            throw new BusinessException("PRO-01",
+                    "Voucher sàn " + platformPromo.getCode()
+                            + " và voucher phương thức thanh toán " + paymentPromo.getCode()
+                            + " không thể cộng dồn.");
+        }
+    }
+
+    private String resolveCheckoutSlot(Promotion promo) {
+        String benefitTarget = resolveBenefitTarget(promo);
+        validateManualBenefitTarget(benefitTarget);
+        if (BENEFIT_TARGET_SHIPPING.equalsIgnoreCase(benefitTarget)) {
+            return CHECKOUT_SLOT_FREE_SHIPPING;
+        }
+        if (BENEFIT_TARGET_PAYMENT_METHOD.equalsIgnoreCase(benefitTarget)) {
+            return CHECKOUT_SLOT_PAYMENT_METHOD;
+        }
+        String discountScope = promo != null && promo.getDiscountScope() != null
+                ? promo.getDiscountScope().trim().toUpperCase()
+                : "";
+        if ("ALL".equals(discountScope)) {
+            return CHECKOUT_SLOT_PLATFORM_MERCHANDISE;
+        }
+        return CHECKOUT_SLOT_SELLER_MERCHANDISE;
+    }
+
+    private String humanizeCheckoutSlot(String slot) {
+        if (CHECKOUT_SLOT_PLATFORM_MERCHANDISE.equals(slot)) {
+            return "voucher sàn";
+        }
+        if (CHECKOUT_SLOT_FREE_SHIPPING.equals(slot)) {
+            return "voucher miễn phí vận chuyển";
+        }
+        if (CHECKOUT_SLOT_PAYMENT_METHOD.equals(slot)) {
+            return "voucher phương thức thanh toán";
+        }
+        return "voucher shop";
     }
 
     private void validatePerOwnerBenefitTargets(List<Promotion> shopPromos) {
@@ -485,6 +573,9 @@ public class PromotionService {
     private String humanizeBenefitTarget(String benefitTarget) {
         if (BENEFIT_TARGET_SHIPPING.equalsIgnoreCase(benefitTarget)) {
             return "giảm phí vận chuyển";
+        }
+        if (BENEFIT_TARGET_PAYMENT_METHOD.equalsIgnoreCase(benefitTarget)) {
+            return "giảm theo phương thức thanh toán";
         }
         return "giảm tiền hàng";
     }

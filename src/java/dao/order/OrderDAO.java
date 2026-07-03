@@ -267,9 +267,7 @@ public class OrderDAO extends BaseDAO {
 
     public int countAll(String status, String paymentMethod, String paymentStatus) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM orders o ");
-        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
-            sql.append("JOIN payment_transactions pt ON o.order_id = pt.order_id ");
-        }
+        sql.append("LEFT JOIN payment_transactions pt ON o.order_id = pt.order_id ");
         sql.append("WHERE o.parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
         
@@ -303,10 +301,8 @@ public class OrderDAO extends BaseDAO {
         int offset = (page - 1) * pageSize;
         if (offset < 0) offset = 0;
         
-        StringBuilder sql = new StringBuilder("SELECT o.* FROM orders o ");
-        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
-            sql.append("JOIN payment_transactions pt ON o.order_id = pt.order_id ");
-        }
+        StringBuilder sql = new StringBuilder("SELECT o.*, pt.status AS payment_status FROM orders o ");
+        sql.append("LEFT JOIN payment_transactions pt ON o.order_id = pt.order_id ");
         
         sql.append("WHERE o.parent_order_id IS NULL ");
         List<Object> params = new ArrayList<>();
@@ -748,6 +744,11 @@ public class OrderDAO extends BaseDAO {
         o.setPlatformFee(rs.getBigDecimal("platform_fee"));
         o.setFinalAmount(rs.getBigDecimal("final_amount"));
         o.setPaymentMethod(rs.getString("payment_method"));
+        try {
+            o.setPaymentStatus(rs.getString("payment_status"));
+        } catch (SQLException ignored) {
+            o.setPaymentStatus(null);
+        }
         o.setRefundStatus(rs.getString("refund_status"));
         o.setReceivedStatus(rs.getString("received_status"));
 
@@ -804,9 +805,9 @@ public class OrderDAO extends BaseDAO {
 
         Set<Integer> distinctIds = new LinkedHashSet<>(orderIds);
         StringBuilder placeholders = new StringBuilder();
-        int index = 0;
-        for (Integer ignored : distinctIds) {
-            if (index++ > 0) {
+        int size = distinctIds.size();
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
                 placeholders.append(",");
             }
             placeholders.append("?");

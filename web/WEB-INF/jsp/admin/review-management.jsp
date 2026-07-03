@@ -1,7 +1,8 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -11,21 +12,16 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <!-- Tailwind & SweetAlert -->
     <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
 <body class="antialiased text-txt bg-background">
 <div class="admin-layout">
-    <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="reviews"/>
     </jsp:include>
 
-    <%-- Main --%>
     <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
-
-        <%-- Page header --%>
         <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Kiểm Duyệt Đánh Giá</h1>
@@ -39,13 +35,11 @@
 
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
-        <%-- Review list panel --%>
         <div class="glass-card">
-            <%-- Filter/Search bar --%>
             <div class="px-6 py-4 border-b border-border bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <h3 class="font-bold text-txt text-sm"><i class="fa-solid fa-star text-amber-500 mr-1"></i> Đánh Giá Từ Khách Hàng</h3>
                 <div class="relative w-full sm:w-64">
-                    <input type="text" id="reviewSearch" placeholder="Tìm tên sản phẩm, khách hàng..." 
+                    <input type="text" id="reviewSearch" placeholder="Tìm tên sản phẩm, khách hàng..."
                            class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none pl-9 pr-4 py-2 text-xs bg-white transition-all">
                     <i class="fa-solid fa-search text-txt-3 absolute left-3 top-2.5 text-xs"></i>
                 </div>
@@ -75,29 +69,25 @@
                             <c:otherwise>
                                 <c:forEach var="review" items="${reviewList}">
                                     <tr>
-                                        <%-- Product / User --%>
                                         <td class="px-6 py-4">
                                             <strong class="searchable-text text-primary text-sm block font-bold">${review.productName}</strong>
                                             <span class="searchable-text text-xs text-txt-2 block mt-1">Bởi: <b class="text-txt">${review.customerName}</b></span>
                                         </td>
-                                        <%-- Rating --%>
                                         <td class="px-6 py-4 text-center whitespace-nowrap text-amber-400 text-xs">
                                             <c:forEach begin="1" end="${review.rating}"><i class="fa-solid fa-star"></i></c:forEach>
                                             <c:forEach begin="${review.rating + 1}" end="5"><i class="fa-regular fa-star text-slate-300"></i></c:forEach>
                                         </td>
-                                        <%-- Review text & Image --%>
                                         <td class="px-6 py-4 text-xs text-txt-2">
                                             <div class="searchable-text max-w-[320px] truncate font-medium text-txt" title="${fn:escapeXml(review.reviewText)}">
                                                 ${review.reviewText}
                                             </div>
                                             <c:if test="${not empty review.reviewImageUrl}">
-                                                <a href="${review.reviewImageUrl}" target="_blank" 
+                                                <a href="${review.reviewImageUrl}" target="_blank"
                                                    class="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-primary hover:text-primary-dk hover:underline">
                                                     <i class="fa-solid fa-image"></i> Xem ảnh đính kèm
                                                 </a>
                                             </c:if>
                                         </td>
-                                        <%-- Status Badge --%>
                                         <td class="px-6 py-4 text-center" id="status-col-${review.reviewId}">
                                             <c:choose>
                                                 <c:when test="${review.isHidden}">
@@ -112,7 +102,6 @@
                                                 </c:otherwise>
                                             </c:choose>
                                         </td>
-                                        <%-- Action buttons --%>
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex justify-center gap-2">
                                                 <c:if test="${review.isHidden}">
@@ -136,8 +125,13 @@
                     </tbody>
                 </table>
             </div>
-        </div>
 
+            <c:if test="${totalPages > 1}">
+                <div class="flex justify-center mt-4 px-6 pb-6">
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="?" />
+                </div>
+            </c:if>
+        </div>
     </main>
 </div>
 
@@ -159,7 +153,7 @@
         const term = e.target.value.toLowerCase();
         document.querySelectorAll('#reviewTableBody tr').forEach(row => {
             const searchableTexts = row.querySelectorAll('.searchable-text');
-            if(searchableTexts.length === 0) return; // empty row
+            if(searchableTexts.length === 0) return;
             let match = false;
             searchableTexts.forEach(el => {
                 if(el.textContent.toLowerCase().includes(term)) match = true;
@@ -171,7 +165,7 @@
     function moderateReview(reviewId, action) {
         fetch('${pageContext.request.contextPath}/admin/reviews/visibility', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest'
             },

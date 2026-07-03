@@ -1,6 +1,7 @@
 package servlet.guest.product;
 import dao.shop.PromotionDAO;
 
+import config.AppConfig;
 import model.entity.shop.ShopProfile;
 import model.entity.catalog.Product;
 import model.entity.catalog.ProductImage;
@@ -51,29 +52,42 @@ public class ShopViewServlet extends HttpServlet {
 
         try {
             int parsedId = Integer.parseInt(idStr.trim());
+            model.entity.auth.User currentUser = (model.entity.auth.User) req.getSession().getAttribute(AppConfig.SESSION_USER);
+            boolean isAdminPreview = currentUser != null && AppConfig.ROLE_ADMIN.equals(currentUser.getRole());
             // Ưu tiên tìm theo userId của chủ cửa hàng (owner_id) trước vì các liên kết từ giỏ hàng/đơn hàng truyền owner_id/userId
             ShopProfile profile = shopService.getShopByUserId(parsedId);
-            if (profile == null || !"APPROVED".equals(profile.getApprovalStatus())) {
+            if (profile == null || (!isAdminPreview && !"APPROVED".equals(profile.getApprovalStatus()))) {
                 // Nếu không có hoặc chưa duyệt theo userId, thử tìm theo profileId
                 ShopProfile profileById = shopService.getShopById(parsedId);
-                if (profileById != null && "APPROVED".equals(profileById.getApprovalStatus())) {
+                if (profileById != null && (isAdminPreview || "APPROVED".equals(profileById.getApprovalStatus()))) {
                     profile = profileById;
                 }
             }
-            if (profile == null || !"APPROVED".equals(profile.getApprovalStatus())) {
+            if (profile == null || (!isAdminPreview && !"APPROVED".equals(profile.getApprovalStatus()))) {
                 resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy gian hàng này hoặc gian hàng chưa được duyệt.");
                 return;
             }
 
             req.setAttribute("shopProfile", profile);
+            req.setAttribute("isAdminPreview", isAdminPreview);
 
             // Tải danh sách sản phẩm của Shop
-            Map<Integer, Product> productsById = productDAO.findActiveByOwner(profile.getUserId());
-            List<Product> products = new ArrayList<>(productsById.values());
-            List<Integer> productIds = new ArrayList<>(productsById.keySet());
-            Map<Integer, ProductImage> primaryImages = productImageDAO.findPrimaryByProductIds(productIds);
-            Map<Integer, List<ProductVariant>> variantsByProduct = productVariantDAO.findByProductIds(productIds);
-            Map<Integer, Promotion> promotionsByProduct = promotionDAO.findActivePromotionsByProductIds(productIds);
+            List<Product> products = isAdminPreview
+                    ? productDAO.findByOwner(profile.getUserId())
+                    : new ArrayList<>(productDAO.findActiveByOwner(profile.getUserId()).values());
+            List<Integer> productIds = new ArrayList<>();
+            for (Product product : products) {
+                productIds.add(product.getProductId());
+            }
+            Map<Integer, ProductImage> primaryImages = productIds.isEmpty()
+                    ? new HashMap<>()
+                    : productImageDAO.findPrimaryByProductIds(productIds);
+            Map<Integer, List<ProductVariant>> variantsByProduct = productIds.isEmpty()
+                    ? new HashMap<>()
+                    : productVariantDAO.findByProductIds(productIds);
+            Map<Integer, Promotion> promotionsByProduct = productIds.isEmpty()
+                    ? new HashMap<>()
+                    : promotionDAO.findActivePromotionsByProductIds(productIds);
             List<Map<String, Object>> mappedProducts = new ArrayList<>();
 
             for (Product p : products) {

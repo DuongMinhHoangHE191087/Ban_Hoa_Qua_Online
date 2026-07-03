@@ -58,7 +58,7 @@ public class ShopApplyServlet extends HttpServlet {
 
         try {
             List<ShopProfile> existingProfiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-            if (!existingProfiles.isEmpty()) {
+            if (!existingProfiles.isEmpty() && !"true".equals(req.getParameter("edit"))) {
                 resp.sendRedirect(req.getContextPath() + "/shop/status");
                 return;
             }
