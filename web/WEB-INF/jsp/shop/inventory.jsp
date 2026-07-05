@@ -405,7 +405,15 @@
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
                                                                 ${log.formattedChangedAt}</td>
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
-                                                                ${log.changedByName}</td>
+                                                                <c:choose>
+                                                                    <c:when test="${log.changeType == 'MANUAL_ADJUST' || log.changeType == 'SPOILED'}">
+                                                                        ${log.changedByName}
+                                                                    </c:when>
+                                                                    <c:otherwise>
+                                                                        <span class="text-[#94a3b8] italic">Hệ thống</span>
+                                                                    </c:otherwise>
+                                                                </c:choose>
+                                                            </td>
                                                         </tr>
                                                     </c:forEach>
                                                     <c:if test="${empty restockLogs}">

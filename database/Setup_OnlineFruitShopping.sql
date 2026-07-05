@@ -2513,3 +2513,25 @@ SELECT
     (SELECT COUNT(*) FROM dbo.order_promotions WHERE usage_id BETWEEN 8001 AND 8008) AS seeded_order_promotions;
 
 
+ 
+  
+ - -   M i g r a t i o n   g u a r d   f o r   s e t t l e m e n t   t r a c k i n g   c o l u m n s  
+ I F   C O L _ L E N G T H ( ' d b o . s h o p _ s e t t l e m e n t s ' ,   ' c o n f i r m e d _ a t ' )   I S   N U L L  
+ B E G I N  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   c o n f i r m e d _ a t   D A T E T I M E   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   c o n f i r m e d _ b y   I N T   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   c o n f i r m _ n o t e   N V A R C H A R ( 5 0 0 )   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   c a n c e l l e d _ a t   D A T E T I M E   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   c a n c e l l e d _ b y   I N T   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   c a n c e l _ r e a s o n   N V A R C H A R ( 5 0 0 )   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   p a i d _ a t   D A T E T I M E   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   p a i d _ b y   I N T   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   p a i d _ r e f e r e n c e   N V A R C H A R ( 1 0 0 )   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   p a i d _ n o t e   N V A R C H A R ( 5 0 0 )   N U L L ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   C O N S T R A I N T   F K _ s h o p _ s e t t l e m e n t s _ c o n f i r m e d _ b y   F O R E I G N   K E Y   ( c o n f i r m e d _ b y )   R E F E R E N C E S   d b o . u s e r s ( u s e r _ i d ) ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   C O N S T R A I N T   F K _ s h o p _ s e t t l e m e n t s _ c a n c e l l e d _ b y   F O R E I G N   K E Y   ( c a n c e l l e d _ b y )   R E F E R E N C E S   d b o . u s e r s ( u s e r _ i d ) ;  
+         A L T E R   T A B L E   d b o . s h o p _ s e t t l e m e n t s   A D D   C O N S T R A I N T   F K _ s h o p _ s e t t l e m e n t s _ p a i d _ b y   F O R E I G N   K E Y   ( p a i d _ b y )   R E F E R E N C E S   d b o . u s e r s ( u s e r _ i d ) ;  
+ E N D  
+ G O  
+  
+ 
