@@ -2,7 +2,6 @@ package servlet.customer.shop;
 
 import config.AppConfig;
 import dao.catalog.CategoryDAO;
-import dao.shop.ShopProfileDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -15,9 +14,11 @@ import model.entity.catalog.Category;
 import model.entity.shop.ShopProfile;
 import service.shop.ShopService;
 import service.system.EmailService;
+import util.ActorAccessPolicy;
 import util.FileUploadUtil;
 import util.LoggerUtil;
 import util.SessionUtil;
+import util.ShopStatusRedirectUtil;
 import util.ShopDocDraftUtil;
 import util.ValidationUtil;
 
@@ -41,7 +42,6 @@ public class ShopApplyServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(ShopApplyServlet.class.getName());
 
-    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final ShopService shopService = new ShopService();
     private final EmailService emailService = new EmailService();
@@ -55,11 +55,14 @@ public class ShopApplyServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
+        if (!ActorAccessPolicy.canAccessCustomerArea(currentUser)) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập trang này.");
+            return;
+        }
 
         try {
-            List<ShopProfile> existingProfiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-            if (!existingProfiles.isEmpty() && !"true".equals(req.getParameter("edit"))) {
-                resp.sendRedirect(req.getContextPath() + "/shop/status");
+            if (!"true".equals(req.getParameter("edit"))
+                    && ShopStatusRedirectUtil.redirectToShopStatusIfProfileExists(req, resp, currentUser, session)) {
                 return;
             }
             req.setAttribute("categories", categoryDAO.findAllActive());
@@ -83,6 +86,10 @@ public class ShopApplyServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
+        if (!ActorAccessPolicy.canAccessCustomerArea(currentUser)) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập trang này.");
+            return;
+        }
 
         String sessionCsrf = (String) req.getSession().getAttribute(AppConfig.SESSION_CSRF_TOKEN);
         String reqCsrf = req.getParameter("_csrf");
@@ -92,9 +99,8 @@ public class ShopApplyServlet extends HttpServlet {
         }
 
         try {
-            List<ShopProfile> existingProfiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-            if (!existingProfiles.isEmpty()) {
-                ShopProfile existing = existingProfiles.get(0);
+            ShopProfile existing = shopService.getShopByUserId(currentUser.getUserId());
+            if (existing != null) {
                 String status = existing.getApprovalStatus();
                 if (AppConfig.SHOP_PENDING.equals(status)) {
                     throw new Exception("Bạn đã có đơn đăng ký shop đang chờ duyệt. Vui lòng chờ Admin xem xét.");
@@ -110,8 +116,9 @@ public class ShopApplyServlet extends HttpServlet {
 
             handleNewApplication(req, resp, session, currentUser);
         } catch (Exception e) {
-            getServletContext().log("ShopApplyServlet POST error: " + e.getMessage(), e);
-            forwardWithError(req, resp, session, currentUser, e.getMessage());
+            getServletContext().log("ShopApplyServlet POST error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            forwardWithError(req, resp, session, currentUser,
+                    util.ErrorMessageUtil.logAndGetUserMessage(log, "ShopApplyServlet#doPost", e));
         }
     }
 
@@ -304,9 +311,8 @@ public class ShopApplyServlet extends HttpServlet {
             HttpSession session, User currentUser, String errorMsg) throws ServletException, IOException {
         try {
             if (currentUser != null) {
-                List<ShopProfile> existingProfiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-                if (!existingProfiles.isEmpty()) {
-                    ShopProfile existingProfile = existingProfiles.get(0);
+                ShopProfile existingProfile = shopService.getShopByUserId(currentUser.getUserId());
+                if (existingProfile != null) {
                     req.setAttribute("existingProfile", existingProfile);
                     req.setAttribute("existingProfileDocPaths", parseJsonArray(existingProfile.getDocPaths()));
                 }

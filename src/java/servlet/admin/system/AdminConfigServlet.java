@@ -75,9 +75,9 @@ public class AdminConfigServlet extends HttpServlet {
                 SessionUtil.setFlashMessage(session, "Cập nhật cấu hình [" + configKey + "] thành công!", "success");
             } catch (SQLException e) {
                 LoggerUtil.error(log, "Lỗi khi cập nhật cấu hình: " + configKey, e);
-                SessionUtil.setFlashMessage(session, "Lỗi khi cập nhật cấu hình: " + e.getMessage(), "danger");
+                SessionUtil.setFlashMessage(session, util.ErrorMessageUtil.MSG_DB_ERROR, "danger");
             } catch (IllegalArgumentException e) {
-                SessionUtil.setFlashMessage(session, e.getMessage(), "danger");
+                SessionUtil.setFlashMessage(session, util.ErrorMessageUtil.getUserMessage(e), "danger");
             }
         } else if ("clearAllSessions".equals(action)) {
             try {
@@ -85,7 +85,7 @@ public class AdminConfigServlet extends HttpServlet {
                 SessionUtil.flashSuccess(session, "Đã xóa toàn bộ phiên đăng nhập của người dùng. Họ sẽ phải đăng nhập lại khi phiên hiện tại hết hạn.");
             } catch (SQLException e) {
                 LoggerUtil.error(log, "Lỗi khi xóa phiên đăng nhập", e);
-                SessionUtil.flashError(session, "Lỗi khi xóa phiên đăng nhập: " + e.getMessage());
+                SessionUtil.flashError(session, util.ErrorMessageUtil.MSG_DB_ERROR);
             }
         }
         

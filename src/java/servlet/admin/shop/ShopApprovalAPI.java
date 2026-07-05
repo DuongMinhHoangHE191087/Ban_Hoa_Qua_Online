@@ -67,8 +67,8 @@ public class ShopApprovalAPI extends HttpServlet {
                     response,
                     log,
                     "ShopApprovalAPI#doPost",
-                    "Lỗi server: " + e.getMessage(),
-                    e);
+                        "Lỗi hệ thống khi xử lý phê duyệt shop.",
+                        e);
         }
     }
 }

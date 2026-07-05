@@ -133,7 +133,7 @@ public class LoginServlet extends HttpServlet {
 
         } catch (Exception e) {
             // Đăng nhập thất bại -> Hiển thị lỗi thân thiện
-            req.setAttribute("errorMsg", e.getMessage());
+            req.setAttribute("errorMsg", util.ErrorMessageUtil.getUserMessage(e));
             req.getRequestDispatcher("/WEB-INF/jsp/auth/login.jsp").forward(req, resp);
         }
     }

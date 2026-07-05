@@ -1,12 +1,12 @@
 package servlet.customer.shop;
 import dao.shop.PromotionDAO;
 
-import config.AppConfig;
 import dao.order.OrderDAO;
 
 import model.entity.order.Order;
 import model.entity.Promotion;
 import model.entity.auth.User;
+import util.ActorAccessPolicy;
 import util.SessionUtil;
 
 import util.LoggerUtil;
@@ -38,7 +38,7 @@ public class CustomerDashboardServlet extends HttpServlet {
             throws ServletException, IOException {
         HttpSession session = req.getSession();
         User currentUser = SessionUtil.getCurrentUser(session);
-        if (currentUser == null || !AppConfig.ROLE_CUSTOMER.equals(currentUser.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(currentUser)) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -55,7 +55,7 @@ public class CustomerDashboardServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/customer/dashboard.jsp").forward(req, resp);
         } catch (SQLException e) {
             LoggerUtil.error(log, "Không thể tải bảng điều khiển", e);
-            SessionUtil.flashError(session, "Không thể tải bảng điều khiển: " + e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.MSG_DB_ERROR);
             resp.sendRedirect(req.getContextPath() + "/home");
         }
     }

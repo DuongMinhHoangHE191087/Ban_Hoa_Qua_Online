@@ -47,7 +47,7 @@ public class PaymentService {
     private final NotificationService notificationService = new NotificationService();
     private final EmailService emailService = new EmailService();
 
-    private static final int QR_EXPIRE_MIN = 15;
+    private static final int QR_EXPIRE_MIN = AppConfig.QR_EXPIRE_MINUTES;
 
     /**
      * Khởi tạo bản ghi payment_transaction cho đơn CK.
@@ -402,7 +402,8 @@ public class PaymentService {
         try {
             payload = JsonUtil.fromJson(jsonPayload, SepayWebhookPayload.class);
         } catch (Exception e) {
-            LoggerUtil.warn(log, "[Webhook] Payload JSON không hợp lệ: " + jsonPayload, e);
+            LoggerUtil.warn(log, "[Webhook] Payload JSON không hợp lệ (len="
+                    + (jsonPayload == null ? 0 : jsonPayload.length()) + ")", e);
             return WebhookProcessingResult.invalidPayload();
         }
 
@@ -417,7 +418,8 @@ public class PaymentService {
         String accountNumber = normalizeNodeText(payload != null ? payload.accountNumber : null);
 
         if (sepayTxId == null || code == null) {
-            LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: sepayTxId (id/referenceCode) hoặc code. Payload: %s", jsonPayload);
+            LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: sepayTxId (id/referenceCode) hoặc code. len="
+                    + (jsonPayload == null ? 0 : jsonPayload.length()));
             return WebhookProcessingResult.invalidPayload();
         }
 

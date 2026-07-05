@@ -65,7 +65,8 @@ public class DeliveryUpdateAPI extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.ok(Map.of()));
         } catch (IllegalArgumentException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "Dữ liệu cập nhật giao hàng không hợp lệ."));
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi máy chủ khi cập nhật trạng thái giao hàng", e);
             util.ServletUtil.sendJsonInternalServerError(

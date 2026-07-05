@@ -36,7 +36,7 @@ public class LogoutServlet extends HttpServlet {
             try {
                 authService.deleteUserSession(refreshToken);
             } catch (SQLException e) {
-                req.getServletContext().log("Lỗi cơ sở dữ liệu khi xóa session token trong LogoutServlet: " + e.getMessage(), e);
+                req.getServletContext().log("Lỗi cơ sở dữ liệu khi xóa session token trong LogoutServlet: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
             }
         }
         

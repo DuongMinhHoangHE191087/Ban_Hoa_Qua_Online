@@ -62,7 +62,7 @@ public class DeliveryConfirmSuccessServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/delivery/dashboard");
 
         } catch (IllegalArgumentException e) {
-            SessionUtil.flashError(req.getSession(), e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
             resp.sendRedirect(req.getContextPath() + "/delivery/dashboard");
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi khi upload ảnh bằng chứng", e);

@@ -13,6 +13,7 @@ import model.entity.chat.ChatSession;
 import model.response.ApiResponse;
 import service.chat.ChatDeliveryService;
 import service.chat.ChatReadService;
+import util.ActorAccessPolicy;
 import util.JsonUtil;
 import util.SessionUtil;
 
@@ -92,10 +93,9 @@ public class ChatAPI extends HttpServlet {
             }
 
             if ("markRead".equals(action)) {
-                int targetSessionId = Integer.parseInt(request.getParameter("sessionId"));
-                chatDAO.markRead(targetSessionId, currentUser.getUserId());
-                response.setStatus(HttpServletResponse.SC_OK);
-                JsonUtil.writeJson(response, ApiResponse.ok(Map.of("message", "Đã đánh dấu đã đọc")));
+                response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+                JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
+                        "Hành động markRead phải dùng POST."));
                 return;
             }
 
@@ -103,7 +103,7 @@ public class ChatAPI extends HttpServlet {
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
         } catch (ChatReadService.ChatApiException e) {
             response.setStatus(e.getStatusCode());
-            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getMessage()));
+            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getPublicMessage()));
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
@@ -113,7 +113,7 @@ public class ChatAPI extends HttpServlet {
                     response,
                     log,
                     "ChatAPI#doGet",
-                    "Lỗi server: " + e.getMessage(),
+                    "Lỗi hệ thống khi xử lý chat.",
                     e);
         }
     }
@@ -160,15 +160,23 @@ public class ChatAPI extends HttpServlet {
                     JsonUtil.writeJson(response, ApiResponse.ok(Map.of("message", "Đã gửi tin nhắn")));
                 } catch (IllegalArgumentException e) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Dữ liệu tin nhắn không hợp lệ."));
                 }
                 return;
             }
 
+            if ("markRead".equals(action)) {
+                int targetSessionId = Integer.parseInt(request.getParameter("sessionId"));
+                chatDAO.markRead(targetSessionId, currentUser.getUserId());
+                response.setStatus(HttpServletResponse.SC_OK);
+                JsonUtil.writeJson(response, ApiResponse.ok(Map.of("message", "Đã đánh dấu đã đọc")));
+                return;
+            }
+
             if ("createAdminSession".equals(action)) {
-                if (AppConfig.ROLE_ADMIN.equals(currentUser.getRole())) {
-                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Admin không thể tạo phiên hỗ trợ với chính mình"));
+                if (!ActorAccessPolicy.canOpenAdminSupportSession(currentUser)) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Chức năng này chỉ dành cho khách hàng."));
                     return;
                 }
 
@@ -205,6 +213,12 @@ public class ChatAPI extends HttpServlet {
             }
 
             if ("createShopSession".equals(action)) {
+                if (!ActorAccessPolicy.canOpenShopSupportSession(currentUser)) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_FORBIDDEN, "Chức năng này chỉ dành cho khách hàng."));
+                    return;
+                }
+
                 Integer ownerId = parseOptionalInt(request.getParameter("ownerId"));
                 if (ownerId == null || ownerId <= 0) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -213,7 +227,7 @@ public class ChatAPI extends HttpServlet {
                 }
 
                 User requestedOwner = userDAO.findUserById(ownerId);
-                if (requestedOwner == null) {
+                if (!ActorAccessPolicy.isShopOwner(requestedOwner)) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Cửa hàng không tồn tại hoặc không hợp lệ"));
                     return;
@@ -233,7 +247,7 @@ public class ChatAPI extends HttpServlet {
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Hành động không hợp lệ"));
         } catch (ChatReadService.ChatApiException e) {
             response.setStatus(e.getStatusCode());
-            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getMessage()));
+            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getPublicMessage()));
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
@@ -243,27 +257,26 @@ public class ChatAPI extends HttpServlet {
                     response,
                     log,
                     "ChatAPI#doPost",
-                    "Lỗi server: " + e.getMessage(),
+                    "Lỗi hệ thống khi xử lý chat.",
                     e);
         }
     }
 
     private List<ChatSession> loadSessions(User currentUser) throws Exception {
-        String role = currentUser.getRole();
-        if (AppConfig.ROLE_SHOP_OWNER.equals(role)) {
+        if (ActorAccessPolicy.isShopOwner(currentUser)) {
             return chatDAO.findSessionsByOwner(currentUser.getUserId());
         }
-        if (AppConfig.ROLE_CUSTOMER.equals(role)) {
+        if (ActorAccessPolicy.isCustomer(currentUser)) {
             return chatDAO.findSessionsByCustomer(currentUser.getUserId());
         }
-        if (AppConfig.ROLE_ADMIN.equals(role)) {
+        if (ActorAccessPolicy.isAdmin(currentUser)) {
             return chatDAO.findAllSessions();
         }
         return new ArrayList<>();
     }
 
     private void maskAdminSessionNames(User currentUser, List<ChatSession> sessions) {
-        if (currentUser == null || AppConfig.ROLE_ADMIN.equals(currentUser.getRole()) || sessions == null) {
+        if (currentUser == null || ActorAccessPolicy.isAdmin(currentUser) || sessions == null) {
             return;
         }
         for (ChatSession session : sessions) {

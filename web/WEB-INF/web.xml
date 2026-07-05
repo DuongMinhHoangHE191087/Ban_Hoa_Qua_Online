@@ -238,6 +238,10 @@
         <filter-name>AuthFilter</filter-name>
         <url-pattern>/admin/chat</url-pattern>
     </filter-mapping>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
  
     <filter-mapping>
         <filter-name>RoleFilter</filter-name>

@@ -45,8 +45,8 @@ public class AdminReviewAPI extends HttpServlet {
                     response,
                     log,
                     "AdminReviewAPI#doPost",
-                    "Lỗi server: " + e.getMessage(),
-                    e);
+                        "Lỗi hệ thống khi xử lý đánh giá.",
+                        e);
         }
     }
 }

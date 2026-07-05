@@ -90,7 +90,7 @@
 </script>
 
 <div class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto font-sans antialiased text-on-background bg-[#eaffea] min-h-screen">
-    <input type="hidden" id="js-qr-expire-min" value="${qrExpireMin != null ? qrExpireMin : 15}">
+    <input type="hidden" id="js-qr-expire-min" value="${qrExpireMin != null ? qrExpireMin : 10}">
     <input type="hidden" id="js-order-id" value="<c:out value='${order.orderId}'/>">
     <input type="hidden" id="js-reference" value="<c:out value='${reference}'/>">
     <input type="hidden" id="js-amount-formatted" value="<c:out value='${amountFormatted}'/>">
@@ -327,8 +327,8 @@
         });
     }
 
-    // Countdown Timer — dùng qrExpireMin từ server (mặc định 15 phút)
-    let totalSeconds = parseInt(document.getElementById('js-qr-expire-min').value || '15') * 60;
+    // Countdown Timer — dùng qrExpireMin từ server (mặc định 10 phút)
+    let totalSeconds = parseInt(document.getElementById('js-qr-expire-min').value || '10') * 60;
     const countdownEl = document.getElementById('countdown');
     const qrOverlayEl = document.getElementById('qr-overlay');
     const renewFormEl = document.getElementById('renew-qr-form');

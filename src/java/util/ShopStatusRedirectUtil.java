@@ -1,22 +1,21 @@
 package util;
 
 import config.AppConfig;
-import dao.shop.ShopProfileDAO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.entity.auth.User;
 import model.entity.shop.ShopProfile;
+import service.shop.ShopService;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * ShopStatusRedirectUtil — Gom logic điều hướng sang /shop/status theo hồ sơ shop.
  */
 public final class ShopStatusRedirectUtil {
 
-    private static final ShopProfileDAO SHOP_PROFILE_DAO = new ShopProfileDAO();
+    private static final ShopService SHOP_SERVICE = new ShopService();
 
     private ShopStatusRedirectUtil() {}
 
@@ -28,9 +27,10 @@ public final class ShopStatusRedirectUtil {
             return false;
         }
         try {
-            List<ShopProfile> profiles = SHOP_PROFILE_DAO.findByUserId(user.getUserId());
-            if (!profiles.isEmpty()) {
+            ShopProfile profile = SHOP_SERVICE.getShopByUserId(user.getUserId());
+            if (profile != null) {
                 if (session != null) {
+                    session.setAttribute("_shopProfile", profile);
                     SessionUtil.flashSuccess(session, "Hồ sơ shop của bạn đã sẵn sàng để xem trạng thái.");
                 }
                 resp.sendRedirect(req.getContextPath() + "/shop/status");

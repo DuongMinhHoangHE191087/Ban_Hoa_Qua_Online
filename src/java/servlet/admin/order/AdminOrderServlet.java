@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Logger;
+import util.ErrorMessageUtil;
 
 /**
  * AdminOrderServlet - Controller cho Admin quản lý và xác nhận đơn hàng.
@@ -150,10 +151,12 @@ public class AdminOrderServlet extends HttpServlet {
                 SessionUtil.setFlashMessage(req.getSession(), "Hành động không hợp lệ.", "error");
             }
         } catch (IllegalStateException | IllegalArgumentException e) {
-            SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
+            SessionUtil.setFlashMessage(req.getSession(),
+                    ErrorMessageUtil.logAndGetUserMessage(log, "AdminOrderServlet#confirmPayment", e), "error");
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi hệ thống khi xử lý đơn hàng #" + req.getParameter("orderId"), e);
-            SessionUtil.setFlashMessage(req.getSession(), "Lỗi hệ thống: " + e.getMessage(), "error");
+            SessionUtil.setFlashMessage(req.getSession(),
+                    ErrorMessageUtil.logAndGetUserMessage(log, "AdminOrderServlet#doPost", e), "error");
         }
 
         resp.sendRedirect(req.getContextPath() + "/admin/orders");

@@ -143,7 +143,7 @@ public class CheckoutPricingEngine {
         try {
             promotionService.validateCouponStack(resolvedCoupons.shopPromotions, resolvedCoupons.systemPromotions);
         } catch (RuntimeException ex) {
-            quote.getErrors().add(ex.getMessage());
+            quote.getErrors().add(util.ErrorMessageUtil.getUserMessage(ex));
             quote.setValid(false);
             return;
         }
@@ -299,66 +299,6 @@ public class CheckoutPricingEngine {
                 promotionAllocations.add(new PromotionAllocation(promo, ownerId, ownerDiscount));
             }
         }
-    }
-
-    private List<String> collectValidationErrors(List<CartItem> checkoutItems,
-                                                 Map<Integer, ProductVariant> variantMap,
-                                                 Map<Integer, List<CartItem>> itemsByOwner,
-                                                 boolean validateStockFlag) throws SQLException {
-        List<String> errors = new ArrayList<>();
-        if (validateStockFlag) {
-            errors.addAll(validateStock(checkoutItems, variantMap));
-        }
-        errors.addAll(validateProductAvailability(checkoutItems, variantMap));
-        errors.addAll(validateShopStatus(itemsByOwner));
-        return errors;
-    }
-
-    private List<String> validateProductAvailability(List<CartItem> checkoutItems,
-                                                     Map<Integer, ProductVariant> variantMap) throws SQLException {
-        List<String> errors = new ArrayList<>();
-        for (CartItem item : checkoutItems) {
-            ProductVariant variant = variantMap.get(item.getVariantId());
-            if (variant == null) {
-                errors.add(resolveProductName(null, item.getProductName()) + " hiện không còn tồn tại.");
-                continue;
-            }
-            Product product = productDAO.findOneById(variant.getProductId());
-            String productError = validatePurchasableProduct(product, item.getProductName());
-            if (productError != null) {
-                errors.add(productError + " (" + item.getVariantLabel() + ")");
-            }
-        }
-        return errors;
-    }
-
-    private String resolveProductName(Product product, String fallbackName) {
-        if (product != null && product.getName() != null && !product.getName().trim().isEmpty()) {
-            return product.getName().trim();
-        }
-        if (fallbackName != null && !fallbackName.trim().isEmpty()) {
-            return fallbackName.trim();
-        }
-        return "Sản phẩm này";
-    }
-
-    private String validatePurchasableProduct(Product product, String fallbackName) {
-        String productName = resolveProductName(product, fallbackName);
-        if (product == null) {
-            return productName + " hiện không còn tồn tại.";
-        }
-
-        String status = product.getStatus();
-        if ("DELETED".equals(status)) {
-            return productName + " đã bị gỡ khỏi gian hàng.";
-        }
-        if ("INACTIVE".equals(status)) {
-            return productName + " đã ngừng kinh doanh.";
-        }
-        if ("OUT_OF_SEASON".equals(status) || !product.isInSeason()) {
-            return productName + " đã hết mùa. Vui lòng quay lại khi có vụ mới.";
-        }
-        return null;
     }
 
     private List<String> collectValidationErrors(List<CartItem> checkoutItems,

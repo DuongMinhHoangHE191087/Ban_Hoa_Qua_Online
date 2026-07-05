@@ -98,7 +98,8 @@ const CartPage = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': window.csrfToken || ''
                 },
                 body: `guestCart=${encodeURIComponent(JSON.stringify(guestItems))}`
             });
@@ -613,7 +614,10 @@ const CartPage = {
                     try {
                         const response = await fetch(`${this.contextPath}/cart?action=changeVariant&cartItemId=${cartItemId}&newVariantId=${newVariantId}`, {
                             method: 'POST',
-                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-Token': window.csrfToken || ''
+                            }
                         });
                         const data = await this.safeParseJSON(response);
                         if (data.success) {
@@ -702,7 +706,10 @@ const CartPage = {
             try {
                 const response = await fetch(`${this.contextPath}/cart?action=update&cartItemId=${cartItemId}&quantity=${quantity}`, {
                     method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': window.csrfToken || ''
+                    }
                 });
                 const data = await this.safeParseJSON(response);
                 if (!data.success) {
@@ -761,7 +768,10 @@ const CartPage = {
                 try {
                     const response = await fetch(`${this.contextPath}/cart?action=remove&cartItemId=${cartItemId}`, {
                         method: 'POST',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-Token': window.csrfToken || ''
+                        }
                     });
                     const data = await this.safeParseJSON(response);
                     if (!data.success) {

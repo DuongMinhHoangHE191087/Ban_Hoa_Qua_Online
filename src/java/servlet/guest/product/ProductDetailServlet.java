@@ -396,8 +396,8 @@ public class ProductDetailServlet extends HttpServlet {
 
         } catch (SQLException e) {
             // Log lỗi SQL và chuyển hướng về trang lỗi hệ thống
-            getServletContext().log("ProductDetailServlet SQL Error for ID " + productId + ": " + e.getMessage(), e);
-            req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Lỗi kết nối cơ sở dữ liệu: " + e.getMessage());
+            getServletContext().log("ProductDetailServlet SQL Error for ID " + productId + ": " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            req.getSession().setAttribute(AppConfig.SESSION_FLASH_MSG, "Không thể tải chi tiết sản phẩm do lỗi hệ thống.");
             req.getSession().setAttribute(AppConfig.SESSION_FLASH_TYPE, "error");
             resp.sendRedirect(req.getContextPath() + "/home");
         }
@@ -451,8 +451,8 @@ public class ProductDetailServlet extends HttpServlet {
                 util.JsonUtil.writeJson(resp, ApiResponse.error("Không tìm thấy thông tin sản phẩm."));
             }
         } catch (Exception e) {
-            getServletContext().log("Error in sending restock request: " + e.getMessage(), e);
-            util.JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
+            getServletContext().log("Error in sending restock request: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            util.JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống khi xử lý yêu cầu nhập kho."));
         }
     }
 

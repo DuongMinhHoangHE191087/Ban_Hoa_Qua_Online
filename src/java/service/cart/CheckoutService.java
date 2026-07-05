@@ -47,7 +47,6 @@ public class CheckoutService {
 
     private static final Logger log = LoggerUtil.getLogger(CheckoutService.class);
 
-    private static final String PHONE_REGEX = "^(0|\\+84)[3|5|7|8|9][0-9]{8}$";
     private static final BigDecimal COD_MAX_AMOUNT = new BigDecimal("2000000");
     private static final BigDecimal MAX_CART_WEIGHT_KG = new BigDecimal("30");
 
@@ -301,9 +300,11 @@ public class CheckoutService {
         if (request.getFullName() == null || request.getFullName().trim().length() < 3) {
             throw new IllegalArgumentException("Họ và tên người nhận phải từ 3 ký tự trở lên.");
         }
-        if (request.getPhone() == null || !request.getPhone().trim().matches(PHONE_REGEX)) {
+        String normalizedPhone = util.ValidationUtil.normalizePhone(request.getPhone());
+        if (!util.ValidationUtil.isValidPhone(normalizedPhone)) {
             throw new IllegalArgumentException("Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam gồm 10 chữ số).");
         }
+        request.setPhone(normalizedPhone);
         if (request.getDeliveryAddress() == null || request.getDeliveryAddress().trim().length() < 5) {
             throw new IllegalArgumentException("Địa chỉ giao hàng chi tiết phải từ 5 ký tự trở lên.");
         }

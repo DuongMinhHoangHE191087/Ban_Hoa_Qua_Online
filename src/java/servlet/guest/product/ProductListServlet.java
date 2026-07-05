@@ -117,7 +117,7 @@ public class ProductListServlet extends HttpServlet {
             }
 
         } catch (SQLException e) {
-            req.getServletContext().log("ProductListServlet DB error: " + e.getMessage(), e);
+            req.getServletContext().log("ProductListServlet DB error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
             req.setAttribute("errorMsg", "Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.");
         }
 

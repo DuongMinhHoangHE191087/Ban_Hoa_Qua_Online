@@ -26,7 +26,7 @@ public final class AppConfig {
 
         public static final String GOOGLE_CLIENT_ID = "710006759532-tnve0ctpc8d6m88qidm8g65in482rfnn.apps.googleusercontent.com";
         public static final String GOOGLE_CLIENT_SECRET = "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";
-        // Domain của bạn. Nếu code ở localhost thì để HTTP. Set via GOOGLE_REDIRECT_URI env var in production
+        // Domain của bạn. Nếu code ở localhost thì để HTTP.
         public static final String GOOGLE_REDIRECT_URI = "http://localhost:8080/Ban_Hoa_Qua_Online/GoogleCallback";
         public static final String GOOGLE_LINK_GET_TOKEN = "https://oauth2.googleapis.com/token";
         public static final String GOOGLE_LINK_GET_USER_INFO = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -276,8 +276,7 @@ public final class AppConfig {
                 /* Utility class — không khởi tạo */ }
 
         /**
-         * Validate critical secrets are set via environment variables in production.
-         * Call this at application startup to fail fast if required secrets are missing.
+         * Cấu hình hiện được giữ cố định trong AppConfig nên không cần kiểm tra env.
          */
         public static void validateSecretsForProduction() {
                 // No environment variables expected now as they are all inside AppConfig
