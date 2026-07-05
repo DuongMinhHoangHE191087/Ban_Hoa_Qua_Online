@@ -179,43 +179,96 @@
                                                         class="px-6 py-4 text-right font-bold text-emerald-600 bg-emerald-50/10">
                                                         <ft:currency value="${s.netAmount}" />
                                                     </td>
-                                                    <td class="px-6 py-4 text-center">
+                                                                                                        <td class="px-6 py-4 text-center">
                                                         <c:choose>
                                                             <c:when test="${s.status == 'PENDING'}">
-                                                                <span
-                                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-800 text-[10px] font-bold">
-                                                                    <i class="fa-solid fa-clock text-[9px]"></i> Chờ TT
+                                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-800 text-[10px] font-bold">
+                                                                    <i class="fa-solid fa-clock text-[9px]"></i> Chờ xác nhận
                                                                 </span>
                                                             </c:when>
                                                             <c:when test="${s.status == 'CONFIRMED'}">
-                                                                <span
-                                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-[10px] font-bold">
-                                                                    <i class="fa-solid fa-circle-check text-[9px]"></i>
-                                                                    Đã Chốt
+                                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-[10px] font-bold">
+                                                                    <i class="fa-solid fa-circle-check text-[9px]"></i> Chờ admin TT
                                                                 </span>
                                                             </c:when>
                                                             <c:when test="${s.status == 'PAID'}">
-                                                                <span
-                                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold">
-                                                                    <i class="fa-solid fa-square-check text-[9px]"></i>
-                                                                    Đã Thanh Toán
+                                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                                                    <i class="fa-solid fa-square-check text-[9px]"></i> Đã Thanh Toán
                                                                 </span>
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <span
-                                                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-red-800 text-[10px] font-bold">
-                                                                    <i class="fa-solid fa-circle-xmark text-[9px]"></i>
-                                                                    Đã Hủy
+                                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-red-800 text-[10px] font-bold">
+                                                                    <i class="fa-solid fa-circle-xmark text-[9px]"></i> Đã Hủy
                                                                 </span>
                                                             </c:otherwise>
                                                         </c:choose>
+                                                        <c:if test="${s.status == 'PAID' || s.paymentIssueStatus == 'REPORTED' || s.paymentIssueStatus == 'UNDER_REVIEW' || s.paymentIssueStatus == 'RESOLVED'}">
+                                                            <div class="mt-2 space-y-1 text-[10px] text-txt-3 leading-relaxed">
+                                                                <c:if test="${not empty s.paidReference}">
+                                                                    <div>GD: <span class="font-semibold text-txt">${s.paidReference}</span></div>
+                                                                </c:if>
+                                                                <c:if test="${not empty s.paidNote}">
+                                                                    <div>Ghi chú: <span class="font-semibold text-txt">${s.paidNote}</span></div>
+                                                                </c:if>
+                                                                <c:if test="${s.paymentIssueStatus == 'REPORTED'}">
+                                                                    <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-700 font-bold">
+                                                                        <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Đã báo chưa nhận tiền
+                                                                    </div>
+                                                                </c:if>
+                                                                <c:if test="${s.paymentIssueStatus == 'UNDER_REVIEW'}">
+                                                                    <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-800 font-bold">
+                                                                        <i class="fa-solid fa-magnifying-glass text-[9px]"></i> Đang đối soát lại
+                                                                    </div>
+                                                                </c:if>
+                                                                <c:if test="${s.paymentIssueStatus == 'RESOLVED'}">
+                                                                    <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold">
+                                                                        <i class="fa-solid fa-circle-check text-[9px]"></i> Đã xử lý xong
+                                                                    </div>
+                                                                </c:if>
+                                                            </div>
+                                                        </c:if>
                                                     </td>
                                                     <td class="px-6 py-4 text-center">
                                                         <fmt:formatDate var="startStr" value="${s.periodStartAsDate}" pattern="dd/MM/yyyy" />
                                                         <fmt:formatDate var="endStr" value="${s.periodEndAsDate}" pattern="dd/MM/yyyy" />
-                                                        <button type="button" onclick="openDetails('${s.settlementId}', '${startStr} - ${endStr}')" class="inline-flex items-center gap-1 bg-primary hover:bg-primary-dk text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
-                                                            <i class="fa-solid fa-magnifying-glass-chart"></i> Chi tiết
-                                                        </button>
+                                                        <div class="flex flex-wrap justify-center gap-2">
+                                                            <button type="button" onclick="openDetails('${s.settlementId}', '${startStr} - ${endStr}')" class="inline-flex items-center gap-1 bg-primary hover:bg-primary-dk text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
+                                                                <i class="fa-solid fa-magnifying-glass-chart"></i> Chi tiết
+                                                            </button>
+                                                            <c:if test="${s.status == 'PENDING'}">
+                                                                <form action="${pageContext.request.contextPath}/shop/settlement" method="POST"
+                                                                      onsubmit="return confirmShopSettlement(event, this, '${s.settlementId}', '${s.netAmount}')" class="inline-block">
+                                                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                                    <input type="hidden" name="action" value="confirm">
+                                                                    <input type="hidden" name="settlementId" value="${s.settlementId}">
+                                                                    <button type="submit" class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
+                                                                        <i class="fa-solid fa-check"></i> Xác nhận
+                                                                    </button>
+                                                                </form>
+                                                                <form action="${pageContext.request.contextPath}/shop/settlement" method="POST"
+                                                                      onsubmit="return disputeShopSettlement(event, this, '${s.settlementId}')" class="inline-block">
+                                                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                                    <input type="hidden" name="action" value="dispute">
+                                                                    <input type="hidden" name="settlementId" value="${s.settlementId}">
+                                                                    <input type="hidden" name="cancelReason" value="">
+                                                                    <button type="submit" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
+                                                                        <i class="fa-solid fa-triangle-exclamation"></i> Tranh chấp
+                                                                    </button>
+                                                                </form>
+                                                            </c:if>
+                                                            <c:if test="${s.status == 'PAID' && s.paymentIssueStatus != 'REPORTED' && s.paymentIssueStatus != 'UNDER_REVIEW'}">
+                                                                <form action="${pageContext.request.contextPath}/shop/settlement" method="POST"
+                                                                      onsubmit="return reportUnreceivedSettlement(event, this, '${s.settlementId}')" class="inline-block">
+                                                                    <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                                                    <input type="hidden" name="action" value="reportUnreceived">
+                                                                    <input type="hidden" name="settlementId" value="${s.settlementId}">
+                                                                    <input type="hidden" name="issueNote" value="">
+                                                                    <button type="submit" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
+                                                                        <i class="fa-solid fa-triangle-exclamation"></i> Báo chưa nhận tiền
+                                                                    </button>
+                                                                </form>
+                                                            </c:if>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             </c:forEach>
@@ -378,9 +431,95 @@
                                 });
                         }
 
-                        function closeModal() {
+                                                function closeModal() {
                             document.getElementById('detailModal').classList.add('hidden');
                         }
+
+                        function confirmShopSettlement(event, form, settlementId, amount) {
+                            event.preventDefault();
+                            const formattedAmount = Number(amount).toLocaleString('vi-VN') + ' đ';
+
+                            Swal.fire({
+                                title: 'Xác nhận settlement?',
+                                html: 'Bạn xác nhận kỳ đối soát <b>#' + settlementId + '</b> với số tiền thực nhận <b>' + formattedAmount + '</b>?',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#16a34a',
+                                cancelButtonColor: '#e5e7eb',
+                                confirmButtonText: 'Xác nhận',
+                                cancelButtonText: 'Hủy'
+                            }).then(r => {
+                                if (r.isConfirmed) {
+                                    form.submit();
+                                }
+                            });
+                            return false;
+                        }
+
+                        function reportUnreceivedSettlement(event, form, settlementId) {
+                            event.preventDefault();
+
+                            Swal.fire({
+                                title: 'Báo chưa nhận tiền?',
+                                text: 'Nhập lý do để admin đối soát settlement #' + settlementId + '.',
+                                input: 'textarea',
+                                inputPlaceholder: 'Nhập lý do chênh lệch / chưa nhận tiền',
+                                inputAttributes: {
+                                    'aria-label': 'Lý do báo chưa nhận tiền'
+                                },
+                                inputValidator: (value) => {
+                                    if (!value || !value.trim()) {
+                                        return 'Vui lòng nhập lý do báo chưa nhận tiền.';
+                                    }
+                                    return null;
+                                },
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#e11d48',
+                                cancelButtonColor: '#e5e7eb',
+                                confirmButtonText: 'Gửi báo cáo',
+                                cancelButtonText: 'Hủy'
+                            }).then(r => {
+                                if (r.isConfirmed) {
+                                    form.querySelector('[name="issueNote"]').value = (r.value || '').trim();
+                                    form.submit();
+                                }
+                            });
+                            return false;
+                        }
+
+                        function disputeShopSettlement(event, form, settlementId) {
+                            event.preventDefault();
+
+                            Swal.fire({
+                                title: 'Báo tranh chấp?',
+                                text: 'Nhập lý do để shop có thể đối soát lại kỳ #' + settlementId + '.',
+                                input: 'textarea',
+                                inputPlaceholder: 'Nhập lý do chênh lệch / hủy settlement',
+                                inputAttributes: {
+                                    'aria-label': 'Lý do tranh chấp'
+                                },
+                                inputValidator: (value) => {
+                                    if (!value || !value.trim()) {
+                                        return 'Vui lòng nhập lý do tranh chấp.';
+                                    }
+                                    return null;
+                                },
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#e11d48',
+                                cancelButtonColor: '#e5e7eb',
+                                confirmButtonText: 'Gửi tranh chấp',
+                                cancelButtonText: 'Hủy'
+                            }).then(r => {
+                                if (r.isConfirmed) {
+                                    form.querySelector('[name="cancelReason"]').value = (r.value || '').trim();
+                                    form.submit();
+                                }
+                            });
+                            return false;
+                        }
+
                     </script>
                 </body>
 

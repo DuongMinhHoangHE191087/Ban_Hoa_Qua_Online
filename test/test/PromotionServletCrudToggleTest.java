@@ -125,6 +125,92 @@ public class PromotionServletCrudToggleTest {
     }
 
     @Test
+    public void createShippingBenefitPromotionThroughAdminRoute() throws Exception {
+        useAdminPromotionRoute();
+        String code = "AD-SHIP-" + System.currentTimeMillis();
+
+        env.clearRequestState();
+        env.putParam("action", "save");
+        applyPromotionForm(env, code, "FIXED", "ALL", "ORDER", null, "SHIPPING",
+                new BigDecimal("20000"), new BigDecimal("0"), new BigDecimal("300000"), "5", true, true);
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/admin/promotions", env.redirectLocation);
+        Promotion saved = promotionDAO.findByCode(code);
+        assertNotNull(saved);
+        createdPromoId = saved.getPromoId();
+        assertEquals("SHIPPING", saved.getBenefitTarget());
+        assertEquals("ORDER", saved.getScope());
+    }
+
+    @Test
+    public void clampPercentDiscountValueToOneHundred() throws Exception {
+        String code = "SV-PCT-" + System.currentTimeMillis();
+
+        env.clearRequestState();
+        env.putParam("action", "save");
+        applyPromotionForm(env, code, "PERCENT", "SHOP", "ORDER", null,
+                new BigDecimal("150"), new BigDecimal("50000"), new BigDecimal("120000"), "5", true, true);
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("/ctx/shop/promotions", env.redirectLocation);
+        Promotion saved = promotionDAO.findByCode(code);
+        assertNotNull(saved);
+        createdPromoId = saved.getPromoId();
+        assertEquals(0, saved.getDiscountValue().compareTo(new BigDecimal("100")));
+    }
+
+    @Test
+    public void restorePromotionDraftValuesOnGetAfterError() throws Exception {
+        Map<String, String> draft = new HashMap<>();
+        draft.put("code", "SV-DRAFT-" + System.currentTimeMillis());
+        draft.put("discountType", "PERCENT");
+        draft.put("discountScope", "SHOP");
+        draft.put("scope", "ORDER");
+        draft.put("benefitTarget", "SHIPPING");
+        draft.put("discountValue", "100");
+        draft.put("discountMax", "50000");
+        draft.put("minOrderValue", "120000");
+        draft.put("maxUses", "5");
+        draft.put("validFrom", INPUT_FORMAT.format(LocalDateTime.now().minusDays(1)));
+        draft.put("validUntil", INPUT_FORMAT.format(LocalDateTime.now().plusDays(7)));
+        draft.put("canStack", "true");
+        draft.put("isActive", "true");
+        env.sessionAttributes.put("promotionFormDraft", draft);
+
+        servlet.doGetPublic(env.request, env.response);
+
+        assertEquals("/WEB-INF/jsp/shop/promotion.jsp", env.forwardedPath);
+        assertEquals(draft.get("code"), env.requestAttributes.get("promotionFormCode"));
+        assertEquals("PERCENT", env.requestAttributes.get("promotionFormDiscountType"));
+        assertEquals("ORDER", env.requestAttributes.get("promotionFormScope"));
+        assertEquals("SHIPPING", env.requestAttributes.get("promotionFormBenefitTarget"));
+        assertEquals("100", env.requestAttributes.get("promotionFormDiscountValue"));
+        assertEquals("50000", env.requestAttributes.get("promotionFormDiscountMax"));
+        assertEquals("120000", env.requestAttributes.get("promotionFormMinOrderValue"));
+        assertEquals("5", env.requestAttributes.get("promotionFormMaxUses"));
+        assertEquals(Boolean.TRUE, env.requestAttributes.get("promotionFormCanStack"));
+        assertEquals(Boolean.TRUE, env.requestAttributes.get("promotionFormIsActive"));
+    }
+
+    @Test
+    public void rejectProductBenefitTargetOnOrderScopeOnAdminRoute() throws Exception {
+        useAdminPromotionRoute();
+        String code = "AD-BAD-TARGET-" + System.currentTimeMillis();
+
+        env.clearRequestState();
+        env.putParam("action", "save");
+        applyPromotionForm(env, code, "FIXED", "ALL", "ORDER", null, "PRODUCT",
+                new BigDecimal("10000"), new BigDecimal("0"), new BigDecimal("120000"), "5", true, true);
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertEquals("error", env.sessionAttributes.get(AppConfig.SESSION_FLASH_TYPE));
+        assertNotNull(env.sessionAttributes.get(AppConfig.SESSION_FLASH_MSG));
+        assertNull(promotionDAO.findByCode(code));
+    }
+
+    @Test
     public void rejectInvalidDateRange() throws Exception {
         String code = "SV-BAD-DATE-" + System.currentTimeMillis();
         env.clearRequestState();
@@ -225,12 +311,23 @@ public class PromotionServletCrudToggleTest {
                                     String discountScope, String scope, String productId,
                                     BigDecimal discountValue, BigDecimal discountMax, BigDecimal minOrderValue,
                                     String maxUses, boolean canStack, boolean isActive) {
+        applyPromotionForm(environment, code, discountType, discountScope, scope, productId, null,
+                discountValue, discountMax, minOrderValue, maxUses, canStack, isActive);
+    }
+
+    private void applyPromotionForm(MockHttpEnvironment environment, String code, String discountType,
+                                    String discountScope, String scope, String productId, String benefitTarget,
+                                    BigDecimal discountValue, BigDecimal discountMax, BigDecimal minOrderValue,
+                                    String maxUses, boolean canStack, boolean isActive) {
         environment.putParam("code", code);
         environment.putParam("discountType", discountType);
         environment.putParam("discountScope", discountScope);
         environment.putParam("scope", scope);
         if (productId != null) {
             environment.putParam("productId", productId);
+        }
+        if (benefitTarget != null) {
+            environment.putParam("benefitTarget", benefitTarget);
         }
         environment.putParam("discountValue", discountValue.toPlainString());
         environment.putParam("discountMax", discountMax.toPlainString());

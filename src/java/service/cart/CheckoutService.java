@@ -105,6 +105,8 @@ public class CheckoutService {
             CheckoutPricingEngine.CheckoutPricingSnapshot snapshot = pricingEngine.buildQuote(user, quoteRequest, true);
             CheckoutQuoteDTO quote = snapshot.getQuote();
             requireValidQuote(quote);
+            BigDecimal finalAmount = quote.getFinalAmount() != null ? quote.getFinalAmount() : BigDecimal.ZERO;
+            boolean paymentRequired = requiresPayment(request.getPaymentMethod(), finalAmount);
 
             if (snapshot.getCartSummary().getTotalWeight().compareTo(MAX_CART_WEIGHT_KG) > 0) {
                 throw new BusinessException("DEL-02",
@@ -113,8 +115,7 @@ public class CheckoutService {
             }
 
             if (AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
-                BigDecimal estimatedTotal = quote.getSubtotal().add(quote.getDeliveryFee());
-                if (estimatedTotal.compareTo(COD_MAX_AMOUNT) >= 0) {
+                if (finalAmount.compareTo(COD_MAX_AMOUNT) >= 0) {
                     throw new BusinessException("PAY-01",
                             "COD chỉ áp dụng cho đơn dưới 2.000.000đ. Vui lòng chọn chuyển khoản.");
                 }
@@ -131,8 +132,8 @@ public class CheckoutService {
             }
 
             CheckoutResultDTO result = snapshot.getItemsByOwner().size() > 1
-                    ? placeMultiShopOrder(user, request, snapshot, remoteAddress)
-                    : placeSingleShopOrder(user, request, snapshot, remoteAddress);
+                    ? placeMultiShopOrder(user, request, snapshot, remoteAddress, paymentRequired)
+                    : placeSingleShopOrder(user, request, snapshot, remoteAddress, paymentRequired);
 
             result.setPurgedVariantIds(buildPurgedVariantIds(snapshot.getCheckoutItems()));
             return result;
@@ -145,7 +146,8 @@ public class CheckoutService {
     private CheckoutResultDTO placeSingleShopOrder(User user,
                                                    CheckoutRequestDTO request,
                                                    CheckoutPricingEngine.CheckoutPricingSnapshot snapshot,
-                                                   String remoteAddress) throws SQLException {
+                                                   String remoteAddress,
+                                                   boolean paymentRequired) throws SQLException {
         Integer ownerId = snapshot.getSingleOwnerId();
         if (ownerId == null || ownerId <= 0) {
             throw new IllegalStateException("Không thể xác định shop của đơn hàng.");
@@ -165,7 +167,7 @@ public class CheckoutService {
             conn.setAutoCommit(false);
             try {
                 Order order = buildOrder(user, ownerId, null, AppConfig.ORDER_TYPE_CHILD, request,
-                        resolveInitialStatus(request.getPaymentMethod()),
+                        resolveInitialStatus(paymentRequired),
                         summary.getSubtotal(),
                         summary.getDeliveryFee(),
                         summary.getDiscountAmount(),
@@ -193,15 +195,15 @@ public class CheckoutService {
             }
         }
 
-        initPaymentIfNeeded(orderId, request.getPaymentMethod(), remoteAddress);
+        initPaymentIfNeeded(orderId, paymentRequired, remoteAddress);
         notifyCustomerOrderCreated(user, orderId, false);
-        if (AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
+        if (!paymentRequired || AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
             notifySingleShopOrderReady(ownerId, orderId);
         }
 
         CheckoutResultDTO result = new CheckoutResultDTO();
         result.setOrderId(orderId);
-        result.setPaymentRequired(AppConfig.PAYMENT_CK.equals(request.getPaymentMethod()));
+        result.setPaymentRequired(paymentRequired);
         result.setSuccessMessage("Đặt hàng thành công! Cảm ơn bạn đã mua hàng.");
         return result;
     }
@@ -209,12 +211,13 @@ public class CheckoutService {
     private CheckoutResultDTO placeMultiShopOrder(User user,
                                                   CheckoutRequestDTO request,
                                                   CheckoutPricingEngine.CheckoutPricingSnapshot snapshot,
-                                                  String remoteAddress) throws SQLException {
+                                                  String remoteAddress,
+                                                  boolean paymentRequired) throws SQLException {
         CheckoutQuoteDTO quote = snapshot.getQuote();
         BigDecimal platformFeeRate = BigDecimal.valueOf(
                 configDAO.getDouble(AppConfig.CONFIG_PLATFORM_FEE_RATE, AppConfig.PLATFORM_FEE_RATE_DEFAULT / 100.0)
         );
-        String status = resolveInitialStatus(request.getPaymentMethod());
+        String status = resolveInitialStatus(paymentRequired);
 
         int parentOrderId;
         Map<Integer, Integer> childOrderIdByOwner = new java.util.LinkedHashMap<>();
@@ -246,7 +249,9 @@ public class CheckoutService {
                             summary.getSubtotal(),
                             summary.getDeliveryFee(),
                             summary.getDiscountAmount(),
-                            summary.getSystemMerchandiseDiscountAmount().add(summary.getSystemShippingDiscountAmount()),
+                            summary.getSystemMerchandiseDiscountAmount()
+                                    .add(summary.getSystemShippingDiscountAmount())
+                                    .add(summary.getPaymentDiscountAmount()),
                             summary.getShopMerchandiseDiscountAmount().add(summary.getShopShippingDiscountAmount()),
                             ownerPlatformFee,
                             summary.getFinalAmount());
@@ -276,15 +281,15 @@ public class CheckoutService {
             }
         }
 
-        initPaymentIfNeeded(parentOrderId, request.getPaymentMethod(), remoteAddress);
+        initPaymentIfNeeded(parentOrderId, paymentRequired, remoteAddress);
         notifyCustomerOrderCreated(user, parentOrderId, true);
-        if (AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
+        if (!paymentRequired || AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
             sendShopPreparationNotifications(childOrderIdByOwner);
         }
 
         CheckoutResultDTO result = new CheckoutResultDTO();
         result.setOrderId(parentOrderId);
-        result.setPaymentRequired(AppConfig.PAYMENT_CK.equals(request.getPaymentMethod()));
+        result.setPaymentRequired(paymentRequired);
         result.setSuccessMessage("Đặt hàng thành công! Đơn hàng đã được tách theo từng shop.");
         return result;
     }
@@ -354,14 +359,15 @@ public class CheckoutService {
                 promo.getCode(), promo.getDiscountScope(), promotionService.resolveBenefitTarget(promo));
     }
 
-    private void initPaymentIfNeeded(int orderId, String paymentMethod, String remoteAddress) throws SQLException {
-        if (!AppConfig.PAYMENT_CK.equals(paymentMethod)) {
+    private void initPaymentIfNeeded(int orderId, boolean paymentRequired, String remoteAddress) throws SQLException {
+        if (!paymentRequired) {
             return;
         }
         try {
             paymentService.initPayment(orderId, "SEPAY", remoteAddress);
         } catch (SQLException ex) {
             LoggerUtil.warn(log, "Khong tao duoc payment transaction cho orderId=" + orderId, ex);
+            throw ex;
         }
     }
 
@@ -444,10 +450,14 @@ public class CheckoutService {
         return order;
     }
 
-    private String resolveInitialStatus(String paymentMethod) {
-        return AppConfig.PAYMENT_COD.equals(paymentMethod)
-                ? AppConfig.ORDER_CONFIRMED
-                : AppConfig.ORDER_PENDING_PAYMENT;
+    private String resolveInitialStatus(boolean paymentRequired) {
+        return paymentRequired ? AppConfig.ORDER_PENDING_PAYMENT : AppConfig.ORDER_CONFIRMED;
+    }
+
+    private boolean requiresPayment(String paymentMethod, BigDecimal finalAmount) {
+        return AppConfig.PAYMENT_CK.equals(paymentMethod)
+                && finalAmount != null
+                && finalAmount.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private String buildPurgedVariantIds(List<CartItem> checkoutItems) {

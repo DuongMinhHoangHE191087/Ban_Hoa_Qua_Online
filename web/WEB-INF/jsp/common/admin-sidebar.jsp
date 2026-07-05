@@ -75,10 +75,10 @@
                                     </a>
                                 </li>
                                 <li class="sb-nav-item">
-                                    <a href="${pageContext.request.contextPath}/admin/products"
+                                    <a href="${pageContext.request.contextPath}/admin/products?approvalStatus=PENDING"
                                         class="sb-nav-link ${param.activeMenu == 'admin-products' ? 'active' : ''}">
                                         <span class="sb-icon"><i class="fa-solid fa-clipboard-check"></i></span>
-                                        <span>Phê duyệt Sản phẩm</span>
+                                        <span>Quản lý sản phẩm</span>
                                     </a>
                                 </li>
                                 <li class="sb-nav-item">

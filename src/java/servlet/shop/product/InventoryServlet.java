@@ -1,17 +1,14 @@
 package servlet.shop.product;
 
 import service.catalog.InventoryService;
-
 import config.AppConfig;
 import util.SessionUtil;
-
 import dao.catalog.ProductDAO;
 import dao.catalog.ProductVariantDAO;
 import model.entity.catalog.Product;
 import model.entity.catalog.ProductVariant;
 import model.entity.catalog.InventoryLog;
 import model.entity.auth.User;
-
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -37,7 +34,6 @@ public class InventoryServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(InventoryServlet.class.getName());
     private static final int RESTOCK_HISTORY_LIMIT = 50;
-    private static final int ACTIVE_BATCH_LIMIT = 25;
 
     private final InventoryService inventoryService = new InventoryService();
     private final ProductDAO productDAO = new ProductDAO();
@@ -66,9 +62,55 @@ public class InventoryServlet extends HttpServlet {
             // 2. Fetch past restock history logs
             history = inventoryService.getRestockHistory(currentUser.getUserId(), RESTOCK_HISTORY_LIMIT);
 
-            // 3. Fetch active batches (lô hàng còn hạn) for batch/expiry panel
-            List<InventoryLog> activeBatches = inventoryService.getActiveBatches(currentUser.getUserId(), ACTIVE_BATCH_LIMIT);
-            req.setAttribute("activeBatches", activeBatches);
+            // 3. Fetch all active batches (no limit)
+            List<InventoryLog> activeBatches = inventoryService.getActiveBatches(currentUser.getUserId());
+            
+            // Group active batches by variant_id
+            Map<Integer, List<InventoryLog>> batchesByVariant = new HashMap<>();
+            if (activeBatches != null) {
+                for (InventoryLog batch : activeBatches) {
+                    batchesByVariant.computeIfAbsent(batch.getVariantId(), k -> new ArrayList<>()).add(batch);
+                }
+            }
+
+            // Distribute stock quantity using FIFO logic
+            for (Map<String, Object> vMap : variantsWithProduct) {
+                int variantId = (Integer) vMap.get("variantId");
+                int stockQuantity = (Integer) vMap.get("stockQuantity");
+                
+                List<InventoryLog> vBatches = batchesByVariant.get(variantId);
+                List<InventoryLog> filteredBatches = new ArrayList<>();
+                
+                if (vBatches != null) {
+                    // Sort batches by FIFO order: expiresAt ASC (nulls last) then changedAt ASC
+                    vBatches.sort((b1, b2) -> {
+                        LocalDate d1 = b1.getExpiresAt();
+                        LocalDate d2 = b2.getExpiresAt();
+                        if (d1 == null && d2 == null) {
+                            return b1.getChangedAt().compareTo(b2.getChangedAt());
+                        }
+                        if (d1 == null) return 1;
+                        if (d2 == null) return -1;
+                        int comp = d1.compareTo(d2);
+                        if (comp != 0) return comp;
+                        return b1.getChangedAt().compareTo(b2.getChangedAt());
+                    });
+                    
+                    int tempStock = stockQuantity;
+                    for (InventoryLog batch : vBatches) {
+                        int delta = batch.getQuantityDelta();
+                        int remaining = 0;
+                        if (tempStock > 0) {
+                            remaining = Math.min(delta, tempStock);
+                            tempStock -= remaining;
+                        }
+                        batch.setRemainingQuantity(remaining);
+                        // Add to filtered batches to show in view
+                        filteredBatches.add(batch);
+                    }
+                }
+                vMap.put("batches", filteredBatches);
+            }
 
         } catch (SQLException e) {
             LoggerUtil.error(log, "Không thể tải danh sách sản phẩm hoặc lịch sử nhập kho", e);
@@ -79,11 +121,27 @@ public class InventoryServlet extends HttpServlet {
             req.setAttribute("inventoryError", errorMsg);
         }
 
-        // 3. Set request attributes
+        // 4. Retrieve form preservation flash parameters on error
+        String flashActionType = (String) session.getAttribute("flash_actionType");
+        if (flashActionType != null) {
+            req.setAttribute("oldActionType", flashActionType);
+            req.setAttribute("oldVariantId", session.getAttribute("flash_variantId"));
+            req.setAttribute("oldQuantity", session.getAttribute("flash_quantity"));
+            req.setAttribute("oldExpiresAt", session.getAttribute("flash_expiresAt"));
+            req.setAttribute("oldNote", session.getAttribute("flash_note"));
+
+            session.removeAttribute("flash_actionType");
+            session.removeAttribute("flash_variantId");
+            session.removeAttribute("flash_quantity");
+            session.removeAttribute("flash_expiresAt");
+            session.removeAttribute("flash_note");
+        }
+
+        // Set request attributes
         req.setAttribute("variants", variantsWithProduct);
         req.setAttribute("restockLogs", history);
 
-        // 4. Forward to inventory JSP page
+        // Forward to inventory JSP page
         req.getRequestDispatcher("/WEB-INF/jsp/shop/inventory.jsp").forward(req, resp);
     }
 
@@ -112,6 +170,7 @@ public class InventoryServlet extends HttpServlet {
         // 2. Validation
         if (variantIdStr == null || variantIdStr.trim().isEmpty() ||
                 quantityStr == null || quantityStr.trim().isEmpty()) {
+            saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             SessionUtil.flashError(session, "Vui lòng nhập đầy đủ các trường bắt buộc.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
@@ -127,11 +186,13 @@ public class InventoryServlet extends HttpServlet {
             try {
                 expiresAt = LocalDate.parse(expiresAtStr.trim());
                 if (!"REDUCE".equals(actionType) && expiresAt.isBefore(LocalDate.now())) {
+                    saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
                     SessionUtil.flashError(session, "Ngày hết hạn không được là ngày trong quá khứ.");
                     resp.sendRedirect(req.getContextPath() + "/shop/inventory");
                     return;
                 }
             } catch (java.time.format.DateTimeParseException e) {
+                saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
                 SessionUtil.flashError(session, "Ngày hết hạn không đúng định dạng yyyy-MM-dd.");
                 resp.sendRedirect(req.getContextPath() + "/shop/inventory");
                 return;
@@ -142,12 +203,14 @@ public class InventoryServlet extends HttpServlet {
             variantId = Integer.parseInt(variantIdStr);
             quantity = Integer.parseInt(quantityStr);
         } catch (NumberFormatException e) {
+            saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             SessionUtil.flashError(session, "Mã sản phẩm hoặc số lượng không hợp lệ.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
         }
 
         if (quantity <= 0) {
+            saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             SessionUtil.flashError(session, "Số lượng phải lớn hơn 0.");
             resp.sendRedirect(req.getContextPath() + "/shop/inventory");
             return;
@@ -158,6 +221,7 @@ public class InventoryServlet extends HttpServlet {
             // current Shop Owner
             ProductVariant pv = productVariantDAO.findById(variantId);
             if (pv == null) {
+                saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
                 SessionUtil.flashError(session, "Biến thể sản phẩm không tồn tại.");
                 resp.sendRedirect(req.getContextPath() + "/shop/inventory");
                 return;
@@ -165,6 +229,7 @@ public class InventoryServlet extends HttpServlet {
 
             List<Product> products = productDAO.findById(pv.getProductId());
             if (products.isEmpty() || products.get(0).getOwnerId() != currentUser.getUserId()) {
+                saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
                 SessionUtil.flashError(session, "Bạn không có quyền thay đổi kho cho sản phẩm này.");
                 resp.sendRedirect(req.getContextPath() + "/shop/inventory");
                 return;
@@ -173,6 +238,7 @@ public class InventoryServlet extends HttpServlet {
             // 4. Call Service to execute transaction
             if ("REDUCE".equals(actionType)) {
                 if (note == null || note.trim().isEmpty()) {
+                    saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
                     SessionUtil.flashError(session, "Vui lòng nhập lý do giảm kho vào ghi chú.");
                     resp.sendRedirect(req.getContextPath() + "/shop/inventory");
                     return;
@@ -186,16 +252,27 @@ public class InventoryServlet extends HttpServlet {
             }
 
         } catch (SQLException e) {
+            saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi điều chỉnh kho", e);
             SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu: " + e.getMessage());
         } catch (IllegalArgumentException e) {
+            saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             SessionUtil.flashError(session, e.getMessage());
         } catch (Exception e) {
+            saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             LoggerUtil.error(log, "Lỗi không xác định khi điều chỉnh kho", e);
             SessionUtil.flashError(session, "Đã xảy ra lỗi không xác định.");
         }
 
         // 5. Redirect (PRG Pattern)
         resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+    }
+
+    private void saveFlashParams(HttpSession session, String actionType, String variantId, String quantity, String expiresAt, String note) {
+        session.setAttribute("flash_actionType", actionType);
+        session.setAttribute("flash_variantId", variantId);
+        session.setAttribute("flash_quantity", quantity);
+        session.setAttribute("flash_expiresAt", expiresAt);
+        session.setAttribute("flash_note", note);
     }
 }

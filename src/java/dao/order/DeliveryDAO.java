@@ -197,9 +197,9 @@ public class DeliveryDAO extends BaseDAO {
 
         Set<Integer> distinctIds = new LinkedHashSet<>(orderIds);
         StringBuilder placeholders = new StringBuilder();
-        int index = 0;
-        for (Integer ignored : distinctIds) {
-            if (index++ > 0) {
+        int size = distinctIds.size();
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
                 placeholders.append(",");
             }
             placeholders.append("?");

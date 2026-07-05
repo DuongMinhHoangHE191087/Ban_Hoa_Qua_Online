@@ -357,17 +357,19 @@ public class ProductEditServlet extends HttpServlet {
                 }
             }
 
-            Integer shelfLifeDays = null;
-            if (shelfLifeStr != null && !shelfLifeStr.trim().isEmpty()) {
-                try {
-                    shelfLifeDays = Integer.parseInt(shelfLifeStr);
-                    if (shelfLifeDays < 0) {
-                        errors.add("Hạn sử dụng không được âm.");
-                    }
-                } catch (NumberFormatException e) {
-                    errors.add("Hạn sử dụng phải là số ngày.");
-                }
-            }
+             Integer shelfLifeDays = null;
+             if (shelfLifeStr == null || shelfLifeStr.trim().isEmpty()) {
+                 errors.add("Hạn sử dụng (Số ngày) là bắt buộc.");
+             } else {
+                 try {
+                     shelfLifeDays = Integer.parseInt(shelfLifeStr);
+                     if (shelfLifeDays <= 0) {
+                         errors.add("Hạn sử dụng phải lớn hơn 0 ngày.");
+                     }
+                 } catch (NumberFormatException e) {
+                     errors.add("Hạn sử dụng phải là số ngày.");
+                 }
+             }
 
             // 3. Validate ảnh mới và tài liệu xác minh mới (nếu có)
             List<Part> imageParts = new ArrayList<>();

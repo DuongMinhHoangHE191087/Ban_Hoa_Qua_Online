@@ -15,15 +15,16 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import util.PaginationHelper;
 
 /**
  * ShopProfileDAO — DAO cho entity ShopProfile.
  *
  * QUY TẮC:
- *   - Chỉ chứa SQL, không chứa business logic
- *   - Dùng PreparedStatement, KHÔNG nối chuỗi SQL
- *   - Mỗi method ném SQLException để Service xử lý
- *   - Dùng try-with-resources cho Connection + PreparedStatement
+ * - Chỉ chứa SQL, không chứa business logic
+ * - Dùng PreparedStatement, KHÔNG nối chuỗi SQL
+ * - Mỗi method ném SQLException để Service xử lý
+ * - Dùng try-with-resources cho Connection + PreparedStatement
  *
  * @author fruitmkt-team
  */
@@ -36,7 +37,7 @@ public class ShopProfileDAO extends BaseDAO {
         List<ShopProfile> list = new ArrayList<>();
         String sql = "SELECT * FROM shop_owner_profiles WHERE user_id = ?";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -75,7 +76,7 @@ public class ShopProfileDAO extends BaseDAO {
     public ShopProfile findById(int profileId) throws SQLException {
         String sql = "SELECT * FROM shop_owner_profiles WHERE profile_id = ?";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, profileId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -92,10 +93,10 @@ public class ShopProfileDAO extends BaseDAO {
     public List<ShopProfile> findAll(String approvalStatus) throws SQLException {
         List<ShopProfile> list = new ArrayList<>();
         String sql = (approvalStatus == null)
-            ? "SELECT * FROM shop_owner_profiles ORDER BY created_at DESC"
-            : "SELECT * FROM shop_owner_profiles WHERE approval_status = ? ORDER BY created_at DESC";
+                ? "SELECT * FROM shop_owner_profiles ORDER BY created_at DESC"
+                : "SELECT * FROM shop_owner_profiles WHERE approval_status = ? ORDER BY created_at DESC";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             if (approvalStatus != null) {
                 ps.setString(1, approvalStatus);
             }
@@ -106,6 +107,49 @@ public class ShopProfileDAO extends BaseDAO {
             }
         }
         return list;
+    }
+
+    public List<ShopProfile> findAll(String approvalStatus, int page, int pageSize) throws SQLException {
+        List<ShopProfile> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT * FROM shop_owner_profiles ");
+        if (approvalStatus != null && !approvalStatus.trim().isEmpty()) {
+            sql.append("WHERE approval_status = ? ");
+        }
+        sql.append("ORDER BY created_at DESC ")
+                .append(PaginationHelper.OFFSET_FETCH_SQL);
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            if (approvalStatus != null && !approvalStatus.trim().isEmpty()) {
+                ps.setString(paramIndex++, approvalStatus);
+            }
+            paramIndex = PaginationHelper.bindOffsetFetch(ps, paramIndex, page, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    public int countAll(String approvalStatus) throws SQLException {
+        String sql = (approvalStatus == null || approvalStatus.trim().isEmpty())
+                ? "SELECT COUNT(*) FROM shop_owner_profiles"
+                : "SELECT COUNT(*) FROM shop_owner_profiles WHERE approval_status = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (approvalStatus != null && !approvalStatus.trim().isEmpty()) {
+                ps.setString(1, approvalStatus);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
     }
 
     /** Lấy toàn bộ shop profiles (không lọc) */
@@ -129,9 +173,9 @@ public class ShopProfileDAO extends BaseDAO {
 
         Set<Integer> distinctIds = new LinkedHashSet<>(userIds);
         StringBuilder placeholders = new StringBuilder();
-        int index = 0;
-        for (Integer ignored : distinctIds) {
-            if (index++ > 0) {
+        int size = distinctIds.size();
+        for (int i = 0; i < size; i++) {
+            if (i > 0) {
                 placeholders.append(",");
             }
             placeholders.append("?");
@@ -139,7 +183,7 @@ public class ShopProfileDAO extends BaseDAO {
 
         String sql = "SELECT * FROM shop_owner_profiles WHERE user_id IN (" + placeholders + ")";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             int paramIndex = 1;
             for (Integer userId : distinctIds) {
                 ps.setInt(paramIndex++, userId);
@@ -192,9 +236,9 @@ public class ShopProfileDAO extends BaseDAO {
         }
 
         String sql = "INSERT INTO shop_owner_profiles "
-                   + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
-                   + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, logo_url, cover_url, expiry_warning_days, low_stock_threshold, created_at, updated_at) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
+                + "(user_id, shop_name, shop_description, approval_status, rejection_reason, "
+                + "approved_at, delivery_address, rating, preferred_categories, doc_paths, business_email, logo_url, cover_url, expiry_warning_days, low_stock_threshold, created_at, updated_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE())";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, profile.getUserId());
             ps.setString(2, profile.getShopName());
@@ -243,8 +287,8 @@ public class ShopProfileDAO extends BaseDAO {
         }
 
         String sql = "UPDATE shop_owner_profiles SET shop_name = ?, shop_description = ?, approval_status = ?, "
-                   + "rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, "
-                   + "preferred_categories = ?, doc_paths = ?, business_email = ?, logo_url = ?, cover_url = ?, expiry_warning_days = ?, low_stock_threshold = ?, updated_at = GETDATE() WHERE profile_id = ?";
+                + "rejection_reason = ?, approved_at = ?, delivery_address = ?, rating = ?, "
+                + "preferred_categories = ?, doc_paths = ?, business_email = ?, logo_url = ?, cover_url = ?, expiry_warning_days = ?, low_stock_threshold = ?, updated_at = GETDATE() WHERE profile_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, profile.getShopName());
             ps.setString(2, profile.getShopDescription());
@@ -267,10 +311,13 @@ public class ShopProfileDAO extends BaseDAO {
 
     /**
      * Duyệt hoặc từ chối phê duyệt shop.
-     * [BUGFIX] Khi APPROVED: cập nhật đồng thời users.role = 'SHOP_OWNER' trong cùng 1 transaction.
-     * TRANSACTION: Nếu bất kỳ UPDATE nào thất bại, cả hai sẽ rollback → dữ liệu nhất quán.
+     * [BUGFIX] Khi APPROVED: cập nhật đồng thời users.role = 'SHOP_OWNER' trong
+     * cùng 1 transaction.
+     * TRANSACTION: Nếu bất kỳ UPDATE nào thất bại, cả hai sẽ rollback → dữ liệu
+     * nhất quán.
      */
-    public void updateApprovalStatus(int profileId, int userId, String status, String rejectionReason) throws SQLException {
+    public void updateApprovalStatus(int profileId, int userId, String status, String rejectionReason)
+            throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -296,7 +343,8 @@ public class ShopProfileDAO extends BaseDAO {
                         ps.setInt(1, userId);
                         int rows = ps.executeUpdate();
                         if (rows == 0) {
-                            throw new SQLException("[CRITICAL] Cập nhật role SHOP_OWNER thất bại cho user_id=" + userId);
+                            throw new SQLException(
+                                    "[CRITICAL] Cập nhật role SHOP_OWNER thất bại cho user_id=" + userId);
                         }
                     }
                 } else if ("APPROVED".equals(status)) {
@@ -317,7 +365,7 @@ public class ShopProfileDAO extends BaseDAO {
     public void updateDocPaths(int profileId, String jsonDocPaths) throws SQLException {
         String sql = "UPDATE shop_owner_profiles SET doc_paths = ?, updated_at = GETDATE() WHERE profile_id = ?";
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, jsonDocPaths);
             ps.setInt(2, profileId);
             ps.executeUpdate();
@@ -333,7 +381,7 @@ public class ShopProfileDAO extends BaseDAO {
         p.setShopDescription(rs.getString("shop_description"));
         p.setApprovalStatus(rs.getString("approval_status"));
         p.setRejectionReason(rs.getString("rejection_reason"));
-        
+
         Timestamp approvedAtTs = rs.getTimestamp("approved_at");
         if (approvedAtTs != null) {
             p.setApprovedAt(approvedAtTs.toLocalDateTime());
@@ -347,12 +395,12 @@ public class ShopProfileDAO extends BaseDAO {
         p.setCoverUrl(rs.getString("cover_url"));
         p.setExpiryWarningDays(rs.getInt("expiry_warning_days"));
         p.setLowStockThreshold(rs.getInt("low_stock_threshold"));
-        
+
         Timestamp createdAtTs = rs.getTimestamp("created_at");
         if (createdAtTs != null) {
             p.setCreatedAt(createdAtTs.toLocalDateTime());
         }
-        
+
         Timestamp updatedAtTs = rs.getTimestamp("updated_at");
         if (updatedAtTs != null) {
             p.setUpdatedAt(updatedAtTs.toLocalDateTime());

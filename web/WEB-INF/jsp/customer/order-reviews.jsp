@@ -39,13 +39,13 @@
                                     </div>
                                     <div class="d-flex gap-2">
                                         <a href="${pageContext.request.contextPath}/reviews?action=edit&orderId=${order.orderId}&orderItemId=${item.orderItemId}" class="btn btn-outline-primary btn-sm">Sửa đánh giá</a>
-                                        <form action="${pageContext.request.contextPath}/reviews" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?');">
-                                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="orderId" value="${order.orderId}">
-                                            <input type="hidden" name="orderItemId" value="${item.orderItemId}">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>
-                                        </form>
+                                        <form action="${pageContext.request.contextPath}/reviews" method="POST" class="d-inline" onsubmit="return confirmDeleteReview(event)">
+                                             <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                                             <input type="hidden" name="action" value="delete">
+                                             <input type="hidden" name="orderId" value="${order.orderId}">
+                                             <input type="hidden" name="orderItemId" value="${item.orderItemId}">
+                                             <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>
+                                         </form>
                                     </div>
                                 </c:when>
                                 <c:otherwise>
@@ -60,4 +60,20 @@
     </div>
 </div>
 
+<script>
+function confirmDeleteReview(event) {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Xóa đánh giá này?',
+        text: 'Bạn có chắc chắn muốn xóa đánh giá này không?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ba1a1a',
+        cancelButtonColor: '#e5e7eb',
+        confirmButtonText: 'Đồng ý xóa',
+        cancelButtonText: 'Hủy'
+    }).then(r => { if (r.isConfirmed) event.target.submit(); });
+    return false;
+}
+</script>
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />

@@ -229,12 +229,22 @@ public class CartServlet extends HttpServlet {
 
     private Map<String, Object> buildValidationErrorMeta(String message) {
         Map<String, Object> meta = new HashMap<>();
-        if (isOutOfSeasonMessage(message)) {
+        if (isMissingCartItemMessage(message)) {
+            meta.put("errorCode", "cart_item_not_found");
+        } else if (isOutOfSeasonMessage(message)) {
             meta.put("errorCode", "out_of_season");
         } else if (isStockRelatedMessage(message)) {
             meta.put("errorCode", "out_of_stock");
         }
         return meta.isEmpty() ? null : meta;
+    }
+
+    private boolean isMissingCartItemMessage(String message) {
+        if (message == null) {
+            return false;
+        }
+        return message.contains("Không tìm thấy sản phẩm này trong giỏ hàng.")
+                || message.contains("Sản phẩm không thuộc giỏ hàng của bạn!");
     }
 
     private Map<String, Object> buildStockErrorMeta(List<String> errors) {

@@ -1,12 +1,16 @@
 package servlet.admin.shop;
 import config.AppConfig;
-import dao.shop.ShopProfileDAO;
 import dao.auth.UserDAO;
 import dao.cart.CartDAO;
 import dao.catalog.CategoryDAO;
+import dao.shop.ShopProfileDAO;
+import model.dto.common.PagedResultDTO;
 import model.entity.shop.ShopProfile;
 import model.entity.auth.User;
+import service.admin.AdminViewEnrichmentService; // Helper for data enrichment
 import service.system.EmailService;
+import service.shop.ShopService;
+import util.PaginationUtil;
 import util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -32,6 +36,8 @@ public class ShopApprovalServlet extends HttpServlet {
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final CartDAO cartDAO = new CartDAO();
     private final EmailService emailService = new EmailService();
+    private final ShopService shopService = new ShopService();
+    private final AdminViewEnrichmentService viewEnrichmentService = new AdminViewEnrichmentService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -53,14 +59,18 @@ public class ShopApprovalServlet extends HttpServlet {
         }
 
         try {
-            List<ShopProfile> profiles;
-            if ("ALL".equalsIgnoreCase(filter)) {
-                profiles = shopProfileDAO.findAll();
-            } else {
-                profiles = shopProfileDAO.findByApprovalStatus(filter.toUpperCase());
-            }
-            req.setAttribute("shopList", profiles);
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
+            int pageSize = AppConfig.PAGE_SIZE_ADMIN;
+            String normalizedFilter = "ALL".equalsIgnoreCase(filter) ? null : filter.toUpperCase();
+            PagedResultDTO shopPage = shopService.getShopsPaged(normalizedFilter, page, pageSize);
+            @SuppressWarnings("unchecked")
+            List<ShopProfile> profiles = (List<ShopProfile>) shopPage.getItems();
+            viewEnrichmentService.enrichShopProfiles(profiles);
+            req.setAttribute("shopList", shopPage.getItems());
             req.setAttribute("currentFilter", filter.toUpperCase());
+            req.setAttribute("currentPage", shopPage.getCurrentPage());
+            req.setAttribute("totalPages", shopPage.getTotalPages());
+            req.setAttribute("totalItems", shopPage.getTotalItems());
             req.setAttribute("categories", categoryDAO.findAllActive());
         } catch (SQLException e) {
             getServletContext().log("ShopApprovalServlet GET error", e);
@@ -91,7 +101,7 @@ public class ShopApprovalServlet extends HttpServlet {
         String reqCsrf = req.getParameter("_csrf");
         if (sessionCsrf == null || !sessionCsrf.equals(reqCsrf)) {
             SessionUtil.flashError(req.getSession(), "CSRF token không hợp lệ.");
-            resp.sendRedirect(req.getContextPath() + "/admin/shops");
+            resp.sendRedirect(buildRedirectUrl(req));
             return;
         }
 
@@ -182,6 +192,24 @@ public class ShopApprovalServlet extends HttpServlet {
             SessionUtil.flashError(req.getSession(), "Lỗi: " + e.getMessage());
         }
 
-        resp.sendRedirect(req.getContextPath() + "/admin/shops");
+        resp.sendRedirect(buildRedirectUrl(req));
+    }
+
+    private String buildRedirectUrl(HttpServletRequest req) {
+        StringBuilder url = new StringBuilder(req.getContextPath()).append("/admin/shops");
+        boolean hasQuery = false;
+
+        String filter = req.getParameter("filter");
+        if (filter != null && !filter.trim().isEmpty()) {
+            url.append("?filter=").append(filter.trim());
+            hasQuery = true;
+        }
+
+        String page = req.getParameter("page");
+        if (page != null && page.trim().matches("\\d+")) {
+            url.append(hasQuery ? "&" : "?").append("page=").append(page.trim());
+        }
+
+        return url.toString();
     }
 }

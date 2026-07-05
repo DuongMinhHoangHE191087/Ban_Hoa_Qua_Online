@@ -69,8 +69,7 @@ public class ShopProfileUploadAPI extends HttpServlet {
             }
 
             // 3. Tiến hành lưu file
-            String uploadDir = getServletContext().getRealPath("");
-            String relativePath = FileUploadUtil.save(part, uploadDir);
+            String relativePath = FileUploadUtil.save(part, getServletContext().getRealPath(""));
 
             if (relativePath == null) {
                 util.ServletUtil.sendJsonInternalServerError(
@@ -87,12 +86,12 @@ public class ShopProfileUploadAPI extends HttpServlet {
             String contextPath = req.getContextPath();
             if (type.equals("logo")) {
                 if (profile.getLogoUrl() != null) {
-                    FileUploadUtil.delete(uploadDir + "/" + profile.getLogoUrl());
+                    FileUploadUtil.delete(profile.getLogoUrl());
                 }
                 profile.setLogoUrl(relativePath);
             } else {
                 if (profile.getCoverUrl() != null) {
-                    FileUploadUtil.delete(uploadDir + "/" + profile.getCoverUrl());
+                    FileUploadUtil.delete(profile.getCoverUrl());
                 }
                 profile.setCoverUrl(relativePath);
             }

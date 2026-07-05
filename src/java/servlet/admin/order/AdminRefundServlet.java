@@ -1,10 +1,13 @@
 package servlet.admin.order;
 
+import config.AppConfig;
 import model.entity.auth.User;
+import model.entity.order.ReturnRequest;
+import service.admin.AdminViewEnrichmentService; // Helper for data enrichment
 import service.order.ReturnRequestService;
-import util.SessionUtil;
-
 import util.LoggerUtil;
+import util.PaginationUtil;
+import util.SessionUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -19,27 +22,30 @@ public class AdminRefundServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(AdminRefundServlet.class.getName());
 
     private final ReturnRequestService returnRequestService = new ReturnRequestService();
+    private final AdminViewEnrichmentService viewEnrichmentService = new AdminViewEnrichmentService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        User admin = SessionUtil.getCurrentUser(req.getSession());
+        if (admin == null || !AppConfig.ROLE_ADMIN.equals(admin.getRole())) {
+            resp.sendRedirect(req.getContextPath() + "/auth/login");
+            return;
+        }
+
         try {
             String status = req.getParameter("status");
-            int page = 1;
-            String pageStr = req.getParameter("page");
-            if (pageStr != null && !pageStr.trim().isEmpty()) {
-                try { page = Integer.parseInt(pageStr); } catch (NumberFormatException e) {
-                    LoggerUtil.warn(log, "Tham số page không hợp lệ: " + pageStr, e);
-                }
-            }
-            int pageSize = 20;
+            int page = PaginationUtil.parsePage(req.getParameter("page"));
+            int pageSize = AppConfig.PAGE_SIZE_ADMIN;
 
-            java.util.List<model.entity.order.ReturnRequest> requests = returnRequestService.getAllRequests(status, page, pageSize);
+            java.util.List<ReturnRequest> requests = returnRequestService.getAllRequests(status, page, pageSize);
+            viewEnrichmentService.enrichReturnRequests(requests);
             int totalRecords = returnRequestService.countAllRequests(status);
-            int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
+            int totalPages = Math.max(1, (int) Math.ceil((double) totalRecords / pageSize));
 
             req.setAttribute("requestList", requests);
             req.setAttribute("currentPage", page);
             req.setAttribute("totalPages", totalPages);
+            req.setAttribute("totalItems", totalRecords);
             req.setAttribute("paramStatus", status);
 
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-refunds.jsp").forward(req, resp);
@@ -57,15 +63,19 @@ public class AdminRefundServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
+            User admin = SessionUtil.getCurrentUser(req.getSession());
+            if (admin == null || !AppConfig.ROLE_ADMIN.equals(admin.getRole())) {
+                resp.sendRedirect(req.getContextPath() + "/auth/login");
+                return;
+            }
+
             String action = req.getParameter("action"); // "approve" or "reject"
             int requestId = Integer.parseInt(req.getParameter("requestId"));
             int orderId = Integer.parseInt(req.getParameter("orderId"));
             String reason = req.getParameter("decisionReason");
-            
-            User admin = SessionUtil.getCurrentUser(req.getSession());
-            
+
             returnRequestService.processRequest(requestId, action, reason, admin.getUserId(), orderId);
-            
+
             if ("approve".equals(action)) {
                 SessionUtil.flashSuccess(req.getSession(), "Đã duyệt yêu cầu hoàn tiền #" + requestId);
             } else if ("process".equals(action)) {

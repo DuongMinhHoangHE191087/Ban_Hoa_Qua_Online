@@ -178,6 +178,48 @@ public class ChatDAO extends BaseDAO {
     /**
      * Tạo session mới với session_type (SHOP hoặc ADMIN).
      */
+    /**
+     * Láº¥y session theo trang cho Admin sidebar.
+     */
+    public List<ChatSession> findAllSessions(int page, int pageSize) throws SQLException {
+        List<ChatSession> list = new ArrayList<>();
+        String sql = "SELECT cs.*, " +
+                     "  cu.full_name AS customer_name, " +
+                     "  COALESCE(sop.shop_name, ou.full_name) AS partner_name " +
+                     "FROM chat_sessions cs " +
+                     "JOIN users cu ON cu.user_id = cs.customer_id " +
+                     "JOIN users ou ON ou.user_id = cs.owner_id " +
+                     "LEFT JOIN shop_owner_profiles sop ON sop.user_id = cs.owner_id " +
+                     "ORDER BY cs.updated_at DESC" + PaginationHelper.OFFSET_FETCH_SQL;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            PaginationHelper.bindOffsetFetch(ps, 1, page, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ChatSession cs = mapRow(rs);
+                    cs.setPartnerName(rs.getString("customer_name") + " â†” " + rs.getString("partner_name"));
+                    list.add(cs);
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Äáº¿m tá»•ng session â€” dÃ¹ng cho phÃ¢n trang Admin.
+     */
+    public int countAllSessions() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM chat_sessions";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
     public int createSession(int customerId, int ownerId) throws SQLException {
         return createSession(customerId, ownerId, "SHOP");
     }

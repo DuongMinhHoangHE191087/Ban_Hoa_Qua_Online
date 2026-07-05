@@ -5,8 +5,10 @@ import dao.auth.UserDAO;
 import dao.shop.ShopProfileDAO;
 import model.entity.catalog.Product;
 import model.entity.shop.ShopProfile;
+import model.dto.common.PagedResultDTO;
 import service.catalog.ProductService;
 import service.order.OrderService;
+import util.PaginationUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -53,11 +55,29 @@ public class ShopService {
         return shopProfileDAO.findAll(null); // null means get all regardless of status
     }
 
+    public PagedResultDTO getAllShopsPaged(int page, int pageSize) throws SQLException {
+        return getShopsPaged(null, page, pageSize);
+    }
+
     public List<ShopProfile> getShopsByStatus(String status) throws SQLException {
         if (status == null || status.trim().isEmpty()) {
             throw new IllegalArgumentException("Status không được để trống.");
         }
         return shopProfileDAO.findAll(status);
+    }
+
+    public PagedResultDTO getShopsPaged(String status, int page, int pageSize) throws SQLException {
+        String normalizedStatus = (status == null || status.trim().isEmpty()) ? null : status.trim().toUpperCase(Locale.ROOT);
+        int validatedPage = PaginationUtil.validatePage(page);
+        int validatedPageSize = PaginationUtil.validatePageSize(pageSize);
+        List<ShopProfile> shops = shopProfileDAO.findAll(normalizedStatus, validatedPage, validatedPageSize);
+        int totalCount = shopProfileDAO.countAll(normalizedStatus);
+        return PaginationUtil.buildPagedResult(shops, validatedPage, validatedPageSize, totalCount);
+    }
+
+    public int countShops(String status) throws SQLException {
+        String normalizedStatus = (status == null || status.trim().isEmpty()) ? null : status.trim().toUpperCase(Locale.ROOT);
+        return shopProfileDAO.countAll(normalizedStatus);
     }
 
     public void updateShopStatus(int profileId, String status, String rejectionReason) throws SQLException {

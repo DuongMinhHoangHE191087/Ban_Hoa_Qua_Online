@@ -1,7 +1,8 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp">
     <jsp:param name="pageTitle" value="Quản lý Chat (Admin)" />
 </jsp:include>
@@ -36,7 +37,7 @@
                 </c:when>
                 <c:otherwise>
                     <c:forEach var="session" items="${chatSessions}">
-                        <a href="${pageContext.request.contextPath}/admin/chat?sessionId=${session.sessionId}"
+                        <a href="${pageContext.request.contextPath}/admin/chat?sessionId=${session.sessionId}&page=${pagedResult.currentPage}"
                            class="session-item flex items-start gap-3 p-3.5 rounded-xl hover:bg-white/45 border border-transparent transition-all ${session.sessionId == activeSessionId ? 'active shadow-sm' : 'bg-white/20'}"
                            data-name="${fn:escapeXml(session.partnerName)}">
                             <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-600 border border-indigo-200 shadow-sm">
@@ -70,6 +71,24 @@
                 </c:otherwise>
             </c:choose>
         </div>
+        <c:if test="${pagedResult.totalPages > 1}">
+            <div class="p-3 border-t border-slate-200 bg-white/50">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 font-medium mb-2">
+                    <span>${pagedResult.totalItems} phiên</span>
+                    <span>Trang ${pagedResult.currentPage} / ${pagedResult.totalPages}</span>
+                </div>
+                <c:choose>
+                    <c:when test="${activeSessionId > 0}">
+                        <ft:pagination current="${pagedResult.currentPage}" total="${pagedResult.totalPages}"
+                                       baseUrl="${pageContext.request.contextPath}/admin/chat?sessionId=${activeSessionId}" />
+                    </c:when>
+                    <c:otherwise>
+                        <ft:pagination current="${pagedResult.currentPage}" total="${pagedResult.totalPages}"
+                                       baseUrl="${pageContext.request.contextPath}/admin/chat" />
+                    </c:otherwise>
+                </c:choose>
+            </div>
+        </c:if>
     </aside>
     
     <!-- Right Column: Active Chat Window -->

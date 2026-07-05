@@ -98,7 +98,12 @@
                                 <c:forEach var="u" items="${userList}">
                                     <tr>
                                         <td class="px-6 py-4 font-mono font-bold text-primary">#${u.userId}</td>
-                                        <td class="px-6 py-4 font-bold text-txt"><c:out value="${u.fullName}"/></td>
+                                        <td class="px-6 py-4 font-bold text-txt">
+                                            <a href="${pageContext.request.contextPath}/admin/users/view?id=${u.userId}"
+                                               class="hover:text-primary transition-colors">
+                                                <c:out value="${u.fullName}"/>
+                                            </a>
+                                        </td>
                                         <td class="px-6 py-4 text-txt-2 text-xs"><c:out value="${u.email}"/></td>
                                         <td class="px-6 py-4 text-xs font-mono text-txt-2">${empty u.phone ? '—' : fn:escapeXml(u.phone)}</td>
                                         <td class="px-6 py-4 text-center">

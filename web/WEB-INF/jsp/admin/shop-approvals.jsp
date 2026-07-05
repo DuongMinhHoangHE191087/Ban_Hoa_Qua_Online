@@ -1,7 +1,8 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -11,21 +12,16 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/fontawesome.all.min.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/main.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ui-overrides.css">
-    <!-- Tailwind & SweetAlert -->
     <jsp:include page="/WEB-INF/jsp/common/tailwind-config.jsp" />
     <script src="${pageContext.request.contextPath}/assets/js/sweetalert2.all.min.js"></script>
 </head>
 <body class="antialiased text-txt bg-background">
 <div class="admin-layout">
-    <%-- Sidebar --%>
     <jsp:include page="/WEB-INF/jsp/common/admin-sidebar.jsp">
         <jsp:param name="activeMenu" value="shops"/>
     </jsp:include>
 
-    <%-- Main --%>
     <main class="admin-main p-6 md:p-8 animate-fade-in-up opacity-0">
-
-        <%-- Page header --%>
         <div class="flex items-center justify-between bg-surface border border-border p-6 rounded-2xl shadow-sm mb-8">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-primary-dark tracking-tight">Phê Duyệt Cửa Hàng</h1>
@@ -33,19 +29,17 @@
             </div>
             <div class="hidden md:flex items-center gap-2 bg-primary-lt text-primary px-4 py-2 rounded-xl border border-primary-fixed font-bold">
                 <i class="fa-solid fa-store text-primary"></i>
-                <span class="text-xs font-bold uppercase tracking-wider">Gian Hàng</span>
+                <span class="text-xs font-bold uppercase tracking-wider">${totalItems} Gian Hàng</span>
             </div>
         </div>
 
         <jsp:include page="/WEB-INF/jsp/common/alert.jsp" />
 
-        <%-- Shops list panel --%>
         <div class="glass-card">
-            <%-- Filter/Search bar --%>
             <div class="px-6 py-4 border-b border-border bg-slate-50/50 flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <h3 class="font-bold text-txt text-sm"><i class="fa-solid fa-store text-primary mr-1"></i> Yêu Cầu Mở Cửa Hàng</h3>
                 <div class="relative w-full sm:w-64">
-                    <input type="text" id="shopSearch" placeholder="Tìm tên cửa hàng..." 
+                    <input type="text" id="shopSearch" placeholder="Tìm tên cửa hàng..."
                            class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none pl-9 pr-4 py-2 text-xs bg-white transition-all">
                     <i class="fa-solid fa-search text-txt-3 absolute left-3 top-2.5 text-xs"></i>
                 </div>
@@ -75,24 +69,31 @@
                             <c:otherwise>
                                 <c:forEach var="shop" items="${shopList}">
                                     <tr>
-                                        <%-- Shop Name & UID --%>
                                         <td class="px-6 py-4">
-                                            <strong class="shop-name-col text-sm text-txt font-bold">${shop.shopName}</strong>
-                                            <span class="text-xs text-txt-2 block mt-1">Chủ sở hữu UID: <b class="font-mono text-primary">${shop.userId}</b></span>
+                                            <strong class="shop-name-col text-sm text-txt font-bold">
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}"
+                                                   class="hover:text-primary transition-colors">
+                                                    <c:out value="${shop.shopName}"/>
+                                                </a>
+                                            </strong>
+                                            <span class="text-xs text-txt-2 block mt-1">
+                                                Chủ shop:
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}"
+                                                   class="font-medium text-primary hover:text-primary-dk transition-colors">
+                                                    <c:out value="${shop.ownerName}"/>
+                                                </a>
+                                            </span>
                                         </td>
-                                        <%-- Description --%>
                                         <td class="px-6 py-4 text-xs text-txt-2">
                                             <div class="max-w-[200px] truncate" title="${fn:escapeXml(shop.shopDescription)}">
                                                 ${shop.shopDescription}
                                             </div>
                                         </td>
-                                        <%-- Address --%>
                                         <td class="px-6 py-4 text-xs text-txt-2">
                                             <div class="max-w-[200px] truncate" title="${fn:escapeXml(shop.deliveryAddress)}">
                                                 ${shop.deliveryAddress}
                                             </div>
                                         </td>
-                                        <%-- Status Badge --%>
                                         <td class="px-6 py-4 text-center">
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold" id="status-badge-${shop.profileId}">
                                                 <c:choose>
@@ -114,20 +115,19 @@
                                                 </c:choose>
                                             </span>
                                         </td>
-                                        <%-- Action Buttons --%>
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex items-center justify-center gap-2" id="action-btns-${shop.profileId}">
-                                                <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer mr-1" 
+                                                <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer mr-1"
                                                         onclick="showDetailModal('${shop.profileId}')" title="Xem chi tiết">
                                                     <i class="fa-solid fa-eye"></i>
                                                 </button>
                                                 <c:choose>
                                                     <c:when test="${shop.approvalStatus == 'PENDING'}">
-                                                        <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer" 
+                                                        <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
                                                                 onclick="approveShop('${shop.profileId}')" title="Duyệt cửa hàng">
                                                             <i class="fa-solid fa-check"></i>
                                                         </button>
-                                                        <button class="bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer" 
+                                                        <button class="bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
                                                                 onclick="showRejectModal('${shop.profileId}')" title="Từ chối yêu cầu">
                                                             <i class="fa-solid fa-xmark"></i>
                                                         </button>
@@ -145,12 +145,17 @@
                     </tbody>
                 </table>
             </div>
-        </div>
 
+            <c:if test="${totalPages > 1}">
+                <div class="px-6 py-4 border-t border-border flex items-center justify-between bg-slate-50/50">
+                    <span class="text-xs text-txt-2 font-medium">Trang ${currentPage} / ${totalPages}</span>
+                    <ft:pagination current="${currentPage}" total="${totalPages}" baseUrl="${pageContext.request.contextPath}/admin/shops?filter=${fn:escapeXml(currentFilter)}" />
+                </div>
+            </c:if>
+        </div>
     </main>
 </div>
 
-<%-- Detail Modal --%>
 <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-border flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -161,8 +166,10 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-slate-50 p-4 rounded-xl border border-border">
                     <h4 class="font-bold text-primary mb-2 border-b border-border pb-1">Thông tin cơ bản</h4>
-                    <p><span class="font-semibold text-txt-2">Tên:</span> <span id="detailName" class="text-txt font-medium"></span></p>
+                    <p><span class="font-semibold text-txt-2">Tên shop:</span> <span id="detailName" class="text-txt font-medium"></span></p>
+                    <p class="mt-1"><span class="font-semibold text-txt-2">Chủ shop:</span> <span id="detailOwnerName" class="text-txt font-medium"></span></p>
                     <p class="mt-1"><span class="font-semibold text-txt-2">Email liên hệ:</span> <span id="detailEmail" class="text-txt font-medium"></span></p>
+                    <p class="mt-1"><span class="font-semibold text-txt-2">Email chủ shop:</span> <span id="detailOwnerEmail" class="text-txt font-medium"></span></p>
                     <p class="mt-1"><span class="font-semibold text-txt-2">Địa chỉ:</span> <span id="detailAddress" class="text-txt font-medium"></span></p>
                     <p class="mt-1"><span class="font-semibold text-txt-2">Trạng thái:</span> <span id="detailStatus" class="font-bold"></span></p>
                 </div>
@@ -171,23 +178,19 @@
                     <p id="detailDescription" class="text-txt-2 text-xs leading-relaxed italic"></p>
                 </div>
             </div>
-            
+
             <div class="bg-slate-50 p-4 rounded-xl border border-border">
                 <h4 class="font-bold text-primary mb-2 border-b border-border pb-1">Danh mục kinh doanh</h4>
-                <div id="detailCategories" class="flex flex-wrap gap-2">
-                    <!-- Categories go here -->
-                </div>
+                <div id="detailCategories" class="flex flex-wrap gap-2"></div>
             </div>
 
             <div class="bg-slate-50 p-4 rounded-xl border border-border">
                 <h4 class="font-bold text-primary mb-2 border-b border-border pb-1">Tệp đính kèm (Tài liệu xác minh)</h4>
-                <ul id="detailDocs" class="space-y-2">
-                    <!-- Docs go here -->
-                </ul>
+                <ul id="detailDocs" class="space-y-2"></ul>
             </div>
         </div>
         <div class="px-6 py-4 border-t border-border flex justify-end">
-            <button class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer" 
+            <button class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer"
                     onclick="closeDetailModal()">
                 Đóng
             </button>
@@ -206,7 +209,6 @@
     const categoryMap = JSON.parse(document.getElementById('categoriesData').textContent);
 </script>
 
-<%-- Reject Modal --%>
 <div id="rejectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-border">
         <div class="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -216,15 +218,15 @@
         <div class="p-6">
             <p class="text-xs text-txt-2 mb-3 leading-relaxed">Vui lòng nhập lý do từ chối cụ thể để gửi thông báo hướng dẫn lại cho người dùng.</p>
             <input type="hidden" id="rejectProfileId">
-            <textarea id="rejectionReason" rows="4" 
-                      class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm resize-none mb-4 transition-all" 
+            <textarea id="rejectionReason" rows="4"
+                      class="w-full rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/15 outline-none p-3 text-sm resize-none mb-4 transition-all"
                       placeholder="Lý do (ví dụ: Giấy phép kinh doanh không hợp lệ hoặc địa chỉ không rõ ràng)..."></textarea>
             <div class="flex justify-end gap-2">
-                <button class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer" 
+                <button class="bg-white border border-slate-200 text-txt-2 hover:bg-slate-50 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer"
                         onclick="closeRejectModal()">
                     Hủy bỏ
                 </button>
-                <button class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer" 
+                <button class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer"
                         onclick="submitReject()">
                     Xác nhận Từ chối
                 </button>
@@ -247,6 +249,39 @@
         return response.json();
     }
 
+    function submitShopAction(profileId, action, extraFields) {
+        return fetch('${pageContext.request.contextPath}/api/admin/shops/detail?id=' + profileId)
+            .then(handleJSONResponse)
+            .then(data => {
+                if (!data.success || !data.data) {
+                    throw new Error(data.message || 'Không thể lấy thông tin shop.');
+                }
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '${pageContext.request.contextPath}/admin/shops';
+                const addField = (name, value) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = name;
+                    input.value = value == null ? '' : String(value);
+                    form.appendChild(input);
+                };
+                addField('_csrf', '${sessionScope._csrfToken}');
+                addField('action', action);
+                addField('profileId', profileId);
+                addField('userId', data.data.ownerId || '');
+                addField('filter', '${fn:escapeXml(currentFilter)}');
+                addField('page', '${currentPage}');
+                if (extraFields) {
+                    Object.keys(extraFields).forEach(key => {
+                        addField(key, extraFields[key]);
+                    });
+                }
+                document.body.appendChild(form);
+                form.submit();
+            });
+    }
+
     document.getElementById('shopSearch').addEventListener('input', function(e) {
         const term = e.target.value.toLowerCase();
         document.querySelectorAll('#shopTableBody tr').forEach(row => {
@@ -259,17 +294,19 @@
 
     function approveShop(profileId) {
         Swal.fire({
-            title: 'Duyệt cửa hàng này?',
-            text: "Cửa hàng sẽ được cấp quyền hoạt động ngay lập tức.",
+            title: 'Duyệt shop?',
+            text: 'Xác nhận phê duyệt shop #' + profileId + '.',
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#10b981',
-            cancelButtonColor: '#d1d5db',
-            confirmButtonText: 'Có, Duyệt ngay',
+            cancelButtonColor: '#e5e7eb',
+            confirmButtonText: 'Duyệt',
             cancelButtonText: 'Hủy'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                updateShopStatus(profileId, 'APPROVED', '');
+        }).then(r => {
+            if (r.isConfirmed) {
+                submitShopAction(profileId, 'approve').catch(error => {
+                    Swal.fire('Lỗi', error.message || 'Không thể duyệt shop.', 'error');
+                });
             }
         });
     }
@@ -287,45 +324,12 @@
     function submitReject() {
         const profileId = document.getElementById('rejectProfileId').value;
         const reason = document.getElementById('rejectionReason').value.trim();
-        if(!reason) {
-            Swal.fire('Lỗi', 'Vui lòng nhập lý do từ chối', 'warning');
+        if (!reason) {
+            Swal.fire('Lỗi', 'Vui lòng nhập lý do từ chối.', 'error');
             return;
         }
-        closeRejectModal();
-        updateShopStatus(profileId, 'REJECTED', reason);
-    }
-
-    function updateShopStatus(profileId, status, reason) {
-        fetch('${pageContext.request.contextPath}/admin/shops/approve', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: 'profileId=' + profileId + '&status=' + status + '&rejectionReason=' + encodeURIComponent(reason) + '&_csrf=${sessionScope._csrfToken}'
-        })
-        .then(handleJSONResponse)
-        .then(data => {
-            if(data.success) {
-                Swal.fire({ icon: 'success', title: 'Thành công', text: data.message, timer: 1500, showConfirmButton: false });
-                const badgeContainer = document.getElementById('status-badge-' + profileId);
-                const actionContainer = document.getElementById('action-btns-' + profileId);
-                if(status === 'APPROVED') {
-                    badgeContainer.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold';
-                    badgeContainer.innerHTML = '<i class="fa-solid fa-check-circle text-[10px]"></i> Đã Duyệt';
-                } else if(status === 'REJECTED') {
-                    badgeContainer.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-100 text-red-800 text-xs font-bold';
-                    badgeContainer.innerHTML = '<i class="fa-solid fa-times-circle text-[10px]"></i> Từ Chối';
-                    badgeContainer.title = reason;
-                }
-                actionContainer.innerHTML = '<span class="text-txt-3 text-xs italic block">Đã xử lý</span>';
-            } else {
-                Swal.fire('Lỗi', data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Lỗi', error.message || 'Lỗi kết nối mạng.', 'error');
+        submitShopAction(profileId, 'reject', { rejectionReason: reason }).catch(error => {
+            Swal.fire('Lỗi', error.message || 'Không thể từ chối shop.', 'error');
         });
     }
 
@@ -342,17 +346,18 @@
                 if(data.success && data.data) {
                     const shop = data.data;
                     document.getElementById('detailName').textContent = shop.shopName || '';
+                    document.getElementById('detailOwnerName').textContent = shop.ownerName || '';
                     document.getElementById('detailEmail').textContent = shop.businessEmail || '';
+                    document.getElementById('detailOwnerEmail').textContent = shop.ownerEmail || '';
                     document.getElementById('detailAddress').textContent = shop.deliveryAddress || '';
                     document.getElementById('detailDescription').textContent = shop.shopDescription || 'Không có mô tả.';
-                    
+
                     let statusHtml = '';
                     if (shop.approvalStatus === 'PENDING') statusHtml = '<span class="text-amber-600">⏳ Đang chờ duyệt</span>';
                     else if (shop.approvalStatus === 'APPROVED') statusHtml = '<span class="text-emerald-600">✅ Đã duyệt</span>';
                     else if (shop.approvalStatus === 'REJECTED') statusHtml = '<span class="text-red-600">❌ Từ chối</span>';
                     document.getElementById('detailStatus').innerHTML = statusHtml;
 
-                    // Categories
                     const catContainer = document.getElementById('detailCategories');
                     catContainer.innerHTML = '';
                     if (shop.preferredCategories) {
@@ -373,7 +378,6 @@
                         catContainer.innerHTML = '<span class="text-xs text-txt-3">Không có</span>';
                     }
 
-                    // Docs
                     const docContainer = document.getElementById('detailDocs');
                     docContainer.innerHTML = '';
                     if (shop.docPaths) {

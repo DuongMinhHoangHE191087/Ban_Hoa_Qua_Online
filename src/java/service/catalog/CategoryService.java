@@ -1,10 +1,12 @@
 package service.catalog;
 
 import dao.catalog.CategoryDAO;
+import model.dto.common.PagedResultDTO;
 import model.entity.catalog.Category;
 
 import java.sql.SQLException;
 import java.util.List;
+import util.PaginationUtil;
 
 /**
  * CategoryService — Lớp xử lý nghiệp vụ cho Category (Danh mục sản phẩm).
@@ -63,6 +65,18 @@ public class CategoryService {
             activeCacheExpiry = System.currentTimeMillis() + CACHE_TTL_MS;
             return activeCache;
         }
+    }
+
+    /**
+     * Lấy danh sách danh mục có phân trang cho màn admin.
+     * Không dùng cache toàn bộ để tránh lãng phí khi chỉ cần một page nhỏ.
+     */
+    public PagedResultDTO getAllCategoriesPaged(int page, int pageSize) throws SQLException {
+        int validatedPage = PaginationUtil.validatePage(page);
+        int validatedPageSize = PaginationUtil.validatePageSize(pageSize);
+        List<Category> items = categoryDAO.findAll(validatedPage, validatedPageSize);
+        int total = categoryDAO.countAll();
+        return PaginationUtil.buildPagedResult(items, validatedPage, validatedPageSize, total);
     }
 
     /** Xóa cache sau khi có thay đổi danh mục (tạo/sửa/xóa/toggle). */

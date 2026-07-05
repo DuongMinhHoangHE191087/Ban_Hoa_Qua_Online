@@ -222,11 +222,13 @@ public class ProductCreateServlet extends HttpServlet {
         }
 
         Integer shelfLifeDays = null;
-        if (shelfLifeStr != null && !shelfLifeStr.trim().isEmpty()) {
+        if (shelfLifeStr == null || shelfLifeStr.trim().isEmpty()) {
+            errors.add("Hạn sử dụng (Số ngày) là bắt buộc.");
+        } else {
             try {
                 shelfLifeDays = Integer.parseInt(shelfLifeStr);
-                if (shelfLifeDays < 0) {
-                    errors.add("Hạn sử dụng không được âm.");
+                if (shelfLifeDays <= 0) {
+                    errors.add("Hạn sử dụng phải lớn hơn 0 ngày.");
                 }
             } catch (NumberFormatException e) {
                 errors.add("Hạn sử dụng phải là số ngày (nguyên dương).");

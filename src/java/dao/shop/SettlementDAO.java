@@ -20,12 +20,37 @@ public class SettlementDAO extends BaseDAO {
     private static final Logger log = Logger.getLogger(SettlementDAO.class.getName());
 
     public List<ShopSettlement> findAll(String status, int page, int pageSize) throws SQLException {
+        return findAll(status, null, page, pageSize);
+    }
+
+    public List<ShopSettlement> findAll(String status, String issueFilter, int page, int pageSize) throws SQLException {
         List<ShopSettlement> list = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT * FROM shop_settlements ");
         List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
         if (status != null && !status.trim().isEmpty()) {
-            sql.append("WHERE status = ? ");
+            conditions.add("status = ?");
             params.add(status);
+        }
+        String normalizedIssueFilter = issueFilter != null ? issueFilter.trim().toUpperCase() : "";
+        if (!normalizedIssueFilter.isEmpty() && !"ALL".equals(normalizedIssueFilter)) {
+            switch (normalizedIssueFilter) {
+                case "OPEN":
+                    conditions.add("payment_issue_status IN ('REPORTED', 'UNDER_REVIEW')");
+                    break;
+                case "REPORTED":
+                case "UNDER_REVIEW":
+                case "RESOLVED":
+                case "NONE":
+                    conditions.add("payment_issue_status = ?");
+                    params.add(normalizedIssueFilter);
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (!conditions.isEmpty()) {
+            sql.append("WHERE ").append(String.join(" AND ", conditions)).append(' ');
         }
         sql.append("ORDER BY settlement_id DESC ").append(PaginationHelper.OFFSET_FETCH_SQL);
         try (Connection conn = getConnection();
@@ -45,11 +70,36 @@ public class SettlementDAO extends BaseDAO {
     }
 
     public int countAll(String status) throws SQLException {
+        return countAll(status, null);
+    }
+
+    public int countAll(String status, String issueFilter) throws SQLException {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM shop_settlements ");
         List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
         if (status != null && !status.trim().isEmpty()) {
-            sql.append("WHERE status = ? ");
+            conditions.add("status = ?");
             params.add(status);
+        }
+        String normalizedIssueFilter = issueFilter != null ? issueFilter.trim().toUpperCase() : "";
+        if (!normalizedIssueFilter.isEmpty() && !"ALL".equals(normalizedIssueFilter)) {
+            switch (normalizedIssueFilter) {
+                case "OPEN":
+                    conditions.add("payment_issue_status IN ('REPORTED', 'UNDER_REVIEW')");
+                    break;
+                case "REPORTED":
+                case "UNDER_REVIEW":
+                case "RESOLVED":
+                case "NONE":
+                    conditions.add("payment_issue_status = ?");
+                    params.add(normalizedIssueFilter);
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (!conditions.isEmpty()) {
+            sql.append("WHERE ").append(String.join(" AND ", conditions)).append(' ');
         }
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -63,12 +113,107 @@ public class SettlementDAO extends BaseDAO {
         return 0;
     }
 
-    public void markPaid(int settlementId) throws SQLException {
-        String sql = "UPDATE shop_settlements SET status = 'PAID', paid_at = GETDATE() WHERE settlement_id = ?";
+    public int confirmByOwner(int settlementId, int ownerId, String confirmNote) throws SQLException {
+        String sql = "UPDATE shop_settlements SET status = 'CONFIRMED', confirmed_at = GETDATE(), confirmed_by = ?, confirm_note = ? "
+                   + "WHERE settlement_id = ? AND owner_id = ? AND status = 'PENDING'";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, settlementId);
-            ps.executeUpdate();
+            ps.setInt(1, ownerId);
+            ps.setString(2, trimToNull(confirmNote));
+            ps.setInt(3, settlementId);
+            ps.setInt(4, ownerId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int disputeByOwner(int settlementId, int ownerId, String cancelReason) throws SQLException {
+        String sql = "UPDATE shop_settlements SET status = 'CANCELLED', cancelled_at = GETDATE(), cancelled_by = ?, cancel_reason = ? "
+                   + "WHERE settlement_id = ? AND owner_id = ? AND status = 'PENDING'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setString(2, trimToNull(cancelReason));
+            ps.setInt(3, settlementId);
+            ps.setInt(4, ownerId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int markPaid(int settlementId, int adminId, String paidReference, String paidNote) throws SQLException {
+        String sql = "UPDATE shop_settlements SET status = 'PAID', paid_at = GETDATE(), paid_by = ?, paid_reference = ?, paid_note = ?, "
+                   + "payment_issue_status = CASE WHEN payment_issue_status IN ('REPORTED', 'UNDER_REVIEW') THEN 'RESOLVED' ELSE payment_issue_status END, "
+                   + "payment_issue_resolved_at = CASE WHEN payment_issue_status IN ('REPORTED', 'UNDER_REVIEW') THEN GETDATE() ELSE payment_issue_resolved_at END, "
+                   + "payment_issue_resolved_by = CASE WHEN payment_issue_status IN ('REPORTED', 'UNDER_REVIEW') THEN ? ELSE payment_issue_resolved_by END, "
+                   + "payment_issue_resolution_note = CASE WHEN payment_issue_status IN ('REPORTED', 'UNDER_REVIEW') THEN ? ELSE payment_issue_resolution_note END "
+                   + "WHERE settlement_id = ? AND status = 'CONFIRMED'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, adminId);
+            ps.setString(2, trimToNull(paidReference));
+            ps.setString(3, trimToNull(paidNote));
+            ps.setInt(4, adminId);
+            ps.setString(5, trimToNull(paidNote));
+            ps.setInt(6, settlementId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int reportPaymentIssue(int settlementId, int ownerId, String issueNote) throws SQLException {
+        String sql = "UPDATE shop_settlements SET payment_issue_status = 'REPORTED', payment_issue_at = GETDATE(), payment_issue_by = ?, payment_issue_note = ? "
+                   + "WHERE settlement_id = ? AND owner_id = ? AND status = 'PAID' "
+                   + "AND payment_issue_status IN ('NONE', 'RESOLVED')";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, ownerId);
+            ps.setString(2, trimToNull(issueNote));
+            ps.setInt(3, settlementId);
+            ps.setInt(4, ownerId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int reopenForPaymentRetry(int settlementId, int adminId, String resolutionNote) throws SQLException {
+        String sql = "UPDATE shop_settlements SET status = 'CONFIRMED', payment_issue_status = 'UNDER_REVIEW', payment_issue_resolved_at = GETDATE(), "
+                   + "payment_issue_resolved_by = ?, payment_issue_resolution_note = ? "
+                   + "WHERE settlement_id = ? AND status = 'PAID' AND payment_issue_status IN ('REPORTED', 'UNDER_REVIEW')";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, adminId);
+            ps.setString(2, trimToNull(resolutionNote));
+            ps.setInt(3, settlementId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int resolvePaymentIssue(int settlementId, int adminId, String resolutionNote) throws SQLException {
+        String sql = "UPDATE shop_settlements SET payment_issue_status = 'RESOLVED', payment_issue_resolved_at = GETDATE(), payment_issue_resolved_by = ?, "
+                   + "payment_issue_resolution_note = ? "
+                   + "WHERE settlement_id = ? AND status = 'PAID' AND payment_issue_status IN ('REPORTED', 'UNDER_REVIEW')";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, adminId);
+            ps.setString(2, trimToNull(resolutionNote));
+            ps.setInt(3, settlementId);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int countOpenPaymentIssues() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM shop_settlements WHERE payment_issue_status IN ('REPORTED', 'UNDER_REVIEW')";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    public void markPaid(int settlementId) throws SQLException {
+        int updated = markPaid(settlementId, 1, "LEGACY-" + settlementId, null);
+        if (updated == 0) {
+            throw new SQLException("Không thể đánh dấu đã thanh toán cho settlement #" + settlementId);
         }
     }
 
@@ -327,12 +472,46 @@ public class SettlementDAO extends BaseDAO {
         
         Timestamp confAt = rs.getTimestamp("confirmed_at");
         if (confAt != null) s.setConfirmedAt(confAt.toLocalDateTime());
+        s.setConfirmedBy(getNullableInteger(rs, "confirmed_by"));
+        s.setConfirmNote(rs.getString("confirm_note"));
+
+        Timestamp cancelledAt = rs.getTimestamp("cancelled_at");
+        if (cancelledAt != null) s.setCancelledAt(cancelledAt.toLocalDateTime());
+        s.setCancelledBy(getNullableInteger(rs, "cancelled_by"));
+        s.setCancelReason(rs.getString("cancel_reason"));
         
         Timestamp paidAt = rs.getTimestamp("paid_at");
         if (paidAt != null) s.setPaidAt(paidAt.toLocalDateTime());
+        s.setPaidBy(getNullableInteger(rs, "paid_by"));
+        s.setPaidReference(rs.getString("paid_reference"));
+        s.setPaidNote(rs.getString("paid_note"));
+        s.setPaymentIssueStatus(rs.getString("payment_issue_status"));
+
+        Timestamp issueAt = rs.getTimestamp("payment_issue_at");
+        if (issueAt != null) s.setPaymentIssueAt(issueAt.toLocalDateTime());
+        s.setPaymentIssueBy(getNullableInteger(rs, "payment_issue_by"));
+        s.setPaymentIssueNote(rs.getString("payment_issue_note"));
+
+        Timestamp issueResolvedAt = rs.getTimestamp("payment_issue_resolved_at");
+        if (issueResolvedAt != null) s.setPaymentIssueResolvedAt(issueResolvedAt.toLocalDateTime());
+        s.setPaymentIssueResolvedBy(getNullableInteger(rs, "payment_issue_resolved_by"));
+        s.setPaymentIssueResolutionNote(rs.getString("payment_issue_resolution_note"));
         
         s.setCreatedBy(rs.getInt("created_by"));
         s.setNote(rs.getString("note"));
         return s;
+    }
+
+    private Integer getNullableInteger(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        return rs.wasNull() ? null : value;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

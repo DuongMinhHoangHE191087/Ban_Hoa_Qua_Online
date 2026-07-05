@@ -1,9 +1,11 @@
 package service.chat;
 
 import dao.chat.NotificationDAO;
+import model.dto.common.PagedResultDTO;
 import model.entity.chat.Notification;
 import java.sql.SQLException;
 import java.util.List;
+import util.PaginationUtil;
 
 /**
  * NotificationService — Quản lý gửi và hiển thị thông báo trong hệ thống.
@@ -56,6 +58,14 @@ public class NotificationService {
     }
     public List<Notification> getAllSystemNotifications() throws SQLException {
         return notificationDAO.findAllSystemNotifications();
+    }
+
+    public PagedResultDTO getAllSystemNotificationsPaged(int page, int pageSize) throws SQLException {
+        int validatedPage = PaginationUtil.validatePage(page);
+        int validatedPageSize = PaginationUtil.validatePageSize(pageSize);
+        List<Notification> notifications = notificationDAO.findAllSystemNotifications(validatedPage, validatedPageSize);
+        int totalCount = notificationDAO.countAllSystemNotifications();
+        return PaginationUtil.buildPagedResult(notifications, validatedPage, validatedPageSize, totalCount);
     }
 
     public void sendBroadcast(String title, String message, String target) throws SQLException {

@@ -40,13 +40,8 @@ public class SettlementServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
 
         HttpSession session = req.getSession();
-        User currentUser = SessionUtil.getCurrentUser(session);
-        if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
-            if ("XMLHttpRequest".equals(req.getHeader("X-Requested-With"))) {
-                resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Chưa đăng nhập hoặc không có quyền.");
-            } else {
-                resp.sendRedirect(req.getContextPath() + "/auth/login");
-            }
+        User currentUser = requireShopOwner(req, resp, session);
+        if (currentUser == null) {
             return;
         }
 
@@ -110,5 +105,61 @@ public class SettlementServlet extends HttpServlet {
             SessionUtil.flashError(session, "Lỗi khi tải lịch sử đối soát: " + e.getMessage());
             resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
         }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        req.setCharacterEncoding("UTF-8");
+
+        HttpSession session = req.getSession();
+        User currentUser = requireShopOwner(req, resp, session);
+        if (currentUser == null) {
+            return;
+        }
+
+        String action = req.getParameter("action");
+        String settlementIdStr = req.getParameter("settlementId");
+        if (settlementIdStr == null || settlementIdStr.trim().isEmpty()) {
+            SessionUtil.flashError(session, "Thiếu mã settlement.");
+            resp.sendRedirect(req.getContextPath() + "/shop/settlement");
+            return;
+        }
+
+        try {
+            int settlementId = Integer.parseInt(settlementIdStr);
+            if ("confirm".equals(action)) {
+                settlementService.confirmSettlement(settlementId, currentUser.getUserId(), req.getParameter("confirmNote"));
+                SessionUtil.flashSuccess(session, "Đã xác nhận settlement #" + settlementId + ". Vui lòng chờ admin chuyển khoản.");
+            } else if ("dispute".equals(action)) {
+                settlementService.disputeSettlement(settlementId, currentUser.getUserId(), req.getParameter("cancelReason"));
+                SessionUtil.flashSuccess(session, "Đã ghi nhận settlement #" + settlementId + " là có tranh chấp / hủy.");
+            } else if ("reportUnreceived".equals(action)) {
+                settlementService.reportPaymentIssue(settlementId, currentUser.getUserId(), req.getParameter("issueNote"));
+                SessionUtil.flashSuccess(session, "Đã báo settlement #" + settlementId + " là chưa nhận được tiền. Admin sẽ kiểm tra đối soát.");
+            } else {
+                SessionUtil.flashError(session, "Hành động không hợp lệ.");
+            }
+        } catch (NumberFormatException e) {
+            SessionUtil.flashError(session, "Mã settlement không hợp lệ.");
+        } catch (Exception e) {
+            LoggerUtil.error(log, "Lỗi xử lý settlement của shop", e);
+            SessionUtil.flashError(session, e.getMessage());
+        }
+
+        resp.sendRedirect(req.getContextPath() + "/shop/settlement");
+    }
+
+    private User requireShopOwner(HttpServletRequest req, HttpServletResponse resp, HttpSession session) throws IOException {
+        User currentUser = SessionUtil.getCurrentUser(session);
+        if (currentUser == null || !AppConfig.ROLE_SHOP_OWNER.equals(currentUser.getRole())) {
+            if ("XMLHttpRequest".equals(req.getHeader("X-Requested-With"))) {
+                resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Chưa đăng nhập hoặc không có quyền.");
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/auth/login");
+            }
+            return null;
+        }
+        return currentUser;
     }
 }

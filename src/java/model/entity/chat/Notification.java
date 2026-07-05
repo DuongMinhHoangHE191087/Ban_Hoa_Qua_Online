@@ -9,6 +9,7 @@ public class Notification {
 
     private int notificationId;
     private int userId;
+    private String recipientName;
     private String type;
     private String title;
     private String message;
@@ -23,6 +24,9 @@ public class Notification {
 
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
+
+    public String getRecipientName() { return recipientName; }
+    public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
