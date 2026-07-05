@@ -188,6 +188,8 @@ public class ProductListServlet extends HttpServlet {
         item.put("rating", product.getRating() != null ? product.getRating() : BigDecimal.ZERO);
         item.put("soldQuantity", product.getSoldQuantity());
         item.put("categoryId", product.getCategoryId());
+        item.put("isOrganic", product.getIsOrganic());
+        item.put("isImported", product.getIsImported());
         item.put("image", resolveImagePath(req, primaryImage));
 
         BigDecimal basePrice = new BigDecimal("45000");
