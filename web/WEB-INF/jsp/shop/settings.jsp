@@ -64,6 +64,7 @@
 
                         <form action="${pageContext.request.contextPath}/shop/settings" method="post" class="space-y-6"
                             id="settings-form">
+                            <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
 
                             <!-- Card 1: Low Stock Alert -->
                             <div class="glass-card rounded-2xl p-6">
