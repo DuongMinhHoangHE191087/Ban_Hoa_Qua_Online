@@ -88,7 +88,7 @@ public class ShopDocDownloadServlet extends HttpServlet {
                     }
                 }
             } catch (SQLException e) {
-                log.severe("ShopDocDownloadServlet DB error checking ownership for user ID " + currentUser.getUserId() + ": " + e.getMessage());
+                log.severe("ShopDocDownloadServlet DB error checking ownership for user ID " + currentUser.getUserId() + ": " + util.ErrorMessageUtil.getSafeLogMessage(e));
                 resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống khi xác minh quyền sở hữu tài liệu.");
                 return;
             }
@@ -161,7 +161,7 @@ public class ShopDocDownloadServlet extends HttpServlet {
             }
 
         } catch (IOException e) {
-            log.severe("ShopDocDownloadServlet file serving error: " + e.getMessage());
+            log.severe("ShopDocDownloadServlet file serving error: " + util.ErrorMessageUtil.getSafeLogMessage(e));
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi khi truyền tải tài liệu.");
         }
     }

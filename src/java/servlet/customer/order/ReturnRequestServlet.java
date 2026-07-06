@@ -1,6 +1,5 @@
 package servlet.customer.order;
 
-import config.AppConfig;
 import exception.BusinessException;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
@@ -8,6 +7,7 @@ import model.entity.order.ReturnRequest;
 import model.entity.auth.User;
 import service.order.OrderService;
 import service.order.ReturnService;
+import util.ActorAccessPolicy;
 import util.FileUploadUtil;
 import util.SessionUtil;
 import util.ErrorMessageUtil;
@@ -67,12 +67,12 @@ public class ReturnRequestServlet extends HttpServlet {
 
         // --- Admin view list of return requests ---
         if ("list".equals(action)) {
-            if (!AppConfig.ROLE_ADMIN.equals(user.getRole()) && !AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
+            if (!ActorAccessPolicy.canViewReturnRequestList(user)) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền xem trang này.");
                 return;
             }
             try {
-                if (AppConfig.ROLE_ADMIN.equals(user.getRole())) {
+                if (ActorAccessPolicy.isAdmin(user)) {
                     resp.sendRedirect(req.getContextPath() + "/admin/refunds");
                     return;
                 }
@@ -109,12 +109,12 @@ public class ReturnRequestServlet extends HttpServlet {
                 return;
             }
 
-            if (order.getCustomerId() != user.getUserId()) {
+            if (!ActorAccessPolicy.isOrderOwnedByUser(order, user)) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.");
                 return;
             }
 
-            if (!"DELIVERED".equals(order.getStatus())) {
+            if (!ActorAccessPolicy.isDelivered(order)) {
                 SessionUtil.flashError(session, "Chỉ có đơn hàng giao thành công mới được gửi yêu cầu đổi trả / hoàn tiền.");
                 resp.sendRedirect(req.getContextPath() + "/orders");
                 return;
@@ -151,7 +151,7 @@ public class ReturnRequestServlet extends HttpServlet {
 
         // --- Admin decision approve/reject ---
         if ("decide".equals(action)) {
-            if (!AppConfig.ROLE_ADMIN.equals(user.getRole())) {
+            if (!ActorAccessPolicy.canDecideReturnRequest(user)) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ Admin mới có quyền phê duyệt đổi trả.");
                 return;
             }
@@ -179,6 +179,11 @@ public class ReturnRequestServlet extends HttpServlet {
         }
 
         // --- Customer create new return request ---
+        if (!ActorAccessPolicy.canCreateReturnRequest(user)) {
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ khách hàng mới có quyền gửi yêu cầu đổi trả.");
+            return;
+        }
+
         String orderIdStr = req.getParameter("orderId");
         String orderItemIdStr = req.getParameter("orderItemId");
         String requestType = req.getParameter("requestType");
@@ -255,7 +260,7 @@ public class ReturnRequestServlet extends HttpServlet {
                 SessionUtil.flashError(session, "Tạo yêu cầu thất bại.");
             }
         } catch (BusinessException e) {
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.getUserMessage(e));
         } catch (NumberFormatException e) {
             LoggerUtil.warn(log, "Tham số không hợp lệ khi tạo return request orderId=" + orderIdStr, e);
             SessionUtil.flashError(session, "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.");

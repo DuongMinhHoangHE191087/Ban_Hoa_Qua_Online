@@ -110,8 +110,8 @@ public class ShopProfileUploadAPI extends HttpServlet {
                     resp,
                     java.util.logging.Logger.getLogger(ShopProfileUploadAPI.class.getName()),
                     "ShopProfileUploadAPI#doPost",
-                    "Lỗi hệ thống: " + e.getMessage(),
-                    e);
+                        "Lỗi hệ thống khi tải hồ sơ cửa hàng.",
+                        e);
         }
     }
 }

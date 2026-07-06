@@ -135,7 +135,10 @@ const CartSync = {
             console.log('[CartSync] Initiating global guest cart sync to server...');
             const resp = await fetch(`${contextPath}/api/cart/sync`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken || ''
+                },
                 body: JSON.stringify({ items })
             });
             if (resp.ok) {

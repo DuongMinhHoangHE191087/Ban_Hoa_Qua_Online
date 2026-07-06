@@ -177,7 +177,7 @@ public class ProductStatusServlet extends HttpServlet {
                     resp,
                     log,
                     "ProductStatusServlet#doPost",
-                    "Lỗi cơ sở dữ liệu: " + (e.getMessage() == null ? "Lỗi cơ sở dữ liệu" : e.getMessage()),
+                    "Lỗi hệ thống khi cập nhật trạng thái sản phẩm.",
                     e);
         }
     }

@@ -364,7 +364,7 @@ public class AdminOrderAndProductEditRegressionTest {
 
         @Override
         public Connection getConnection() throws SQLException {
-            return wrapConnection(DriverManager.getConnection(AppConfig.DB_JDBC_URL, AppConfig.DB_USER, AppConfig.DB_PASSWORD), counter);
+            return wrapConnection(DriverManager.getConnection(AppConfig.DB_JDBC_URL, resolveDbUser(), resolveDbPassword()), counter);
         }
 
         @Override
@@ -407,6 +407,25 @@ public class AdminOrderAndProductEditRegressionTest {
         public boolean isWrapperFor(Class<?> iface) {
             return iface.isInstance(this);
         }
+    }
+
+    private String resolveDbUser() {
+        return resolveRequiredConfig("DB_USER");
+    }
+
+    private String resolveDbPassword() {
+        return resolveRequiredConfig("DB_PASSWORD");
+    }
+
+    private String resolveRequiredConfig(String key) {
+        String value = System.getProperty(key);
+        if (value == null || value.trim().isEmpty()) {
+            value = System.getenv(key);
+        }
+        if (value == null || value.trim().isEmpty() || value.startsWith("CHANGE_ME_")) {
+            throw new IllegalStateException("Missing required database configuration: " + key);
+        }
+        return value.trim();
     }
 
     private static Connection wrapConnection(Connection realConnection, AtomicInteger counter) {

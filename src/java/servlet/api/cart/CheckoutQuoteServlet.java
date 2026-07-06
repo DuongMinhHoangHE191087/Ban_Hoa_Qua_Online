@@ -62,7 +62,8 @@ public class CheckoutQuoteServlet extends HttpServlet {
             JsonUtil.writeJson(resp, ApiResponse.ok(snapshot.getQuote()));
         } catch (IllegalArgumentException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "Dữ liệu quote checkout không hợp lệ."));
         } catch (Exception e) {
             util.ServletUtil.sendJsonInternalServerError(
                     req,

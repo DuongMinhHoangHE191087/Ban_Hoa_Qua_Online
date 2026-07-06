@@ -19,6 +19,7 @@ import model.entity.shop.PaymentTransaction;
 import model.response.ApiResponse;
 import service.cart.CheckoutService;
 import service.shop.PaymentService;
+import util.ActorAccessPolicy;
 import util.ErrorMessageUtil;
 import util.JsonUtil;
 import util.LoggerUtil;
@@ -69,7 +70,7 @@ public class CheckoutServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8));
             return;
         }
-        if (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(user)) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Ban khong co quyen thuc hien thanh toan.");
             return;
         }
@@ -119,7 +120,7 @@ public class CheckoutServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
-        if (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(user)) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Ban khong co quyen thuc hien thanh toan.");
             return;
         }

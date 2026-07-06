@@ -57,13 +57,13 @@ public class CategoryServlet extends HttpServlet {
             // Forward tới view quản trị
             req.getRequestDispatcher("/WEB-INF/jsp/admin/admin-categories.jsp").forward(req, resp);
         } catch (SQLException e) {
-            util.ServletUtil.sendPageInternalServerError(
-                    req,
-                    resp,
-                    java.util.logging.Logger.getLogger(CategoryServlet.class.getName()),
-                    "CategoryServlet#doGet",
-                    "Lỗi khi lấy danh sách danh mục: " + e.getMessage(),
-                    e);
+                util.ServletUtil.sendPageInternalServerError(
+                        req,
+                        resp,
+                        java.util.logging.Logger.getLogger(CategoryServlet.class.getName()),
+                        "CategoryServlet#doGet",
+                        "Lỗi hệ thống khi tải danh mục.",
+                        e);
         }
     }
 
@@ -105,7 +105,7 @@ public class CategoryServlet extends HttpServlet {
             }
         } catch (SQLException e) {
             LoggerUtil.error(log, "Lỗi hệ thống khi xử lý danh mục action=" + action, e);
-            SessionUtil.setFlashMessage(session, "Lỗi hệ thống: " + e.getMessage(), "danger");
+            SessionUtil.setFlashMessage(session, util.ErrorMessageUtil.MSG_DB_ERROR, "danger");
             resp.sendRedirect(req.getContextPath() + "/admin/categories");
         }
     }
@@ -126,7 +126,7 @@ public class CategoryServlet extends HttpServlet {
             categoryService.createCategory(cat);
             SessionUtil.setFlashMessage(req.getSession(), "Thêm danh mục mới thành công!", "success");
         } catch (IllegalArgumentException e) {
-            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
+            SessionUtil.setFlashMessage(req.getSession(), util.ErrorMessageUtil.getUserMessage(e), "danger");
         }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }
@@ -149,7 +149,7 @@ public class CategoryServlet extends HttpServlet {
             categoryService.updateCategory(cat);
             SessionUtil.setFlashMessage(req.getSession(), "Cập nhật danh mục thành công!", "success");
         } catch (IllegalArgumentException e) {
-            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
+            SessionUtil.setFlashMessage(req.getSession(), util.ErrorMessageUtil.getUserMessage(e), "danger");
         }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }
@@ -162,7 +162,7 @@ public class CategoryServlet extends HttpServlet {
             categoryService.deleteCategory(categoryId);
             SessionUtil.setFlashMessage(req.getSession(), "Xóa danh mục thành công!", "success");
         } catch (IllegalStateException | IllegalArgumentException e) {
-            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
+            SessionUtil.setFlashMessage(req.getSession(), util.ErrorMessageUtil.getUserMessage(e), "danger");
         }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }
@@ -173,7 +173,7 @@ public class CategoryServlet extends HttpServlet {
             categoryService.toggleCategoryStatus(categoryId);
             SessionUtil.setFlashMessage(req.getSession(), "Đã thay đổi trạng thái hiển thị của danh mục!", "success");
         } catch (IllegalArgumentException e) {
-            SessionUtil.setFlashMessage(req.getSession(), e.getMessage(), "danger");
+            SessionUtil.setFlashMessage(req.getSession(), util.ErrorMessageUtil.getUserMessage(e), "danger");
         }
         resp.sendRedirect(req.getContextPath() + "/admin/categories");
     }

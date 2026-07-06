@@ -122,20 +122,21 @@ public class AiSearchServlet extends HttpServlet {
                 try {
                     streamWriter = ensureWriter(resp, streamWriter);
                     resp.setStatus(HttpServletResponse.SC_OK);
-                    writeSseEvent(streamWriter, "error", eventPayload("message", e.getMessage()));
+                    writeSseEvent(streamWriter, "error", eventPayload("message", "Nội dung tìm kiếm không hợp lệ."));
                 } catch (IOException ioException) {
                     util.ServletUtil.sendJsonInternalServerError(
                             req,
                             resp,
                             log,
                             "AiSearchServlet#doPost",
-                            "Lỗi hệ thống khi xử lý AI: " + ioException.getMessage(),
+                            "Lỗi hệ thống khi xử lý AI: " + util.ErrorMessageUtil.getSafeLogMessage(ioException),
                             ioException);
                 }
                 return;
             }
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "Nội dung tìm kiếm không hợp lệ."));
         } catch (Exception e) {
             if (streamingRequested) {
                 try {
@@ -143,14 +144,14 @@ public class AiSearchServlet extends HttpServlet {
                     resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                     writeSseEvent(streamWriter, "error", eventPayload(
                             "message",
-                            "Lỗi hệ thống khi xử lý AI: " + e.getMessage()));
+                            "Lỗi hệ thống khi xử lý AI."));
                 } catch (IOException ioException) {
                     util.ServletUtil.sendJsonInternalServerError(
                             req,
                             resp,
                             log,
                             "AiSearchServlet#doPost",
-                            "Lỗi hệ thống khi xử lý AI: " + ioException.getMessage(),
+                            "Lỗi hệ thống khi xử lý AI.",
                             ioException);
                 }
                 return;
@@ -160,7 +161,7 @@ public class AiSearchServlet extends HttpServlet {
                     resp,
                     log,
                     "AiSearchServlet#doPost",
-                    "Lỗi hệ thống khi xử lý AI: " + e.getMessage(),
+                    "Lỗi hệ thống khi xử lý AI.",
                     e);
         }
     }

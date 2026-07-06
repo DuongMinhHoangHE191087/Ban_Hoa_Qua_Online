@@ -89,8 +89,8 @@ public class DBConfig {
     public static final String DB_HOST     = "localhost";
     public static final String DB_PORT     = "1433";
     public static final String DB_NAME     = "OnlineFruitShopping";
-    public static final String DB_USER     = "sa";
-    public static final String DB_PASSWORD = "YOUR_DATABASE_PASSWORD_HERE"; // Thay thế bằng mật khẩu cá nhân
+    public static final String DB_USER     = System.getenv("DB_USER");
+    public static final String DB_PASSWORD = System.getenv("DB_PASSWORD"); // Set via environment variables
 }
 ```
 > [!WARNING]

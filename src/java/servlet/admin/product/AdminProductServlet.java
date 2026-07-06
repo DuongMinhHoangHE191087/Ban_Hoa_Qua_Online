@@ -169,7 +169,7 @@ public class AdminProductServlet extends HttpServlet {
                 SessionUtil.flashError(session, "Phê duyệt sản phẩm thất bại.");
             }
         } catch (IllegalArgumentException e) {
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, ErrorMessageUtil.logAndGetUserMessage(log, "AdminProductServlet#approveProduct", e));
         }
         resp.sendRedirect(buildRedirectUrl(req));
     }
@@ -195,7 +195,7 @@ public class AdminProductServlet extends HttpServlet {
                 SessionUtil.flashError(session, "Từ chối phê duyệt sản phẩm thất bại.");
             }
         } catch (IllegalArgumentException e) {
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, ErrorMessageUtil.logAndGetUserMessage(log, "AdminProductServlet#rejectProduct", e));
         }
         resp.sendRedirect(buildRedirectUrl(req));
     }
@@ -220,7 +220,7 @@ public class AdminProductServlet extends HttpServlet {
                 SessionUtil.flashError(session, "Gỡ bỏ sản phẩm thất bại.");
             }
         } catch (IllegalArgumentException e) {
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, ErrorMessageUtil.logAndGetUserMessage(log, "AdminProductServlet#banProduct", e));
         }
         resp.sendRedirect(buildRedirectUrl(req));
     }

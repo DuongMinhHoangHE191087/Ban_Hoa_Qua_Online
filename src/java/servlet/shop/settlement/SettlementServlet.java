@@ -69,7 +69,7 @@ public class SettlementServlet extends HttpServlet {
                         resp,
                         java.util.logging.Logger.getLogger(SettlementServlet.class.getName()),
                         "SettlementServlet#doGet",
-                        "Lỗi hệ thống: " + e.getMessage(),
+                        "Lỗi hệ thống khi tải đối soát.",
                         e);
             }
             return;
@@ -102,7 +102,7 @@ public class SettlementServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/shop/settlement.jsp").forward(req, resp);
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi khi tải lịch sử đối soát", e);
-            SessionUtil.flashError(session, "Lỗi khi tải lịch sử đối soát: " + e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.MSG_DB_ERROR);
             resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
         }
     }
@@ -144,7 +144,7 @@ public class SettlementServlet extends HttpServlet {
             SessionUtil.flashError(session, "Mã settlement không hợp lệ.");
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi xử lý settlement của shop", e);
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(req.getContextPath() + "/shop/settlement");

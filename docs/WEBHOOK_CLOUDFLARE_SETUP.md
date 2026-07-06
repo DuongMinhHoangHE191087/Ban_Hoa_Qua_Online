@@ -322,7 +322,7 @@ set SEPAY_ACCOUNT_NAME=TEN_CONG_TY_BAN
 | `SEPAY_ACCOUNT_NO` | Số tài khoản SePay | (cần set) |
 | `SEPAY_ACCOUNT_NAME` | Tên chủ tài khoản | `CONG TY TNHH METAFRUIT` |
 | `DB_HOST` | SQL Server host | `localhost` |
-| `DB_PASSWORD` | Mật khẩu DB | `123` |
+| `DB_PASSWORD` | Mật khẩu DB | (cần set qua env) |
 
 ### 8.3 URL Webhook cho từng môi trường
 
@@ -340,7 +340,7 @@ https://yourdomain.com/Ban_Hoa_Qua_Online/api/payment/webhook
 - [ ] `SEPAY_ACCOUNT_NO` và `SEPAY_ACCOUNT_NAME` khớp với tài khoản thật
 - [ ] Webhook URL đã được cấu hình trong SePay dashboard
 - [ ] Test giao dịch thật 1.000đ → kiểm tra log
-- [ ] `DB_PASSWORD` không còn là `123`
+- [ ] `DB_PASSWORD` đã set qua env
 - [ ] `SECRET_KEY` đã set để sign JWT
 
 ---

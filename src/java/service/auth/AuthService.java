@@ -94,7 +94,6 @@ public class AuthService {
 
         // Hàm save hoặc insert của DAO
         int insertedId = userDAO.saveNewCustomer(user.getFullName(), user.getEmail(), hashedPass, user.getPhone(), user.getRole(), AppConfig.ACCOUNT_STATUS_INACTIVE, false);
-        int createdShopProfileId = -1;
         if (insertedId > 0) {
             try {
                 User createdUser = userDAO.findByEmail(user.getEmail());
@@ -104,18 +103,13 @@ public class AuthService {
 
                 issueVerificationCode(createdUser);
 
-                if (shopOwnerRegistration) {
-                    createdShopProfileId = createPendingShopProfile(createdUser, shopName, shopAddress,
-                            preferredCategoriesJson, docPathsJson);
-                }
-
                 CartDAO cartDAO = new CartDAO();
                 cartDAO.createForCustomer(insertedId);
 
                 return createdUser;
             } catch (Exception ex) {
                 try {
-                    if (createdShopProfileId > 0) {
+                    if (shopOwnerRegistration) {
                         new dao.shop.ShopProfileDAO().deleteByUserId(insertedId);
                     }
                     userDAO.deleteUser(insertedId);
@@ -511,25 +505,6 @@ public class AuthService {
         }
     }
 
-    private int createPendingShopProfile(User createdUser, String shopName, String shopAddress,
-                                         String preferredCategoriesJson, String docPathsJson) throws SQLException {
-        dao.shop.ShopProfileDAO shopProfileDAO = new dao.shop.ShopProfileDAO();
-        model.entity.shop.ShopProfile profile = new model.entity.shop.ShopProfile();
-        profile.setUserId(createdUser.getUserId());
-        profile.setShopName(shopName != null && !shopName.trim().isEmpty()
-                ? shopName.trim()
-                : "Cửa hàng của " + createdUser.getFullName());
-        profile.setShopDescription("Chào mừng tới cửa hàng của chúng tôi!");
-        profile.setApprovalStatus("PENDING");
-        profile.setDeliveryAddress(shopAddress != null && !shopAddress.trim().isEmpty()
-                ? shopAddress.trim()
-                : createdUser.getUserAddress());
-        profile.setRating(java.math.BigDecimal.ZERO);
-        profile.setPreferredCategories(preferredCategoriesJson);
-        profile.setDocPaths(docPathsJson);
-        profile.setBusinessEmail(null);
-        return shopProfileDAO.save(profile);
-    }
     private String generateVerificationCode() {
         int bound = (int) Math.pow(10, AppConfig.EMAIL_VERIFICATION_CODE_LENGTH);
         int min = bound / 10;

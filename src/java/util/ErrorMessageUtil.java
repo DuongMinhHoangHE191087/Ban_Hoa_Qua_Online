@@ -40,11 +40,11 @@ public final class ErrorMessageUtil {
         }
 
         if (e instanceof BusinessException) {
-            String message = e.getMessage();
+            String message = ((BusinessException) e).getPublicMessage();
             return message == null || message.isBlank() ? MSG_INTERNAL_ERROR : message;
         }
         if (e instanceof java.sql.SQLException) {
-            return MSG_DB_ERROR + " [Chi tiết lỗi: " + e.getMessage() + "]";
+            return MSG_DB_ERROR;
         }
         if (e instanceof java.io.IOException) {
             return MSG_FILE_ERROR;
@@ -81,8 +81,10 @@ public final class ErrorMessageUtil {
             return "(null exception)";
         }
 
-        String msg = e.getMessage();
-        if (msg == null) {
+        String msg = e instanceof BusinessException be
+                ? "[" + be.getErrorCode() + "] " + be.getPublicMessage()
+                : e.toString();
+        if (msg == null || msg.isBlank()) {
             return e.getClass().getSimpleName();
         }
 

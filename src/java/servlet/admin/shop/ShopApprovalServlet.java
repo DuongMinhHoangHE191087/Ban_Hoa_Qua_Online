@@ -188,8 +188,8 @@ public class ShopApprovalServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             SessionUtil.flashError(req.getSession(), "profileId hoặc userId không hợp lệ.");
         } catch (Exception e) {
-            getServletContext().log("ShopApprovalServlet POST error: " + e.getMessage(), e);
-            SessionUtil.flashError(req.getSession(), "Lỗi: " + e.getMessage());
+            getServletContext().log("ShopApprovalServlet POST error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(buildRedirectUrl(req));

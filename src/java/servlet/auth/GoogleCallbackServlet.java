@@ -115,19 +115,9 @@ public class GoogleCallbackServlet extends HttpServlet {
             redirectToRoleDashboard(req, resp, user);
 
         } catch (Exception e) {
-            req.getServletContext().log("Lỗi tích hợp Google OAuth: " + e.getMessage(), e);
+            req.getServletContext().log("Lỗi tích hợp Google OAuth: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
             HttpSession session = req.getSession(true);
-            // UC-21: nếu đây là lỗi chặn đặc quyền, hiển thị thông báo đó; còn lại dùng thông báo chung
-            String userMsg = "Đăng nhập bằng Google thất bại. Vui lòng thử lại.";
-            if (e.getMessage() != null) {
-                String msg = e.getMessage();
-                if (msg.contains("bị khóa") 
-                        || msg.contains("đăng nhập bằng mật khẩu") 
-                        || msg.contains("Không thể lấy địa chỉ Email")) {
-                    userMsg = msg;
-                }
-            }
-            SessionUtil.flashError(session, userMsg);
+            SessionUtil.flashError(session, "Đăng nhập bằng Google thất bại. Vui lòng thử lại.");
             resp.sendRedirect(req.getContextPath() + "/auth/login");
         }
     }

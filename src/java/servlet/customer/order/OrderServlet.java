@@ -1,6 +1,5 @@
 package servlet.customer.order;
 
-import config.AppConfig;
 import dao.order.OrderDAO;
 import model.dto.order.OrderDetailViewDTO;
 import model.dto.order.OrderListViewDTO;
@@ -10,6 +9,7 @@ import model.entity.order.OrderItem;
 import model.entity.auth.User;
 import service.order.OrderService;
 import service.order.OrderViewService;
+import util.ActorAccessPolicy;
 import util.SessionUtil;
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import util.ErrorMessageUtil;
 
 /**
  * Controller cho lich su don hang, chi tiet va invoice.
@@ -40,8 +41,7 @@ public class OrderServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         User user = SessionUtil.getCurrentUser(req.getSession());
-        if (user == null || (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())
-                && !AppConfig.ROLE_SHOP_OWNER.equals(user.getRole()))) {
+        if (!ActorAccessPolicy.canAccessOrderArea(user)) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
@@ -60,7 +60,7 @@ public class OrderServlet extends HttpServlet {
             return;
         }
 
-        if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        if (ActorAccessPolicy.isCustomer(user)) {
             resp.sendRedirect(req.getContextPath() + "/profile?tab=orders");
             return;
         }
@@ -85,8 +85,7 @@ public class OrderServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         User user = SessionUtil.getCurrentUser(req.getSession());
-        if (user == null || (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())
-                && !AppConfig.ROLE_SHOP_OWNER.equals(user.getRole()))) {
+        if (!ActorAccessPolicy.canAccessOrderArea(user)) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
@@ -129,13 +128,14 @@ public class OrderServlet extends HttpServlet {
                 return;
             }
         } catch (SecurityException e) {
-            resp.sendError(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+            resp.sendError(HttpServletResponse.SC_FORBIDDEN, ErrorMessageUtil.getUserMessage(e));
             return;
         } catch (Exception e) {
-            SessionUtil.setFlashMessage(req.getSession(), "Lỗi: " + e.getMessage(), "error");
+            SessionUtil.setFlashMessage(req.getSession(),
+                    ErrorMessageUtil.logAndGetUserMessage(log, "OrderServlet#doPost", e), "error");
         }
 
-        if (AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        if (ActorAccessPolicy.isCustomer(user)) {
             resp.sendRedirect(req.getContextPath() + "/profile/order-detail?orderId=" + orderId);
         } else {
             resp.sendRedirect(req.getContextPath() + "/orders");

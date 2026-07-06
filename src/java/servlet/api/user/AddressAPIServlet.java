@@ -27,7 +27,37 @@ public class AddressAPIServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        doPost(req, resp);
+        req.setCharacterEncoding("UTF-8");
+        resp.setContentType("application/json;charset=UTF-8");
+
+        HttpSession session = req.getSession(false);
+        User user = SessionUtil.getCurrentUser(session);
+
+        if (user == null) {
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            JsonUtil.writeJson(resp, ApiResponse.error("Nguoi dung chua dang nhap."));
+            return;
+        }
+
+        String action = req.getParameter("action");
+        if (action != null && !action.trim().isEmpty() && !"list".equalsIgnoreCase(action)) {
+            resp.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            JsonUtil.writeJson(resp, ApiResponse.error("Hanh dong khong hop le."));
+            return;
+        }
+
+        try {
+            List<UserAddress> addresses = addressDAO.findByUser(user.getUserId());
+            JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("addresses", addresses)));
+        } catch (SQLException e) {
+            util.ServletUtil.sendJsonInternalServerError(
+                    req,
+                    resp,
+                    java.util.logging.Logger.getLogger(AddressAPIServlet.class.getName()),
+                    "AddressAPIServlet#doGet",
+                    "Lỗi hệ thống khi tải địa chỉ.",
+                    e);
+        }
     }
 
     @Override
@@ -82,7 +112,8 @@ public class AddressAPIServlet extends HttpServlet {
                     JsonUtil.writeJson(resp, ApiResponse.error("Họ và tên người nhận phải từ 3 ký tự trở lên."));
                     return;
                 }
-                if (phone == null || !phone.matches("^(0|\\+84)[3|5|7|8|9][0-9]{8}$")) {
+                phone = ValidationUtil.normalizePhone(phone);
+                if (!ValidationUtil.isValidPhone(phone)) {
                     JsonUtil.writeJson(resp, ApiResponse.error("Số điện thoại không hợp lệ (VN 10 chữ số)."));
                     return;
                 }
@@ -141,7 +172,8 @@ public class AddressAPIServlet extends HttpServlet {
                     JsonUtil.writeJson(resp, ApiResponse.error("Họ và tên người nhận phải từ 3 ký tự trở lên."));
                     return;
                 }
-                if (phone == null || !phone.matches("^(0|\\+84)[3|5|7|8|9][0-9]{8}$")) {
+                phone = ValidationUtil.normalizePhone(phone);
+                if (!ValidationUtil.isValidPhone(phone)) {
                     JsonUtil.writeJson(resp, ApiResponse.error("Số điện thoại không hợp lệ (VN 10 chữ số)."));
                     return;
                 }
@@ -176,7 +208,7 @@ public class AddressAPIServlet extends HttpServlet {
                     resp,
                     java.util.logging.Logger.getLogger(AddressAPIServlet.class.getName()),
                     "AddressAPIServlet#doPost",
-                    "Lỗi máy chủ: " + e.getMessage(),
+                    "Lỗi hệ thống khi xử lý địa chỉ.",
                     e);
         }
     }

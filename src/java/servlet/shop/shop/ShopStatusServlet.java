@@ -2,7 +2,6 @@ package servlet.shop.shop;
 
 import config.AppConfig;
 import dao.catalog.CategoryDAO;
-import dao.shop.ShopProfileDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,6 +15,7 @@ import model.entity.shop.ShopProfile;
 import service.shop.ShopService;
 import service.system.EmailService;
 import util.FileUploadUtil;
+import util.ErrorMessageUtil;
 import util.LoggerUtil;
 import util.SessionUtil;
 import util.ShopDocDraftUtil;
@@ -41,7 +41,6 @@ public class ShopStatusServlet extends HttpServlet {
 
     private static final Logger log = Logger.getLogger(ShopStatusServlet.class.getName());
 
-    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final ShopService shopService = new ShopService();
     private final EmailService emailService = new EmailService();
@@ -58,8 +57,7 @@ public class ShopStatusServlet extends HttpServlet {
         }
 
         try {
-            List<ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-            ShopProfile profile = profiles.isEmpty() ? null : profiles.get(0);
+            ShopProfile profile = shopService.getShopByUserId(currentUser.getUserId());
             if (profile == null) {
                 resp.sendRedirect(req.getContextPath() + "/auth/register");
                 return;
@@ -123,13 +121,11 @@ public class ShopStatusServlet extends HttpServlet {
         }
 
         try {
-            List<ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-            if (profiles.isEmpty()) {
+            ShopProfile profile = shopService.getShopByUserId(currentUser.getUserId());
+            if (profile == null) {
                 resp.sendRedirect(req.getContextPath() + "/auth/register");
                 return;
             }
-
-            ShopProfile profile = profiles.get(0);
             if (!AppConfig.SHOP_REJECTED.equals(profile.getApprovalStatus())) {
                 resp.sendRedirect(req.getContextPath() + "/shop/status");
                 return;
@@ -137,8 +133,9 @@ public class ShopStatusServlet extends HttpServlet {
 
             handleRejectedResubmit(req, resp, session, currentUser, profile);
         } catch (Exception e) {
-            getServletContext().log("ShopStatusServlet POST error: " + e.getMessage(), e);
-            forwardWithError(req, resp, session, currentUser, e.getMessage());
+            getServletContext().log("ShopStatusServlet POST error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            forwardWithError(req, resp, session, currentUser,
+                    ErrorMessageUtil.logAndGetUserMessage(log, "ShopStatusServlet#doPost", e));
         }
     }
 
@@ -292,8 +289,7 @@ public class ShopStatusServlet extends HttpServlet {
             HttpSession session, User currentUser, String errorMsg) throws ServletException, IOException {
         try {
             if (currentUser != null) {
-                List<ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-                ShopProfile profile = profiles.isEmpty() ? null : profiles.get(0);
+                ShopProfile profile = shopService.getShopByUserId(currentUser.getUserId());
                 req.setAttribute("profile", profile);
                 if (profile != null) {
                     req.setAttribute("profileDocPaths", parseJsonArray(profile.getDocPaths()));

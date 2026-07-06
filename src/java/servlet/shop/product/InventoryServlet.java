@@ -114,7 +114,7 @@ public class InventoryServlet extends HttpServlet {
 
         } catch (SQLException e) {
             LoggerUtil.error(log, "Không thể tải danh sách sản phẩm hoặc lịch sử nhập kho", e);
-            errorMsg = "Không thể tải danh sách sản phẩm hoặc lịch sử: " + e.getMessage();
+            errorMsg = util.ErrorMessageUtil.MSG_DB_ERROR;
         }
 
         if (errorMsg != null) {
@@ -254,10 +254,10 @@ public class InventoryServlet extends HttpServlet {
         } catch (SQLException e) {
             saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             LoggerUtil.error(log, "Lỗi cơ sở dữ liệu khi điều chỉnh kho", e);
-            SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu: " + e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.MSG_DB_ERROR);
         } catch (IllegalArgumentException e) {
             saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.getUserMessage(e));
         } catch (Exception e) {
             saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
             LoggerUtil.error(log, "Lỗi không xác định khi điều chỉnh kho", e);

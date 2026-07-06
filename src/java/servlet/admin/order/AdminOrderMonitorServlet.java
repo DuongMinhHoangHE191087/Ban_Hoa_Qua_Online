@@ -66,8 +66,8 @@ public class AdminOrderMonitorServlet extends HttpServlet {
                     resp,
                     java.util.logging.Logger.getLogger(AdminOrderMonitorServlet.class.getName()),
                     "AdminOrderMonitorServlet#doGet",
-                    "Lỗi hệ thống: " + e.getMessage(),
-                    e);
+                        "Lỗi hệ thống khi tải đơn hàng.",
+                        e);
         }
     }
 }

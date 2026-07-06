@@ -143,7 +143,7 @@ public class CheckoutPricingEngine {
         try {
             promotionService.validateCouponStack(resolvedCoupons.shopPromotions, resolvedCoupons.systemPromotions);
         } catch (RuntimeException ex) {
-            quote.getErrors().add(ex.getMessage());
+            quote.getErrors().add(util.ErrorMessageUtil.getUserMessage(ex));
             quote.setValid(false);
             return;
         }

@@ -3,7 +3,6 @@ package servlet.auth;
 import config.AppConfig;
 import dao.catalog.CategoryDAO;
 import dao.auth.UserDAO;
-import dao.shop.ShopProfileDAO;
 import model.entity.catalog.Category;
 import model.entity.auth.User;
 import util.FileUploadUtil;
@@ -55,7 +54,6 @@ public class RegisterServlet extends HttpServlet {
 
     private final AuthService authService = new AuthService();
     private final CategoryDAO categoryDAO = new CategoryDAO();
-    private final ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
     private final ShopService shopService = new ShopService();
 
     @Override
@@ -65,8 +63,7 @@ public class RegisterServlet extends HttpServlet {
         User currentUser = SessionUtil.getCurrentUser(session);
         if (currentUser != null) {
             try {
-                List<model.entity.shop.ShopProfile> profiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-                if (!profiles.isEmpty()) {
+                if (shopService.getShopByUserId(currentUser.getUserId()) != null) {
                     ShopStatusRedirectUtil.redirectToShopStatusIfProfileExists(req, resp, currentUser, session);
                     return;
                 }
@@ -158,10 +155,6 @@ public class RegisterServlet extends HttpServlet {
                     throw new Exception("Vui lòng chọn ít nhất một danh mục sản phẩm.");
                 }
 
-                if (shopProfileDAO.isBusinessEmailExists(businessEmail)) {
-                    throw new Exception("Mỗi doanh nghiệp chỉ được đăng ký tối đa 1 gian hàng! Email kinh doanh này đã được sử dụng.");
-                }
-
                 List<String> uploadedDraftPaths = ShopDocDraftUtil.uploadDraftDocs(
                         req, "businessDocs", ShopDocDraftUtil.REGISTER_SCOPE);
                 if (!uploadedDraftPaths.isEmpty()) {
@@ -208,8 +201,8 @@ public class RegisterServlet extends HttpServlet {
             if (errorSession != null) {
                 errorSession.removeAttribute(AppConfig.SESSION_VERIFY_EMAIL);
             }
-            getServletContext().log("RegisterServlet error: " + e.getMessage(), e);
-            forwardWithError(req, resp, e.getMessage());
+            getServletContext().log("RegisterServlet error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            forwardWithError(req, resp, util.ErrorMessageUtil.getUserMessage(e));
         }
     }
 
@@ -248,8 +241,7 @@ public class RegisterServlet extends HttpServlet {
                 phone = null;
             }
 
-            List<model.entity.shop.ShopProfile> existingProfiles = shopProfileDAO.findByUserId(currentUser.getUserId());
-            if (!existingProfiles.isEmpty()) {
+            if (shopService.getShopByUserId(currentUser.getUserId()) != null) {
                 throw new Exception("Tài khoản của bạn đã đăng ký hoặc nộp đơn mở cửa hàng rồi.");
             }
 
@@ -292,8 +284,8 @@ public class RegisterServlet extends HttpServlet {
 
         } catch (Exception e) {
             rollbackPromotedDocs(promotedDocPaths);
-            getServletContext().log("RegisterServlet upgrade error: " + e.getMessage(), e);
-            forwardWithError(req, resp, e.getMessage());
+            getServletContext().log("RegisterServlet upgrade error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            forwardWithError(req, resp, util.ErrorMessageUtil.getUserMessage(e));
         }
     }
 
@@ -303,14 +295,14 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
         try {
-            shopProfileDAO.deleteByUserId(createdUser.getUserId());
+            new dao.shop.ShopProfileDAO().deleteByUserId(createdUser.getUserId());
         } catch (Exception ex) {
-            getServletContext().log("Rollback shop profile failed: " + ex.getMessage(), ex);
+            getServletContext().log("Rollback shop profile failed: " + util.ErrorMessageUtil.getSafeLogMessage(ex), ex);
         }
         try {
             new UserDAO().deleteUser(createdUser.getUserId());
         } catch (Exception ex) {
-            getServletContext().log("Rollback user failed: " + ex.getMessage(), ex);
+            getServletContext().log("Rollback user failed: " + util.ErrorMessageUtil.getSafeLogMessage(ex), ex);
         }
     }
 

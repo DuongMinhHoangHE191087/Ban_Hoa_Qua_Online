@@ -1,10 +1,10 @@
 package filter;
 
-import config.AppConfig;
-import dao.shop.ShopProfileDAO;
 import dao.auth.UserDAO;
 import model.entity.shop.ShopProfile;
 import model.entity.auth.User;
+import service.shop.ShopService;
+import util.ActorAccessPolicy;
 import util.LoggerUtil;
 import util.SessionUtil;
 import jakarta.servlet.Filter;
@@ -16,8 +16,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
+import java.sql.SQLException;
 import java.util.logging.Logger;
 
 /**
@@ -27,7 +27,7 @@ import java.util.logging.Logger;
  *   /admin/*     → chỉ ADMIN
  *   /shop/*      → chỉ SHOP_OWNER
  *   /delivery/*  → chỉ DELIVERY
- *   /customer/*  → CUSTOMER (và SHOP_OWNER nếu cần)
+ *   /customer/*  → CUSTOMER
  *
  * THỨ TỰ CHẠY: 5
  * @author fruitmkt-team
@@ -35,6 +35,9 @@ import java.util.logging.Logger;
 public class RoleFilter implements Filter {
 
     private static final Logger log = Logger.getLogger(RoleFilter.class.getName());
+    private static final String SHOP_PROFILE_CACHE_KEY = "_shopProfile";
+
+    private final ShopService shopService = new ShopService();
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -77,45 +80,26 @@ public class RoleFilter implements Filter {
         // 2. Kiểm tra quyền truy cập theo Vai trò (RBAC)
         boolean allowed = false;
         if (uri.equals(ctx + "/shop/status") || uri.startsWith(ctx + "/shop/status")) {
-            if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
-                allowed = true;
-            } else {
-                try {
-                    ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
-                    List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
-                    if (!profiles.isEmpty()) {
-                        allowed = true;
-                    } else {
-                        resp.sendRedirect(ctx + "/auth/register");
-                        return;
-                    }
-                } catch (Exception e) {
-                    LoggerUtil.error(log, "Lỗi kiểm tra quyền vào shop status", e);
-                    throw new ServletException("Không thể kiểm tra trạng thái shop", e);
+            try {
+                ShopProfile profile = resolveShopProfile(session, user);
+                if (profile != null) {
+                    allowed = true;
+                } else {
+                    resp.sendRedirect(ctx + "/auth/register");
+                    return;
                 }
+            } catch (Exception e) {
+                LoggerUtil.error(log, "Lỗi kiểm tra quyền vào shop status", e);
+                throw new ServletException("Không thể kiểm tra trạng thái shop", e);
             }
         } else if (uri.equals(ctx + "/admin") || uri.startsWith(ctx + "/admin/")) {
-            allowed = AppConfig.ROLE_ADMIN.equals(user.getRole());
+            allowed = ActorAccessPolicy.isAdmin(user);
         } else if (uri.equals(ctx + "/shop/docs") || uri.startsWith(ctx + "/shop/docs")) {
             allowed = true; // ShopDocDownloadServlet performs its own internal ownership/role checks
         } else if (uri.equals(ctx + "/shop") || uri.startsWith(ctx + "/shop/")) {
-            if (AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())) {
+            if (ActorAccessPolicy.isShopOwner(user)) {
                 try {
-                    // Try to get cached profile from session to avoid DB query per request
-                    ShopProfile cachedProfile = (ShopProfile) session.getAttribute("_shopProfile");
-                    ShopProfile profile = null;
-
-                    if (cachedProfile != null) {
-                        profile = cachedProfile;
-                    } else {
-                        ShopProfileDAO shopProfileDAO = new ShopProfileDAO();
-                        List<ShopProfile> profiles = shopProfileDAO.findByUserId(user.getUserId());
-                        if (!profiles.isEmpty()) {
-                            profile = profiles.get(0);
-                            session.setAttribute("_shopProfile", profile);
-                        }
-                    }
-
+                    ShopProfile profile = resolveShopProfile(session, user);
                     if (profile != null && "APPROVED".equals(profile.getApprovalStatus())) {
                         allowed = true;
                     } else {
@@ -130,21 +114,25 @@ public class RoleFilter implements Filter {
                 allowed = false;
             }
         } else if (uri.equals(ctx + "/delivery") || uri.startsWith(ctx + "/delivery/")) {
-            allowed = AppConfig.ROLE_DELIVERY.equals(user.getRole());
+            allowed = ActorAccessPolicy.isDelivery(user);
         } else if (uri.equals(ctx + "/customer") || uri.startsWith(ctx + "/customer/")) {
-            allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
+            allowed = ActorAccessPolicy.canAccessCustomerArea(user);
         } else if (uri.equals(ctx + "/notifications")) {
-            allowed = AppConfig.ROLE_ADMIN.equals(user.getRole())
-                    || AppConfig.ROLE_CUSTOMER.equals(user.getRole())
-                    || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole())
-                    || AppConfig.ROLE_DELIVERY.equals(user.getRole());
-        } else if (uri.equals(ctx + "/checkout")
-                || uri.equals(ctx + "/orders")
-                || uri.equals(ctx + "/orders/detail")
-                || uri.equals(ctx + "/reviews")
-                || uri.equals(ctx + "/returns")
-                || uri.equals(ctx + "/chat")) {
-            allowed = AppConfig.ROLE_CUSTOMER.equals(user.getRole()) || AppConfig.ROLE_SHOP_OWNER.equals(user.getRole());
+            allowed = ActorAccessPolicy.isAdmin(user)
+                    || ActorAccessPolicy.isCustomer(user)
+                    || ActorAccessPolicy.isShopOwner(user)
+                    || ActorAccessPolicy.isDelivery(user);
+        } else if (uri.equals(ctx + "/checkout")) {
+            allowed = ActorAccessPolicy.canAccessCustomerArea(user);
+        } else if (uri.equals(ctx + "/orders")
+                || uri.equals(ctx + "/orders/detail")) {
+            allowed = ActorAccessPolicy.canAccessOrderArea(user);
+        } else if (uri.equals(ctx + "/reviews")) {
+            allowed = ActorAccessPolicy.canAccessCustomerArea(user);
+        } else if (uri.equals(ctx + "/returns")) {
+            allowed = ActorAccessPolicy.canAccessReturnRequestArea(user);
+        } else if (uri.equals(ctx + "/chat")) {
+            allowed = ActorAccessPolicy.canAccessCustomerArea(user);
         } else {
             allowed = true; // Các URL công cộng khác
         }
@@ -164,5 +152,20 @@ public class RoleFilter implements Filter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    private ShopProfile resolveShopProfile(HttpSession session, User user) throws SQLException {
+        if (session != null) {
+            ShopProfile cachedProfile = (ShopProfile) session.getAttribute(SHOP_PROFILE_CACHE_KEY);
+            if (cachedProfile != null) {
+                return cachedProfile;
+            }
+        }
+
+        ShopProfile profile = shopService.getShopByUserId(user.getUserId());
+        if (profile != null && session != null) {
+            session.setAttribute(SHOP_PROFILE_CACHE_KEY, profile);
+        }
+        return profile;
     }
 }

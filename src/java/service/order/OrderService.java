@@ -6,7 +6,6 @@ import config.AppConfig;
 import dao.cart.CartDAO;
 import dao.order.OrderDAO;
 import dao.shop.PaymentDAO;
-import dao.system.SystemConfigDAO;
 import dao.auth.UserDAO;
 import exception.BusinessException;
 import model.dto.checkout.CheckoutDTO;
@@ -37,7 +36,6 @@ public class OrderService {
     private static final Logger log = LoggerUtil.getLogger(OrderService.class);
 
     private final OrderDAO orderDAO = new OrderDAO();
-    private final SystemConfigDAO configDAO = new SystemConfigDAO();
     private final PaymentDAO paymentDAO = new PaymentDAO();
     private final NotificationService notificationService = new NotificationService();
     private final EmailService emailService = new EmailService();
@@ -263,7 +261,7 @@ public class OrderService {
                     int ownerId = rs.getInt("owner_id");
                     String paymentMethod = rs.getString("payment_method");
 
-                    cancelOrder(orderId, 1, "Quá 30 phút cửa hàng không nhận đơn. Hệ thống tự động hủy.");
+                    cancelOrderBySystem(orderId, "Quá 30 phút cửa hàng không nhận đơn. Hệ thống tự động hủy.");
 
                     if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
                         orderDAO.updateRefundStatus(orderId, "REFUNDED");
@@ -291,30 +289,6 @@ public class OrderService {
                                 "/shop/orders");
                     } catch (Exception e) {
                         LoggerUtil.warn(log, "Failed to notify shop owner of auto cancellation for orderId=" + orderId, e);
-                    }
-                }
-            }
-        }
-    }
-
-    public void autoConfirmDeliveredOrders() throws SQLException {
-        int freezeDays = configDAO.getInt(AppConfig.CONFIG_FREEZE_DAYS, AppConfig.FREEZE_DAYS_DEFAULT);
-        String sql = "SELECT o.order_id, o.owner_id, o.final_amount FROM orders o "
-                + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
-                + "WHERE o.status = 'DELIVERED' "
-                + "AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
-                + "AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(day, ?, GETDATE())";
-        try (Connection conn = orderDAO.openConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, -freezeDays);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    int orderId = rs.getInt("order_id");
-                    LoggerUtil.info(log, "Auto-confirming settlement eligibility for order #%d after %d freeze days.", orderId, freezeDays);
-                    String updateSql = "UPDATE orders SET updated_at = GETDATE() WHERE order_id = ?";
-                    try (PreparedStatement psUpdate = conn.prepareStatement(updateSql)) {
-                        psUpdate.setInt(1, orderId);
-                        psUpdate.executeUpdate();
                     }
                 }
             }

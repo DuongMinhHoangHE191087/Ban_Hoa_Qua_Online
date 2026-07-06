@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import util.ErrorMessageUtil;
 
 @WebServlet("/admin/shops/manage")
 public class AdminShopManageServlet extends HttpServlet {
@@ -95,8 +96,8 @@ public class AdminShopManageServlet extends HttpServlet {
                 throw new Exception("Hành động không hợp lệ: " + action);
             }
         } catch (Exception e) {
-            getServletContext().log("AdminShopManageServlet POST error: " + e.getMessage(), e);
-            SessionUtil.flashError(req.getSession(), "Lỗi: " + e.getMessage());
+            getServletContext().log("AdminShopManageServlet POST error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            SessionUtil.flashError(req.getSession(), ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(buildRedirectUrl(req));

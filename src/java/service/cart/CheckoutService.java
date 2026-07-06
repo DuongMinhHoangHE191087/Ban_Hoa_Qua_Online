@@ -34,8 +34,10 @@ import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
@@ -47,7 +49,6 @@ public class CheckoutService {
 
     private static final Logger log = LoggerUtil.getLogger(CheckoutService.class);
 
-    private static final String PHONE_REGEX = "^(0|\\+84)[3|5|7|8|9][0-9]{8}$";
     private static final BigDecimal COD_MAX_AMOUNT = new BigDecimal("2000000");
     private static final BigDecimal MAX_CART_WEIGHT_KG = new BigDecimal("30");
 
@@ -163,6 +164,7 @@ public class CheckoutService {
         BigDecimal platformFee = netMerchandiseAmount.multiply(platformFeeRate).setScale(0, RoundingMode.HALF_UP);
  
         int orderId;
+        Set<Integer> claimedPromoIds = new HashSet<>();
         try (Connection conn = orderDAO.openConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -171,7 +173,9 @@ public class CheckoutService {
                         summary.getSubtotal(),
                         summary.getDeliveryFee(),
                         summary.getDiscountAmount(),
-                        summary.getSystemMerchandiseDiscountAmount().add(summary.getSystemShippingDiscountAmount()),
+                        summary.getSystemMerchandiseDiscountAmount()
+                                .add(summary.getSystemShippingDiscountAmount())
+                                .add(summary.getPaymentDiscountAmount()),
                         summary.getShopMerchandiseDiscountAmount().add(summary.getShopShippingDiscountAmount()),
                         platformFee,
                         summary.getFinalAmount());
@@ -182,10 +186,11 @@ public class CheckoutService {
 
                 for (CheckoutPricingEngine.PromotionAllocation allocation : snapshot.getPromotionAllocations()) {
                     savePromotionUsage(conn, orderId, user.getUserId(),
-                            allocation.getPromo(), allocation.getDiscountAmount());
+                            allocation.getPromo(), allocation.getDiscountAmount(), claimedPromoIds);
                 }
 
                 cartDAO.deleteItemsByCustomer(conn, user.getUserId(), request.getVariantIds());
+                initPaymentIfNeeded(conn, orderId, paymentRequired, remoteAddress);
                 conn.commit();
             } catch (SQLException | RuntimeException ex) {
                 conn.rollback();
@@ -194,8 +199,6 @@ public class CheckoutService {
                 conn.setAutoCommit(true);
             }
         }
-
-        initPaymentIfNeeded(orderId, paymentRequired, remoteAddress);
         notifyCustomerOrderCreated(user, orderId, false);
         if (!paymentRequired || AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
             notifySingleShopOrderReady(ownerId, orderId);
@@ -222,6 +225,7 @@ public class CheckoutService {
         int parentOrderId;
         Map<Integer, Integer> childOrderIdByOwner = new java.util.LinkedHashMap<>();
         BigDecimal totalPlatformFee = BigDecimal.ZERO;
+        Set<Integer> claimedPromoIds = new HashSet<>();
         try (Connection conn = orderDAO.openConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -265,13 +269,14 @@ public class CheckoutService {
                     for (CheckoutPricingEngine.PromotionAllocation allocation : snapshot.getPromotionAllocations()) {
                         if (summary.getOwnerId() == allocation.getOwnerId()) {
                             savePromotionUsage(conn, childOrderId, user.getUserId(),
-                                    allocation.getPromo(), allocation.getDiscountAmount());
+                                    allocation.getPromo(), allocation.getDiscountAmount(), claimedPromoIds);
                         }
                     }
                 }
 
                 orderDAO.updatePlatformFee(conn, parentOrderId, totalPlatformFee);
                 cartDAO.deleteItemsByCustomer(conn, user.getUserId(), request.getVariantIds());
+                initPaymentIfNeeded(conn, parentOrderId, paymentRequired, remoteAddress);
                 conn.commit();
             } catch (SQLException | RuntimeException ex) {
                 conn.rollback();
@@ -280,8 +285,6 @@ public class CheckoutService {
                 conn.setAutoCommit(true);
             }
         }
-
-        initPaymentIfNeeded(parentOrderId, paymentRequired, remoteAddress);
         notifyCustomerOrderCreated(user, parentOrderId, true);
         if (!paymentRequired || AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())) {
             sendShopPreparationNotifications(childOrderIdByOwner);
@@ -301,9 +304,11 @@ public class CheckoutService {
         if (request.getFullName() == null || request.getFullName().trim().length() < 3) {
             throw new IllegalArgumentException("Họ và tên người nhận phải từ 3 ký tự trở lên.");
         }
-        if (request.getPhone() == null || !request.getPhone().trim().matches(PHONE_REGEX)) {
+        String normalizedPhone = util.ValidationUtil.normalizePhone(request.getPhone());
+        if (!util.ValidationUtil.isValidPhone(normalizedPhone)) {
             throw new IllegalArgumentException("Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam gồm 10 chữ số).");
         }
+        request.setPhone(normalizedPhone);
         if (request.getDeliveryAddress() == null || request.getDeliveryAddress().trim().length() < 5) {
             throw new IllegalArgumentException("Địa chỉ giao hàng chi tiết phải từ 5 ký tự trở lên.");
         }
@@ -345,26 +350,29 @@ public class CheckoutService {
         }
     }
 
-    private void savePromotionUsage(Connection conn, int orderId, int customerId, Promotion promo, BigDecimal discount)
+    private void savePromotionUsage(Connection conn, int orderId, int customerId, Promotion promo,
+                                    BigDecimal discount, Set<Integer> claimedPromoIds)
             throws SQLException {
         if (promo == null || promo.getPromoId() <= 0 || discount == null || discount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
-        boolean claimed = promotionDAO.claimUsage(conn, promo.getPromoId());
-        if (!claimed) {
-            throw new IllegalStateException(
-                    "Mã giảm giá [" + promo.getCode() + "] đã hết lượt sử dụng. Đặt hàng bị hủy.");
+        if (claimedPromoIds == null || claimedPromoIds.add(promo.getPromoId())) {
+            boolean claimed = promotionDAO.claimUsage(conn, promo.getPromoId());
+            if (!claimed) {
+                throw new IllegalStateException(
+                        "Mã giảm giá [" + promo.getCode() + "] đã hết lượt sử dụng. Đặt hàng bị hủy.");
+            }
         }
         promotionDAO.saveOrderPromotion(conn, orderId, promo.getPromoId(), customerId, discount,
                 promo.getCode(), promo.getDiscountScope(), promotionService.resolveBenefitTarget(promo));
     }
 
-    private void initPaymentIfNeeded(int orderId, boolean paymentRequired, String remoteAddress) throws SQLException {
+    private void initPaymentIfNeeded(Connection conn, int orderId, boolean paymentRequired, String remoteAddress) throws SQLException {
         if (!paymentRequired) {
             return;
         }
         try {
-            paymentService.initPayment(orderId, "SEPAY", remoteAddress);
+            paymentService.initPayment(conn, orderId, "SEPAY", remoteAddress);
         } catch (SQLException ex) {
             LoggerUtil.warn(log, "Khong tao duoc payment transaction cho orderId=" + orderId, ex);
             throw ex;

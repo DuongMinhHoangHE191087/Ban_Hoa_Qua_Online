@@ -8,9 +8,15 @@ import dao.order.DeliveryTripDAO;
 import dao.order.OrderDAO;
 import dao.catalog.ProductDAO;
 import dao.catalog.ProductVariantDAO;
+import dao.shop.PromotionDAO;
 import dao.system.SystemConfigDAO;
 import dao.auth.UserDAO;
+import model.dto.checkout.CheckoutQuoteDTO;
+import model.dto.checkout.CheckoutResultDTO;
+import model.dto.checkout.CheckoutRequestDTO;
+import model.dto.checkout.CheckoutShopSummaryDTO;
 import model.dto.product.CartSummaryDTO;
+import model.entity.cart.CartItem;
 import model.entity.order.Delivery;
 import model.entity.order.DeliveryTrip;
 import model.entity.order.Order;
@@ -20,6 +26,7 @@ import model.entity.catalog.ProductVariant;
 import model.entity.auth.User;
 import model.entity.Promotion;
 import servlet.customer.cart.CheckoutServlet;
+import service.cart.CheckoutService;
 import service.order.DeliveryService;
 import service.cart.CartService;
 import service.cart.CheckoutPricingEngine;
@@ -36,6 +43,7 @@ import org.junit.Test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -70,6 +78,7 @@ public class CheckoutServletPricingRegressionTest {
     private final DeliveryService deliveryService = new DeliveryService();
     private final CartService cartService = new CartService();
     private final PaymentService paymentService = new PaymentService();
+    private final PromotionDAO promotionDAO = new PromotionDAO();
     private final PromotionService promotionService = new PromotionService();
 
     private MockHttpEnvironment env;
@@ -431,6 +440,263 @@ public class CheckoutServletPricingRegressionTest {
         assertEquals(0, order.getFinalAmount().compareTo(expectedFinalAmount));
         assertEquals(ownerAId, order.getOwnerId());
         assertEquals(AppConfig.PAYMENT_COD, order.getPaymentMethod());
+    }
+
+    @Test
+    public void paymentVoucherPersistsSystemDiscountAmountForSingleShopCheckout() throws Exception {
+        User customer = buildCustomer(customerId);
+        CheckoutRequestDTO request = new CheckoutRequestDTO();
+        request.setFullName("Checkout Customer");
+        request.setPhone(customerPhone);
+        request.setDeliveryAddress("123 Test Street, District 1");
+        request.setDeliveryTimeSlot("08:00-12:00");
+        request.setPaymentMethod(AppConfig.PAYMENT_CK);
+        request.setVariantIds(List.of(variantAId));
+
+        CartItem item = new CartItem();
+        item.setCartId(cartId);
+        item.setVariantId(variantAId);
+        item.setQuantity(1);
+        item.setProductId(productAId);
+        item.setProductName("Checkout Product A");
+        item.setVariantLabel("1kg");
+        item.setPrice(SHOP_ITEM_PRICE);
+        item.setWeightKg(BigDecimal.ONE);
+        item.setShopId(ownerAId);
+        item.setShopName("Checkout Shop A");
+
+        ProductVariant variant = new ProductVariant();
+        variant.setVariantId(variantAId);
+        variant.setProductId(productAId);
+        variant.setSku("CHK-SNAPSHOT-SINGLE");
+        variant.setVariantLabel("1kg");
+        variant.setPrice(SHOP_ITEM_PRICE);
+        variant.setStockQuantity(50);
+        variant.setIsActive(true);
+        variant.setWeightKg(BigDecimal.ONE);
+
+        CheckoutShopSummaryDTO summary = new CheckoutShopSummaryDTO();
+        summary.setOwnerId(ownerAId);
+        summary.setShopName("Checkout Shop A");
+        summary.setSubtotal(SHOP_ITEM_PRICE);
+        summary.setDeliveryFee(new BigDecimal("15000"));
+        summary.setAutomaticDiscountAmount(BigDecimal.ZERO);
+        summary.setShopMerchandiseDiscountAmount(BigDecimal.ZERO);
+        summary.setSystemMerchandiseDiscountAmount(BigDecimal.ZERO);
+        summary.setShopShippingDiscountAmount(BigDecimal.ZERO);
+        summary.setSystemShippingDiscountAmount(BigDecimal.ZERO);
+        summary.setPaymentDiscountAmount(new BigDecimal("8000"));
+        summary.setDiscountAmount(new BigDecimal("8000"));
+        summary.setFinalAmount(new BigDecimal("107000"));
+        summary.setEligibleCoupons(new java.util.ArrayList<>());
+        summary.setAppliedCoupons(new java.util.ArrayList<>());
+
+        CheckoutQuoteDTO quote = new CheckoutQuoteDTO();
+        quote.setValid(true);
+        quote.setShopCount(1);
+        quote.setSubtotal(SHOP_ITEM_PRICE);
+        quote.setDeliveryFee(new BigDecimal("15000"));
+        quote.setDirectSaleAmount(BigDecimal.ZERO);
+        quote.setShopDiscountAmount(BigDecimal.ZERO);
+        quote.setSystemDiscountAmount(new BigDecimal("8000"));
+        quote.setShippingDiscountAmount(BigDecimal.ZERO);
+        quote.setPaymentDiscountAmount(new BigDecimal("8000"));
+        quote.setDiscountAmount(new BigDecimal("8000"));
+        quote.setFinalAmount(new BigDecimal("107000"));
+        quote.setShopSummaries(List.of(summary));
+        quote.setAppliedCoupons(new java.util.ArrayList<>());
+        quote.setInvalidCoupons(new java.util.ArrayList<>());
+        quote.setEligibleSystemCoupons(new java.util.ArrayList<>());
+        quote.setWarnings(new java.util.ArrayList<>());
+        quote.setErrors(new java.util.ArrayList<>());
+
+        CheckoutPricingEngine.CheckoutPricingSnapshot snapshot = new CheckoutPricingEngine.CheckoutPricingSnapshot();
+        snapshot.setSingleOwnerId(ownerAId);
+        snapshot.setCheckoutItems(List.of(item));
+        snapshot.setVariantMap(Map.of(variantAId, variant));
+        snapshot.setItemsByOwner(Map.of(ownerAId, List.of(item)));
+        snapshot.setQuote(quote);
+        snapshot.setPromotionAllocations(new java.util.ArrayList<>());
+
+        CheckoutService checkoutService = new CheckoutService();
+        Method method = CheckoutService.class.getDeclaredMethod(
+                "placeSingleShopOrder",
+                User.class,
+                CheckoutRequestDTO.class,
+                CheckoutPricingEngine.CheckoutPricingSnapshot.class,
+                String.class,
+                boolean.class
+        );
+        method.setAccessible(true);
+        CheckoutResultDTO result = (CheckoutResultDTO) method.invoke(
+                checkoutService,
+                customer,
+                request,
+                snapshot,
+                "127.0.0.1",
+                true
+        );
+
+        assertNotNull(result);
+        assertTrue(result.getOrderId() > 0);
+        createdOrderId = result.getOrderId();
+
+        Order order = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(0, new BigDecimal("100000").compareTo(order.getTotalAmount()));
+        assertEquals(0, new BigDecimal("15000").compareTo(order.getDeliveryFee()));
+        assertEquals(0, new BigDecimal("8000").compareTo(order.getSystemDiscountAmount()));
+        assertEquals(0, new BigDecimal("8000").compareTo(order.getDiscountAmount()));
+        assertEquals(0, new BigDecimal("107000").compareTo(order.getFinalAmount()));
+        assertEquals(AppConfig.PAYMENT_CK, order.getPaymentMethod());
+    }
+
+    @Test
+    public void promotionClaimedOnceForMultiShopCheckout() throws Exception {
+        Promotion promo = promotionDAO.findAnyByCode(shopCouponCode);
+        assertNotNull(promo);
+        int usedCountBefore = promo.getUsedCount();
+
+        User customer = buildCustomer(customerId);
+        CheckoutRequestDTO request = new CheckoutRequestDTO();
+        request.setFullName("Checkout Customer");
+        request.setPhone(customerPhone);
+        request.setDeliveryAddress("123 Test Street, District 1");
+        request.setDeliveryTimeSlot("12:00-16:00");
+        request.setPaymentMethod(AppConfig.PAYMENT_COD);
+        request.setVariantIds(List.of(variantAId, variantBId));
+
+        CartItem itemA = new CartItem();
+        itemA.setCartId(cartId);
+        itemA.setVariantId(variantAId);
+        itemA.setQuantity(1);
+        itemA.setProductId(productAId);
+        itemA.setProductName("Checkout Product A");
+        itemA.setVariantLabel("1kg");
+        itemA.setPrice(SHOP_ITEM_PRICE);
+        itemA.setWeightKg(BigDecimal.ONE);
+        itemA.setShopId(ownerAId);
+        itemA.setShopName("Checkout Shop A");
+
+        CartItem itemB = new CartItem();
+        itemB.setCartId(cartId);
+        itemB.setVariantId(variantBId);
+        itemB.setQuantity(1);
+        itemB.setProductId(productBId);
+        itemB.setProductName("Checkout Product B");
+        itemB.setVariantLabel("1kg");
+        itemB.setPrice(new BigDecimal("80000"));
+        itemB.setWeightKg(BigDecimal.ONE);
+        itemB.setShopId(ownerBId);
+        itemB.setShopName("Checkout Shop B");
+
+        ProductVariant variantA = new ProductVariant();
+        variantA.setVariantId(variantAId);
+        variantA.setProductId(productAId);
+        variantA.setSku("CHK-SNAPSHOT-A");
+        variantA.setVariantLabel("1kg");
+        variantA.setPrice(SHOP_ITEM_PRICE);
+        variantA.setStockQuantity(50);
+        variantA.setIsActive(true);
+        variantA.setWeightKg(BigDecimal.ONE);
+
+        ProductVariant variantB = new ProductVariant();
+        variantB.setVariantId(variantBId);
+        variantB.setProductId(productBId);
+        variantB.setSku("CHK-SNAPSHOT-B");
+        variantB.setVariantLabel("1kg");
+        variantB.setPrice(new BigDecimal("80000"));
+        variantB.setStockQuantity(50);
+        variantB.setIsActive(true);
+        variantB.setWeightKg(BigDecimal.ONE);
+
+        CheckoutShopSummaryDTO summaryA = new CheckoutShopSummaryDTO();
+        summaryA.setOwnerId(ownerAId);
+        summaryA.setShopName("Checkout Shop A");
+        summaryA.setSubtotal(SHOP_ITEM_PRICE);
+        summaryA.setDeliveryFee(new BigDecimal("15000"));
+        summaryA.setAutomaticDiscountAmount(BigDecimal.ZERO);
+        summaryA.setShopMerchandiseDiscountAmount(BigDecimal.ZERO);
+        summaryA.setSystemMerchandiseDiscountAmount(new BigDecimal("1000"));
+        summaryA.setShopShippingDiscountAmount(BigDecimal.ZERO);
+        summaryA.setSystemShippingDiscountAmount(BigDecimal.ZERO);
+        summaryA.setPaymentDiscountAmount(BigDecimal.ZERO);
+        summaryA.setDiscountAmount(new BigDecimal("1000"));
+        summaryA.setFinalAmount(new BigDecimal("114000"));
+        summaryA.setEligibleCoupons(new java.util.ArrayList<>());
+        summaryA.setAppliedCoupons(new java.util.ArrayList<>());
+
+        CheckoutShopSummaryDTO summaryB = new CheckoutShopSummaryDTO();
+        summaryB.setOwnerId(ownerBId);
+        summaryB.setShopName("Checkout Shop B");
+        summaryB.setSubtotal(new BigDecimal("80000"));
+        summaryB.setDeliveryFee(new BigDecimal("15000"));
+        summaryB.setAutomaticDiscountAmount(BigDecimal.ZERO);
+        summaryB.setShopMerchandiseDiscountAmount(BigDecimal.ZERO);
+        summaryB.setSystemMerchandiseDiscountAmount(new BigDecimal("2000"));
+        summaryB.setShopShippingDiscountAmount(BigDecimal.ZERO);
+        summaryB.setSystemShippingDiscountAmount(BigDecimal.ZERO);
+        summaryB.setPaymentDiscountAmount(BigDecimal.ZERO);
+        summaryB.setDiscountAmount(new BigDecimal("2000"));
+        summaryB.setFinalAmount(new BigDecimal("93000"));
+        summaryB.setEligibleCoupons(new java.util.ArrayList<>());
+        summaryB.setAppliedCoupons(new java.util.ArrayList<>());
+
+        CheckoutQuoteDTO quote = new CheckoutQuoteDTO();
+        quote.setValid(true);
+        quote.setShopCount(2);
+        quote.setSubtotal(new BigDecimal("180000"));
+        quote.setDeliveryFee(new BigDecimal("30000"));
+        quote.setDirectSaleAmount(BigDecimal.ZERO);
+        quote.setShopDiscountAmount(BigDecimal.ZERO);
+        quote.setSystemDiscountAmount(new BigDecimal("3000"));
+        quote.setShippingDiscountAmount(BigDecimal.ZERO);
+        quote.setPaymentDiscountAmount(BigDecimal.ZERO);
+        quote.setDiscountAmount(new BigDecimal("3000"));
+        quote.setFinalAmount(new BigDecimal("207000"));
+        quote.setShopSummaries(List.of(summaryA, summaryB));
+        quote.setAppliedCoupons(new java.util.ArrayList<>());
+        quote.setInvalidCoupons(new java.util.ArrayList<>());
+        quote.setEligibleSystemCoupons(new java.util.ArrayList<>());
+        quote.setWarnings(new java.util.ArrayList<>());
+        quote.setErrors(new java.util.ArrayList<>());
+
+        CheckoutPricingEngine.CheckoutPricingSnapshot snapshot = new CheckoutPricingEngine.CheckoutPricingSnapshot();
+        snapshot.setSingleOwnerId(null);
+        snapshot.setCheckoutItems(List.of(itemA, itemB));
+        snapshot.setVariantMap(Map.of(variantAId, variantA, variantBId, variantB));
+        snapshot.setItemsByOwner(Map.of(ownerAId, List.of(itemA), ownerBId, List.of(itemB)));
+        snapshot.setQuote(quote);
+        snapshot.setPromotionAllocations(List.of(
+                new CheckoutPricingEngine.PromotionAllocation(promo, ownerAId, new BigDecimal("1000")),
+                new CheckoutPricingEngine.PromotionAllocation(promo, ownerBId, new BigDecimal("2000"))
+        ));
+
+        CheckoutService checkoutService = new CheckoutService();
+        Method method = CheckoutService.class.getDeclaredMethod(
+                "placeMultiShopOrder",
+                User.class,
+                CheckoutRequestDTO.class,
+                CheckoutPricingEngine.CheckoutPricingSnapshot.class,
+                String.class,
+                boolean.class
+        );
+        method.setAccessible(true);
+        CheckoutResultDTO result = (CheckoutResultDTO) method.invoke(
+                checkoutService,
+                customer,
+                request,
+                snapshot,
+                "127.0.0.1",
+                false
+        );
+
+        assertNotNull(result);
+        assertTrue(result.getOrderId() > 0);
+        createdOrderId = result.getOrderId();
+
+        Promotion updatedPromo = promotionDAO.findAnyByCode(shopCouponCode);
+        assertNotNull(updatedPromo);
+        assertEquals(usedCountBefore + 1, updatedPromo.getUsedCount());
     }
 
     @Test

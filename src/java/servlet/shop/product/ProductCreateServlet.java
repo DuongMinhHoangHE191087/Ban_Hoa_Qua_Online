@@ -32,6 +32,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import util.ErrorMessageUtil;
 
 /**
  * ProductCreateServlet — Servlet xử lý thêm mới sản phẩm và upload ảnh cho shop
@@ -262,7 +263,7 @@ public class ProductCreateServlet extends HttpServlet {
                 }
             }
         } catch (Exception e) {
-            errors.add("Lỗi đọc tệp tải lên: " + e.getMessage());
+            errors.add(ErrorMessageUtil.MSG_FILE_ERROR);
         }
 
         // 4. Nếu có lỗi, chuyển ngược lại form
@@ -438,11 +439,11 @@ public class ProductCreateServlet extends HttpServlet {
                         resp,
                         log,
                         "ProductCreateServlet#doPost",
-                        "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage(),
+                        "Lỗi hệ thống khi lưu sản phẩm.",
                         e);
                 return;
             }
-            SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi lưu sản phẩm: " + e.getMessage());
+            SessionUtil.flashError(session, ErrorMessageUtil.MSG_DB_ERROR);
             resp.sendRedirect(req.getContextPath() + "/shop/products");
         }
     }
