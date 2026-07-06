@@ -58,17 +58,23 @@ public class PaymentService {
     }
 
     public PaymentTransaction initPayment(int orderId, String method, String ipAddress) throws SQLException {
+        try (Connection conn = paymentDAO.openConnection()) {
+            return initPayment(conn, orderId, method, ipAddress);
+        }
+    }
+
+    public PaymentTransaction initPayment(Connection conn, int orderId, String method, String ipAddress) throws SQLException {
         if (orderId <= 0) {
             throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
         }
-        Order order = orderDAO.findOneById(orderId);
+        Order order = orderDAO.findOneById(conn, orderId);
         if (order == null) throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
 
         String reference = buildSepayReference(orderId);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
 
         int txId = paymentDAO.initTransaction(
-            orderId, method, order.getFinalAmount(),
+            conn, orderId, method, order.getFinalAmount(),
             reference, ipAddress, expiresAt
         );
 
