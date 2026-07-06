@@ -361,6 +361,7 @@ public class CheckoutPricingEngine {
         return null;
     }
 
+
     private void applyOwnerPromotion(CheckoutQuoteDTO quote,
                                      CheckoutShopSummaryDTO summary,
                                      Promotion promo,

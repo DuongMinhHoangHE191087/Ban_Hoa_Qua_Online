@@ -222,6 +222,21 @@
                         </label>
                     </div>
 
+                    <!-- Filter Tags -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-primary">Tag sản phẩm</label>
+                        <div class="space-y-1.5">
+                            <label class="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                                <input type="checkbox" id="organicFilter" class="text-primary focus:ring-primary rounded">
+                                <span>Hữu cơ (Organic)</span>
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-on-surface-variant cursor-pointer">
+                                <input type="checkbox" id="importedFilter" class="text-primary focus:ring-primary rounded">
+                                <span>Nhập khẩu (Imported)</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="pt-4 flex flex-col gap-2">
                         <button type="submit"
                                 class="w-full bg-primary hover:bg-primary-hover text-white text-xs font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer">
@@ -401,6 +416,8 @@
                 "soldQuantity": ${p.soldQuantity},
                 "categoryId": ${p.categoryId},
                 "inStock": ${p.inStock},
+                "isOrganic": ${p.isOrganic},
+                "isImported": ${p.isImported},
                 "image": "${p.image}",
                 "unit": "${fn:escapeXml(p.unit)}",
                 "variantId": ${not empty p.variantId ? p.variantId : 0},
@@ -536,6 +553,8 @@
         const minRating = checkedRating && checkedRating.value.trim() !== '' ? parseFloat(checkedRating.value) : 0;
         
         const inStockOnly = document.getElementById('inStockFilter')?.checked || false;
+        const organicOnly = document.getElementById('organicFilter')?.checked || false;
+        const importedOnly = document.getElementById('importedFilter')?.checked || false;
         const sortVal = document.getElementById('sortSelector')?.value || 'newest';
 
         // Check for AI filter
@@ -553,11 +572,15 @@
             const price = parseFloat(item.price) || 0;
             const rating = parseFloat(item.rating) || 0;
             const inStock = item.inStock;
+            const isOrganic = item.isOrganic;
+            const isImported = item.isImported;
             const productId = parseInt(item.productId) || 0;
 
             if (price < minPrice || price > maxPrice) return false;
             if (rating < minRating) return false;
             if (inStockOnly && !inStock) return false;
+            if (organicOnly && !isOrganic) return false;
+            if (importedOnly && !isImported) return false;
             if (aiFilteredIds && aiFilteredIds.length > 0 && !aiFilteredIds.includes(productId)) return false;
             return true;
         });
@@ -869,6 +892,20 @@
         const inStockFilter = document.getElementById('inStockFilter');
         if (inStockFilter) {
             inStockFilter.addEventListener('change', () => {
+                applyClientFilters();
+            });
+        }
+
+        const organicFilter = document.getElementById('organicFilter');
+        if (organicFilter) {
+            organicFilter.addEventListener('change', () => {
+                applyClientFilters();
+            });
+        }
+
+        const importedFilter = document.getElementById('importedFilter');
+        if (importedFilter) {
+            importedFilter.addEventListener('change', () => {
                 applyClientFilters();
             });
         }

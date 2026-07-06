@@ -2513,3 +2513,21 @@ SELECT
     (SELECT COUNT(*) FROM dbo.order_promotions WHERE usage_id BETWEEN 8001 AND 8008) AS seeded_order_promotions;
 
 
+-- Migration guard for settlement tracking columns
+IF COL_LENGTH('dbo.shop_settlements', 'confirmed_at') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD confirmed_at DATETIME NULL;
+    ALTER TABLE dbo.shop_settlements ADD confirmed_by INT NULL;
+    ALTER TABLE dbo.shop_settlements ADD confirm_note NVARCHAR(500) NULL;
+    ALTER TABLE dbo.shop_settlements ADD cancelled_at DATETIME NULL;
+    ALTER TABLE dbo.shop_settlements ADD cancelled_by INT NULL;
+    ALTER TABLE dbo.shop_settlements ADD cancel_reason NVARCHAR(500) NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_at DATETIME NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_by INT NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_reference NVARCHAR(100) NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_note NVARCHAR(500) NULL;
+    ALTER TABLE dbo.shop_settlements ADD CONSTRAINT FK_shop_settlements_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES dbo.users(user_id);
+    ALTER TABLE dbo.shop_settlements ADD CONSTRAINT FK_shop_settlements_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES dbo.users(user_id);
+    ALTER TABLE dbo.shop_settlements ADD CONSTRAINT FK_shop_settlements_paid_by FOREIGN KEY (paid_by) REFERENCES dbo.users(user_id);
+END
+GO
