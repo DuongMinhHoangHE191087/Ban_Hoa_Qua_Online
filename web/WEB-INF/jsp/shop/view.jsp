@@ -588,15 +588,10 @@
         });
     }
 
-    // Fake Add to Cart
+    // Chuyển hướng đến trang chi tiết để chọn phân loại trước khi thêm vào giỏ
     function addToCart(productId) {
-        Swal.fire({
-            icon: 'success',
-            title: 'Đã thêm vào giỏ!',
-            text: 'Sản phẩm đã được thêm vào giỏ hàng thành công.',
-            confirmButtonColor: '#14532D',
-            timer: 1500
-        });
+        const ctx = '${pageContext.request.contextPath}';
+        window.location.href = ctx + '/products/detail?id=' + productId;
     }
 
     // Initialize pagination on load
