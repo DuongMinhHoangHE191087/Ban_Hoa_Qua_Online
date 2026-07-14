@@ -146,6 +146,24 @@ public class PaymentServiceTest {
     }
 
     @Test
+    public void testRenewQrExpiredTransactionGeneratesFreshReference() throws Exception {
+        PaymentTransaction before = paymentDAO.findByOrder(testOrderId).get(0);
+        String oldReference = before.getSepayReference();
+        expireTransaction(testTransactionId);
+
+        PaymentTransaction renewed = paymentService.renewQr(testOrderId, testCustomerId);
+        assertNotNull(renewed);
+        assertNotNull(renewed.getSepayReference());
+        assertNotEquals(oldReference, renewed.getSepayReference());
+        assertTrue(renewed.getExpiresAt().isAfter(LocalDateTime.now()));
+        assertEquals("pending", renewed.getStatus());
+
+        PaymentTransaction persisted = paymentDAO.findByOrder(testOrderId).get(0);
+        assertEquals(renewed.getSepayReference(), persisted.getSepayReference());
+        assertTrue(persisted.getExpiresAt().isAfter(LocalDateTime.now()));
+    }
+
+    @Test
     public void testConfirmManualPaymentMovesTransactionToProcessing() throws Exception {
         boolean confirmed = paymentService.confirmManualPayment(testOrderId, testCustomerId);
         assertTrue(confirmed);
@@ -229,6 +247,24 @@ public class PaymentServiceTest {
         assertEquals("AMOUNT_MISMATCH", tx.getErrorCode());
     }
 
+    @Test
+    public void testProcessWebhookOverpaymentFailsTransaction() throws Exception {
+        String payload = "{"
+                + "\"id\": \"SEPAY_TX_OVERPAY\","
+                + "\"code\": \"TX" + testOrderId + "\","
+                + "\"transferType\": \"in\","
+                + "\"transferAmount\": \"130000.00\""
+                + "}";
+        PaymentService.WebhookProcessingResult result = paymentService.processWebhook(payload);
+        assertEquals("amount_mismatch", result.getOutcome());
+
+        PaymentTransaction tx = paymentDAO.findByOrder(testOrderId).get(0);
+        assertEquals("failed", tx.getStatus());
+        assertEquals("AMOUNT_MISMATCH", tx.getErrorCode());
+        assertNotNull(tx.getErrorMessage());
+        assertTrue(tx.getErrorMessage().contains("cao hơn"));
+    }
+
     private void hardDeletePayments(int orderId) throws SQLException {
         try (Connection conn = paymentDAO.openConnection();
              PreparedStatement ps1 = conn.prepareStatement("DELETE FROM payment_transactions WHERE order_id = ?");
@@ -256,6 +292,16 @@ public class PaymentServiceTest {
             ps1.executeUpdate();
             ps2.setInt(1, productId);
             ps2.executeUpdate();
+        }
+    }
+
+    private void expireTransaction(int transactionId) throws SQLException {
+        try (Connection conn = paymentDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE payment_transactions SET expires_at = ?, status = 'pending' WHERE transaction_id = ?")) {
+            ps.setTimestamp(1, java.sql.Timestamp.valueOf(LocalDateTime.now().minusMinutes(5)));
+            ps.setInt(2, transactionId);
+            ps.executeUpdate();
         }
     }
 }

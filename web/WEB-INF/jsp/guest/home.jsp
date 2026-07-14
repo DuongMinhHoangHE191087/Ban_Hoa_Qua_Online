@@ -1683,9 +1683,13 @@
                         // ============================================================
                         // UNIFIED ADD CART AJAX METHOD (COMMONS)
                         // ============================================================
-                        window.addCartItem = async function (variantId, quantity, name, price, imagePath, stockQuantity, productId) {
+                        window.addCartItem = async function (variantId, quantity, name, price, imagePath, stockQuantity, productId, packagingId) {
                             const isLoggedIn = window.isLoggedIn === true;
                             const contextPath = window.contextPath || '';
+                            const normalizedVariantId = Number.parseInt(variantId, 10);
+                            const normalizedPackagingId = typeof window.normalizePackagingId === 'function'
+                                ? window.normalizePackagingId(packagingId)
+                                : (Number.parseInt(packagingId, 10) > 0 ? Number.parseInt(packagingId, 10) : null);
 
                             // 1. Optimistic Update of Local Storage & Badge
                             let rollbackItems = null;
@@ -1693,39 +1697,45 @@
                                 if (isLoggedIn) {
                                     let items = JSON.parse(localStorage.getItem('userCart')) || [];
                                     rollbackItems = JSON.stringify(items);
-                                    const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+                                    const idx = typeof window.findCartItemIndexByVariantAndPackaging === 'function'
+                                        ? window.findCartItemIndexByVariantAndPackaging(items, normalizedVariantId, normalizedPackagingId)
+                                        : items.findIndex(i => i.variantId === normalizedVariantId && (Number.parseInt(i.packagingId, 10) > 0 ? Number.parseInt(i.packagingId, 10) : null) === normalizedPackagingId);
                                     if (idx >= 0) {
-                                        items[idx].quantity += parseInt(quantity);
+                                        items[idx].quantity += Number.parseInt(quantity, 10);
                                     } else {
                                         items.push({
                                             cartItemId: -1,
-                                            variantId: parseInt(variantId),
+                                            variantId: normalizedVariantId,
                                             productName: name.split(' - ')[0],
                                             variantLabel: name.split(' - ')[1] || 'Mặc định',
                                             price: parseFloat(price),
                                             weightKg: 1.0,
-                                            quantity: parseInt(quantity),
+                                            quantity: Number.parseInt(quantity, 10),
                                             imagePath: imagePath || 'assets/img/placeholder.png',
-                                            stockQuantity: parseInt(stockQuantity) || 0,
-                                            productId: parseInt(productId) || null
+                                            stockQuantity: Number.parseInt(stockQuantity, 10) || 0,
+                                            productId: Number.parseInt(productId, 10) || null,
+                                            packagingId: normalizedPackagingId
                                         });
                                     }
                                     localStorage.setItem('userCart', JSON.stringify(items));
                                 } else {
                                     let items = JSON.parse(localStorage.getItem('guestCart')) || [];
                                     rollbackItems = JSON.stringify(items);
-                                    const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+                                    const idx = typeof window.findCartItemIndexByVariantAndPackaging === 'function'
+                                        ? window.findCartItemIndexByVariantAndPackaging(items, normalizedVariantId, normalizedPackagingId)
+                                        : items.findIndex(i => i.variantId === normalizedVariantId && (Number.parseInt(i.packagingId, 10) > 0 ? Number.parseInt(i.packagingId, 10) : null) === normalizedPackagingId);
                                     if (idx >= 0) {
-                                        items[idx].quantity += parseInt(quantity);
+                                        items[idx].quantity += Number.parseInt(quantity, 10);
                                     } else {
                                         items.push({
-                                            variantId: parseInt(variantId),
+                                            variantId: normalizedVariantId,
                                             name: name,
                                             price: parseFloat(price),
-                                            quantity: parseInt(quantity),
+                                            quantity: Number.parseInt(quantity, 10),
                                             imagePath: imagePath || 'assets/img/placeholder.png',
-                                            stockQuantity: parseInt(stockQuantity) || 0,
-                                            productId: parseInt(productId) || null
+                                            stockQuantity: Number.parseInt(stockQuantity, 10) || 0,
+                                            productId: Number.parseInt(productId, 10) || null,
+                                            packagingId: normalizedPackagingId
                                         });
                                     }
                                     localStorage.setItem('guestCart', JSON.stringify(items));
@@ -1754,13 +1764,18 @@
                             }
 
                             // 2. Perform Backend Request Asynchronously
+                            let requestBody = `variantId=\${normalizedVariantId}&quantity=\${quantity}&_csrf=\${window.csrfToken || ''}`;
+                            if (normalizedPackagingId) {
+                                requestBody += `&packagingId=\${normalizedPackagingId}`;
+                            }
+
                             fetch(`\${contextPath}/cart?action=add`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/x-www-form-urlencoded',
                                     'X-Requested-With': 'XMLHttpRequest'
                                 },
-                                body: `variantId=\${variantId}&quantity=\${quantity}&_csrf=\${window.csrfToken || ''}`
+                                body: requestBody
                             })
                                 .then(response => {
                                     const contentType = response.headers.get("content-type");
@@ -1791,7 +1806,12 @@
                                             quantity: item.quantity,
                                             imagePath: item.imagePath,
                                             stockQuantity: item.stockQuantity,
-                                            productId: item.productId
+                                            productId: item.productId,
+                                            packagingId: typeof window.normalizePackagingId === 'function'
+                                                ? window.normalizePackagingId(item.packagingId)
+                                                : (Number.parseInt(item.packagingId, 10) > 0 ? Number.parseInt(item.packagingId, 10) : null),
+                                            packagingLabel: item.packagingLabel ?? null,
+                                            packagingPriceAdd: item.packagingPriceAdd ?? null
                                         }));
                                         localStorage.setItem('userCart', JSON.stringify(mappedItems));
                                         if (window.updateCardAddedQuantities) {

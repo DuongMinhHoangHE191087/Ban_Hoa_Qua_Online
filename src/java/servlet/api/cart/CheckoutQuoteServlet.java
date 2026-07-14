@@ -86,6 +86,7 @@ public class CheckoutQuoteServlet extends HttpServlet {
         }
 
         CheckoutQuoteRequestDTO request = new CheckoutQuoteRequestDTO();
+        request.setCartItemIds(parseSelectionIds(req.getParameter("cartItemIds"), req.getParameter("variantIds")));
         request.setVariantIds(parseVariantIds(req.getParameter("variantIds")));
         request.setDeliveryAddress(req.getParameter("deliveryAddress"));
         request.setDeliveryTimeSlot(req.getParameter("deliveryTimeSlot"));
@@ -149,6 +150,32 @@ public class CheckoutQuoteServlet extends HttpServlet {
             }
         }
         return variantIds;
+    }
+
+    private List<Integer> parseSelectionIds(String primaryParam, String fallbackParam) {
+        List<Integer> ids = parseIdList(primaryParam);
+        if (!ids.isEmpty()) {
+            return ids;
+        }
+        return parseIdList(fallbackParam);
+    }
+
+    private List<Integer> parseIdList(String idsParam) {
+        List<Integer> ids = new ArrayList<>();
+        if (idsParam == null || idsParam.trim().isEmpty()) {
+            return ids;
+        }
+        for (String part : idsParam.split(",")) {
+            try {
+                int parsed = Integer.parseInt(part.trim());
+                if (parsed > 0) {
+                    ids.add(parsed);
+                }
+            } catch (NumberFormatException ignored) {
+                // Bỏ qua giá trị không hợp lệ để engine xử lý danh sách còn lại.
+            }
+        }
+        return ids;
     }
 
     private String resolveCsrfToken(HttpServletRequest req) {

@@ -179,7 +179,7 @@ public class ChatDAO extends BaseDAO {
      * Tạo session mới với session_type (SHOP hoặc ADMIN).
      */
     /**
-     * Láº¥y session theo trang cho Admin sidebar.
+     * Lấy session theo trang cho Admin sidebar.
      */
     public List<ChatSession> findAllSessions(int page, int pageSize) throws SQLException {
         List<ChatSession> list = new ArrayList<>();
@@ -197,7 +197,7 @@ public class ChatDAO extends BaseDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     ChatSession cs = mapRow(rs);
-                    cs.setPartnerName(rs.getString("customer_name") + " â†” " + rs.getString("partner_name"));
+                    cs.setPartnerName(rs.getString("customer_name") + " ↔ " + rs.getString("partner_name"));
                     list.add(cs);
                 }
             }
@@ -206,7 +206,7 @@ public class ChatDAO extends BaseDAO {
     }
 
     /**
-     * Äáº¿m tá»•ng session â€” dÃ¹ng cho phÃ¢n trang Admin.
+     * Đếm tổng session — dùng cho phân trang Admin.
      */
     public int countAllSessions() throws SQLException {
         String sql = "SELECT COUNT(*) FROM chat_sessions";

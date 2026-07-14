@@ -1047,10 +1047,25 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id')
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id' AND object_id = OBJECT_ID(N'dbo.cart_items'))
 BEGIN
-    CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_id
-        ON dbo.cart_items (cart_id, variant_id);
+    DROP INDEX UX_cart_items_cart_id_variant_id ON dbo.cart_items;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_packaging_notnull' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+BEGIN
+    CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_packaging_notnull
+        ON dbo.cart_items (cart_id, variant_id, packaging_id)
+        WHERE packaging_id IS NOT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_no_packaging' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+BEGIN
+    CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_no_packaging
+        ON dbo.cart_items (cart_id, variant_id)
+        WHERE packaging_id IS NULL;
 END
 GO
 

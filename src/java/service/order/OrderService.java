@@ -15,6 +15,7 @@ import model.entity.cart.Cart;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
 import model.entity.auth.User;
+import model.entity.shop.PaymentTransaction;
 import util.LoggerUtil;
 import util.PaginationUtil;
 import java.math.BigDecimal;
@@ -382,6 +383,12 @@ public class OrderService {
                 for (OrderItem item : items) {
                     if (item.getVariantId() != null) {
                         inventoryService.release(conn, item.getVariantId(), item.getQuantity(), orderId, cancelledBy);
+                    }
+                }
+                if (AppConfig.ORDER_PENDING_PAYMENT.equals(currentOrder.getStatus())) {
+                    PaymentTransaction paymentTx = paymentDAO.findOneByOrder(conn, orderId);
+                    if (paymentTx != null) {
+                        paymentDAO.updateStatus(conn, paymentTx.getTransactionId(), "expired", null, null);
                     }
                 }
                 conn.commit();

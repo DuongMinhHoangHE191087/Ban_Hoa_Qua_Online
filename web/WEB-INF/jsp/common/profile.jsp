@@ -163,7 +163,7 @@
         </div>
     </c:if>
 
-    <div class="flex flex-col lg:flex-row gap-8">
+    <div class="flex flex-col lg:flex-row lg:items-start gap-8">
         
         <!-- Sidebar Navigation -->
         <aside class="w-full lg:w-64 shrink-0">
@@ -332,7 +332,7 @@
         </aside>
 
         <!-- Main Content Area -->
-        <main class="flex-1">
+        <main class="flex-1 min-w-0">
             
             <!-- 1. Profile Info Tab -->
             <div id="profile-tab" class="tab-content bg-white border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm">

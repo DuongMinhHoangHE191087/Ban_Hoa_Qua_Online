@@ -45,6 +45,7 @@ function getCartStockDisplayText(stockState) {
 const CartPage = {
     isLoggedIn: false,
     contextPath: '',
+    skipNextUnloadSync: false,
     userCartKey: 'userCart', // Key lưu giỏ hàng của user đã đăng nhập ở Local Storage
     selectedVariantKey: 'cartSelectedVariantIds',
     productVariantsCache: {},
@@ -147,14 +148,45 @@ const CartPage = {
         if (badge) badge.textContent = totalQty;
     },
 
+    buildSelectionKey(cartItemId, variantId, packagingId) {
+        if (typeof window.buildCartItemSelectionKeyFromParts === 'function') {
+            return window.buildCartItemSelectionKeyFromParts(cartItemId, variantId, packagingId);
+        }
+        const normalizedCartItemId = parseInt(cartItemId, 10);
+        if (Number.isInteger(normalizedCartItemId) && normalizedCartItemId > 0) {
+            return `cart:${normalizedCartItemId}`;
+        }
+        const normalizedVariantId = parseInt(variantId, 10);
+        const normalizedPackagingId = parseInt(packagingId, 10);
+        const packagingKey = Number.isInteger(normalizedPackagingId) && normalizedPackagingId > 0 ? normalizedPackagingId : 'none';
+        return `guest:${normalizedVariantId}:${packagingKey}`;
+    },
+
+    getSelectionKeyFromItem(item) {
+        return this.buildSelectionKey(item?.cartItemId, item?.variantId, item?.packagingId);
+    },
+
+    getSelectionKeyFromRow(row) {
+        if (!row) return '';
+        return row.getAttribute('data-selection-key')
+            || this.buildSelectionKey(row.getAttribute('data-item-id'), row.getAttribute('data-variant-id'), row.getAttribute('data-packaging-id'));
+    },
+
+    getCheckedCartItemIdsFromDom() {
+        return Array.from(document.querySelectorAll('.chk-item:checked'))
+            .filter(chk => !chk.disabled && chk.closest('.cart-item-row')?.getAttribute('data-stock-blocked') !== 'true')
+            .map(chk => parseInt(chk.closest('.cart-item-row')?.getAttribute('data-item-id'), 10))
+            .filter(id => Number.isInteger(id) && id > 0);
+    },
+
     /**
      * Lưu danh sách variant đang được chọn để giữ state qua các lần re-render.
      */
     saveSelectedVariantIds(variantIds) {
         try {
             const uniqueIds = Array.from(new Set((variantIds || [])
-                .map(id => parseInt(id, 10))
-                .filter(id => Number.isInteger(id) && id > 0)));
+                .map(id => String(id).trim())
+                .filter(id => id.length > 0)));
             localStorage.setItem(this.selectedVariantKey, JSON.stringify(uniqueIds));
         } catch {
             // Không chặn luồng checkout nếu localStorage không ghi được.
@@ -171,8 +203,8 @@ const CartPage = {
             const parsed = JSON.parse(raw);
             if (!Array.isArray(parsed)) return [];
             return parsed
-                .map(id => parseInt(id, 10))
-                .filter(id => Number.isInteger(id) && id > 0);
+                .map(id => String(id).trim())
+                .filter(id => id.length > 0);
         } catch {
             return [];
         }
@@ -184,8 +216,8 @@ const CartPage = {
     getCheckedVariantIdsFromDom() {
         return Array.from(document.querySelectorAll('.chk-item:checked'))
             .filter(chk => !chk.disabled && chk.closest('.cart-item-row')?.getAttribute('data-stock-blocked') !== 'true')
-            .map(chk => parseInt(chk.getAttribute('data-variant-id'), 10))
-            .filter(id => Number.isInteger(id) && id > 0);
+            .map(chk => this.getSelectionKeyFromRow(chk.closest('.cart-item-row')))
+            .filter(key => key && key.length > 0);
     },
 
     /**
@@ -196,12 +228,13 @@ const CartPage = {
         const persistedIds = this.getPersistedSelectedVariantIds();
         const hasPersistedState = persistedIds.length > 0;
         const selectedSet = hasPersistedState ? new Set(persistedIds) : null;
-        const selectableIds = new Set(this.getSelectableVariantIds(items));
+        const resolvedSelectionKeys = [];
 
         document.querySelectorAll('.cart-item-row').forEach(row => {
             const chk = row.querySelector('.chk-item');
             if (!chk) return;
-            const variantId = parseInt(chk.getAttribute('data-variant-id'), 10);
+            const itemKey = this.getSelectionKeyFromRow(row);
+            const legacyKey = this.buildSelectionKey(null, row.getAttribute('data-variant-id'), row.getAttribute('data-packaging-id'));
             const stockQuantity = readStockQuantity(row.getAttribute('data-stock-quantity'), 0);
             const requestedQuantity = readStockQuantity(row.getAttribute('data-requested-quantity'), 0);
             const stockState = buildCartStockState(stockQuantity, requestedQuantity);
@@ -214,13 +247,19 @@ const CartPage = {
             row.classList.toggle('bg-amber-50/60', stockState.overLimit);
             row.classList.toggle('border-amber-200', stockState.overLimit);
 
-            if (!Number.isInteger(variantId) || variantId <= 0) {
+            if (!itemKey) {
                 chk.checked = false;
                 chk.disabled = true;
                 return;
             }
             chk.disabled = stockState.blocked;
-            chk.checked = stockState.blocked ? false : (selectedSet ? selectedSet.has(variantId) : true);
+            const isSelected = stockState.blocked
+                ? false
+                : (selectedSet ? (selectedSet.has(itemKey) || selectedSet.has(legacyKey)) : true);
+            chk.checked = isSelected;
+            if (isSelected && !stockState.blocked) {
+                resolvedSelectionKeys.push(itemKey);
+            }
 
             const qtyInput = row.querySelector('.input-qty');
             const minusBtn = row.querySelector('.btn-qty-minus');
@@ -241,10 +280,7 @@ const CartPage = {
             }
         });
 
-        const effectiveSelection = hasPersistedState
-            ? persistedIds.filter(id => selectableIds.has(id))
-            : Array.from(selectableIds);
-        this.saveSelectedVariantIds(effectiveSelection);
+        this.saveSelectedVariantIds(resolvedSelectionKeys);
         this.syncCartSelectionControls();
     },
 
@@ -269,14 +305,14 @@ const CartPage = {
     getSelectableVariantIds(items) {
         return (items || [])
             .map(item => {
-                const variantId = parseInt(item.variantId, 10);
-                if (!Number.isInteger(variantId) || variantId <= 0) {
+                const key = this.getSelectionKeyFromItem(item);
+                if (!key) {
                     return null;
                 }
                 const stockState = buildCartStockState(item.stockQuantity, item.quantity);
-                return stockState.blocked ? null : variantId;
+                return stockState.blocked ? null : key;
             })
-            .filter(id => Number.isInteger(id) && id > 0);
+            .filter(key => key && key.length > 0);
     },
 
     hasBlockingStockIssues(items) {
@@ -333,23 +369,27 @@ const CartPage = {
         const btnCheckout = document.getElementById('btn-cart-checkout');
         if (!btnCheckout) return;
 
-        const checkedVariantIds = this.getCheckedVariantIdsFromDom();
-        const checkedVariantSet = new Set(checkedVariantIds);
+        const checkedSelectionKeys = this.getCheckedVariantIdsFromDom();
+        const checkedSelectionSet = new Set(checkedSelectionKeys);
+        const checkedCartItemIds = this.getCheckedCartItemIdsFromDom();
         const selectedItems = (items || []).filter(item => {
-            const variantId = parseInt(item.variantId, 10);
-            return Number.isInteger(variantId) && variantId > 0 && checkedVariantSet.has(variantId);
+            const itemKey = this.getSelectionKeyFromItem(item);
+            return itemKey && checkedSelectionSet.has(itemKey);
         });
         const hasBlockingStockIssues = selectedItems.some(item => buildCartStockState(item.stockQuantity, item.quantity).blocked);
-        const shouldDisable = checkedVariantIds.length === 0 || hasBlockingStockIssues;
+        const shouldDisable = checkedSelectionKeys.length === 0 || checkedCartItemIds.length === 0 || hasBlockingStockIssues;
 
         btnCheckout.disabled = shouldDisable;
         btnCheckout.classList.toggle('opacity-50', shouldDisable);
         btnCheckout.classList.toggle('cursor-not-allowed', shouldDisable);
         btnCheckout.title = hasBlockingStockIssues
             ? 'Vui lòng xử lý các sản phẩm hết hàng trước khi thanh toán.'
-            : (checkedVariantIds.length === 0
+            : (checkedSelectionKeys.length === 0
                 ? 'Vui lòng chọn ít nhất một sản phẩm để thanh toán.'
-                : '');
+                : (checkedCartItemIds.length === 0
+                    ? 'Vui lòng tải lại giỏ hàng để hoàn tất đồng bộ trước khi thanh toán.'
+                    : '')
+                );
     },
 
     /**
@@ -415,13 +455,27 @@ const CartPage = {
      */
     registerUnloadSync() {
         window.addEventListener('beforeunload', () => {
+            if (this.skipNextUnloadSync) {
+                this.skipNextUnloadSync = false;
+                return;
+            }
             if (this.isLoggedIn) {
                 const localItems = this.getUserCartFromLocal().map(i => ({
                     variantId: i.variantId,
-                    quantity: i.quantity
+                    quantity: i.quantity,
+                    packagingId: i.packagingId ?? null
                 }));
-                const blob = new Blob([JSON.stringify({ items: localItems })], { type: 'application/json' });
-                navigator.sendBeacon(`${this.contextPath}/cart?action=syncOnUnload`, blob);
+                fetch(`${this.contextPath}/cart?action=syncOnUnload`, {
+                    method: 'POST',
+                    keepalive: true,
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': window.csrfToken || ''
+                    },
+                    body: JSON.stringify({ items: localItems })
+                }).catch(() => {});
             }
         });
     },
@@ -480,8 +534,10 @@ const CartPage = {
                 const row = btn.closest('.cart-item-row');
                 const cartItemId = btn.getAttribute('data-id');
                 const variantId = btn.getAttribute('data-variant-id');
+                const packagingId = btn.getAttribute('data-packaging-id');
+                const selectionKey = btn.getAttribute('data-selection-key') || this.getSelectionKeyFromRow(row);
                 
-                this.handleRemoveItem(row, cartItemId, parseInt(variantId));
+                this.handleRemoveItem(row, cartItemId, parseInt(variantId), packagingId, selectionKey);
             }
         });
 
@@ -580,6 +636,9 @@ const CartPage = {
                 const oldVariantId = parseInt(target.getAttribute('data-current-variant-id'));
                 const newVariantId = parseInt(target.value);
                 const productId = target.getAttribute('data-product-id');
+                const row = target.closest('.cart-item-row');
+                const currentSelectionKey = this.getSelectionKeyFromRow(row);
+                const packagingId = row ? row.getAttribute('data-packaging-id') : null;
 
                 if (oldVariantId === newVariantId) return;
 
@@ -599,7 +658,6 @@ const CartPage = {
                 }
 
                 let localItems = this.getCurrentLocalItems();
-                const row = target.closest('.cart-item-row');
                 const rowCheckbox = row ? row.querySelector('.chk-item') : null;
                 const wasChecked = rowCheckbox ? rowCheckbox.checked : false;
                 const quantityInput = row.querySelector('.input-qty');
@@ -621,9 +679,20 @@ const CartPage = {
                         });
                         const data = await this.safeParseJSON(response);
                         if (data.success) {
-                            const selectedVariantIds = this.getPersistedSelectedVariantIds().filter(id => id !== oldVariantId);
+                            const selectionItems = Array.isArray(data?.data?.cartSummary?.items)
+                                ? data.data.cartSummary.items
+                                : [];
+                            const targetItem = selectionItems.find(item => {
+                                const itemPackagingId = item?.packagingId ?? null;
+                                return parseInt(item.variantId, 10) === newVariantId
+                                    && String(itemPackagingId ?? '') === String(packagingId ?? '');
+                            });
+                            const targetSelectionKey = targetItem
+                                ? this.getSelectionKeyFromItem(targetItem)
+                                : currentSelectionKey;
+                            const selectedVariantIds = this.getPersistedSelectedVariantIds().filter(id => id !== currentSelectionKey);
                             if (wasChecked) {
-                                selectedVariantIds.push(newVariantId);
+                                selectedVariantIds.push(targetSelectionKey);
                             }
                             this.saveSelectedVariantIds(selectedVariantIds);
                             this.showToast('Đã đổi phân loại thành công!', 'success');
@@ -639,8 +708,9 @@ const CartPage = {
                         target.value = oldVariantId;
                     }
                 } else {
-                    const existingIdx = localItems.findIndex(i => i.variantId === newVariantId);
-                    const currentIdx = localItems.findIndex(i => i.variantId === oldVariantId);
+                    const targetSelectionKey = this.buildSelectionKey(null, newVariantId, packagingId);
+                    const existingIdx = localItems.findIndex(i => this.getSelectionKeyFromItem(i) === targetSelectionKey);
+                    const currentIdx = localItems.findIndex(i => this.getSelectionKeyFromItem(i) === currentSelectionKey);
 
                     if (existingIdx >= 0 && existingIdx !== currentIdx) {
                         let newQty = localItems[currentIdx].quantity + localItems[existingIdx].quantity;
@@ -655,12 +725,15 @@ const CartPage = {
                             price: newVariant.price,
                             weightKg: newVariant.weightKg || 1.0,
                             quantity: qty,
-                            stockQuantity: newVariant.stockQuantity
+                            stockQuantity: newVariant.stockQuantity,
+                            packagingId: typeof window.normalizePackagingId === 'function'
+                                ? window.normalizePackagingId(packagingId)
+                                : (parseInt(packagingId, 10) > 0 ? parseInt(packagingId, 10) : null)
                         };
                     }
-                    const selectedVariantIds = this.getPersistedSelectedVariantIds().filter(id => id !== oldVariantId);
+                    const selectedVariantIds = this.getPersistedSelectedVariantIds().filter(id => id !== currentSelectionKey);
                     if (wasChecked) {
-                        selectedVariantIds.push(newVariantId);
+                        selectedVariantIds.push(targetSelectionKey);
                     }
                     this.saveSelectedVariantIds(selectedVariantIds);
                     GuestCart.save(localItems);
@@ -686,15 +759,15 @@ const CartPage = {
     async handleQuantityChange(element, quantity) {
         const row = element.closest('.cart-item-row');
         const cartItemId = row.getAttribute('data-item-id');
-        const variantId = parseInt(row.getAttribute('data-variant-id'));
+        const selectionKey = this.getSelectionKeyFromRow(row);
 
         // Cập nhật Local Storage tức thì
         let localItems = this.getCurrentLocalItems();
         if (this.isLoggedIn) {
-            localItems = localItems.map(i => i.cartItemId == cartItemId ? { ...i, quantity } : i);
+            localItems = localItems.map(i => this.getSelectionKeyFromItem(i) === selectionKey ? { ...i, quantity } : i);
             this.saveUserCartToLocal(localItems);
         } else {
-            localItems = localItems.map(i => i.variantId == variantId ? { ...i, quantity } : i);
+            localItems = localItems.map(i => this.getSelectionKeyFromItem(i) === selectionKey ? { ...i, quantity } : i);
             GuestCart.save(localItems);
         }
 
@@ -738,6 +811,8 @@ const CartPage = {
      * Xử lý xóa sản phẩm khỏi giỏ hàng
      */
     async handleRemoveItem(row, cartItemId, variantId) {
+        const selectionKey = this.getSelectionKeyFromRow(row);
+        const packagingId = row?.getAttribute('data-packaging-id');
         // Thực hiện micro-animation xóa ở client: mờ dần và co lại trước khi biến mất
         row.classList.add('removing-item');
         
@@ -747,10 +822,10 @@ const CartPage = {
             // Cập nhật Local Storage
             let localItems = this.getCurrentLocalItems();
             if (this.isLoggedIn) {
-                localItems = localItems.filter(i => i.cartItemId != cartItemId);
+                localItems = localItems.filter(i => this.getSelectionKeyFromItem(i) !== selectionKey);
                 this.saveUserCartToLocal(localItems);
             } else {
-                localItems = localItems.filter(i => i.variantId != variantId);
+                localItems = localItems.filter(i => this.getSelectionKeyFromItem(i) !== selectionKey);
                 GuestCart.save(localItems);
             }
 
@@ -793,13 +868,13 @@ const CartPage = {
         let totalGrams = 0;
         let checkedCount = 0;
 
-        const checkedVariantIds = this.getCheckedVariantIdsFromDom();
-        const checkedVariantSet = new Set(checkedVariantIds);
-        this.saveSelectedVariantIds(checkedVariantIds);
+        const checkedSelectionKeys = this.getCheckedVariantIdsFromDom();
+        const checkedSelectionSet = new Set(checkedSelectionKeys);
+        this.saveSelectedVariantIds(checkedSelectionKeys);
         
         items.forEach(item => {
-            const itemVariantId = parseInt(item.variantId, 10);
-            const isChecked = Number.isInteger(itemVariantId) && checkedVariantSet.has(itemVariantId);
+            const itemKey = this.getSelectionKeyFromItem(item);
+            const isChecked = itemKey && checkedSelectionSet.has(itemKey);
             if (isChecked) {
                 const price = parseFloat(item.price) || 0;
                 const packagingPriceAdd = parseFloat(item.packagingPriceAdd) || 0;
@@ -1022,16 +1097,18 @@ const CartPage = {
                         ? 'border-amber-200 bg-amber-50 text-amber-700'
                         : 'border-emerald-200 bg-emerald-50 text-emerald-700';
                 const stockDisplayText = getCartStockDisplayText(stockState);
+                const selectionKey = this.getSelectionKeyFromItem(item);
+                const packagingId = item.packagingId ?? '';
 
                 const productLinkHtml = item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== ''
                     ? `<a href="${this.contextPath}/products/detail?id=${item.productId}" class="font-headline-md text-headline-md text-inverse-surface font-bold text-lg text-dark hover:underline hover:text-primary transition-all">${productName}</a>`
                     : `${productName}`;
 
                 html += `
-                    <article class="flex flex-row gap-md items-center cart-item-row ${rowClass}" data-item-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}" data-shop-id="${group.shopId}" data-stock-quantity="${stockQuantity}" data-requested-quantity="${item.quantity}" data-stock-blocked="${stockState.blocked ? 'true' : 'false'}">
+                    <article class="flex flex-row gap-md items-center cart-item-row ${rowClass}" data-item-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}" data-packaging-id="${packagingId}" data-selection-key="${selectionKey}" data-shop-id="${group.shopId}" data-stock-quantity="${stockQuantity}" data-requested-quantity="${item.quantity}" data-stock-blocked="${stockState.blocked ? 'true' : 'false'}">
                         <!-- Checkbox từng mặt hàng -->
                         <div class="flex items-center shrink-0 pr-2">
-                            <input type="checkbox" class="chk-item rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer ${stockState.blocked ? 'opacity-50 cursor-not-allowed' : ''}" data-variant-id="${item.variantId}" data-item-id="${item.cartItemId || ''}" data-shop-id="${group.shopId}" ${stockState.blocked ? 'disabled' : 'checked'}>
+                            <input type="checkbox" class="chk-item rounded text-primary focus:ring-primary w-5 h-5 border-[#BBF7D0] bg-[#eaffea] cursor-pointer ${stockState.blocked ? 'opacity-50 cursor-not-allowed' : ''}" data-selection-key="${selectionKey}" data-variant-id="${item.variantId}" data-item-id="${item.cartItemId || ''}" data-packaging-id="${packagingId}" data-shop-id="${group.shopId}" ${stockState.blocked ? 'disabled' : 'checked'}>
                         </div>
                         
                         <img alt="${productName}" class="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover flex-shrink-0 border border-white/30" src="${imgUrl}">
@@ -1043,7 +1120,7 @@ const CartPage = {
                                         Phân loại: 
                                         ${item.productId && item.productId !== 'undefined' && item.productId !== 'null' && item.productId !== '' ? `
                                         <span class="inline-block relative">
-                                            <select class="cart-variant-select bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-xs border border-secondary/20 font-semibold cursor-pointer focus:ring-1 focus:ring-primary outline-none py-0 pr-8" data-item-id="${item.cartItemId || ''}" data-current-variant-id="${item.variantId}" data-product-id="${item.productId}">
+                                            <select class="cart-variant-select bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded text-xs border border-secondary/20 font-semibold cursor-pointer focus:ring-1 focus:ring-primary outline-none py-0 pr-8" data-item-id="${item.cartItemId || ''}" data-selection-key="${selectionKey}" data-current-variant-id="${item.variantId}" data-product-id="${item.productId}">
                                                 <option value="${item.variantId}" selected>${variantLabel} - ${CurrencyFmt.format(item.price)}</option>
                                             </select>
                                         </span>
@@ -1081,7 +1158,7 @@ const CartPage = {
                                 </div>
                                 
                                 <!-- Nút xóa sản phẩm với micro-animation -->
-                                <button class="flex items-center gap-xs text-error hover:text-on-error-container transition-colors group btn-remove-item" data-id="${item.cartItemId || ''}" data-variant-id="${item.variantId}">
+                                <button class="flex items-center gap-xs text-error hover:text-on-error-container transition-colors group btn-remove-item" data-id="${item.cartItemId || ''}" data-selection-key="${selectionKey}" data-variant-id="${item.variantId}" data-packaging-id="${packagingId}">
                                     <span class="material-symbols-outlined text-lg group-hover:scale-110 transition-transform">delete</span>
                                     <span class="font-label-md text-label-md hidden sm:inline ml-1 font-semibold text-sm">Xóa</span>
                                 </button>
@@ -1151,13 +1228,19 @@ const CartPage = {
             return;
         }
 
-        const checkedVariantIds = this.getCheckedVariantIdsFromDom();
-        if (checkedVariantIds.length === 0) {
+        const checkedSelectionKeys = this.getCheckedVariantIdsFromDom();
+        if (checkedSelectionKeys.length === 0) {
             this.showToast('Vui lòng chọn ít nhất một sản phẩm để thanh toán!', 'warning');
             return;
         }
 
-        const variantIds = checkedVariantIds.join(',');
+        const cartItemIds = this.getCheckedCartItemIdsFromDom();
+        if (cartItemIds.length === 0) {
+            this.showToast('Chỉ các dòng giỏ hàng đã đồng bộ mới có thể thanh toán. Vui lòng tải lại giỏ hàng.', 'warning');
+            return;
+        }
+
+        const cartItemIdsParam = cartItemIds.join(',');
         const btnCheckout = document.getElementById('btn-cart-checkout');
         const spinner = btnCheckout.querySelector('.checkout-spinner');
         
@@ -1173,13 +1256,14 @@ const CartPage = {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-Token': window.csrfToken || ''
                 },
-                body: new URLSearchParams({ variantIds }).toString()
+                body: new URLSearchParams({ cartItemIds: cartItemIdsParam, variantIds: cartItemIdsParam }).toString()
             });
             const data = await this.safeParseJSON(response);
             
             if (data.success) {
                 console.log('[CartPage] Stock double-check success. Proceeding to checkout.');
-                window.location.href = `${this.contextPath}/checkout?variantIds=${encodeURIComponent(variantIds)}`;
+                this.skipNextUnloadSync = true;
+                window.location.href = `${this.contextPath}/checkout?cartItemIds=${encodeURIComponent(cartItemIdsParam)}`;
             } else {
                 const errors = Array.isArray(data.meta?.errors)
                     ? data.meta.errors

@@ -68,7 +68,9 @@ public class CartDAO extends BaseDAO {
     }
 
     public Cart addItem(int cartId, int variantId, int quantity, Integer packagingId) throws SQLException {
-        String selectSql = "SELECT cart_item_id, quantity FROM cart_items WHERE cart_id = ? AND variant_id = ? AND (packaging_id = ? OR (packaging_id IS NULL AND ? IS NULL))";
+        String selectSql = packagingId != null
+                ? "SELECT cart_item_id, quantity FROM cart_items WHERE cart_id = ? AND variant_id = ? AND packaging_id = ?"
+                : "SELECT cart_item_id, quantity FROM cart_items WHERE cart_id = ? AND variant_id = ? AND packaging_id IS NULL";
         int existingCartItemId = -1;
         int existingQuantity = 0;
         try (Connection conn = getConnection();
@@ -77,10 +79,6 @@ public class CartDAO extends BaseDAO {
             ps.setInt(2, variantId);
             if (packagingId != null) {
                 ps.setInt(3, packagingId);
-                ps.setInt(4, packagingId);
-            } else {
-                ps.setNull(3, Types.INTEGER);
-                ps.setNull(4, Types.INTEGER);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -199,6 +197,28 @@ public class CartDAO extends BaseDAO {
         }
     }
 
+    public void deleteItemsByCustomerByCartItemIds(Connection conn, int customerId, List<Integer> cartItemIds) throws SQLException {
+        if (cartItemIds == null || cartItemIds.isEmpty()) {
+            return;
+        }
+        StringBuilder sql = new StringBuilder(
+                "DELETE FROM cart_items WHERE cart_id = (SELECT cart_id FROM cart WHERE customer_id = ?) AND cart_item_id IN (");
+        for (int i = 0; i < cartItemIds.size(); i++) {
+            sql.append("?");
+            if (i < cartItemIds.size() - 1) {
+                sql.append(",");
+            }
+        }
+        sql.append(")");
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setInt(1, customerId);
+            for (int i = 0; i < cartItemIds.size(); i++) {
+                ps.setInt(i + 2, cartItemIds.get(i));
+            }
+            ps.executeUpdate();
+        }
+    }
+
     /**
      * Lấy danh sách sản phẩm trong giỏ hàng.
      */
@@ -213,7 +233,7 @@ public class CartDAO extends BaseDAO {
                    + "JOIN products p ON pv.product_id = p.product_id "
                    + "LEFT JOIN shop_owner_profiles sop ON p.owner_id = sop.user_id "
                    + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
-                   + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id "
+                   + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id AND ppo.product_id = pv.product_id "
                    + "WHERE ci.cart_id = ? ORDER BY ci.added_at DESC";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -254,7 +274,7 @@ public class CartDAO extends BaseDAO {
                    + "JOIN products p ON pv.product_id = p.product_id "
                    + "LEFT JOIN shop_owner_profiles sop ON p.owner_id = sop.user_id "
                    + "LEFT JOIN product_images pi ON p.product_id = pi.product_id AND pi.is_primary = 1 "
-                   + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id "
+                   + "LEFT JOIN product_packaging_options ppo ON ci.packaging_id = ppo.packaging_id AND ppo.product_id = pv.product_id "
                    + "WHERE ci.cart_item_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -349,7 +369,7 @@ public class CartDAO extends BaseDAO {
      */
     public void replaceCartItems(int cartId, List<CartItem> items) throws SQLException {
         String deleteSql = "DELETE FROM cart_items WHERE cart_id = ?";
-        String insertSql = "INSERT INTO cart_items (cart_id, variant_id, quantity, added_at) VALUES (?, ?, ?, GETDATE())";
+        String insertSql = "INSERT INTO cart_items (cart_id, variant_id, quantity, packaging_id, added_at) VALUES (?, ?, ?, ?, GETDATE())";
         
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -367,6 +387,11 @@ public class CartDAO extends BaseDAO {
                             psInsert.setInt(1, cartId);
                             psInsert.setInt(2, item.getVariantId());
                             psInsert.setInt(3, item.getQuantity());
+                            if (item.getPackagingId() != null) {
+                                psInsert.setInt(4, item.getPackagingId());
+                            } else {
+                                psInsert.setNull(4, Types.INTEGER);
+                            }
                             psInsert.addBatch();
                         }
                         psInsert.executeBatch();
