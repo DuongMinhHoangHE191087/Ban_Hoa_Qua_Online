@@ -1,5 +1,6 @@
 package service.auth;
 
+import exception.BusinessException;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -127,7 +128,7 @@ public class AuthService {
      */
     public model.entity.auth.User login(String identifier, String password) throws SQLException, Exception {
         if (!ValidationUtil.notBlank(identifier)) {
-            throw new Exception("Email hoặc số điện thoại không được để trống.");
+            throw new BusinessException("AUTH_IDENTIFIER_REQUIRED", "Email hoặc số điện thoại không được để trống.");
         }
 
         String cleanIdentifier = identifier.trim();
@@ -138,13 +139,13 @@ public class AuthService {
         User user = userDAO.findByLoginIdentifier(cleanIdentifier);
         if (user == null) {
             // Generic message — không tiết lộ sự tồn tại của tài khoản (anti-enumeration, SEC-03)
-            throw new Exception("Email hoặc mật khẩu không chính xác.");
+            throw new BusinessException("AUTH_INVALID_CREDENTIALS", "Email hoặc mật khẩu không chính xác.");
         }
 
         // 1. Kiểm tra tài khoản có bị khóa hay không
         if (user.getLockedUntil() != null && LocalDateTime.now().isBefore(user.getLockedUntil())) {
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
-            throw new Exception("Tài khoản đang bị khóa tạm thời do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau: " 
+            throw new BusinessException("AUTH_ACCOUNT_LOCKED", "Tài khoản đang bị khóa tạm thời do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau: "
                 + user.getLockedUntil().format(dtf));
         }
 
@@ -158,10 +159,10 @@ public class AuthService {
                 LocalDateTime lockTime = LocalDateTime.now().plusMinutes(AppConfig.LOCK_DURATION_MINUTES);
                 userDAO.lockAccount(user.getUserId(), lockTime);
                 DateTimeFormatter dtf2 = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
-                throw new Exception("Tài khoản đã bị khóa tạm thời. Vui lòng thử lại sau: " + lockTime.format(dtf2));
+                throw new BusinessException("AUTH_ACCOUNT_LOCKED", "Tài khoản đã bị khóa tạm thời. Vui lòng thử lại sau: " + lockTime.format(dtf2));
             }
             // Generic message — không tiết lộ số lần còn lại (anti-enumeration, SEC-03)
-            throw new Exception("Email hoặc mật khẩu không chính xác.");
+            throw new BusinessException("AUTH_INVALID_CREDENTIALS", "Email hoặc mật khẩu không chính xác.");
         }
 
         if (!AppConfig.ACCOUNT_STATUS_ACTIVE.equals(user.getStatus())) {
@@ -169,12 +170,12 @@ public class AuthService {
                 throw new VerificationRequiredException(user.getEmail(), "Tài khoản chưa được xác minh. Vui lòng nhập mã code để kích hoạt tài khoản.");
             }
             if (AppConfig.ACCOUNT_STATUS_SUSPENDED.equals(user.getStatus())) {
-                throw new Exception("Tài khoản đã bị đình chỉ bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.");
+                throw new BusinessException("AUTH_ACCOUNT_SUSPENDED", "Tài khoản đã bị đình chỉ bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.");
             }
             if (AppConfig.ACCOUNT_STATUS_LOCKED.equals(user.getStatus())) {
-                throw new Exception("Tài khoản đang bị khóa tạm thời do hệ thống. Vui lòng thử lại sau khi hệ thống mở khóa.");
+                throw new BusinessException("AUTH_ACCOUNT_LOCKED", "Tài khoản đang bị khóa tạm thời do hệ thống. Vui lòng thử lại sau khi hệ thống mở khóa.");
             }
-            throw new Exception("Tài khoản không thể đăng nhập ở trạng thái hiện tại.");
+            throw new BusinessException("AUTH_ACCOUNT_UNAVAILABLE", "Tài khoản không thể đăng nhập ở trạng thái hiện tại.");
         }
 
         if (!user.isEmailVerified()) {

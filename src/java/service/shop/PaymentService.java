@@ -539,11 +539,6 @@ public class PaymentService {
 
         BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
         if (received.compareTo(expected) != 0) {
-            String mismatchMessage = received.compareTo(expected) > 0
-                    ? "Số tiền nhận được cao hơn số tiền đơn hàng."
-                    : "Số tiền nhận được thấp hơn số tiền đơn hàng.";
-            paymentDAO.updateStatusFailed(conn, tx.getTransactionId(), "AMOUNT_MISMATCH",
-                    mismatchMessage);
             paymentDAO.updateDedupResult(conn, sepayTxId, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
                 expected, received, tx.getOrderId());

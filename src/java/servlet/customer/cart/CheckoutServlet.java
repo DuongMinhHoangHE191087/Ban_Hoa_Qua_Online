@@ -93,7 +93,7 @@ public class CheckoutServlet extends HttpServlet {
         try {
             CheckoutViewData viewData = checkoutService.buildCheckoutView(
                     user,
-                    parseSelectionIds(req.getParameter("cartItemIds"), req.getParameter("variantIds")));
+                    parseSelectionIds(req.getParameter("cartItemIds")));
             req.setAttribute("userAddresses", viewData.getUserAddresses());
             req.setAttribute("cartSummary", viewData.getCartSummary());
             req.setAttribute("userAddress", user.getUserAddress());
@@ -355,7 +355,7 @@ public class CheckoutServlet extends HttpServlet {
         request.setShopCouponCode(req.getParameter("shopCouponCode"));
         request.setSystemCouponCode(req.getParameter("systemCouponCode"));
         request.setCartItemIds(parseIdList(req.getParameter("cartItemIds")));
-        request.setVariantIds(parseSelectionIds(req.getParameter("variantIds"), null));
+        request.setVariantIds(parseIdList(req.getParameter("variantIds")));
         request.setSaveAddressToBook("true".equals(req.getParameter("saveAddressToBook")));
         return request;
     }
@@ -384,12 +384,8 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    private List<Integer> parseSelectionIds(String primaryParam, String fallbackParam) {
-        List<Integer> ids = parseIdList(primaryParam);
-        if (!ids.isEmpty()) {
-            return ids;
-        }
-        return parseIdList(fallbackParam);
+    private List<Integer> parseSelectionIds(String cartItemIdsParam) {
+        return parseIdList(cartItemIdsParam);
     }
 
     private List<Integer> parseIdList(String idsParam) {

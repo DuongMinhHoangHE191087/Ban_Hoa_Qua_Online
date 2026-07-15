@@ -901,6 +901,44 @@ public class CheckoutServletPricingRegressionTest {
     }
 
     @Test
+    public void autoCancelExpiredConfirmedBankTransferCancelsBeforeRefund() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "12:00-16:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_CK);
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        PaymentTransaction paymentTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        String webhookPayload = "{"
+                + "\"id\":\"confirmed-timeout-" + System.currentTimeMillis() + "\","
+                + "\"code\":\"" + paymentTransaction.getSepayReference() + "\","
+                + "\"transferType\":\"in\","
+                + "\"transferAmount\":\"" + paymentTransaction.getAmount().toPlainString() + "\""
+                + "}";
+        assertEquals("processed", paymentService.processWebhook(webhookPayload).getOutcome());
+
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE orders SET shop_acceptance_deadline = DATEADD(minute, -1, GETDATE()) WHERE order_id = ?")) {
+            ps.setInt(1, createdOrderId);
+            ps.executeUpdate();
+        }
+
+        new OrderService().autoCancelUnacceptedOrders();
+
+        Order cancelledOrder = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_CANCELLED, cancelledOrder.getStatus());
+        assertEquals("REFUNDED", cancelledOrder.getRefundStatus());
+        assertEquals("refunded", paymentService.getPaymentByOrder(createdOrderId).getStatus());
+    }
+
+    @Test
     public void sepayWebhookConfirmsOrderWithGeneratedReferenceAndPaymentViewMatchesQr() throws Exception {
         env.clearRequestState();
         env.putParam("_csrf", CSRF_TOKEN);

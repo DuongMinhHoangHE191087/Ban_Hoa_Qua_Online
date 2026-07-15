@@ -86,7 +86,7 @@ public class CheckoutQuoteServlet extends HttpServlet {
         }
 
         CheckoutQuoteRequestDTO request = new CheckoutQuoteRequestDTO();
-        request.setCartItemIds(parseSelectionIds(req.getParameter("cartItemIds"), req.getParameter("variantIds")));
+        request.setCartItemIds(parseSelectionIds(req.getParameter("cartItemIds")));
         request.setVariantIds(parseVariantIds(req.getParameter("variantIds")));
         request.setDeliveryAddress(req.getParameter("deliveryAddress"));
         request.setDeliveryTimeSlot(req.getParameter("deliveryTimeSlot"));
@@ -152,12 +152,8 @@ public class CheckoutQuoteServlet extends HttpServlet {
         return variantIds;
     }
 
-    private List<Integer> parseSelectionIds(String primaryParam, String fallbackParam) {
-        List<Integer> ids = parseIdList(primaryParam);
-        if (!ids.isEmpty()) {
-            return ids;
-        }
-        return parseIdList(fallbackParam);
+    private List<Integer> parseSelectionIds(String cartItemIdsParam) {
+        return parseIdList(cartItemIdsParam);
     }
 
     private List<Integer> parseIdList(String idsParam) {

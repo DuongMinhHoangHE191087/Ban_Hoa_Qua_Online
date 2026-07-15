@@ -243,8 +243,17 @@ public class PaymentServiceTest {
         assertEquals("amount_mismatch", result.getOutcome());
 
         PaymentTransaction tx = paymentDAO.findByOrder(testOrderId).get(0);
-        assertEquals("failed", tx.getStatus());
-        assertEquals("AMOUNT_MISMATCH", tx.getErrorCode());
+        assertEquals("pending", tx.getStatus());
+
+        String correctedPayload = "{"
+                + "\"id\": \"SEPAY_TX_MISMATCH_CORRECTED\","
+                + "\"code\": \"TX" + testOrderId + "\","
+                + "\"transferType\": \"in\","
+                + "\"transferAmount\": \"120000.00\""
+                + "}";
+        PaymentService.WebhookProcessingResult correctedResult = paymentService.processWebhook(correctedPayload);
+        assertEquals("processed", correctedResult.getOutcome());
+        assertEquals("completed", paymentDAO.findByOrder(testOrderId).get(0).getStatus());
     }
 
     @Test
@@ -259,10 +268,7 @@ public class PaymentServiceTest {
         assertEquals("amount_mismatch", result.getOutcome());
 
         PaymentTransaction tx = paymentDAO.findByOrder(testOrderId).get(0);
-        assertEquals("failed", tx.getStatus());
-        assertEquals("AMOUNT_MISMATCH", tx.getErrorCode());
-        assertNotNull(tx.getErrorMessage());
-        assertTrue(tx.getErrorMessage().contains("cao hơn"));
+        assertEquals("pending", tx.getStatus());
     }
 
     private void hardDeletePayments(int orderId) throws SQLException {
