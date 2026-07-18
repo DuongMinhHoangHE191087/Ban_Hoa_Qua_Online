@@ -15,6 +15,7 @@ import model.entity.cart.Cart;
 import model.entity.order.Order;
 import model.entity.order.OrderItem;
 import model.entity.auth.User;
+import model.entity.shop.PaymentTransaction;
 import util.LoggerUtil;
 import util.PaginationUtil;
 import java.math.BigDecimal;
@@ -261,9 +262,9 @@ public class OrderService {
                     int ownerId = rs.getInt("owner_id");
                     String paymentMethod = rs.getString("payment_method");
 
-                    cancelOrderBySystem(orderId, "Quá 30 phút cửa hàng không nhận đơn. Hệ thống tự động hủy.");
+                    boolean cancelled = cancelOrderBySystem(orderId, "Quá 30 phút cửa hàng không nhận đơn. Hệ thống tự động hủy.");
 
-                    if (AppConfig.PAYMENT_CK.equals(paymentMethod)) {
+                    if (cancelled && AppConfig.PAYMENT_CK.equals(paymentMethod)) {
                         orderDAO.updateRefundStatus(orderId, "REFUNDED");
                         var txList = paymentDAO.findByOrder(orderId);
                         if (!txList.isEmpty()) {
@@ -323,8 +324,9 @@ public class OrderService {
         List<Order> orders = orderDAO.findOpenByOwner(ownerId);
         for (Order order : orders) {
             if (isSystemCancelableOrder(order)) {
-                cancelOrderBySystem(order.getOrderId(), reason);
-                cancelledCount++;
+                if (cancelOrderBySystem(order.getOrderId(), reason)) {
+                    cancelledCount++;
+                }
             }
         }
         return cancelledCount;
@@ -343,23 +345,23 @@ public class OrderService {
      * Only used by trusted background jobs (AutoCancelUnpaidListener).
      * Marks the order CANCELLED and releases reserved stock through the same path as manual cancel.
      */
-    public void cancelOrderBySystem(int orderId, String reason) throws SQLException {
+    public boolean cancelOrderBySystem(int orderId, String reason) throws SQLException {
         Order order = getOrderDetail(orderId);
         if (order == null) {
             LoggerUtil.warn(log, "cancelOrderBySystem: orderId=%d not found, skipping.", orderId);
-            return;
+            return false;
         }
         if (!isSystemCancelableOrder(order)) {
-            return;
+            return false;
         }
-        cancelOrderAndReleaseStock(order, 1, reason, true);
+        return cancelOrderAndReleaseStock(order, 1, reason, true);
     }
 
-    private void cancelOrderAndReleaseStock(Order currentOrder, int cancelledBy, String reason, boolean skipMissingOrTerminal)
+    private boolean cancelOrderAndReleaseStock(Order currentOrder, int cancelledBy, String reason, boolean skipMissingOrTerminal)
             throws SQLException {
         if (currentOrder == null) {
             if (skipMissingOrTerminal) {
-                return;
+                return false;
             }
             throw new IllegalArgumentException("Đơn hàng không tồn tại!");
         }
@@ -372,7 +374,7 @@ public class OrderService {
                         || AppConfig.ORDER_DELIVERED.equals(currentOrder.getStatus())) {
                     conn.rollback();
                     if (skipMissingOrTerminal) {
-                        return;
+                        return false;
                     }
                     throw new RuntimeException("Đơn hàng đã giao hoặc đã hủy, không thể hủy thêm!");
                 }
@@ -384,7 +386,14 @@ public class OrderService {
                         inventoryService.release(conn, item.getVariantId(), item.getQuantity(), orderId, cancelledBy);
                     }
                 }
+                if (AppConfig.ORDER_PENDING_PAYMENT.equals(currentOrder.getStatus())) {
+                    PaymentTransaction paymentTx = paymentDAO.findOneByOrder(conn, orderId);
+                    if (paymentTx != null) {
+                        paymentDAO.updateStatus(conn, paymentTx.getTransactionId(), "expired", null, null);
+                    }
+                }
                 conn.commit();
+                return true;
             } catch (SQLException | RuntimeException ex) {
                 conn.rollback();
                 throw ex;
@@ -404,6 +413,9 @@ public class OrderService {
         }
         if (AppConfig.ORDER_PENDING_PAYMENT.equals(status)) {
             return true;
+        }
+        if (AppConfig.PAYMENT_CK.equalsIgnoreCase(order.getPaymentMethod())) {
+            return AppConfig.ORDER_CONFIRMED.equals(status);
         }
         if (!AppConfig.PAYMENT_COD.equalsIgnoreCase(order.getPaymentMethod())) {
             return false;

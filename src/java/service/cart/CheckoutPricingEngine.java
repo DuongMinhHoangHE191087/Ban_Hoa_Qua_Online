@@ -55,17 +55,23 @@ public class CheckoutPricingEngine {
         return buildQuote(user, request, false);
     }
 
+    public CheckoutPricingSnapshot buildCartItemSelectionQuote(User user, List<Integer> requestedCartItemIds)
+            throws SQLException {
+        CheckoutQuoteRequestDTO request = new CheckoutQuoteRequestDTO();
+        request.setCartItemIds(requestedCartItemIds);
+        return buildQuote(user, request, false);
+    }
+
     public CheckoutPricingSnapshot buildQuote(User user, CheckoutQuoteRequestDTO request, boolean validateStock)
             throws SQLException {
         CartSummaryDTO cartSummary = cartService.getCart(user.getUserId());
         if (cartSummary.getItems().isEmpty()) {
             throw new IllegalStateException("Giỏ hàng của bạn đang trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
         }
-        if (request == null || request.getVariantIds() == null || request.getVariantIds().isEmpty()) {
-            throw new IllegalStateException("Danh sách sản phẩm chọn thanh toán đang trống.");
-        }
-
-        List<CartItem> checkoutItems = filterCheckoutItems(cartSummary.getItems(), request.getVariantIds());
+        List<CartItem> checkoutItems = filterCheckoutItems(
+                cartSummary.getItems(),
+                request != null ? request.getCartItemIds() : null,
+                request != null ? request.getVariantIds() : null);
         Map<Integer, ProductVariant> variantMap = loadVariantMap(checkoutItems);
         Map<Integer, List<CartItem>> itemsByOwner = groupItemsByOwnerId(checkoutItems, variantMap);
         LinkedHashMap<Integer, CheckoutShopSummaryDTO> summariesByOwner = new LinkedHashMap<>();
@@ -716,21 +722,48 @@ public class CheckoutPricingEngine {
         quote.setValid(quote.getErrors().isEmpty());
     }
 
-    private List<CartItem> filterCheckoutItems(List<CartItem> items, List<Integer> variantIds) {
+    private List<CartItem> filterCheckoutItems(List<CartItem> items,
+                                              List<Integer> cartItemIds,
+                                              List<Integer> variantIds) {
         if (items == null || items.isEmpty()) {
             throw new IllegalStateException("Giỏ hàng trống hoặc đơn hàng đang được xử lý.");
         }
-        Set<Integer> selectedIds = new HashSet<>(variantIds);
+        Set<Integer> selectedCartItemIds = normalizePositiveIdSet(cartItemIds);
+        Set<Integer> selectedVariantIds = normalizePositiveIdSet(variantIds);
+        boolean selectByCartItemId = !selectedCartItemIds.isEmpty();
+        if (!selectByCartItemId && selectedVariantIds.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách dòng thanh toán đang trống.");
+        }
+
         List<CartItem> checkoutItems = new ArrayList<>();
         for (CartItem item : items) {
-            if (selectedIds.contains(item.getVariantId())) {
+            if (selectByCartItemId) {
+                if (selectedCartItemIds.contains(item.getCartItemId())) {
+                    checkoutItems.add(item);
+                }
+            } else if (selectedVariantIds.contains(item.getVariantId())) {
                 checkoutItems.add(item);
             }
         }
         if (checkoutItems.isEmpty()) {
-            throw new IllegalArgumentException("Không tìm thấy sản phẩm nào để thanh toán.");
+            throw new IllegalArgumentException(selectByCartItemId
+                    ? "Không tìm thấy dòng giỏ hàng nào để thanh toán."
+                    : "Không tìm thấy sản phẩm nào để thanh toán.");
         }
         return checkoutItems;
+    }
+
+    private Set<Integer> normalizePositiveIdSet(List<Integer> ids) {
+        Set<Integer> normalized = new HashSet<>();
+        if (ids == null) {
+            return normalized;
+        }
+        for (Integer id : ids) {
+            if (id != null && id > 0) {
+                normalized.add(id);
+            }
+        }
+        return normalized;
     }
 
     private Map<Integer, ProductVariant> loadVariantMap(List<CartItem> checkoutItems) throws SQLException {

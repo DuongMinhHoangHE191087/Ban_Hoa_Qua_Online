@@ -68,8 +68,8 @@ public class CheckoutService {
     private final EmailService emailService = new EmailService();
     private final CheckoutPricingEngine pricingEngine = new CheckoutPricingEngine();
 
-    public CheckoutViewData buildCheckoutView(User user, List<Integer> requestedVariantIds) throws SQLException {
-        CheckoutPricingEngine.CheckoutPricingSnapshot snapshot = pricingEngine.buildSelectionQuote(user, requestedVariantIds);
+    public CheckoutViewData buildCheckoutView(User user, List<Integer> requestedCartItemIds) throws SQLException {
+        CheckoutPricingEngine.CheckoutPricingSnapshot snapshot = pricingEngine.buildCartItemSelectionQuote(user, requestedCartItemIds);
         CheckoutQuoteDTO quote = snapshot.getQuote();
 
         CheckoutViewData viewData = new CheckoutViewData();
@@ -136,7 +136,7 @@ public class CheckoutService {
                     ? placeMultiShopOrder(user, request, snapshot, remoteAddress, paymentRequired)
                     : placeSingleShopOrder(user, request, snapshot, remoteAddress, paymentRequired);
 
-            result.setPurgedVariantIds(buildPurgedVariantIds(snapshot.getCheckoutItems()));
+            result.setPurgedCartItemIds(buildPurgedCartItemIds(snapshot.getCheckoutItems()));
             return result;
         } finally {
             lock.unlock();
@@ -189,7 +189,7 @@ public class CheckoutService {
                             allocation.getPromo(), allocation.getDiscountAmount(), claimedPromoIds);
                 }
 
-                cartDAO.deleteItemsByCustomer(conn, user.getUserId(), request.getVariantIds());
+                cartDAO.deleteItemsByCustomerByCartItemIds(conn, user.getUserId(), extractCartItemIds(snapshot.getCheckoutItems()));
                 initPaymentIfNeeded(conn, orderId, paymentRequired, remoteAddress);
                 conn.commit();
             } catch (SQLException | RuntimeException ex) {
@@ -275,7 +275,7 @@ public class CheckoutService {
                 }
 
                 orderDAO.updatePlatformFee(conn, parentOrderId, totalPlatformFee);
-                cartDAO.deleteItemsByCustomer(conn, user.getUserId(), request.getVariantIds());
+                cartDAO.deleteItemsByCustomerByCartItemIds(conn, user.getUserId(), extractCartItemIds(snapshot.getCheckoutItems()));
                 initPaymentIfNeeded(conn, parentOrderId, paymentRequired, remoteAddress);
                 conn.commit();
             } catch (SQLException | RuntimeException ex) {
@@ -315,7 +315,8 @@ public class CheckoutService {
         if (request.getDeliveryTimeSlot() == null || request.getDeliveryTimeSlot().trim().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng chọn khung giờ giao hàng.");
         }
-        if (request.getVariantIds() == null || request.getVariantIds().isEmpty()) {
+        boolean hasSelection = hasPositiveIds(request.getCartItemIds()) || hasPositiveIds(request.getVariantIds());
+        if (!hasSelection) {
             throw new IllegalArgumentException("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
         }
         if (!AppConfig.PAYMENT_COD.equals(request.getPaymentMethod())
@@ -326,6 +327,7 @@ public class CheckoutService {
 
     private CheckoutQuoteRequestDTO toQuoteRequest(CheckoutRequestDTO request) {
         CheckoutQuoteRequestDTO quoteRequest = new CheckoutQuoteRequestDTO();
+        quoteRequest.setCartItemIds(request.getCartItemIds());
         quoteRequest.setVariantIds(request.getVariantIds());
         quoteRequest.setDeliveryAddress(request.getDeliveryAddress());
         quoteRequest.setDeliveryTimeSlot(request.getDeliveryTimeSlot());
@@ -468,15 +470,48 @@ public class CheckoutService {
                 && finalAmount.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    private String buildPurgedVariantIds(List<CartItem> checkoutItems) {
+    private String buildPurgedCartItemIds(List<CartItem> checkoutItems) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < checkoutItems.size(); i++) {
-            builder.append(checkoutItems.get(i).getVariantId());
+            CartItem item = checkoutItems.get(i);
+            int cartItemId = item.getCartItemId();
+            builder.append(cartItemId > 0 ? cartItemId : item.getVariantId());
             if (i < checkoutItems.size() - 1) {
                 builder.append(",");
             }
         }
         return builder.toString();
+    }
+
+    private List<Integer> extractCartItemIds(List<CartItem> checkoutItems) {
+        List<Integer> cartItemIds = new ArrayList<>();
+        if (checkoutItems == null) {
+            return cartItemIds;
+        }
+        for (CartItem item : checkoutItems) {
+            if (item == null) {
+                continue;
+            }
+            int cartItemId = item.getCartItemId();
+            if (cartItemId > 0) {
+                cartItemIds.add(cartItemId);
+            } else if (item.getVariantId() > 0) {
+                cartItemIds.add(item.getVariantId());
+            }
+        }
+        return cartItemIds;
+    }
+
+    private boolean hasPositiveIds(List<Integer> ids) {
+        if (ids == null) {
+            return false;
+        }
+        for (Integer id : ids) {
+            if (id != null && id > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String normalizeNullable(String value) {

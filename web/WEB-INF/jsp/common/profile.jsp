@@ -163,7 +163,7 @@
         </div>
     </c:if>
 
-    <div class="flex flex-col lg:flex-row gap-8">
+    <div class="flex flex-col lg:flex-row lg:items-start gap-8">
         
         <!-- Sidebar Navigation -->
         <aside class="w-full lg:w-64 shrink-0">

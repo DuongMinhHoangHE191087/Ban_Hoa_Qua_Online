@@ -204,8 +204,10 @@ public class CartServlet extends HttpServlet {
                         return;
                     }
 
-                    List<Integer> variantIds = parseVariantIds(req.getParameter("variantIds"));
-                    List<String> errors = cartService.checkCartStockBeforeCheckout(user.getUserId(), variantIds);
+                    List<Integer> cartItemIds = parseSelectionIds(req.getParameter("cartItemIds"));
+                    List<String> errors = !cartItemIds.isEmpty()
+                            ? cartService.checkCartStockBeforeCheckoutByCartItemIds(user.getUserId(), cartItemIds)
+                            : cartService.checkCartStockBeforeCheckout(user.getUserId(), parseVariantIds(req.getParameter("variantIds")));
                     if (errors.isEmpty()) {
                         JsonUtil.writeJson(resp, ApiResponse.ok(null));
                     } else {
@@ -321,6 +323,28 @@ public class CartServlet extends HttpServlet {
             }
         }
         return variantIds;
+    }
+
+    private List<Integer> parseSelectionIds(String cartItemIdsParam) {
+        return parseIdList(cartItemIdsParam);
+    }
+
+    private List<Integer> parseIdList(String idsParam) {
+        List<Integer> ids = new ArrayList<>();
+        if (idsParam == null || idsParam.trim().isEmpty()) {
+            return ids;
+        }
+        for (String part : idsParam.split(",")) {
+            try {
+                int parsed = Integer.parseInt(part.trim());
+                if (parsed > 0) {
+                    ids.add(parsed);
+                }
+            } catch (NumberFormatException e) {
+                LoggerUtil.warn(log, "ID không hợp lệ: " + part, e);
+            }
+        }
+        return ids;
     }
 
     private String readRequestBody(HttpServletRequest req) throws IOException {

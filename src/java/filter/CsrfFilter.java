@@ -45,16 +45,14 @@ public class CsrfFilter implements Filter {
         // /auth/* bỏ qua ở filter-level vì LoginServlet, RegisterServlet, ForgotPasswordServlet
         //   đã tự check CSRF token thủ công (manual check). Token vẫn được tạo ở trên
         //   cho mọi request nên form luôn có token khi render.
-        // /cart bỏ qua chính xác chỉ cho beacon syncOnUnload.
-        //   Các mutation khác trên /cart vẫn phải đi qua CSRF token.
+        // /cart không còn bypass riêng cho syncOnUnload; client phải gửi CSRF token.
         // /ws/* bỏ qua: WebSocket handshake là GET với header Upgrade — không có CSRF token body.
         // GET / HEAD / OPTIONS không thay đổi trạng thái — không cần CSRF.
         String method = req.getMethod();
         if ("POST".equalsIgnoreCase(method)
                 && !isSePayWebhook(req)
                 && !req.getRequestURI().startsWith(req.getContextPath() + "/auth/")
-                && !req.getRequestURI().startsWith(req.getContextPath() + "/ws/")
-                && !isCartBeacon(req)) {
+                && !req.getRequestURI().startsWith(req.getContextPath() + "/ws/")) {
             String sessionToken = (String) session.getAttribute(AppConfig.SESSION_CSRF_TOKEN);
             String requestToken = req.getParameter("_csrf");
             if (requestToken == null || requestToken.trim().isEmpty()) {
@@ -92,15 +90,4 @@ public class CsrfFilter implements Filter {
         return uri.equals(webhookPath) || uri.equals(webhookPath + "/");
     }
 
-    /**
-     * Trả về true nếu request là Beacon POST syncOnUnload tới /cart.
-     * navigator.sendBeacon() không gửi custom header nên không thể kèm CSRF token,
-     * nhưng chỉ action syncOnUnload được miễn trừ.
-     */
-    private boolean isCartBeacon(HttpServletRequest req) {
-        String uri = req.getRequestURI();
-        String cartPath = req.getContextPath() + "/cart";
-        String action = req.getParameter("action");
-        return ("syncOnUnload".equals(action)) && (uri.equals(cartPath) || uri.equals(cartPath + "/"));
-    }
 }

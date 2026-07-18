@@ -1,5 +1,5 @@
 <%@ page import="java.sql.*, dao.system.*, java.io.*, java.util.*, config.*" %>
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%
     out.println("<h3>Testing Checkout DB Insertion...</h3>");
     try (Connection conn = ConnectionPool.getConnection()) {

@@ -28,6 +28,7 @@ import model.entity.Promotion;
 import servlet.customer.cart.CheckoutServlet;
 import service.cart.CheckoutService;
 import service.order.DeliveryService;
+import service.order.OrderService;
 import service.cart.CartService;
 import service.cart.CheckoutPricingEngine;
 import service.shop.PaymentService;
@@ -224,6 +225,22 @@ public class CheckoutServletPricingRegressionTest {
     }
 
     @Test
+    public void allowMixedShopCheckoutOnGetWithCartItemIds() throws Exception {
+        env.clearRequestState();
+        env.putParam("cartItemIds", buildCartItemSelectionParam());
+
+        servlet.doGetPublic(env.request, env.response);
+
+        assertNull(env.redirectLocation);
+        assertEquals("/WEB-INF/jsp/customer/checkout.jsp", env.forwardedPath);
+        assertEquals(2, ((Integer) env.requestAttributes.get("shopCount")).intValue());
+        CartSummaryDTO summary = (CartSummaryDTO) env.requestAttributes.get("cartSummary");
+        assertNotNull(summary);
+        assertEquals(0, new BigDecimal("30000").compareTo(summary.getDeliveryFee()));
+        assertEquals(0, new BigDecimal("210000").compareTo(summary.getTotal()));
+    }
+
+    @Test
     public void checkoutMultipleShopsWithoutShopVoucherCreatesParentAndChildOrders() throws Exception {
         env.clearRequestState();
         env.putParam("_csrf", CSRF_TOKEN);
@@ -265,6 +282,40 @@ public class CheckoutServletPricingRegressionTest {
         assertNotNull(trip);
         assertEquals(createdOrderId, trip.getParentOrderId());
         assertEquals(AppConfig.DELIVERY_TRIP_PLANNED, trip.getStatus());
+    }
+
+    @Test
+    public void checkoutMultipleShopsUsingCartItemIdsCreatesParentAndChildOrders() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "08:00-12:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_COD);
+        env.putParam("cartItemIds", buildCartItemSelectionParam());
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        assertTrue(env.redirectLocation.contains("/checkout?action=success&orderId="));
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        Order parent = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_TYPE_PARENT, parent.getOrderType());
+        assertNull(parent.getOwnerIdObject());
+        assertNull(parent.getParentOrderId());
+        assertEquals(0, new BigDecimal("180000").compareTo(parent.getTotalAmount()));
+        assertEquals(0, new BigDecimal("30000").compareTo(parent.getDeliveryFee()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(parent.getDiscountAmount()));
+        assertEquals(0, new BigDecimal("210000").compareTo(parent.getFinalAmount()));
+
+        List<Order> children = orderDAO.findChildrenByParentId(createdOrderId);
+        assertEquals(2, children.size());
+        Order childA = findChildByOwner(children, ownerAId);
+        Order childB = findChildByOwner(children, ownerBId);
+        assertChildOrder(childA, ownerAId, new BigDecimal("100000"), BigDecimal.ZERO, new BigDecimal("115000"));
+        assertChildOrder(childB, ownerBId, new BigDecimal("80000"), BigDecimal.ZERO, new BigDecimal("95000"));
     }
 
     @Test
@@ -818,6 +869,76 @@ public class CheckoutServletPricingRegressionTest {
     }
 
     @Test
+    public void autoCancelPendingPaymentOrderExpiresPaymentTransaction() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "12:00-16:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_CK);
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+
+        assertNotNull(env.redirectLocation);
+        assertTrue(env.redirectLocation.contains("/checkout?action=payment&orderId="));
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        PaymentTransaction paymentTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        assertNotNull(paymentTransaction);
+        assertEquals("pending", paymentTransaction.getStatus());
+
+        OrderService orderService = new OrderService();
+        orderService.cancelOrderBySystem(createdOrderId, "AUTO_CANCEL_TEST");
+
+        Order cancelledOrder = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_CANCELLED, cancelledOrder.getStatus());
+
+        PaymentTransaction expiredTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        assertNotNull(expiredTransaction);
+        assertEquals("expired", expiredTransaction.getStatus());
+    }
+
+    @Test
+    public void autoCancelExpiredConfirmedBankTransferCancelsBeforeRefund() throws Exception {
+        env.clearRequestState();
+        env.putParam("_csrf", CSRF_TOKEN);
+        env.putParam("fullName", "Checkout Customer");
+        env.putParam("phone", customerPhone);
+        env.putParam("deliveryAddress", "123 Test Street, District 1");
+        env.putParam("deliveryTimeSlot", "12:00-16:00");
+        env.putParam("paymentMethod", AppConfig.PAYMENT_CK);
+        env.putParam("variantIds", String.valueOf(variantAId));
+
+        servlet.doPostPublic(env.request, env.response);
+        createdOrderId = parseOrderId(env.redirectLocation);
+
+        PaymentTransaction paymentTransaction = paymentService.getPaymentByOrder(createdOrderId);
+        String webhookPayload = "{"
+                + "\"id\":\"confirmed-timeout-" + System.currentTimeMillis() + "\","
+                + "\"code\":\"" + paymentTransaction.getSepayReference() + "\","
+                + "\"transferType\":\"in\","
+                + "\"transferAmount\":\"" + paymentTransaction.getAmount().toPlainString() + "\""
+                + "}";
+        assertEquals("processed", paymentService.processWebhook(webhookPayload).getOutcome());
+
+        try (Connection conn = orderDAO.openConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "UPDATE orders SET shop_acceptance_deadline = DATEADD(minute, -1, GETDATE()) WHERE order_id = ?")) {
+            ps.setInt(1, createdOrderId);
+            ps.executeUpdate();
+        }
+
+        new OrderService().autoCancelUnacceptedOrders();
+
+        Order cancelledOrder = orderDAO.findById(createdOrderId).get(0);
+        assertEquals(AppConfig.ORDER_CANCELLED, cancelledOrder.getStatus());
+        assertEquals("REFUNDED", cancelledOrder.getRefundStatus());
+        assertEquals("refunded", paymentService.getPaymentByOrder(createdOrderId).getStatus());
+    }
+
+    @Test
     public void sepayWebhookConfirmsOrderWithGeneratedReferenceAndPaymentViewMatchesQr() throws Exception {
         env.clearRequestState();
         env.putParam("_csrf", CSRF_TOKEN);
@@ -1226,6 +1347,18 @@ public class CheckoutServletPricingRegressionTest {
             throw new IllegalArgumentException("Cannot parse orderId from redirect: " + redirectLocation);
         }
         return Integer.parseInt(redirectLocation.substring(idx + "orderId=".length()));
+    }
+
+    private String buildCartItemSelectionParam() throws SQLException {
+        List<CartItem> items = cartDAO.findItems(cartId);
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < items.size(); i++) {
+            builder.append(items.get(i).getCartItemId());
+            if (i < items.size() - 1) {
+                builder.append(",");
+            }
+        }
+        return builder.toString();
     }
 
     private User buildCustomer(int userId) {

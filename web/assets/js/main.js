@@ -36,6 +36,40 @@ const Alert = {
     }
 };
 
+function normalizePackagingId(value) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function findCartItemIndexByVariantAndPackaging(items, variantId, packagingId) {
+    const normalizedVariantId = Number.parseInt(variantId, 10);
+    const normalizedPackagingId = normalizePackagingId(packagingId);
+    return (items || []).findIndex(item => {
+        const itemVariantId = Number.parseInt(item?.variantId, 10);
+        const itemPackagingId = normalizePackagingId(item?.packagingId);
+        return itemVariantId === normalizedVariantId && itemPackagingId === normalizedPackagingId;
+    });
+}
+
+function buildCartItemSelectionKeyFromParts(cartItemId, variantId, packagingId) {
+    const normalizedCartItemId = Number.parseInt(cartItemId, 10);
+    if (Number.isInteger(normalizedCartItemId) && normalizedCartItemId > 0) {
+        return `cart:${normalizedCartItemId}`;
+    }
+    const normalizedVariantId = Number.parseInt(variantId, 10);
+    const normalizedPackagingId = normalizePackagingId(packagingId);
+    return `guest:${normalizedVariantId}:${normalizedPackagingId ?? 'none'}`;
+}
+
+function buildCartItemSelectionKey(item) {
+    return buildCartItemSelectionKeyFromParts(item?.cartItemId, item?.variantId, item?.packagingId);
+}
+
+window.normalizePackagingId = normalizePackagingId;
+window.findCartItemIndexByVariantAndPackaging = findCartItemIndexByVariantAndPackaging;
+window.buildCartItemSelectionKeyFromParts = buildCartItemSelectionKeyFromParts;
+window.buildCartItemSelectionKey = buildCartItemSelectionKey;
+
 // ── 3. Guest Cart (localStorage) ─────────────────────────────────────────────
 /**
  * GuestCart — Quản lý giỏ hàng khách chưa đăng nhập.
@@ -67,18 +101,42 @@ const GuestCart = {
      */
     add(item) {
         const items = this.getItems();
-        const idx   = items.findIndex(i => i.variantId === item.variantId);
-        if (idx >= 0) { items[idx].quantity += item.quantity; }
-        else          { items.push(item); }
+        const normalizedItem = {
+            ...item,
+            variantId: Number.parseInt(item?.variantId, 10),
+            packagingId: normalizePackagingId(item?.packagingId),
+            quantity: Number.parseInt(item?.quantity, 10) || 0
+        };
+        const idx = findCartItemIndexByVariantAndPackaging(items, normalizedItem.variantId, normalizedItem.packagingId);
+        if (idx >= 0) {
+            items[idx].quantity += normalizedItem.quantity;
+            items[idx].packagingId = normalizedItem.packagingId;
+        } else {
+            items.push(normalizedItem);
+        }
         this.save(items);
     },
 
-    remove(variantId) {
-        this.save(this.getItems().filter(i => i.variantId !== variantId));
+    remove(variantId, packagingId = null) {
+        const normalizedVariantId = Number.parseInt(variantId, 10);
+        const normalizedPackagingId = normalizePackagingId(packagingId);
+        this.save(this.getItems().filter(i => {
+            const itemVariantId = Number.parseInt(i?.variantId, 10);
+            const itemPackagingId = normalizePackagingId(i?.packagingId);
+            return !(itemVariantId === normalizedVariantId && itemPackagingId === normalizedPackagingId);
+        }));
     },
 
-    updateQuantity(variantId, quantity) {
-        const items = this.getItems().map(i => i.variantId === variantId ? { ...i, quantity } : i);
+    updateQuantity(variantId, quantity, packagingId = null) {
+        const normalizedVariantId = Number.parseInt(variantId, 10);
+        const normalizedPackagingId = normalizePackagingId(packagingId);
+        const items = this.getItems().map(i => {
+            const itemVariantId = Number.parseInt(i?.variantId, 10);
+            const itemPackagingId = normalizePackagingId(i?.packagingId);
+            return itemVariantId === normalizedVariantId && itemPackagingId === normalizedPackagingId
+                ? { ...i, quantity }
+                : i;
+        });
         this.save(items);
     },
 
@@ -557,6 +615,8 @@ const CurrencyFmt = {
 window.addCartItem = async function(variantId, quantity, name, price, imagePath, stockQuantity, productId, packagingId) {
     const isLoggedIn = window.isLoggedIn === true;
     const contextPath = window.contextPath || '';
+    const normalizedVariantId = Number.parseInt(variantId, 10);
+    const normalizedPackagingId = normalizePackagingId(packagingId);
     
     // 1. Optimistic Update of Local Storage & Badge
     let rollbackItems = null;
@@ -564,41 +624,41 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
         if (isLoggedIn) {
             let items = JSON.parse(localStorage.getItem('userCart')) || [];
             rollbackItems = JSON.stringify(items);
-            const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+            const idx = findCartItemIndexByVariantAndPackaging(items, normalizedVariantId, normalizedPackagingId);
             if (idx >= 0) {
-                items[idx].quantity += parseInt(quantity);
+                items[idx].quantity += Number.parseInt(quantity, 10);
             } else {
                 items.push({
                     cartItemId: -1, // Temporary negative ID to prevent duplication key conflicts
-                    variantId: parseInt(variantId),
+                    variantId: normalizedVariantId,
                     productName: name.split(' - ')[0],
                     variantLabel: name.split(' - ')[1] || 'Mặc định',
                     price: parseFloat(price),
                     weightKg: 1.0,
-                    quantity: parseInt(quantity),
+                    quantity: Number.parseInt(quantity, 10),
                     imagePath: imagePath || 'assets/img/placeholder.png',
-                    stockQuantity: parseInt(stockQuantity) || 0,
+                    stockQuantity: Number.parseInt(stockQuantity, 10) || 0,
                     productId: parseInt(productId) || null,
-                    packagingId: packagingId ? parseInt(packagingId) : null
+                    packagingId: normalizedPackagingId
                 });
             }
             localStorage.setItem('userCart', JSON.stringify(items));
         } else {
             let items = JSON.parse(localStorage.getItem('guestCart')) || [];
             rollbackItems = JSON.stringify(items);
-            const idx = items.findIndex(i => i.variantId === parseInt(variantId));
+            const idx = findCartItemIndexByVariantAndPackaging(items, normalizedVariantId, normalizedPackagingId);
             if (idx >= 0) {
-                items[idx].quantity += parseInt(quantity);
+                items[idx].quantity += Number.parseInt(quantity, 10);
             } else {
                 items.push({
-                    variantId: parseInt(variantId),
+                    variantId: normalizedVariantId,
                     name: name,
                     price: parseFloat(price),
-                    quantity: parseInt(quantity),
+                    quantity: Number.parseInt(quantity, 10),
                     imagePath: imagePath || 'assets/img/placeholder.png',
-                    stockQuantity: parseInt(stockQuantity) || 0,
-                    productId: parseInt(productId) || null,
-                    packagingId: packagingId ? parseInt(packagingId) : null
+                    stockQuantity: Number.parseInt(stockQuantity, 10) || 0,
+                    productId: Number.parseInt(productId, 10) || null,
+                    packagingId: normalizedPackagingId
                 });
             }
             localStorage.setItem('guestCart', JSON.stringify(items));
@@ -627,9 +687,9 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
     }
 
     // 2. Perform Backend Request Asynchronously in the Background
-    let requestBody = `variantId=${variantId}&quantity=${quantity}&_csrf=${window.csrfToken || ''}`;
-    if (packagingId) {
-        requestBody += `&packagingId=${packagingId}`;
+    let requestBody = `variantId=${normalizedVariantId}&quantity=${quantity}&_csrf=${window.csrfToken || ''}`;
+    if (normalizedPackagingId) {
+        requestBody += `&packagingId=${normalizedPackagingId}`;
     }
 
     fetch(`${contextPath}/cart?action=add`, {
@@ -671,7 +731,7 @@ window.addCartItem = async function(variantId, quantity, name, price, imagePath,
                 imagePath: item.imagePath,
                 stockQuantity: item.stockQuantity,
                 productId: item.productId,
-                packagingId: item.packagingId ?? null,
+                packagingId: normalizePackagingId(item.packagingId),
                 packagingLabel: item.packagingLabel ?? null,
                 packagingPriceAdd: item.packagingPriceAdd ?? null
             }));

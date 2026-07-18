@@ -290,16 +290,22 @@ public class PaymentService {
             // Chưa có → tạo mới
             return initPayment(orderId, "SEPAY");
         }
-        // Gia hạn expires_at
+        if (tx.getExpiresAt() != null && LocalDateTime.now().isBefore(tx.getExpiresAt())) {
+            return tx;
+        }
+        String newReference = buildSepayReference(orderId);
         LocalDateTime newExpiry = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
-        String updateSql = "UPDATE payment_transactions SET expires_at = ?, status = 'pending' "
+        String updateSql = "UPDATE payment_transactions SET sepay_reference = ?, expires_at = ?, status = 'pending', "
+                         + "sepay_transaction_id = NULL, provider_response = NULL, error_code = NULL, error_message = NULL, completed_at = NULL "
                          + "WHERE transaction_id = ?";
         try (Connection conn = paymentDAO.openConnection();
              PreparedStatement ps = conn.prepareStatement(updateSql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(newExpiry));
-            ps.setInt(2, tx.getTransactionId());
+            ps.setString(1, newReference);
+            ps.setTimestamp(2, Timestamp.valueOf(newExpiry));
+            ps.setInt(3, tx.getTransactionId());
             ps.executeUpdate();
         }
+        tx.setSepayReference(newReference);
         tx.setExpiresAt(newExpiry);
         tx.setStatus("pending");
         return tx;
@@ -505,6 +511,14 @@ public class PaymentService {
             return WebhookProcessingResult.skipped("not_found");
         }
 
+        String txStatus = tx.getStatus();
+        if (!"pending".equalsIgnoreCase(txStatus) && !"processing".equalsIgnoreCase(txStatus)) {
+            LoggerUtil.warn(log, "[Webhook] transactionId=%d không ở trạng thái xử lý hợp lệ (hiện tại: %s) — bỏ qua.",
+                    tx.getTransactionId(), txStatus);
+            paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_wrong_status");
+            return WebhookProcessingResult.skipped("skipped_wrong_status");
+        }
+
         Order order = orderDAO.findOneById(conn, tx.getOrderId());
         if (order == null || !AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
             String currentStatus = order != null ? order.getStatus() : "null";
@@ -524,9 +538,7 @@ public class PaymentService {
         }
 
         BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
-        if (received.compareTo(expected) < 0) {
-            paymentDAO.updateStatusFailed(conn, tx.getTransactionId(), "AMOUNT_MISMATCH",
-                    "Số tiền nhận được thấp hơn số tiền đơn hàng.");
+        if (received.compareTo(expected) != 0) {
             paymentDAO.updateDedupResult(conn, sepayTxId, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
                 expected, received, tx.getOrderId());

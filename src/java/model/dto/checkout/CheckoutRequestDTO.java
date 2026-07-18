@@ -18,6 +18,7 @@ public class CheckoutRequestDTO {
     private String systemCouponCode;
     private List<String> shopCouponCodes = new ArrayList<>();
     private List<String> systemCouponCodes = new ArrayList<>();
+    private List<Integer> cartItemIds = new ArrayList<>();
     private List<Integer> variantIds = new ArrayList<>();
     private boolean saveAddressToBook;
 
@@ -119,6 +120,14 @@ public class CheckoutRequestDTO {
 
     public void setVariantIds(List<Integer> variantIds) {
         this.variantIds = variantIds;
+    }
+
+    public List<Integer> getCartItemIds() {
+        return cartItemIds;
+    }
+
+    public void setCartItemIds(List<Integer> cartItemIds) {
+        this.cartItemIds = cartItemIds;
     }
 
     public boolean isSaveAddressToBook() {
