@@ -53,14 +53,14 @@
                     <div class="w-full">
                         <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Từ ngày</label>
                         <div class="relative">
-                            <input type="date" name="startDate" value="${startDate}" required
+                            <input type="date" name="startDate" id="startDateInput" value="${startDate}" required
                                    class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-[#4d661c]">
                         </div>
                     </div>
                     <div class="w-full">
                         <label class="block text-xs font-bold text-txt-2 uppercase mb-1.5">Đến ngày</label>
                         <div class="relative">
-                            <input type="date" name="endDate" value="${endDate}" required
+                            <input type="date" name="endDate" id="endDateInput" value="${endDate}" required
                                    class="w-full bg-surface-2 border border-border px-3 py-2 rounded-xl text-txt text-sm focus:outline-none focus:border-[#4d661c]">
                         </div>
                     </div>
@@ -88,6 +88,18 @@
                     </div>
                 </div>
             </form>
+            <script>
+                // Giới hạn ngày chọn tối đa là hôm nay
+                (function() {
+                    const today = new Date();
+                    const yyyy = today.getFullYear();
+                    const mm = String(today.getMonth() + 1).padStart(2, '0');
+                    const dd = String(today.getDate()).padStart(2, '0');
+                    const maxDate = yyyy + '-' + mm + '-' + dd;
+                    document.getElementById('startDateInput').setAttribute('max', maxDate);
+                    document.getElementById('endDateInput').setAttribute('max', maxDate);
+                })();
+            </script>
 
             <%-- KPI Cards --%>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
