@@ -90,8 +90,12 @@
                                                 <div class="font-semibold text-txt">${order.customerName}</div>
                                             </td>
                                             <td class="p-3">
-                                                <div class="font-semibold text-txt">${order.shopName}</div>
-                                                <div class="text-[11px] text-txt-3">Chủ: ${order.ownerName}</div>
+                                                <div class="font-semibold text-txt">
+                                                    <c:out value="${empty order.shopName ? 'Đơn tổng hợp' : order.shopName}"/>
+                                                </div>
+                                                <div class="text-[11px] text-txt-3">
+                                                    Chủ: <c:out value="${empty order.ownerName ? 'Nhiều shop' : order.ownerName}"/>
+                                                </div>
                                             </td>
                                             <td class="p-3 font-mono text-xs font-bold text-slate-600">${pt != null ? pt.sepayReference : 'Chưa có'}</td>
                                             <td class="p-3">
@@ -220,8 +224,12 @@
                                                 <div class="font-semibold text-txt">${order.customerName}</div>
                                             </td>
                                             <td class="p-3">
-                                                <div class="font-semibold text-txt">${order.shopName}</div>
-                                                <div class="text-[11px] text-txt-3">Chủ: ${order.ownerName}</div>
+                                                <div class="font-semibold text-txt">
+                                                    <c:out value="${empty order.shopName ? 'Đơn tổng hợp' : order.shopName}"/>
+                                                </div>
+                                                <div class="text-[11px] text-txt-3">
+                                                    Chủ: <c:out value="${empty order.ownerName ? 'Nhiều shop' : order.ownerName}"/>
+                                                </div>
                                             </td>
                                             <td class="p-3">
                                                 <span class="px-2 py-0.5 rounded text-[11px] font-bold ${order.paymentMethod == 'CK' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}">

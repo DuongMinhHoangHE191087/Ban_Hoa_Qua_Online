@@ -80,7 +80,7 @@ public class ChangePasswordServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/change-password");
 
         } catch (Exception e) {
-            req.setAttribute("errorMsg", e.getMessage());
+            req.setAttribute("errorMsg", util.ErrorMessageUtil.getUserMessage(e));
             req.getRequestDispatcher("/WEB-INF/jsp/auth/change-password.jsp").forward(req, resp);
         }
     }

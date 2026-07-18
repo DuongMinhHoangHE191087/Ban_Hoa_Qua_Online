@@ -24,7 +24,7 @@ public class AppStartupListener implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        // AppConfig tự động nạp .env qua static block khi khởi chạy.
+        // AppConfig giữ sẵn cấu hình chuẩn trong mã nguồn, không phụ thuộc .env.
         String realPath = sce.getServletContext().getRealPath("");
         Path logFile = LoggerUtil.configureFileLogging(realPath);
         String appEnv = AppConfig.APP_ENV;
@@ -44,7 +44,7 @@ public class AppStartupListener implements ServletContextListener {
                 LoggerUtil.info(log, "[AppStartup] DAO SQL logs: %s", logFile.toAbsolutePath());
             }
         } catch (IllegalStateException ex) {
-            LoggerUtil.error(log, "[AppStartup] FATAL: " + ex.getMessage(), ex);
+            LoggerUtil.error(log, "[AppStartup] FATAL: " + util.ErrorMessageUtil.getSafeLogMessage(ex), ex);
             throw ex;
         }
 

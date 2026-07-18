@@ -1,6 +1,5 @@
 package servlet.customer.order;
 
-import config.AppConfig;
 import dao.order.OrderDAO;
 import dao.order.ReviewDAO;
 import model.entity.order.Order;
@@ -9,6 +8,7 @@ import model.entity.order.Review;
 import model.entity.auth.User;
 import service.order.OrderService;
 import service.order.ReviewService;
+import util.ActorAccessPolicy;
 import util.FileUploadUtil;
 import util.SessionUtil;
 import util.ErrorMessageUtil;
@@ -59,7 +59,7 @@ public class ReviewServlet extends HttpServlet {
 
         HttpSession session = req.getSession();
         User user = SessionUtil.getCurrentUser(session);
-        if (user == null || !"CUSTOMER".equals(user.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(user)) {
             SessionUtil.setFlashMessage(session, "Vui lòng đăng nhập để đánh giá sản phẩm.", "danger");
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
@@ -81,7 +81,7 @@ public class ReviewServlet extends HttpServlet {
 
         HttpSession session = req.getSession();
         User user = SessionUtil.getCurrentUser(session);
-        if (user == null || !"CUSTOMER".equals(user.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(user)) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
@@ -184,7 +184,7 @@ public class ReviewServlet extends HttpServlet {
                 SessionUtil.flashSuccess(session, "Cảm ơn bạn đã gửi đánh giá sản phẩm!");
             }
         } catch (IllegalArgumentException e) {
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, ErrorMessageUtil.getUserMessage(e));
         } catch (Exception e) {
             String userMsg = ErrorMessageUtil.logAndGetUserMessage(log, "Failed to submit review for orderId=" + orderId, e);
             SessionUtil.flashError(session, userMsg);
@@ -287,7 +287,7 @@ public class ReviewServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/customer/review-submit.jsp").forward(req, resp);
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi khi hiển thị form sửa đánh giá", e);
-            SessionUtil.flashError(session, "Đã xảy ra lỗi: " + e.getMessage());
+            SessionUtil.flashError(session, ErrorMessageUtil.logAndGetUserMessage(log, "Failed to show review edit form", e));
             resp.sendRedirect(req.getContextPath() + "/customer/orders");
         }
     }

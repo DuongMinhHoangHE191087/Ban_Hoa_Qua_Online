@@ -325,8 +325,8 @@ public class UserProfileServlet extends HttpServlet {
                 SessionUtil.flashError(req.getSession(), "Hành động không hợp lệ!");
             }
         } catch (Exception e) {
-            req.getServletContext().log("UserProfileServlet POST error: " + e.getMessage(), e);
-            SessionUtil.flashError(req.getSession(), e.getMessage());
+            req.getServletContext().log("UserProfileServlet POST error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(req.getContextPath() + "/profile");

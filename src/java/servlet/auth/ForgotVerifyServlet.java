@@ -77,7 +77,7 @@ public class ForgotVerifyServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/reset-password");
 
         } catch (Exception e) {
-            req.setAttribute("errorMsg", e.getMessage());
+            req.setAttribute("errorMsg", util.ErrorMessageUtil.getUserMessage(e));
             req.setAttribute("email", email);
             req.setAttribute("forgotMode", true);
             req.getRequestDispatcher("/WEB-INF/jsp/auth/verify.jsp").forward(req, resp);

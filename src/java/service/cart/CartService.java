@@ -1,13 +1,16 @@
 package service.cart;
 
+import exception.BusinessException;
 import dao.cart.CartDAO;
 import dao.catalog.ProductDAO;
+import dao.catalog.ProductPackagingOptionDAO;
 import dao.catalog.ProductVariantDAO;
 import dao.shop.PromotionDAO;
 import model.dto.product.CartSummaryDTO;
 import model.entity.cart.Cart;
 import model.entity.cart.CartItem;
 import model.entity.catalog.Product;
+import model.entity.catalog.ProductPackagingOption;
 import model.entity.catalog.ProductVariant;
 import model.entity.Promotion;
 import util.JsonUtil;
@@ -21,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -41,6 +45,7 @@ public class CartService {
 
     private final CartDAO cartDAO = new CartDAO();
     private final ProductDAO productDAO = new ProductDAO();
+    private final ProductPackagingOptionDAO productPackagingOptionDAO = new ProductPackagingOptionDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
 
     private String resolveProductName(Product product, String fallbackName) {
@@ -53,23 +58,22 @@ public class CartService {
         return "Sản phẩm này";
     }
 
-    private String validatePurchasableProduct(Product product, String fallbackName) {
+    private void validatePurchasableProduct(Product product, String fallbackName) {
         String productName = resolveProductName(product, fallbackName);
         if (product == null) {
-            return productName + " hiện không còn tồn tại.";
+            throw validationError("cart_item_not_found", productName + " hiện không còn tồn tại.");
         }
 
         String status = product.getStatus();
         if ("DELETED".equals(status)) {
-            return productName + " đã bị gỡ khỏi gian hàng.";
+            throw validationError("cart_item_unavailable", productName + " đã bị gỡ khỏi gian hàng.");
         }
         if ("INACTIVE".equals(status)) {
-            return productName + " đã ngừng kinh doanh.";
+            throw validationError("cart_item_unavailable", productName + " đã ngừng kinh doanh.");
         }
         if ("OUT_OF_SEASON".equals(status) || !product.isInSeason()) {
-            return productName + " đã hết mùa. Vui lòng quay lại khi có vụ mới.";
+            throw validationError("out_of_season", productName + " đã hết mùa. Vui lòng quay lại khi có vụ mới.");
         }
-        return null;
     }
 
     private Product loadProductForVariant(ProductVariant variant) throws SQLException {
@@ -77,6 +81,40 @@ public class CartService {
             return null;
         }
         return productDAO.findOneById(variant.getProductId());
+    }
+
+    private ProductPackagingOption validatePackagingForVariant(ProductVariant variant, Integer packagingId) throws SQLException {
+        if (packagingId == null) {
+            return null;
+        }
+        ProductPackagingOption packaging = productPackagingOptionDAO.findById(packagingId);
+        if (packaging == null) {
+            throw validationError("cart_item_unavailable", "Lựa chọn đóng gói không còn tồn tại hoặc đã ngừng kinh doanh.");
+        }
+        if (variant != null && packaging.getProductId() != variant.getProductId()) {
+            throw validationError("cart_item_unavailable", "Lựa chọn đóng gói không phù hợp với sản phẩm đã chọn.");
+        }
+        return packaging;
+    }
+
+    private Integer toPositiveInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            int parsed = number.intValue();
+            return parsed > 0 ? parsed : null;
+        }
+        try {
+            int parsed = Integer.parseInt(String.valueOf(value).trim());
+            return parsed > 0 ? parsed : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private BusinessException validationError(String errorCode, String message) {
+        return new BusinessException(errorCode, message);
     }
 
     private Integer getExistingCartId(int customerId) throws SQLException {
@@ -98,7 +136,7 @@ public class CartService {
     private void assertCartOwnership(int customerId, CartItem item) throws SQLException {
         Integer cartId = getExistingCartId(customerId);
         if (cartId == null || item == null || item.getCartId() != cartId) {
-            throw new IllegalArgumentException("Sản phẩm không thuộc giỏ hàng của bạn!");
+            throw validationError("cart_item_not_found", "Sản phẩm không thuộc giỏ hàng của bạn!");
         }
     }
 
@@ -156,18 +194,16 @@ public class CartService {
 
     public void addToCart(int customerId, int variantId, int qty, Integer packagingId) throws SQLException {
         if (qty <= 0) {
-            throw new IllegalArgumentException("Số lượng thêm vào giỏ hàng phải lớn hơn 0.");
+            throw validationError("cart_invalid_quantity", "Số lượng thêm vào giỏ hàng phải lớn hơn 0.");
         }
 
         ProductVariant variant = productVariantDAO.findById(variantId);
         if (variant == null || !variant.getIsActive()) {
-            throw new IllegalArgumentException("Sản phẩm hoặc biến thể này không tồn tại hoặc đã ngừng kinh doanh.");
+            throw validationError("cart_item_unavailable", "Sản phẩm hoặc biến thể này không tồn tại hoặc đã ngừng kinh doanh.");
         }
         Product product = loadProductForVariant(variant);
-        String productError = validatePurchasableProduct(product, null);
-        if (productError != null) {
-            throw new IllegalArgumentException(productError);
-        }
+        validatePurchasableProduct(product, null);
+        validatePackagingForVariant(variant, packagingId);
 
         int cartId = getOrCreateCartId(customerId);
 
@@ -184,7 +220,7 @@ public class CartService {
 
         int totalRequested = existingQty + qty;
         if (totalRequested > variant.getStockQuantity()) {
-            throw new IllegalArgumentException(buildStockExceededMessage(product, null, variant.getStockQuantity()));
+            throw validationError("out_of_stock", buildStockExceededMessage(product, null, variant.getStockQuantity()));
         }
 
         cartDAO.addItem(cartId, variantId, qty, packagingId);
@@ -195,28 +231,25 @@ public class CartService {
      */
     public void updateQuantity(int customerId, int cartItemId, int qty) throws SQLException {
         if (qty <= 0) {
-            throw new IllegalArgumentException("Số lượng sản phẩm phải lớn hơn 0.");
+            throw validationError("cart_invalid_quantity", "Số lượng sản phẩm phải lớn hơn 0.");
         }
 
         CartItem item = cartDAO.findItemById(cartItemId);
         if (item == null) {
-            throw new IllegalArgumentException("Không tìm thấy sản phẩm này trong giỏ hàng.");
+            throw validationError("cart_item_not_found", "Không tìm thấy sản phẩm này trong giỏ hàng.");
         }
 
         assertCartOwnership(customerId, item);
 
         ProductVariant variant = productVariantDAO.findById(item.getVariantId());
         if (variant == null || !variant.getIsActive()) {
-            throw new IllegalArgumentException("Biến thể sản phẩm này không còn tồn tại hoặc đã ngừng kinh doanh.");
+            throw validationError("cart_item_unavailable", "Biến thể sản phẩm này không còn tồn tại hoặc đã ngừng kinh doanh.");
         }
         Product product = loadProductForVariant(variant);
-        String productError = validatePurchasableProduct(product, item.getProductName());
-        if (productError != null) {
-            throw new IllegalArgumentException(productError);
-        }
+        validatePurchasableProduct(product, item.getProductName());
 
         if (qty > variant.getStockQuantity()) {
-            throw new IllegalArgumentException(buildStockExceededMessage(product, item.getProductName(),
+            throw validationError("out_of_stock", buildStockExceededMessage(product, item.getProductName(),
                     variant.getStockQuantity()));
         }
 
@@ -244,30 +277,30 @@ public class CartService {
     public void changeVariant(int customerId, int cartItemId, int newVariantId) throws SQLException {
         CartItem item = cartDAO.findItemById(cartItemId);
         if (item == null) {
-            throw new IllegalArgumentException("Không tìm thấy sản phẩm này trong giỏ hàng.");
+            throw validationError("cart_item_not_found", "Không tìm thấy sản phẩm này trong giỏ hàng.");
         }
 
         assertCartOwnership(customerId, item);
 
         ProductVariant newVariant = productVariantDAO.findById(newVariantId);
         if (newVariant == null || !newVariant.getIsActive()) {
-            throw new IllegalArgumentException("Biến thể mới không tồn tại hoặc đã ngừng kinh doanh.");
+            throw validationError("cart_item_unavailable", "Biến thể mới không tồn tại hoặc đã ngừng kinh doanh.");
         }
         Product newProduct = loadProductForVariant(newVariant);
-        String productError = validatePurchasableProduct(newProduct, item.getProductName());
-        if (productError != null) {
-            throw new IllegalArgumentException(productError);
-        }
+        validatePurchasableProduct(newProduct, item.getProductName());
+        validatePackagingForVariant(newVariant, item.getPackagingId());
 
         if (newVariant.getStockQuantity() <= 0) {
-            throw new IllegalArgumentException(buildStockExceededMessage(newProduct, item.getProductName(), 0));
+            throw validationError("out_of_stock", buildStockExceededMessage(newProduct, item.getProductName(), 0));
         }
 
         int cartId = item.getCartId();
         List<CartItem> items = cartDAO.findItems(cartId);
         CartItem existingNewVariantItem = null;
         for (CartItem ci : items) {
-            if (ci.getVariantId() == newVariantId && ci.getCartItemId() != cartItemId) {
+            if (ci.getVariantId() == newVariantId
+                    && Objects.equals(ci.getPackagingId(), item.getPackagingId())
+                    && ci.getCartItemId() != cartItemId) {
                 existingNewVariantItem = ci;
                 break;
             }
@@ -312,14 +345,16 @@ public class CartService {
                 }
                 int variantId = ((Number) gItem.get("variantId")).intValue();
                 int qty = ((Number) gItem.get("quantity")).intValue();
+                Integer packagingId = toPositiveInteger(gItem.get("packagingId"));
                 if (qty <= 0) {
                     continue;
                 }
 
                 try {
-                    addToCart(customerId, variantId, qty);
-                } catch (IllegalArgumentException e) {
-                    LoggerUtil.warn(log, "[CartSync] Không thể gộp variantId %d: %s", variantId, e.getMessage());
+                    addToCart(customerId, variantId, qty, packagingId);
+                } catch (BusinessException e) {
+                    LoggerUtil.warn(log, "[CartSync] Không thể gộp variantId %d: %s", variantId,
+                            util.ErrorMessageUtil.getSafeLogMessage(e));
                 }
             }
         } catch (Exception e) {
@@ -349,6 +384,7 @@ public class CartService {
                     }
                     int variantId = ((Number) pItem.get("variantId")).intValue();
                     int qty = ((Number) pItem.get("quantity")).intValue();
+                    Integer packagingId = toPositiveInteger(pItem.get("packagingId"));
                     if (qty <= 0) {
                         continue;
                     }
@@ -359,7 +395,10 @@ public class CartService {
                         continue;
                     }
                     Product product = loadProductForVariant(variant);
-                    if (validatePurchasableProduct(product, null) != null) {
+                    try {
+                        validatePurchasableProduct(product, null);
+                        validatePackagingForVariant(variant, packagingId);
+                    } catch (BusinessException e) {
                         LoggerUtil.warn(log, "[UnloadSync] Bỏ qua variantId %d vì sản phẩm không còn khả dụng", variantId);
                         continue;
                     }
@@ -368,6 +407,7 @@ public class CartService {
                         CartItem ci = new CartItem();
                         ci.setVariantId(variantId);
                         ci.setQuantity(Math.min(qty, stock));
+                        ci.setPackagingId(packagingId);
                         itemsToReplace.add(ci);
                     }
                 }
@@ -384,7 +424,7 @@ public class CartService {
      * Trả về danh sách các thông báo lỗi nếu có sản phẩm hết hàng hoặc không đủ tồn kho.
      */
     public List<String> checkCartStockBeforeCheckout(int customerId) throws SQLException {
-        return checkCartStockBeforeCheckout(customerId, null);
+        return checkCartStockBeforeCheckoutInternal(customerId, null, false);
     }
 
     /**
@@ -392,6 +432,15 @@ public class CartService {
      * Trả về danh sách các thông báo lỗi nếu có sản phẩm hết hàng hoặc không đủ tồn kho.
      */
     public List<String> checkCartStockBeforeCheckout(int customerId, List<Integer> variantIds) throws SQLException {
+        return checkCartStockBeforeCheckoutInternal(customerId, variantIds, false);
+    }
+
+    public List<String> checkCartStockBeforeCheckoutByCartItemIds(int customerId, List<Integer> cartItemIds) throws SQLException {
+        return checkCartStockBeforeCheckoutInternal(customerId, cartItemIds, true);
+    }
+
+    private List<String> checkCartStockBeforeCheckoutInternal(int customerId, List<Integer> selectionIds, boolean byCartItemId)
+            throws SQLException {
         List<String> errors = new ArrayList<>();
         Integer cartId = getExistingCartId(customerId);
         if (cartId == null) {
@@ -404,11 +453,11 @@ public class CartService {
         }
 
         Set<Integer> selectedIds = null;
-        if (variantIds != null) {
+        if (selectionIds != null) {
             selectedIds = new HashSet<>();
-            for (Integer variantId : variantIds) {
-                if (variantId != null && variantId > 0) {
-                    selectedIds.add(variantId);
+            for (Integer selectionId : selectionIds) {
+                if (selectionId != null && selectionId > 0) {
+                    selectedIds.add(selectionId);
                 }
             }
             if (selectedIds.isEmpty()) {
@@ -419,7 +468,8 @@ public class CartService {
 
         boolean matchedAnySelectedItem = selectedIds == null;
         for (CartItem item : items) {
-            if (selectedIds != null && !selectedIds.contains(item.getVariantId())) {
+            Integer itemSelectionId = byCartItemId ? item.getCartItemId() : item.getVariantId();
+            if (selectedIds != null && !selectedIds.contains(itemSelectionId)) {
                 continue;
             }
             matchedAnySelectedItem = true;
@@ -430,11 +480,13 @@ public class CartService {
                 continue;
             }
             Product product = loadProductForVariant(variant);
-            String productError = validatePurchasableProduct(product, item.getProductName());
-            if (productError != null) {
-                errors.add(productError + " (" + item.getVariantLabel() + ")");
+            try {
+                validatePurchasableProduct(product, item.getProductName());
+            } catch (BusinessException e) {
+                errors.add(e.getPublicMessage() + " (" + item.getVariantLabel() + ")");
                 continue;
-            } else if (item.getQuantity() > variant.getStockQuantity()) {
+            }
+            if (item.getQuantity() > variant.getStockQuantity()) {
                 errors.add("Sản phẩm '" + item.getProductName() + "' (" + item.getVariantLabel() + ") đã hết số lượng bạn cần mua, hiện chỉ còn " + variant.getStockQuantity() + " sản phẩm.");
             }
         }
@@ -465,19 +517,19 @@ public class CartService {
      */
     public BigDecimal applyVoucher(int customerId, String code) throws SQLException {
         if (customerId <= 0 || code == null || code.trim().isEmpty()) {
-            throw new IllegalArgumentException("Customer ID hoặc mã voucher không hợp lệ.");
+            throw validationError("cart_invalid_voucher", "Customer ID hoặc mã voucher không hợp lệ.");
         }
 
         PromotionDAO promotionDAO = new PromotionDAO();
         Promotion promo = promotionDAO.findByCode(code.trim());
 
         if (promo == null) {
-            throw new IllegalArgumentException("Mã voucher không tồn tại hoặc đã hết hạn.");
+            throw validationError("cart_voucher_not_found", "Mã voucher không tồn tại hoặc đã hết hạn.");
         }
 
         // Validate expire time
         if (promo.getValidUntil() != null && LocalDateTime.now().isAfter(promo.getValidUntil())) {
-            throw new IllegalArgumentException("Mã voucher đã hết hạn.");
+            throw validationError("cart_voucher_expired", "Mã voucher đã hết hạn.");
         }
 
         CartSummaryDTO cartSummary = getCart(customerId);
@@ -485,7 +537,8 @@ public class CartService {
 
         // Validate minimum order value
         if (promo.getMinOrderValue() != null && subtotal.compareTo(promo.getMinOrderValue()) < 0) {
-            throw new IllegalArgumentException("Mã voucher chỉ áp dụng cho đơn hàng từ " + promo.getMinOrderValue() + "đ trở lên.");
+            throw validationError("cart_voucher_min_order",
+                    "Mã voucher chỉ áp dụng cho đơn hàng từ " + promo.getMinOrderValue() + "đ trở lên.");
         }
 
         // Tính discount

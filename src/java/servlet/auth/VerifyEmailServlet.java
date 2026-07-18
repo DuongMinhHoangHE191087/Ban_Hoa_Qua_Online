@@ -64,7 +64,7 @@ public class VerifyEmailServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
 
         } catch (Throwable e) {
-            req.setAttribute("errorMsg", e.getMessage());
+            req.setAttribute("errorMsg", util.ErrorMessageUtil.getUserMessage(new Exception(e)));
             req.setAttribute("email", email);
             req.getRequestDispatcher("/WEB-INF/jsp/auth/verify.jsp").forward(req, resp);
         }

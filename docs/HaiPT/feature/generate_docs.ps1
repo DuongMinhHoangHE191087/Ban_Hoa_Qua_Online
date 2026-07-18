@@ -781,7 +781,7 @@ $htmlTemplate = @"
             --text-primary: #ecf0f6;
             --text-secondary: #a0aec0;
             --text-muted: #5e6b7e;
-            
+
             /* Accent Colors */
             --accent-cyan: #22d3ee;
             --accent-cyan-bg: rgba(34, 211, 238, 0.08);
@@ -797,7 +797,7 @@ $htmlTemplate = @"
             --accent-yellow-bg: rgba(250, 204, 21, 0.08);
             --accent-red: #f87171;
             --accent-red-bg: rgba(248, 113, 113, 0.08);
-            
+
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             --radius: 12px;
             --radius-sm: 8px;
@@ -1012,7 +1012,7 @@ $htmlTemplate = @"
         .badge-utility   {{ color: var(--accent-red); background: var(--accent-red-bg); }}
         .badge-filter    {{ color: var(--accent-cyan); background: var(--accent-cyan-bg); }}
         .badge-tag       {{ color: var(--accent-purple); background: var(--accent-purple-bg); }}
-        
+
         .footer-nav {{
             margin-top: 40px;
             display: flex;
@@ -1090,7 +1090,7 @@ foreach ($f in $features) {
     for ($i = 0; $i -lt $f.Flow.Count; $i++) {
         $step = $f.Flow[$i]
         $stepNum = $i + 1
-        
+
         $stepsHtml += @"
         <div class="step">
             <div class="step-number">$stepNum</div>

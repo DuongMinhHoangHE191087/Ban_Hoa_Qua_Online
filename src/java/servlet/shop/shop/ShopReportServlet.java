@@ -99,8 +99,8 @@ public class ShopReportServlet extends HttpServlet {
                     resp,
                     java.util.logging.Logger.getLogger(ShopReportServlet.class.getName()),
                     "ShopReportServlet#doGet",
-                    "Lỗi tải báo cáo cửa hàng: " + e.getMessage(),
-                    e);
+                        "Lỗi hệ thống khi tải báo cáo cửa hàng.",
+                        e);
         }
     }
 

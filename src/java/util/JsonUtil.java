@@ -57,7 +57,7 @@ public final class JsonUtil {
         try {
             resp.getWriter().write(MAPPER.writeValueAsString(data));
         } catch (Exception e) {
-            throw new IOException("Lỗi ghi dữ liệu JSON: " + e.getMessage(), e);
+            throw new IOException("Lỗi ghi dữ liệu JSON.", e);
         }
     }
 

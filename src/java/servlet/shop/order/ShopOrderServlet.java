@@ -124,7 +124,7 @@ public class ShopOrderServlet extends HttpServlet {
         } catch (Exception e) {
             LoggerUtil.error(log, "[ShopOrder] POST action=" + action + " orderId=" + orderIdStr, e);
             SessionUtil.setFlashMessage(req.getSession(),
-                    "Lỗi: " + (e.getMessage() != null ? e.getMessage() : "Có lỗi không xác định."), "error");
+                    util.ErrorMessageUtil.getUserMessage(e), "error");
         }
 
         // PRG: redirect về trang đơn hàng, giữ lại bộ lọc status nếu có

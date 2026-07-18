@@ -76,7 +76,7 @@ public class ForgotPasswordServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/forgot-verify");
 
         } catch (Exception e) {
-            req.setAttribute("errorMsg", e.getMessage());
+            req.setAttribute("errorMsg", util.ErrorMessageUtil.getUserMessage(e));
             req.getRequestDispatcher("/WEB-INF/jsp/auth/forgot-password.jsp").forward(req, resp);
         }
     }

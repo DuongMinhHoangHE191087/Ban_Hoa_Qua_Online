@@ -101,7 +101,7 @@ public class AdminSettlementServlet extends HttpServlet {
             }
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi cập nhật đối soát", e);
-            SessionUtil.flashError(req.getSession(), "Lỗi cập nhật đối soát: " + e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.MSG_DB_ERROR);
         }
         resp.sendRedirect(req.getContextPath() + "/admin/settlements");
     }

@@ -66,7 +66,7 @@ public class AdminNotificationServlet extends HttpServlet {
             }
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi gửi thông báo", e);
-            SessionUtil.flashError(req.getSession(), "Lỗi gửi thông báo: " + e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
         resp.sendRedirect(req.getContextPath() + "/admin/notifications");
     }

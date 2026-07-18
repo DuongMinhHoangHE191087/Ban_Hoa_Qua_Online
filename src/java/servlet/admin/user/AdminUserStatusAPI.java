@@ -56,7 +56,8 @@ public class AdminUserStatusAPI extends HttpServlet {
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "userId không hợp lệ."));
         } catch (IllegalArgumentException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, e.getMessage()));
+            JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "Dữ liệu cập nhật trạng thái không hợp lệ."));
         } catch (SQLException e) {
             util.ServletUtil.sendJsonInternalServerError(
                     request,

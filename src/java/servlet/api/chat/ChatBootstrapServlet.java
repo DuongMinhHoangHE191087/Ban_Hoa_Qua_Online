@@ -49,7 +49,7 @@ public class ChatBootstrapServlet extends HttpServlet {
             JsonUtil.writeJson(response, ApiResponse.ok(payload));
         } catch (ChatReadService.ChatApiException e) {
             response.setStatus(e.getStatusCode());
-            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getMessage()));
+            JsonUtil.writeJson(response, ApiResponse.fail(e.getStatusCode(), e.getPublicMessage()));
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(response, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST, "Tham số không hợp lệ"));
@@ -59,7 +59,7 @@ public class ChatBootstrapServlet extends HttpServlet {
                     response,
                     log,
                     "ChatBootstrapServlet#doGet",
-                    "Lỗi server: " + e.getMessage(),
+                    "Lỗi hệ thống khi tải dữ liệu chat.",
                     e);
         }
     }

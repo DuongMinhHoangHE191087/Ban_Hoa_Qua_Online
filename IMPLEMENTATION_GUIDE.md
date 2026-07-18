@@ -11,8 +11,8 @@ Dự án của bạn đã được phân tích toàn diện và cải thiện th
 ### 1. 🔒 CRITICAL: Fix Exposed Credentials (Bảo mật cấp cao)
 
 **Vấn đề**: Credentials bị để lộ trong source code
-- Google OAuth Secret: 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 
-- Email password: jkhg przg aohf pwla
+- Google OAuth Secret: <GOOGLE_CLIENT_SECRET>
+- Email password: <EMAIL_PASSWORD>
 - Localhost URLs hardcoded
 
 **Giải pháp**:

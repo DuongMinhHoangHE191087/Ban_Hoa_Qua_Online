@@ -87,7 +87,7 @@ public class AdminRefundServlet extends HttpServlet {
             }
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi xử lý hoàn tiền requestId=" + req.getParameter("requestId"), e);
-            SessionUtil.flashError(req.getSession(), "Lỗi xử lý hoàn tiền: " + e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
         resp.sendRedirect(req.getContextPath() + "/admin/refunds");
     }

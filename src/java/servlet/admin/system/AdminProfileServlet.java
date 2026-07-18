@@ -90,7 +90,7 @@ public class AdminProfileServlet extends HttpServlet {
             }
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi khi cập nhật admin profile, action=" + action, e);
-            SessionUtil.flashError(req.getSession(), "Lỗi: " + e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(req.getContextPath() + "/admin/profile");

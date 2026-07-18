@@ -98,7 +98,7 @@ public final class ConnectionPool {
                 dataSource.getClass().getMethod("close").invoke(dataSource);
                 LoggerUtil.info(log, "[ConnectionPool] Đã đóng DataSource và giải phóng Timer thành công.");
             } catch (Exception e) {
-                LoggerUtil.warn(log, "[ConnectionPool] Không thể đóng DataSource: " + e.getMessage());
+                LoggerUtil.warn(log, "[ConnectionPool] Không thể đóng DataSource", e);
             } finally {
                 dataSource = null;
                 poolActive = false;

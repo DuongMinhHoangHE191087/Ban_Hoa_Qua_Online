@@ -9,6 +9,7 @@ import model.dto.common.PagedResultDTO;
 import service.catalog.ProductService;
 import service.order.OrderService;
 import util.PaginationUtil;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -157,7 +158,22 @@ public class ShopService {
             ensureBusinessEmailAvailable(conn, businessEmail, userId);
             ShopProfile profile = shopProfileDAO.findOneByUserId(conn, userId);
             if (profile == null) {
-                throw new SQLException("Không tìm thấy hồ sơ shop cần cập nhật.");
+                profile = new ShopProfile();
+                profile.setUserId(userId);
+                profile.setShopName(shopName != null && !shopName.trim().isEmpty()
+                        ? shopName.trim()
+                        : "Cửa hàng của user #" + userId);
+                profile.setShopDescription("Chào mừng tới cửa hàng của chúng tôi!");
+                profile.setApprovalStatus(AppConfig.SHOP_PENDING);
+                profile.setDeliveryAddress(shopAddress != null && !shopAddress.trim().isEmpty()
+                        ? shopAddress.trim()
+                        : null);
+                profile.setRating(BigDecimal.ZERO);
+                profile.setPreferredCategories(preferredCategoriesJson);
+                profile.setDocPaths(docPathsJson);
+                profile.setBusinessEmail(businessEmail != null ? businessEmail.trim() : null);
+                shopProfileDAO.save(conn, profile);
+                return profile;
             }
             if (shopName != null && !shopName.trim().isEmpty()) {
                 profile.setShopName(shopName.trim());

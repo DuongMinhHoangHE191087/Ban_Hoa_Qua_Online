@@ -7,7 +7,7 @@ public class CheckoutResultDTO {
 
     private int orderId;
     private boolean paymentRequired;
-    private String purgedVariantIds;
+    private String purgedCartItemIds;
     private String successMessage;
 
     public int getOrderId() {
@@ -26,12 +26,20 @@ public class CheckoutResultDTO {
         this.paymentRequired = paymentRequired;
     }
 
+    public String getPurgedCartItemIds() {
+        return purgedCartItemIds;
+    }
+
+    public void setPurgedCartItemIds(String purgedCartItemIds) {
+        this.purgedCartItemIds = purgedCartItemIds;
+    }
+
     public String getPurgedVariantIds() {
-        return purgedVariantIds;
+        return purgedCartItemIds;
     }
 
     public void setPurgedVariantIds(String purgedVariantIds) {
-        this.purgedVariantIds = purgedVariantIds;
+        this.purgedCartItemIds = purgedVariantIds;
     }
 
     public String getSuccessMessage() {

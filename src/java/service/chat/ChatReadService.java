@@ -239,6 +239,10 @@ public class ChatReadService {
         public int getStatusCode() {
             return statusCode;
         }
+
+        public String getPublicMessage() {
+            return getMessage();
+        }
     }
 
     public static final class HttpStatus {
