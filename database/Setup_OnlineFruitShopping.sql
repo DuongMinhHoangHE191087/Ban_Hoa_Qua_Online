@@ -962,7 +962,8 @@ BEGIN
         ('sepay_bank_id',           'MBBank', N'Mã ngân hàng thụ hưởng nhận thanh toán SePay.', 'STRING'),
         ('sepay_account_no',         'SBSEPAY3NHWA061W5V2', N'Số tài khoản nhận thanh toán SePay.', 'STRING'),
         ('sepay_account_name',       'CONG TY TNHH METAFRUIT', N'Tên chủ tài khoản nhận thanh toán SePay.', 'STRING'),
-        ('gemini_api_key',          '',                                               N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING');
+        ('gemini_api_key',          '',                                               N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING'),
+        ('product_auto_approve',    'false',  N'Tự động duyệt sản phẩm khi tạo mới hoặc cập nhật (true/false). Mặc định false.', 'BOOLEAN');
 
     PRINT 'Created system_config table and seeded defaults.';
 END
