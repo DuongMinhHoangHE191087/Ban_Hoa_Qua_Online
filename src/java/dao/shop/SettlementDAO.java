@@ -127,7 +127,9 @@ public class SettlementDAO extends BaseDAO {
     }
 
     public int disputeByOwner(int settlementId, int ownerId, String cancelReason) throws SQLException {
-        String sql = "UPDATE shop_settlements SET status = 'CANCELLED', cancelled_at = GETDATE(), cancelled_by = ?, cancel_reason = ? "
+        // Thay vì CANCELLED, chuyển sang CONFIRMED và đánh dấu REPORTED để admin có thể tiếp tục xử lý thanh toán
+        String sql = "UPDATE shop_settlements SET status = 'CONFIRMED', payment_issue_status = 'REPORTED', "
+                   + "payment_issue_at = GETDATE(), payment_issue_by = ?, payment_issue_note = ? "
                    + "WHERE settlement_id = ? AND owner_id = ? AND status = 'PENDING'";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -254,14 +256,15 @@ public class SettlementDAO extends BaseDAO {
         String getOwnersSql = "SELECT DISTINCT o.owner_id "
                             + "FROM orders o "
                             + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
-                            + "WHERE o.status = 'DELIVERED' "
+                            + "WHERE ( (o.status = 'DELIVERED' AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(" + datepart + ", ?, GETDATE())) "
+                            + "     OR (o.status = 'CANCELLED' AND o.payment_method = 'CK' AND o.updated_at < DATEADD(" + datepart + ", ?, GETDATE())) ) "
                             + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
-                            + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
-                            + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(" + datepart + ", ?, GETDATE())";
+                            + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED'))";
                             
         try (Connection conn = getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(getOwnersSql)) {
                 ps.setInt(1, -freezeValue);
+                ps.setInt(2, -freezeValue);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         owners.add(rs.getInt("owner_id"));
@@ -276,15 +279,15 @@ public class SettlementDAO extends BaseDAO {
             conn.setAutoCommit(false);
 
             try {
-                String getOrdersSql = "SELECT o.order_id, o.final_amount, o.platform_fee, o.discount_amount, o.created_at, "
+                String getOrdersSql = "SELECT o.order_id, o.final_amount, o.platform_fee, o.discount_amount, o.created_at, o.status, o.payment_method, "
                                     + "  COALESCE((SELECT SUM(r.refund_amount) FROM return_requests r WHERE r.order_id = o.order_id AND r.status = 'COMPLETED'), 0) AS refund_amount "
                                     + "FROM orders o "
                                     + "LEFT JOIN deliveries d ON d.order_id = o.order_id "
                                     + "WHERE o.owner_id = ? "
-                                    + "  AND o.status = 'DELIVERED' "
+                                    + "  AND ( (o.status = 'DELIVERED' AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(" + datepart + ", ?, GETDATE())) "
+                                    + "     OR (o.status = 'CANCELLED' AND o.payment_method = 'CK' AND o.updated_at < DATEADD(" + datepart + ", ?, GETDATE())) ) "
                                     + "  AND NOT EXISTS (SELECT 1 FROM shop_settlement_orders sso WHERE sso.order_id = o.order_id) "
-                                    + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED')) "
-                                    + "  AND COALESCE(d.delivered_at, o.updated_at) < DATEADD(" + datepart + ", ?, GETDATE())";
+                                    + "  AND NOT EXISTS (SELECT 1 FROM return_requests r WHERE r.order_id = o.order_id AND r.status IN ('REQUESTED', 'PROCESSING', 'APPROVED'))";
                                     
                 String insertSettlementSql = "INSERT INTO shop_settlements (owner_id, period_start, period_end, gross_amount, platform_fee_amount, refund_amount, adjustment_amount, net_amount, status, calculated_at, created_by, note) "
                                            + "VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'PENDING', GETDATE(), 1, ?)";
@@ -299,6 +302,7 @@ public class SettlementDAO extends BaseDAO {
                     for (int ownerId : owners) {
                         psOrders.setInt(1, ownerId);
                         psOrders.setInt(2, -freezeValue);
+                        psOrders.setInt(3, -freezeValue);
                         
                         List<Map<String, Object>> ordersList = new ArrayList<>();
                         java.sql.Date periodStart = null;
@@ -317,6 +321,13 @@ public class SettlementDAO extends BaseDAO {
                                 java.math.BigDecimal disc = rsOrders.getBigDecimal("discount_amount");
                                 java.math.BigDecimal ref = rsOrders.getBigDecimal("refund_amount");
                                 java.sql.Date orderDate = rsOrders.getDate("created_at");
+                                String orderStatus = rsOrders.getString("status");
+                                String paymentMethod = rsOrders.getString("payment_method");
+                                
+                                if ("CANCELLED".equalsIgnoreCase(orderStatus) && "CK".equalsIgnoreCase(paymentMethod)) {
+                                    pFee = java.math.BigDecimal.ZERO;
+                                    ref = finalAmount != null ? finalAmount : java.math.BigDecimal.ZERO;
+                                }
                                 
                                 orderData.put("order_id", orderId);
                                 orderData.put("final_amount", finalAmount);
