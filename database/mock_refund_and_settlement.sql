@@ -41,3 +41,8 @@ VALUES (@NewOrder2, N'Cherry Ãšc', N'ThÃ¹ng 2kg', 1, 800000.00, 800000.00);
 
 INSERT INTO payment_transactions (order_id, payment_method, amount, currency, status, completed_at)
 VALUES (@NewOrder2, 'SEPAY', 830000.00, 'VND', 'completed', GETDATE());
+
+-- 4. Thêm don hàng m?u (thanh toán CK b? CANCELLED) d? test lu?ng d?i soát không tính doanh thu
+INSERT INTO orders (customer_id, owner_id, delivery_address, total_amount, final_amount, payment_method, status, created_at, updated_at)
+VALUES (6, 3, N'456 Test Street', 200000.00, 200000.00, 'CK', 'CANCELLED', DATEADD(hour, -25, GETDATE()), DATEADD(hour, -18, GETDATE()));
+

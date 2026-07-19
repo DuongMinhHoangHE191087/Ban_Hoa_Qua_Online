@@ -12,6 +12,7 @@ import model.entity.auth.User;
 import dao.auth.UserDAO;
 import service.chat.NotificationService;
 import service.system.EmailService;
+import service.catalog.InventoryService;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -115,7 +116,62 @@ public class DeliveryService {
             throw new IllegalArgumentException("Vui lòng nhập lý do giao hàng thất bại!");
         }
 
-        deliveryDAO.updateStatusAndProof(deliveryId, status, failureReason, proofImageUrl);
+        try (Connection conn = orderDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Update delivery status
+                deliveryDAO.updateStatusAndProof(conn, deliveryId, status, failureReason, proofImageUrl);
+
+                if (next == DeliveryStatus.FAILED) {
+                    Order order = orderDAO.findOneById(conn, del.getOrderId());
+                    if (order != null) {
+                        // 2. Cancel order
+                        String cancelReason = "Giao hàng thất bại: " + failureReason;
+                        orderDAO.cancel(conn, order.getOrderId(), staffId, cancelReason);
+
+                        // 3. Restock inventory
+                        List<model.entity.order.OrderItem> items = orderDAO.findItemsByOrderId(conn, order.getOrderId());
+                        InventoryService inventoryService = new InventoryService();
+                        for (model.entity.order.OrderItem item : items) {
+                            if (item.getVariantId() != null) {
+                                inventoryService.release(conn, item.getVariantId(), item.getQuantity(), order.getOrderId(), staffId);
+                            }
+                        }
+
+                        conn.commit();
+
+                        // 4. Send notifications
+                        try {
+                            User customer = userDAO.findUserById(order.getCustomerId());
+                            if (customer != null) {
+                                String customerMsg = "Đơn hàng #" + order.getOrderId() + " giao hàng thất bại. Lý do: " + failureReason;
+                                notificationService.send(customer.getUserId(), AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thất bại", customerMsg, "/orders/detail?orderId=" + order.getOrderId());
+                            }
+                        } catch (Exception ex) {
+                            LoggerUtil.warn(log, "Failed to send failure notification to customer for orderId=" + order.getOrderId(), ex);
+                        }
+
+                        try {
+                            if (order.getOwnerIdObject() != null) {
+                                String ownerMsg = "Đơn hàng #" + order.getOrderId() + " giao hàng thất bại và đã được hoàn lại kho. Lý do: " + failureReason;
+                                notificationService.send(order.getOwnerIdObject(), AppConfig.NOTIF_ORDER_UPDATE, "Giao hàng thất bại", ownerMsg, "/shop/orders");
+                            }
+                        } catch (Exception ex) {
+                            LoggerUtil.warn(log, "Failed to send failure notification to owner for orderId=" + order.getOrderId(), ex);
+                        }
+                    } else {
+                        conn.commit();
+                    }
+                } else {
+                    conn.commit();
+                }
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
         return true;
     }
 
