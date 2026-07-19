@@ -233,7 +233,7 @@
                             <c:when test="${not empty shopName}">
                                 <c:choose>
                                     <c:when test="${order.ownerId > 0}">
-                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}&idType=owner" class="hover:underline text-primary transition-all">
                                             <c:out value="${shopName}"/>
                                         </a>
                                     </c:when>
@@ -345,7 +345,7 @@
                                         <p class="font-bold text-on-surface">
                                             <c:choose>
                                                 <c:when test="${child.ownerId > 0}">
-                                                    <a href="${pageContext.request.contextPath}/shop-view?id=${child.ownerId}" class="hover:underline text-primary transition-all">
+                                                    <a href="${pageContext.request.contextPath}/shop-view?id=${child.ownerId}&idType=owner" class="hover:underline text-primary transition-all">
                                                         <c:out value="${shopNamesMap[child.orderId]}"/>
                                                     </a>
                                                 </c:when>
@@ -398,7 +398,7 @@
                             <span class="text-sm text-on-surface-variant font-normal">—
                                 <c:choose>
                                     <c:when test="${order.ownerId > 0}">
-                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                        <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}&idType=owner" class="hover:underline text-primary transition-all">
                                             <c:out value="${shopName}"/>
                                         </a>
                                     </c:when>

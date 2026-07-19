@@ -71,14 +71,14 @@
                                     <tr>
                                         <td class="px-6 py-4">
                                             <strong class="shop-name-col text-sm text-txt font-bold">
-                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}"
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}&idType=profile"
                                                    class="hover:text-primary transition-colors">
                                                     <c:out value="${shop.shopName}"/>
                                                 </a>
                                             </strong>
                                             <span class="text-xs text-txt-2 block mt-1">
                                                 Chủ shop:
-                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}"
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}&idType=profile"
                                                    class="font-medium text-primary hover:text-primary-dk transition-colors">
                                                     <c:out value="${shop.ownerName}"/>
                                                 </a>
