@@ -416,7 +416,7 @@
                                                 <span class="material-symbols-outlined text-sm">visibility</span> Xem
                                                 trước trực tiếp
                                             </span>
-                                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}"
+                                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}&idType=profile"
                                                 target="_blank"
                                                 class="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">
                                                 Xem trang công khai <span

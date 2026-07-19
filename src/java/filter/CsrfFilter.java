@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.UUID;
 
 /**
@@ -62,7 +64,12 @@ public class CsrfFilter implements Filter {
                 requestToken = req.getHeader("X-XSRF-TOKEN");
             }
             
-            if (sessionToken == null || !sessionToken.equals(requestToken)) {
+            boolean validToken = sessionToken != null
+                    && requestToken != null
+                    && MessageDigest.isEqual(
+                            sessionToken.getBytes(StandardCharsets.UTF_8),
+                            requestToken.getBytes(StandardCharsets.UTF_8));
+            if (!validToken) {
                 boolean isAjax = "XMLHttpRequest".equals(req.getHeader("X-Requested-With"))
                         || "json".equals(req.getParameter("format"))
                         || (req.getHeader("Accept") != null && req.getHeader("Accept").contains("application/json"));

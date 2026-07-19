@@ -96,6 +96,7 @@ public class CartServlet extends HttpServlet {
         String action = req.getParameter("action");
 
         if (action == null) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(resp, ApiResponse.error("Yêu cầu không hợp lệ. Thiếu action."));
             return;
         }
@@ -211,26 +212,31 @@ public class CartServlet extends HttpServlet {
                     if (errors.isEmpty()) {
                         JsonUtil.writeJson(resp, ApiResponse.ok(null));
                     } else {
+                        resp.setStatus(HttpServletResponse.SC_CONFLICT);
                         JsonUtil.writeJson(resp, ApiResponse.fail(
-                                200,
+                                HttpServletResponse.SC_CONFLICT,
                                 "Một số sản phẩm trong giỏ không còn đủ tồn kho. Vui lòng kiểm tra lại.",
                                 buildStockErrorMeta(errors)));
                     }
                     break;
                 }
                 default:
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JsonUtil.writeJson(resp, ApiResponse.error("Hành động không được hỗ trợ."));
                     break;
             }
         } catch (BusinessException e) {
-            JsonUtil.writeJson(resp, ApiResponse.fail(200,
+            resp.setStatus(422);
+            JsonUtil.writeJson(resp, ApiResponse.fail(422,
                     "Dữ liệu giỏ hàng không hợp lệ.",
                     buildValidationErrorMeta(e.getErrorCode())));
         } catch (IllegalArgumentException e) {
-            JsonUtil.writeJson(resp, ApiResponse.fail(200,
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
                     "Dữ liệu giỏ hàng không hợp lệ."));
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi hệ thống khi xử lý giỏ hàng", e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống khi xử lý giỏ hàng."));
         }
     }
