@@ -1465,7 +1465,7 @@
                                             if (result.isConfirmed) {
                                                 window.location.href = `${contextPath}/products/detail?id=${productId}`;
                                             }
-                                        } else if (confirm(confirmMessage)) {
+                                        } else if (await appConfirm(confirmMessage)) {
                                             window.location.href = `${contextPath}/products/detail?id=${productId}`;
                                         }
                                     } else if (reason === 'OUT_OF_STOCK') {

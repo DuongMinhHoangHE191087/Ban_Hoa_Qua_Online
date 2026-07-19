@@ -359,14 +359,14 @@ async function apiCall(data) {
     }
 }
 
-function claimOrder(id) {
-    if (confirm("Bạn có chắc chắn muốn đảm nhận đơn giao hàng này không?")) {
+async function claimOrder(id) {
+    if (await appConfirm("Bạn có chắc chắn muốn đảm nhận đơn giao hàng này không?")) {
         apiCall({ action: "CLAIM", deliveryId: id });
     }
 }
 
-function updateStatus(id, status) {
-    if (confirm("Xác nhận chuyển trạng thái sang: " + status + "?")) {
+async function updateStatus(id, status) {
+    if (await appConfirm("Xác nhận chuyển trạng thái sang: " + status + "?")) {
         apiCall({ action: "STATUS", deliveryId: id, status: status });
     }
 }
