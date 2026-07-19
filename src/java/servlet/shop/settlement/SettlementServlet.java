@@ -91,7 +91,13 @@ public class SettlementServlet extends HttpServlet {
                     if (s.getGrossAmount() != null) totalGross = totalGross.add(s.getGrossAmount());
                     if (s.getPlatformFeeAmount() != null) totalFee = totalFee.add(s.getPlatformFeeAmount());
                     if (s.getRefundAmount() != null) totalRefund = totalRefund.add(s.getRefundAmount());
-                    if (s.getNetAmount() != null) totalNet = totalNet.add(s.getNetAmount());
+                    if (s.getNetAmount() != null) {
+                        boolean isPaid = "PAID".equalsIgnoreCase(s.getStatus());
+                        boolean isResolved = "NONE".equalsIgnoreCase(s.getPaymentIssueStatus()) || "RESOLVED".equalsIgnoreCase(s.getPaymentIssueStatus());
+                        if (isPaid && isResolved) {
+                            totalNet = totalNet.add(s.getNetAmount());
+                        }
+                    }
                 }
             }
             req.setAttribute("totalGross", totalGross);
