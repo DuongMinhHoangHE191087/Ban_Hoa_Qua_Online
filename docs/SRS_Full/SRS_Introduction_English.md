@@ -175,6 +175,65 @@ The screen should contain the following controls:
 - Register button
 - Link to the Login screen
 
+## 3.2.5 System Feature: Login Account
+
+### Description
+
+The Login Account feature allows a registered user to authenticate and access functions permitted by the user's role. The feature supports Customers, Shop Owners, Delivery Staff, and Administrators. The system shall validate the submitted credentials, enforce account status and login-lockout rules, create a secure authenticated session, and redirect the user to the appropriate landing page.
+
+### Stimulus/Response Sequences
+
+| Stimulus | System response |
+|---|---|
+| The Guest or registered user opens the Login screen. | The system displays fields for email address and password, together with Login, Create Account, and Forgot Password actions. |
+| The user submits the login form with an empty field. | The system displays a validation message and does not send an authentication request. |
+| The user submits an invalid email or password. | The system displays a generic authentication error and does not reveal which credential was incorrect. |
+| The user submits valid credentials for an active account. | The system authenticates the user, creates a secure session, and redirects the user according to the user's role. |
+| The account is unverified, locked, suspended, or inactive. | The system rejects login and displays the permitted next action without creating an authenticated session. |
+| The user exceeds the failed-login limit. | The system records the failed attempt, applies the configured lockout policy, and informs the user that the account is temporarily locked. |
+| The user selects Forgot Password. | The system redirects the user to the password-recovery flow without disclosing whether an account exists for the submitted email. |
+| The authenticated user selects Logout. | The system invalidates the session and redirects the user to a public page. |
+
+### Functional Requirements
+
+**Account.Login.Display:** The system shall display the Login screen with fields for email address and password and links to Create Account and Forgot Password.
+
+**Account.Login.Validate:** The system shall validate that the email address and password fields are present before attempting authentication.
+
+**Account.Login.Authenticate:** The system shall verify the submitted credentials against the stored account data using the configured password-verification mechanism.
+
+**Account.Login.GenericError:** If authentication fails, the system shall display a generic error message and shall not identify whether the email address or password was incorrect.
+
+**Account.Login.Status:** The system shall prevent login for accounts that are locked, suspended, inactive, or otherwise not eligible for authentication.
+
+**Account.Login.Verification:** If email verification is required and has not been completed, the system shall inform the user that verification is required and shall provide the permitted verification or resend action.
+
+**Account.Login.Lockout:** The system shall count consecutive failed login attempts and shall temporarily lock the account when the configured failure threshold is reached.
+
+**Account.Login.Session:** After successful authentication, the system shall create a secure session containing only the minimum information required for authorization and user context.
+
+**Account.Login.RoleRedirect:** The system shall redirect the authenticated user to the appropriate page according to the assigned role: Customer, Shop Owner, Delivery Staff, or Administrator.
+
+**Account.Login.Authorization:** Authentication shall not grant permissions beyond those defined for the user's role.
+
+**Account.Login.Logout:** The system shall invalidate the authenticated session when the user logs out or when the configured session-expiration policy is reached.
+
+**Account.Login.Security:** The system shall not expose passwords, password hashes, session tokens, lockout internals, or authentication secrets in the user interface or application logs.
+
+### Login Account Screen
+
+**Figure 5. Login Account screen.**  
+*Insert the approved GUI wireframe or screenshot of the Login Account screen here.*
+
+The screen should contain the following controls:
+
+- Email Address
+- Password
+- Login button
+- Remember-me option, if enabled by project policy
+- Forgot Password link
+- Create Account link
+
 ## 3.3 System Feature: Place and Manage Order
 
 ### 3.3.1 Description
@@ -269,7 +328,7 @@ A Customer with a valid shopping cart may place an order for products offered by
 
 ### 3.3.4 Order and Checkout Screens
 
-**Figure 5. Shopping Cart and Checkout screens.**  
+**Figure 6. Shopping Cart and Checkout screens.**  
 *Insert the approved GUI wireframes or screenshots for the Shopping Cart, Checkout, Payment, and Order Confirmation screens here.*
 
 ## 3.4 System Feature: Manage Shop Products and Inventory
@@ -290,7 +349,7 @@ This feature replaces **Order Meals from Restaurants** and **Create, View, Modif
 
 **Inventory.Alert:** The system shall notify the Shop Owner when the stock quantity reaches the configured low-stock threshold.
 
-**Figure 6. Product and inventory management screens.**  
+**Figure 7. Product and inventory management screens.**  
 *Insert the approved GUI wireframes or screenshots for the Product List, Product Form, Variant Management, and Inventory Management screens here.*
 
 ## 3.5 System Feature: Manage Product Categories
@@ -307,7 +366,7 @@ This feature is the project-specific equivalent of **Create, View, Modify, and D
 
 **Category.Display:** The system shall allow Customers to browse products by an active category.
 
-**Figure 7. Category management screen.**  
+**Figure 8. Category management screen.**  
 *Insert the approved GUI wireframe or screenshot for the Category Management screen here.*
 
 ## 3.6 Features Outside the Project Scope
@@ -374,11 +433,11 @@ Meal subscriptions are therefore **out of scope for Release 1.0**. A subscriptio
 3. The system displays an appropriate failure message.
 4. No partial account shall remain in the database.
 
-## 4.2 Use Case UC-02: Place and Manage Order
+## 4.2 Use Case UC-03: Place and Manage Order
 
 | Item | Description |
 |---|---|
-| Use Case ID | UC-02 |
+| Use Case ID | UC-03 |
 | Use Case Name | Place and Manage Order |
 | Primary Actor | Customer |
 | Supporting Actors | Shop Owner, Delivery Staff, Payment Gateway/Bank, Scheduler/Timer |
@@ -507,11 +566,61 @@ Meal subscriptions are therefore **out of scope for Release 1.0**. A subscriptio
 | E2 | **Email service failure:** The system records the appropriate verification state, does not expose technical details, and displays a retry message. |
 | E3 | **Session or security failure:** The system rejects the request and requires the Guest to restart the registration flow. |
 
-## 4.4 Formal Use-Case Form: UC-02 Place and Manage Order
+## 4.4 Formal Use-Case Form: UC-02 Login Account
 
 | Field | Specification |
 |---|---|
-| UC ID and Name | **UC-02 – Place and Manage Order** |
+| UC ID and Name | **UC-02 – Login Account** |
+| Created By | Project Team |
+| Date Created | 20 July 2026 |
+| Primary Actor | Guest or registered user |
+| Secondary Actors | Authentication Service; Online Fruit Shopping System |
+| Trigger | The user selects **Login** and submits an email address and password. |
+| Description | This use case authenticates a registered user and creates a secure session for accessing authorized system functions. |
+| Preconditions | The Login screen is available; the user has a registered account; the authentication and database services are available. |
+| Postconditions | For success, an authenticated session is created and the user is redirected according to the user's role. For failure, no authenticated session is created. |
+| Priority | High |
+| Frequency of Use | Frequent; performed whenever a user accesses a protected function without a valid session. |
+| Business Rules | Credentials must be verified against the stored password hash. Locked, suspended, inactive, or unverified accounts shall not be authenticated when verification is required. Failed attempts shall follow the configured lockout policy. |
+| Other Information | The Login screen provides Forgot Password and Create Account links. Authentication errors shall use generic wording and shall not disclose sensitive account information. |
+| Assumptions | The user remembers the registered email address and password, and the configured authentication service and database are available. |
+
+### UC-02 Normal Flow
+
+| Step | Actor Action | System Response |
+|---:|---|---|
+| 1 | The user opens the Login screen. | The system displays the email address and password fields. |
+| 2 | The user enters a registered email address and password. | The system accepts the submitted credentials. |
+| 3 | The user selects **Login**. | The system validates the required fields and verifies the credentials against the stored password hash. |
+| 4 | — | The system checks the account status, verification state, and lockout state. |
+| 5 | — | The system creates a secure authenticated session containing the required user and role context. |
+| 6 | — | The system redirects the user to the appropriate landing page according to the assigned role. |
+
+### UC-02 Alternative Flows
+
+| ID | Condition and Flow |
+|---|---|
+| A1 | **Missing field:** The system displays a validation message for the missing email address or password. The user corrects the form and resubmits it from Step 3. |
+| A2 | **Email verification required:** The system informs the user that the account must be verified and provides the permitted verification or resend action. |
+| A3 | **Forgot password:** The user selects Forgot Password. The system starts the password-recovery flow without revealing whether the email exists. |
+| A4 | **Role-specific redirect:** After successful login, the system redirects the user to the Customer, Shop Owner, Delivery Staff, or Administrator landing page according to the stored role. |
+| A5 | **Session expiration:** When the session expires, the system redirects the user to Login and displays a session-expired message without losing unrelated public data. |
+
+### UC-02 Exceptions
+
+| ID | Exception and System Behavior |
+|---|---|
+| E1 | **Invalid credentials:** The system displays a generic authentication error, records the failed attempt, and does not create a session. |
+| E2 | **Account locked:** The system rejects login and displays the permitted lockout message and recovery instruction. |
+| E3 | **Account suspended or inactive:** The system rejects login and informs the user that the account cannot currently be used. |
+| E4 | **Authentication or database failure:** The system displays a general service error, does not create a session, and records diagnostic information without logging credentials. |
+| E5 | **Session creation failure:** The system rejects the login completion and requires the user to retry without exposing session details. |
+
+## 4.5 Formal Use-Case Form: UC-03 Place and Manage Order
+
+| Field | Specification |
+|---|---|
+| UC ID and Name | **UC-03 – Place and Manage Order** |
 | Created By | Project Team |
 | Date Created | 19 July 2026 |
 | Primary Actor | Customer |
@@ -526,7 +635,7 @@ Meal subscriptions are therefore **out of scope for Release 1.0**. A subscriptio
 | Other Information | The system shall provide order confirmation, payment status, order history, and delivery tracking. The system shall notify the Customer and Shop Owner when applicable. |
 | Assumptions | Product and stock information are maintained by the Shop Owner. The payment gateway is available for online payments. Delivery Staff can update delivery progress after assignment. |
 
-### UC-02 Normal Flow
+### UC-03 Normal Flow
 
 | Step | Actor Action | System Response |
 |---:|---|---|
@@ -541,7 +650,7 @@ Meal subscriptions are therefore **out of scope for Release 1.0**. A subscriptio
 | 9 | — | The system notifies the Customer and Shop Owner and displays the order confirmation. |
 | 10 | The Customer opens order tracking. | The system displays order, payment, delivery, and status-history information. |
 
-### UC-02 Alternative Flows
+### UC-03 Alternative Flows
 
 | ID | Condition and Flow |
 |---|---|
@@ -553,7 +662,7 @@ Meal subscriptions are therefore **out of scope for Release 1.0**. A subscriptio
 | A6 | **Retry online payment:** If payment is not confirmed, the Customer retries payment or selects another available payment method when permitted. |
 | A7 | **View order history:** The Customer opens Order History instead of immediately tracking the newly created order. The system displays eligible previous orders and their details. |
 
-### UC-02 Exceptions
+### UC-03 Exceptions
 
 | ID | Exception and System Behavior |
 |---|---|
@@ -593,7 +702,7 @@ erDiagram
     SHOP_OWNER_PROFILE ||--o{ SETTLEMENT : receives
 ```
 
-**Figure 8. Logical data model for Release 1.0.**
+**Figure 9. Logical data model for Release 1.0.**
 
 The physical database design is specified in `docs/SRS_Full/SRS_Database_Specification.md` and implemented through `database/Schema.sql` and `database/Setup_OnlineFruitShopping.sql`.
 
