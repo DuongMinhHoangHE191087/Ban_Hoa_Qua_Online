@@ -463,3 +463,8 @@
 [2026-07-18 22:23:53] [INFO] Kill-tomcat executed
 [2026-07-18 22:23:53] [INFO] Clean-all executed
 [2026-07-18 22:24:15] [INFO] Open-app executed
+[2026-07-20 02:10:52] [INFO] Running database setup command: C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\SQLCMD.EXE -S localhost,1433 -U sa -P 123 -f 65001 -i database/Setup_OnlineFruitShopping.sql
+[2026-07-20 02:11:03] [INFO] Database setup completed successfully.
+[2026-07-20 16:02:38] [INFO] Kill-tomcat executed
+[2026-07-20 16:02:38] [INFO] Clean-all executed
+[2026-07-20 16:02:57] [INFO] Open-app executed

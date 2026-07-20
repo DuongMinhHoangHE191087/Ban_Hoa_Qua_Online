@@ -54,6 +54,9 @@
                 }
             });
         };
+        window.appConfirm = function(message, options) {
+            return Swal.fire(Object.assign({ icon: 'question', title: 'Xác nhận thao tác', text: String(message == null ? '' : message), showCancelButton: true, confirmButtonText: 'Xác nhận', cancelButtonText: 'Hủy', confirmButtonColor: '#4D661C', cancelButtonColor: '#E5E7EB', reverseButtons: true }, options || {})).then(function(result) { return result.isConfirmed; });
+        };
     </script>
 
     <!-- Global app state for AJAX / cart -->
