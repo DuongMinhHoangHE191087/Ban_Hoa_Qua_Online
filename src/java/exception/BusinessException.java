@@ -22,7 +22,7 @@ package exception;
  *       orderService.cancelOrder(orderId, user.getUserId());
  *       SessionUtil.flashSuccess(session, "Đã hủy đơn hàng.");
  *   } catch (BusinessException e) {
- *       SessionUtil.flashError(session, e.getMessage());
+ *       SessionUtil.flashError(session, e.getPublicMessage());
  *   } catch (SQLException e) {
  *       SessionUtil.flashError(session, "Lỗi hệ thống, vui lòng thử lại.");
  *   }
@@ -49,5 +49,10 @@ public class BusinessException extends RuntimeException {
     /** Mã lỗi để phân loại (ORDER_NOT_FOUND, INVALID_STATUS, STOCK_INSUFFICIENT...) */
     public String getErrorCode() {
         return errorCode;
+    }
+
+    /** Message public cho user-facing flow. */
+    public String getPublicMessage() {
+        return super.getMessage();
     }
 }

@@ -511,6 +511,17 @@ BEGIN
     );
 END
 
+IF NOT EXISTS (SELECT 1 FROM system_config WHERE config_key = 'product_auto_approve')
+BEGIN
+    INSERT INTO system_config (config_key, config_value, description, data_type)
+    VALUES (
+        'product_auto_approve',
+        'false',
+        N'Tự động duyệt sản phẩm khi tạo mới hoặc cập nhật (true/false). Mặc định false.',
+        'BOOLEAN'
+    );
+END
+
 -- 18. audit_logs
 CREATE TABLE audit_logs (
     log_id INT IDENTITY(1,1) PRIMARY KEY,
@@ -529,7 +540,8 @@ CREATE INDEX IX_orders_acceptance_auto_cancel ON orders (status, shop_acceptance
 CREATE INDEX IX_return_requests_status ON return_requests(status, created_at);
 CREATE INDEX IX_products_status_approval_product_id ON products(status, approval_status, product_id DESC);
 CREATE INDEX IX_cart_items_cart_id_added_at ON cart_items (cart_id, added_at DESC);
-CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_id ON cart_items (cart_id, variant_id);
+CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_packaging_notnull ON cart_items (cart_id, variant_id, packaging_id) WHERE packaging_id IS NOT NULL;
+CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_no_packaging ON cart_items (cart_id, variant_id) WHERE packaging_id IS NULL;
 CREATE INDEX IX_orders_customer_id_order_id_desc ON orders (customer_id, order_id DESC);
 CREATE INDEX IX_orders_parent_order_id ON orders (parent_order_id, order_id);
 CREATE INDEX IX_orders_owner_id_status_order_id_desc ON orders (owner_id, status, order_id DESC);

@@ -18,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -47,9 +46,7 @@ public class OrderDAO extends BaseDAO {
             } catch (SQLException e) {
                 last = e;
                 String sqlState = e.getSQLState();
-                String message = e.getMessage();
-                boolean transientConnectionError = (sqlState != null && sqlState.startsWith("08"))
-                        || (message != null && message.toLowerCase(Locale.ROOT).contains("socket closed"));
+                boolean transientConnectionError = sqlState != null && sqlState.startsWith("08");
                 if (attempt == 1 && transientConnectionError) {
                     continue;
                 }

@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import util.ErrorMessageUtil;
 
 /**
  * ProductEditServlet — Servlet xử lý chỉnh sửa sản phẩm cho shop
@@ -125,7 +126,7 @@ public class ProductEditServlet extends HttpServlet {
                         resp,
                         log,
                         "ProductEditServlet#doGet",
-                        "Lỗi truy vấn cơ sở dữ liệu: " + e.getMessage(),
+                        "Lỗi hệ thống khi tải sản phẩm.",
                         e);
                 return;
             }
@@ -396,7 +397,7 @@ public class ProductEditServlet extends HttpServlet {
                     }
                 }
             } catch (Exception e) {
-                errors.add("Lỗi đọc tệp tải lên: " + e.getMessage());
+            errors.add(ErrorMessageUtil.MSG_FILE_ERROR);
             }
 
             // 4. Nếu có lỗi, trả lại form chỉnh sửa
@@ -651,11 +652,11 @@ public class ProductEditServlet extends HttpServlet {
                         resp,
                         log,
                         "ProductEditServlet#doPost",
-                        "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage(),
+                        "Lỗi hệ thống khi cập nhật sản phẩm.",
                         e);
                 return;
             }
-            SessionUtil.flashError(session, "Lỗi cơ sở dữ liệu khi cập nhật sản phẩm: " + e.getMessage());
+            SessionUtil.flashError(session, ErrorMessageUtil.MSG_DB_ERROR);
             resp.sendRedirect(req.getContextPath() + "/shop/products");
         }
     }

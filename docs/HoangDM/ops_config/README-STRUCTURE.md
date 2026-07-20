@@ -134,8 +134,8 @@ Mở `src/java/com/fruitmkt/config/DBConfig.java` và thay:
 private static final String DB_HOST     = "localhost";    // ← IP máy chủ SQL
 private static final String DB_PORT     = "1433";         // ← Port SQL Server
 private static final String DB_NAME     = "OnlineFruitShopping"; // ← Tên DB
-private static final String DB_USER     = "sa";           // ← Username
-private static final String DB_PASSWORD = "your_password_here";  // ← Password
+private static final String DB_USER     = System.getenv("DB_USER");     // ← Username via env
+private static final String DB_PASSWORD = System.getenv("DB_PASSWORD"); // ← Password via env
 ```
 
 > ⚠️ **KHÔNG commit DBConfig.java có password thật lên git!**

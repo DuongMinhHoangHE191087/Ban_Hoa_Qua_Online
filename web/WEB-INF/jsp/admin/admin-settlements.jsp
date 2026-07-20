@@ -157,7 +157,7 @@
                                                     </c:if>
                                                     <c:if test="${s.paymentIssueStatus == 'REPORTED'}">
                                                         <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-700 font-bold">
-                                                            <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Shop báo chưa nhận tiền
+                                                            <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Có tranh chấp / báo lỗi
                                                         </div>
                                                     </c:if>
                                                     <c:if test="${s.paymentIssueStatus == 'UNDER_REVIEW'}">

@@ -71,10 +71,9 @@ public class AdminRefundServlet extends HttpServlet {
 
             String action = req.getParameter("action"); // "approve" or "reject"
             int requestId = Integer.parseInt(req.getParameter("requestId"));
-            int orderId = Integer.parseInt(req.getParameter("orderId"));
             String reason = req.getParameter("decisionReason");
 
-            returnRequestService.processRequest(requestId, action, reason, admin.getUserId(), orderId);
+            returnRequestService.processRequest(requestId, action, reason, admin.getUserId());
 
             if ("approve".equals(action)) {
                 SessionUtil.flashSuccess(req.getSession(), "Đã duyệt yêu cầu hoàn tiền #" + requestId);
@@ -87,7 +86,7 @@ public class AdminRefundServlet extends HttpServlet {
             }
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi xử lý hoàn tiền requestId=" + req.getParameter("requestId"), e);
-            SessionUtil.flashError(req.getSession(), "Lỗi xử lý hoàn tiền: " + e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
         resp.sendRedirect(req.getContextPath() + "/admin/refunds");
     }

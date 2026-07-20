@@ -114,7 +114,7 @@ public class ShopSettingsServlet extends HttpServlet {
 
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi cập nhật cài đặt shop", e);
-            SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(req.getContextPath() + "/shop/settings");

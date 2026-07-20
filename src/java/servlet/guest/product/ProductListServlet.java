@@ -117,7 +117,7 @@ public class ProductListServlet extends HttpServlet {
             }
 
         } catch (SQLException e) {
-            req.getServletContext().log("ProductListServlet DB error: " + e.getMessage(), e);
+            req.getServletContext().log("ProductListServlet DB error: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
             req.setAttribute("errorMsg", "Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.");
         }
 
@@ -188,6 +188,8 @@ public class ProductListServlet extends HttpServlet {
         item.put("rating", product.getRating() != null ? product.getRating() : BigDecimal.ZERO);
         item.put("soldQuantity", product.getSoldQuantity());
         item.put("categoryId", product.getCategoryId());
+        item.put("isOrganic", product.getIsOrganic());
+        item.put("isImported", product.getIsImported());
         item.put("image", resolveImagePath(req, primaryImage));
 
         BigDecimal basePrice = new BigDecimal("45000");

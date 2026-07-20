@@ -1,6 +1,7 @@
 package servlet.customer.cart;
 
 import config.AppConfig;
+import exception.BusinessException;
 import model.dto.product.CartSummaryDTO;
 import model.entity.auth.User;
 import model.response.ApiResponse;
@@ -95,6 +96,7 @@ public class CartServlet extends HttpServlet {
         String action = req.getParameter("action");
 
         if (action == null) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             JsonUtil.writeJson(resp, ApiResponse.error("Yêu cầu không hợp lệ. Thiếu action."));
             return;
         }
@@ -203,48 +205,74 @@ public class CartServlet extends HttpServlet {
                         return;
                     }
 
-                    List<Integer> variantIds = parseVariantIds(req.getParameter("variantIds"));
-                    List<String> errors = cartService.checkCartStockBeforeCheckout(user.getUserId(), variantIds);
+                    List<Integer> cartItemIds = parseSelectionIds(req.getParameter("cartItemIds"));
+                    List<String> errors = !cartItemIds.isEmpty()
+                            ? cartService.checkCartStockBeforeCheckoutByCartItemIds(user.getUserId(), cartItemIds)
+                            : cartService.checkCartStockBeforeCheckout(user.getUserId(), parseVariantIds(req.getParameter("variantIds")));
                     if (errors.isEmpty()) {
                         JsonUtil.writeJson(resp, ApiResponse.ok(null));
                     } else {
+                        resp.setStatus(HttpServletResponse.SC_CONFLICT);
                         JsonUtil.writeJson(resp, ApiResponse.fail(
-                                200,
+                                HttpServletResponse.SC_CONFLICT,
                                 "Một số sản phẩm trong giỏ không còn đủ tồn kho. Vui lòng kiểm tra lại.",
                                 buildStockErrorMeta(errors)));
                     }
                     break;
                 }
                 default:
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JsonUtil.writeJson(resp, ApiResponse.error("Hành động không được hỗ trợ."));
                     break;
             }
+        } catch (BusinessException e) {
+            resp.setStatus(422);
+            JsonUtil.writeJson(resp, ApiResponse.fail(422,
+                    "Dữ liệu giỏ hàng không hợp lệ.",
+                    buildValidationErrorMeta(e.getErrorCode())));
         } catch (IllegalArgumentException e) {
-            JsonUtil.writeJson(resp, ApiResponse.fail(200, e.getMessage(), buildValidationErrorMeta(e.getMessage())));
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            JsonUtil.writeJson(resp, ApiResponse.fail(HttpServletResponse.SC_BAD_REQUEST,
+                    "Dữ liệu giỏ hàng không hợp lệ."));
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi hệ thống khi xử lý giỏ hàng", e);
-            JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống khi xử lý giỏ hàng: " + e.getMessage()));
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            JsonUtil.writeJson(resp, ApiResponse.error("Lỗi hệ thống khi xử lý giỏ hàng."));
         }
     }
 
-    private Map<String, Object> buildValidationErrorMeta(String message) {
+    private Map<String, Object> buildValidationErrorMeta(String errorCode) {
         Map<String, Object> meta = new HashMap<>();
-        if (isMissingCartItemMessage(message)) {
+        if (isMissingCartItemErrorCode(errorCode)) {
             meta.put("errorCode", "cart_item_not_found");
-        } else if (isOutOfSeasonMessage(message)) {
+        } else if (isOutOfSeasonErrorCode(errorCode)) {
             meta.put("errorCode", "out_of_season");
-        } else if (isStockRelatedMessage(message)) {
+        } else if (isStockRelatedErrorCode(errorCode)) {
             meta.put("errorCode", "out_of_stock");
         }
         return meta.isEmpty() ? null : meta;
     }
 
-    private boolean isMissingCartItemMessage(String message) {
-        if (message == null) {
+    private boolean isMissingCartItemErrorCode(String errorCode) {
+        if (errorCode == null) {
             return false;
         }
-        return message.contains("Không tìm thấy sản phẩm này trong giỏ hàng.")
-                || message.contains("Sản phẩm không thuộc giỏ hàng của bạn!");
+        return "cart_item_not_found".equals(errorCode)
+                || "cart_item_not_owned".equals(errorCode);
+    }
+
+    private boolean isOutOfSeasonErrorCode(String errorCode) {
+        if (errorCode == null) {
+            return false;
+        }
+        return "out_of_season".equals(errorCode);
+    }
+
+    private boolean isStockRelatedErrorCode(String errorCode) {
+        if (errorCode == null) {
+            return false;
+        }
+        return "out_of_stock".equals(errorCode);
     }
 
     private Map<String, Object> buildStockErrorMeta(List<String> errors) {
@@ -301,6 +329,28 @@ public class CartServlet extends HttpServlet {
             }
         }
         return variantIds;
+    }
+
+    private List<Integer> parseSelectionIds(String cartItemIdsParam) {
+        return parseIdList(cartItemIdsParam);
+    }
+
+    private List<Integer> parseIdList(String idsParam) {
+        List<Integer> ids = new ArrayList<>();
+        if (idsParam == null || idsParam.trim().isEmpty()) {
+            return ids;
+        }
+        for (String part : idsParam.split(",")) {
+            try {
+                int parsed = Integer.parseInt(part.trim());
+                if (parsed > 0) {
+                    ids.add(parsed);
+                }
+            } catch (NumberFormatException e) {
+                LoggerUtil.warn(log, "ID không hợp lệ: " + part, e);
+            }
+        }
+        return ids;
     }
 
     private String readRequestBody(HttpServletRequest req) throws IOException {

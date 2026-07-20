@@ -9,12 +9,21 @@ import java.util.List;
 // Touched for IDE re-indexing
 public class CheckoutQuoteRequestDTO {
 
+    private List<Integer> cartItemIds = new ArrayList<>();
     private List<Integer> variantIds = new ArrayList<>();
     private String deliveryAddress;
     private String deliveryTimeSlot;
     private String paymentMethod;
     private List<String> shopCouponCodes = new ArrayList<>();
     private List<String> systemCouponCodes = new ArrayList<>();
+
+    public List<Integer> getCartItemIds() {
+        return cartItemIds;
+    }
+
+    public void setCartItemIds(List<Integer> cartItemIds) {
+        this.cartItemIds = cartItemIds;
+    }
 
     public List<Integer> getVariantIds() {
         return variantIds;

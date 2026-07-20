@@ -47,7 +47,7 @@ public class PaymentService {
     private final NotificationService notificationService = new NotificationService();
     private final EmailService emailService = new EmailService();
 
-    private static final int QR_EXPIRE_MIN = 15;
+    private static final int QR_EXPIRE_MIN = AppConfig.QR_EXPIRE_MINUTES;
 
     /**
      * Khởi tạo bản ghi payment_transaction cho đơn CK.
@@ -58,17 +58,23 @@ public class PaymentService {
     }
 
     public PaymentTransaction initPayment(int orderId, String method, String ipAddress) throws SQLException {
+        try (Connection conn = paymentDAO.openConnection()) {
+            return initPayment(conn, orderId, method, ipAddress);
+        }
+    }
+
+    public PaymentTransaction initPayment(Connection conn, int orderId, String method, String ipAddress) throws SQLException {
         if (orderId <= 0) {
             throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
         }
-        Order order = orderDAO.findOneById(orderId);
+        Order order = orderDAO.findOneById(conn, orderId);
         if (order == null) throw new IllegalArgumentException("không tìm thấy đơn hàng #" + orderId);
 
         String reference = buildSepayReference(orderId);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
 
         int txId = paymentDAO.initTransaction(
-            orderId, method, order.getFinalAmount(),
+            conn, orderId, method, order.getFinalAmount(),
             reference, ipAddress, expiresAt
         );
 
@@ -284,16 +290,22 @@ public class PaymentService {
             // Chưa có → tạo mới
             return initPayment(orderId, "SEPAY");
         }
-        // Gia hạn expires_at
+        if (tx.getExpiresAt() != null && LocalDateTime.now().isBefore(tx.getExpiresAt())) {
+            return tx;
+        }
+        String newReference = buildSepayReference(orderId);
         LocalDateTime newExpiry = LocalDateTime.now().plusMinutes(QR_EXPIRE_MIN);
-        String updateSql = "UPDATE payment_transactions SET expires_at = ?, status = 'pending' "
+        String updateSql = "UPDATE payment_transactions SET sepay_reference = ?, expires_at = ?, status = 'pending', "
+                         + "sepay_transaction_id = NULL, provider_response = NULL, error_code = NULL, error_message = NULL, completed_at = NULL "
                          + "WHERE transaction_id = ?";
         try (Connection conn = paymentDAO.openConnection();
              PreparedStatement ps = conn.prepareStatement(updateSql)) {
-            ps.setTimestamp(1, Timestamp.valueOf(newExpiry));
-            ps.setInt(2, tx.getTransactionId());
+            ps.setString(1, newReference);
+            ps.setTimestamp(2, Timestamp.valueOf(newExpiry));
+            ps.setInt(3, tx.getTransactionId());
             ps.executeUpdate();
         }
+        tx.setSepayReference(newReference);
         tx.setExpiresAt(newExpiry);
         tx.setStatus("pending");
         return tx;
@@ -402,7 +414,8 @@ public class PaymentService {
         try {
             payload = JsonUtil.fromJson(jsonPayload, SepayWebhookPayload.class);
         } catch (Exception e) {
-            LoggerUtil.warn(log, "[Webhook] Payload JSON không hợp lệ: " + jsonPayload, e);
+            LoggerUtil.warn(log, "[Webhook] Payload JSON không hợp lệ (len="
+                    + (jsonPayload == null ? 0 : jsonPayload.length()) + ")", e);
             return WebhookProcessingResult.invalidPayload();
         }
 
@@ -417,7 +430,8 @@ public class PaymentService {
         String accountNumber = normalizeNodeText(payload != null ? payload.accountNumber : null);
 
         if (sepayTxId == null || code == null) {
-            LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: sepayTxId (id/referenceCode) hoặc code. Payload: %s", jsonPayload);
+            LoggerUtil.warn(log, "[Webhook] Payload thiếu trường bắt buộc: sepayTxId (id/referenceCode) hoặc code. len="
+                    + (jsonPayload == null ? 0 : jsonPayload.length()));
             return WebhookProcessingResult.invalidPayload();
         }
 
@@ -497,6 +511,14 @@ public class PaymentService {
             return WebhookProcessingResult.skipped("not_found");
         }
 
+        String txStatus = tx.getStatus();
+        if (!"pending".equalsIgnoreCase(txStatus) && !"processing".equalsIgnoreCase(txStatus)) {
+            LoggerUtil.warn(log, "[Webhook] transactionId=%d không ở trạng thái xử lý hợp lệ (hiện tại: %s) — bỏ qua.",
+                    tx.getTransactionId(), txStatus);
+            paymentDAO.updateDedupResult(conn, sepayTxId, "skipped_wrong_status");
+            return WebhookProcessingResult.skipped("skipped_wrong_status");
+        }
+
         Order order = orderDAO.findOneById(conn, tx.getOrderId());
         if (order == null || !AppConfig.ORDER_PENDING_PAYMENT.equals(order.getStatus())) {
             String currentStatus = order != null ? order.getStatus() : "null";
@@ -516,9 +538,7 @@ public class PaymentService {
         }
 
         BigDecimal expected = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
-        if (received.compareTo(expected) < 0) {
-            paymentDAO.updateStatusFailed(conn, tx.getTransactionId(), "AMOUNT_MISMATCH",
-                    "Số tiền nhận được thấp hơn số tiền đơn hàng.");
+        if (received.compareTo(expected) != 0) {
             paymentDAO.updateDedupResult(conn, sepayTxId, "amount_mismatch");
             LoggerUtil.warn(log, "[Webhook] Số tiền không khớp: expected=%s received=%s orderId=%d",
                 expected, received, tx.getOrderId());

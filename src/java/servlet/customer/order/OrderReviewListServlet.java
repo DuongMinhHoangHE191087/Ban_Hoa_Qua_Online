@@ -7,6 +7,7 @@ import model.entity.order.Order;
 import model.entity.order.OrderItem;
 import model.entity.order.Review;
 import model.entity.auth.User;
+import util.ActorAccessPolicy;
 import util.SessionUtil;
 
 import util.LoggerUtil;
@@ -33,7 +34,7 @@ public class OrderReviewListServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         User user = SessionUtil.getCurrentUser(req.getSession());
-        if (user == null || !"CUSTOMER".equals(user.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(user)) {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }

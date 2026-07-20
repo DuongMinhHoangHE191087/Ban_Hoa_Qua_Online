@@ -31,7 +31,7 @@ import java.util.logging.Logger;
  *       Object result = myService.doWork(id);
  *       ServletUtil.sendJsonSuccess(resp, result);
  *   } catch (BusinessException e) {
- *       ServletUtil.sendJsonError(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+ *       ServletUtil.sendJsonError(resp, HttpServletResponse.SC_BAD_REQUEST, e.getPublicMessage());
  *   } catch (Exception e) {
  *       ServletUtil.sendJsonError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi hệ thống.");
  *   }
@@ -43,7 +43,7 @@ import java.util.logging.Logger;
  *       orderService.cancel(orderId, userId);
  *       ServletUtil.flashAndRedirect(req, resp, "success", "Đã hủy đơn hàng.", "/orders");
  *   } catch (BusinessException e) {
- *       ServletUtil.flashAndRedirect(req, resp, "error", e.getMessage(), "/orders");
+ *       ServletUtil.flashAndRedirect(req, resp, "error", e.getPublicMessage(), "/orders");
  *   }
  * </pre>
  *

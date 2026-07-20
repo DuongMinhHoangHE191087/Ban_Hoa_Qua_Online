@@ -56,7 +56,7 @@ public class NotificationServlet extends HttpServlet {
                 JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("notifications", list)));
             } catch (Exception e) {
                 LOG.log(Level.SEVERE, "Lỗi lấy danh sách thông báo gần đây", e);
-                JsonUtil.writeJson(resp, ApiResponse.error(e.getMessage()));
+                JsonUtil.writeJson(resp, ApiResponse.error("Không thể tải danh sách thông báo gần đây."));
             }
             return;
         }
@@ -69,7 +69,7 @@ public class NotificationServlet extends HttpServlet {
                 JsonUtil.writeJson(resp, ApiResponse.ok(Map.of("unreadNotifications", unreadNotifs, "unreadChats", unreadChats)));
             } catch (Exception e) {
                 LOG.log(Level.SEVERE, "Lỗi lấy số lượng chưa đọc", e);
-                JsonUtil.writeJson(resp, ApiResponse.error(e.getMessage()));
+                JsonUtil.writeJson(resp, ApiResponse.error("Không thể tải số lượng thông báo."));
             }
             return;
         }
@@ -168,11 +168,11 @@ public class NotificationServlet extends HttpServlet {
                         resp,
                         java.util.logging.Logger.getLogger(NotificationServlet.class.getName()),
                         "NotificationServlet#doPost",
-                        "Có lỗi xảy ra: " + e.getMessage(),
+                        "Có lỗi xảy ra khi xử lý thông báo.",
                         e);
                 return;
             }
-            SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra: " + e.getMessage());
+            SessionUtil.flashError(req.getSession(), "Có lỗi xảy ra khi xử lý thông báo.");
         }
 
         String redirectUrl = req.getParameter("redirectUrl");

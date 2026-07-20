@@ -142,17 +142,46 @@ public class CsrfProtectionTest {
     }
 
     // =========================================================
-    // TC-CSRF-07: POST đến /cart — bỏ qua (Beacon API)
+    // TC-CSRF-07: POST đến /cart không còn được bỏ qua mặc định
     // =========================================================
 
     @Test
-    public void should_allowPost_to_cartPath_without_token() throws Exception {
+    public void should_blockPost_to_cartPath_without_token() throws Exception {
         env.sessionToken = VALID_TOKEN;
         env.method = "POST";
         env.uri = "/Ban_Hoa_Qua_Online/cart";
 
         runFilter();
-        assertTrue("cart không cần token", env.chainCalled.get());
+        assertFalse("cart phải yêu cầu token sau khi siết exemption", env.chainCalled.get());
+        assertEquals("sendError phải 403", 403, env.errorCode.get());
+    }
+
+    // =========================================================
+    // TC-CSRF-07B: syncOnUnload phải có token sau khi bỏ exemption beacon
+    // =========================================================
+
+    @Test
+    public void should_blockCartSyncOnUnload_without_token() throws Exception {
+        env.sessionToken = VALID_TOKEN;
+        env.method = "POST";
+        env.uri = "/Ban_Hoa_Qua_Online/cart";
+        env.actionParam = "syncOnUnload";
+
+        runFilter();
+        assertFalse("syncOnUnload phải bị chặn nếu thiếu token", env.chainCalled.get());
+        assertEquals(403, env.errorCode.get());
+    }
+
+    @Test
+    public void should_allowCartSyncOnUnload_when_tokenMatchesSession() throws Exception {
+        env.sessionToken = VALID_TOKEN;
+        env.method = "POST";
+        env.uri = "/Ban_Hoa_Qua_Online/cart";
+        env.actionParam = "syncOnUnload";
+        env.headerToken = VALID_TOKEN;
+
+        runFilter();
+        assertTrue("syncOnUnload phải được phép khi có token hợp lệ", env.chainCalled.get());
     }
 
     // =========================================================
@@ -222,6 +251,7 @@ public class CsrfProtectionTest {
         String paramToken = null;
         String headerToken = null;
         String sessionToken = null;
+        String actionParam = null;
         boolean isAjax = false;
 
         Map<String, Object> sessionAttributes = new HashMap<>();
@@ -264,6 +294,7 @@ public class CsrfProtectionTest {
                             case "getSession": return session;
                             case "getParameter":
                                 if ("_csrf".equals(args[0])) return paramToken;
+                                if ("action".equals(args[0])) return actionParam;
                                 if ("format".equals(args[0])) return null;
                                 return null;
                             case "getHeader":

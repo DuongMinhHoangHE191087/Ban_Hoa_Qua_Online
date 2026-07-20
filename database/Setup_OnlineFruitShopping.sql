@@ -962,7 +962,8 @@ BEGIN
         ('sepay_bank_id',           'MBBank', N'Mã ngân hàng thụ hưởng nhận thanh toán SePay.', 'STRING'),
         ('sepay_account_no',         'SBSEPAY3NHWA061W5V2', N'Số tài khoản nhận thanh toán SePay.', 'STRING'),
         ('sepay_account_name',       'CONG TY TNHH METAFRUIT', N'Tên chủ tài khoản nhận thanh toán SePay.', 'STRING'),
-        ('gemini_api_key',          '',                                               N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING');
+        ('gemini_api_key',          '',                                               N'API Key cho Gemini 2.5 Flash. Có thể để trống để dùng biến môi trường GEMINI_API_KEY khi admin chưa cấu hình.', 'STRING'),
+        ('product_auto_approve',    'false',  N'Tự động duyệt sản phẩm khi tạo mới hoặc cập nhật (true/false). Mặc định false.', 'BOOLEAN');
 
     PRINT 'Created system_config table and seeded defaults.';
 END
@@ -1047,10 +1048,25 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id')
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_id' AND object_id = OBJECT_ID(N'dbo.cart_items'))
 BEGIN
-    CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_id
-        ON dbo.cart_items (cart_id, variant_id);
+    DROP INDEX UX_cart_items_cart_id_variant_id ON dbo.cart_items;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_packaging_notnull' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+BEGIN
+    CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_packaging_notnull
+        ON dbo.cart_items (cart_id, variant_id, packaging_id)
+        WHERE packaging_id IS NOT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_cart_items_cart_id_variant_no_packaging' AND object_id = OBJECT_ID(N'dbo.cart_items'))
+BEGIN
+    CREATE UNIQUE INDEX UX_cart_items_cart_id_variant_no_packaging
+        ON dbo.cart_items (cart_id, variant_id)
+        WHERE packaging_id IS NULL;
 END
 GO
 
@@ -2513,3 +2529,21 @@ SELECT
     (SELECT COUNT(*) FROM dbo.order_promotions WHERE usage_id BETWEEN 8001 AND 8008) AS seeded_order_promotions;
 
 
+-- Migration guard for settlement tracking columns
+IF COL_LENGTH('dbo.shop_settlements', 'confirmed_at') IS NULL
+BEGIN
+    ALTER TABLE dbo.shop_settlements ADD confirmed_at DATETIME NULL;
+    ALTER TABLE dbo.shop_settlements ADD confirmed_by INT NULL;
+    ALTER TABLE dbo.shop_settlements ADD confirm_note NVARCHAR(500) NULL;
+    ALTER TABLE dbo.shop_settlements ADD cancelled_at DATETIME NULL;
+    ALTER TABLE dbo.shop_settlements ADD cancelled_by INT NULL;
+    ALTER TABLE dbo.shop_settlements ADD cancel_reason NVARCHAR(500) NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_at DATETIME NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_by INT NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_reference NVARCHAR(100) NULL;
+    ALTER TABLE dbo.shop_settlements ADD paid_note NVARCHAR(500) NULL;
+    ALTER TABLE dbo.shop_settlements ADD CONSTRAINT FK_shop_settlements_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES dbo.users(user_id);
+    ALTER TABLE dbo.shop_settlements ADD CONSTRAINT FK_shop_settlements_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES dbo.users(user_id);
+    ALTER TABLE dbo.shop_settlements ADD CONSTRAINT FK_shop_settlements_paid_by FOREIGN KEY (paid_by) REFERENCES dbo.users(user_id);
+END
+GO

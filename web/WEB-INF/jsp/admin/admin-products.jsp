@@ -179,14 +179,14 @@
                                         </td>
                                         <td class="px-6 py-4 text-xs text-txt-2">
                                             <div class="font-semibold text-txt">
-                                                <a href="${pageContext.request.contextPath}/shop-view?id=${p.ownerId}"
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${p.ownerId}&idType=owner"
                                                    class="hover:text-primary transition-colors">
                                                     <c:out value="${p.shopName}"/>
                                                 </a>
                                             </div>
                                             <div class="text-[11px] text-txt-3 mt-0.5">
                                                 Chủ:
-                                                <a href="${pageContext.request.contextPath}/shop-view?id=${p.ownerId}"
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${p.ownerId}&idType=owner"
                                                    class="text-primary hover:text-primary-dk font-semibold transition-colors">
                                                     <c:out value="${p.ownerName}"/>
                                                 </a>

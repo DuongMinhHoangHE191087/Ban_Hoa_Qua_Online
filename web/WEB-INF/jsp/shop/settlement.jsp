@@ -212,7 +212,7 @@
                                                                 </c:if>
                                                                 <c:if test="${s.paymentIssueStatus == 'REPORTED'}">
                                                                     <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-700 font-bold">
-                                                                        <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Đã báo chưa nhận tiền
+                                                                        <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Có tranh chấp / báo lỗi
                                                                     </div>
                                                                 </c:if>
                                                                 <c:if test="${s.paymentIssueStatus == 'UNDER_REVIEW'}">
@@ -264,7 +264,7 @@
                                                                     <input type="hidden" name="settlementId" value="${s.settlementId}">
                                                                     <input type="hidden" name="issueNote" value="">
                                                                     <button type="submit" class="inline-flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
-                                                                        <i class="fa-solid fa-triangle-exclamation"></i> Báo chưa nhận tiền
+                                                                        <i class="fa-solid fa-triangle-exclamation"></i> Khiếu nại
                                                                     </button>
                                                                 </form>
                                                             </c:if>

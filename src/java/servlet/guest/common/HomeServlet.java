@@ -120,7 +120,7 @@ public class HomeServlet extends HttpServlet {
             normalProducts = productDAO.searchProductsOptimized(keyword, categoryId, page, pageSize, req.getContextPath());
 
         } catch (SQLException e) {
-            req.getServletContext().log("Không kết nối được database hoặc truy vấn lỗi: " + e.getMessage(), e);
+            req.getServletContext().log("Không kết nối được database hoặc truy vấn lỗi: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
         }
 
         // Support AJAX/JSON requests for real-time search & pagination

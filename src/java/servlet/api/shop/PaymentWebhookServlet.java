@@ -29,8 +29,7 @@ import java.util.logging.Logger;
  * Luồng xử lý:
  *   1. Đọc raw JSON body
  *   2. Gọi PaymentService.processWebhook() — dedup + match + update
- *   3. Luôn trả HTTP 200 + {"success": true}
- *      (SePay retry nếu nhận non-200 — phải tránh bằng mọi giá)
+ *   3. Trả HTTP 200 cho trạng thái đã xử lý/bỏ qua hợp lệ; chỉ trả 500 khi lỗi xử lý nội bộ.
  *
  * @author fruitmkt-team
  */
@@ -64,17 +63,15 @@ public class PaymentWebhookServlet extends HttpServlet {
         String jsonPayload = readBody(req);
         LoggerUtil.info(log, "[SePay Webhook] Received webhook payload from SePay");
 
-        // Webhook idempotent: LUÔN trả HTTP 200 để SePay không retry.
-        // Trạng thái xử lý nằm trong field "success" của body, KHÔNG ở HTTP status.
-        resp.setStatus(HttpServletResponse.SC_OK);
         try {
             WebhookProcessingResult result = paymentService.processWebhook(jsonPayload);
             LoggerUtil.info(log, "[SePay Webhook] outcome=%s orderId=%d sepayTxId=%s",
                     result.getOutcome(), result.getOrderId(), result.getSepayTxId());
+            resp.setStatus(HttpServletResponse.SC_OK);
             JsonUtil.writeJson(resp, ApiResponse.ok(result.toResponseMap()));
         } catch (Exception e) {
             LoggerUtil.error(log, "[SePay Webhook] Lỗi xử lý webhook", e);
-            // Vẫn 200 (đã set ở trên) — chỉ báo lỗi qua body.
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             JsonUtil.writeJson(resp, ApiResponse.fail("Internal processing error"));
         }
     }

@@ -90,7 +90,7 @@ public class PromotionServlet extends HttpServlet {
                     throw new IllegalArgumentException("Hành động không hợp lệ.");
             }
         } catch (Exception e) {
-            SessionUtil.flashError(req.getSession(), e.getMessage());
+            SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(req.getContextPath() + getBasePath(mode));
@@ -134,7 +134,7 @@ public class PromotionServlet extends HttpServlet {
                     req.setAttribute("editValidUntil", formatDateTime(editPromotion.getValidUntil()));
                 }
             } catch (IllegalArgumentException ex) {
-                SessionUtil.flashError(req.getSession(), ex.getMessage());
+                SessionUtil.flashError(req.getSession(), util.ErrorMessageUtil.getUserMessage(ex));
             }
         }
     }

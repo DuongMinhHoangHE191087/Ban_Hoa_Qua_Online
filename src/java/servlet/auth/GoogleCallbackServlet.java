@@ -81,6 +81,9 @@ public class GoogleCallbackServlet extends HttpServlet {
             String email = (String) profileMap.get("email");
             String fullName = (String) profileMap.get("name");
             String pictureUrl = (String) profileMap.get("picture");
+            if (!Boolean.TRUE.equals(profileMap.get("email_verified"))) {
+                throw new Exception("Tài khoản Google chưa xác minh email.");
+            }
 
             if (email == null || email.trim().isEmpty()) {
                 throw new Exception("Không thể lấy địa chỉ Email từ tài khoản Google của bạn.");
@@ -95,6 +98,7 @@ public class GoogleCallbackServlet extends HttpServlet {
             // 5. Chống tấn công Session Fixation: Hủy session cũ, tạo session mới sạch sẽ
             req.getSession().invalidate();
             HttpSession newSession = req.getSession(true);
+            newSession.setAttribute(AppConfig.SESSION_CSRF_TOKEN, java.util.UUID.randomUUID().toString());
             SessionUtil.setCurrentUser(newSession, user);
 
             // 6. Thiết lập bộ đôi Access Token (15 phút) và Refresh Token (7 ngày) dạng Cookie HttpOnly
@@ -115,19 +119,9 @@ public class GoogleCallbackServlet extends HttpServlet {
             redirectToRoleDashboard(req, resp, user);
 
         } catch (Exception e) {
-            req.getServletContext().log("Lỗi tích hợp Google OAuth: " + e.getMessage(), e);
+            req.getServletContext().log("Lỗi tích hợp Google OAuth: " + util.ErrorMessageUtil.getSafeLogMessage(e), e);
             HttpSession session = req.getSession(true);
-            // UC-21: nếu đây là lỗi chặn đặc quyền, hiển thị thông báo đó; còn lại dùng thông báo chung
-            String userMsg = "Đăng nhập bằng Google thất bại. Vui lòng thử lại.";
-            if (e.getMessage() != null) {
-                String msg = e.getMessage();
-                if (msg.contains("bị khóa") 
-                        || msg.contains("đăng nhập bằng mật khẩu") 
-                        || msg.contains("Không thể lấy địa chỉ Email")) {
-                    userMsg = msg;
-                }
-            }
-            SessionUtil.flashError(session, userMsg);
+            SessionUtil.flashError(session, "Đăng nhập bằng Google thất bại. Vui lòng thử lại.");
             resp.sendRedirect(req.getContextPath() + "/auth/login");
         }
     }

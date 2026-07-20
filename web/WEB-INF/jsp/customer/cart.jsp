@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
 <jsp:include page="/WEB-INF/jsp/common/header.jsp"><jsp:param name="pageTitle" value="Giỏ hàng"/></jsp:include>
@@ -174,7 +174,7 @@
     </div>
 </main>
 
-<script src="${pageContext.request.contextPath}/assets/js/pages/cart.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/pages/cart.js" charset="UTF-8"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const isLoggedIn = ${not empty sessionScope.currentUser ? "true" : "false"};

@@ -23,7 +23,7 @@ import java.sql.SQLException;
 /**
  * AuthFilter — Chặn truy cập các URL yêu cầu đăng nhập.
  *
- * CÁC URL BẢO VỆ: /customer/*, /shop/*, /delivery/*, /admin/*
+ * CÁC URL BẢO VỆ: /customer/*, /shop/*, /delivery/*, /admin/*, và /api/* qua web.xml
  * Nếu chưa login → Tự động thẩm định qua Access Token & Refresh Token trước khi redirect.
  *
  * THỨ TỰ CHẠY: 4
@@ -41,6 +41,13 @@ public class AuthFilter implements Filter {
         HttpServletRequest  req  = (HttpServletRequest)  request;
         HttpServletResponse resp = (HttpServletResponse) response;
         HttpSession session = req.getSession(false);
+        String requestUri = req.getRequestURI();
+        String contextPath = req.getContextPath();
+
+        if (isPublicApiRequest(requestUri, contextPath)) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         // Trường hợp đã có session hợp lệ
         if (SessionUtil.isLoggedIn(session)) {
@@ -97,21 +104,34 @@ public class AuthFilter implements Filter {
         boolean isAjax = "XMLHttpRequest".equals(req.getHeader("X-Requested-With"))
                 || "json".equals(req.getParameter("format"))
                 || (req.getHeader("Accept") != null && req.getHeader("Accept").contains("application/json"));
-        
-        if (isAjax) {
+
+        if (isAjax || isApiRequest(requestUri, contextPath)) {
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             resp.setContentType("application/json;charset=UTF-8");
             resp.getWriter().write("{\"success\":false,\"error\":\"Phiên đăng nhập hết hạn hoặc chưa đăng nhập.\"}");
         } else {
-            if (req.getRequestURI().startsWith(req.getContextPath() + "/checkout")) {
+            if (requestUri.startsWith(contextPath + "/checkout")) {
                 SessionUtil.flashError(req.getSession(true), "Bạn cần đăng nhập để tiếp tục thanh toán. Hệ thống sẽ đưa bạn trở lại checkout sau khi đăng nhập.");
             }
-            String redirectUrl = req.getRequestURI();
+            String redirectUrl = requestUri;
             if (req.getQueryString() != null) {
                 redirectUrl += "?" + req.getQueryString();
             }
             String encodedRedirect = URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8);
-            resp.sendRedirect(req.getContextPath() + "/auth/login?redirect=" + encodedRedirect);
+            resp.sendRedirect(contextPath + "/auth/login?redirect=" + encodedRedirect);
         }
+    }
+
+    private boolean isApiRequest(String requestUri, String contextPath) {
+        return requestUri != null && requestUri.startsWith(contextPath + "/api/");
+    }
+
+    private boolean isPublicApiRequest(String requestUri, String contextPath) {
+        if (requestUri == null) {
+            return false;
+        }
+        return requestUri.equals(contextPath + "/api/coupon/validate")
+                || requestUri.equals(contextPath + "/api/ai/search")
+                || requestUri.equals(contextPath + "/api/payment/webhook");
     }
 }

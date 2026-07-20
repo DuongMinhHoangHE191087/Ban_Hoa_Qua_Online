@@ -19,6 +19,7 @@ import model.entity.shop.PaymentTransaction;
 import model.response.ApiResponse;
 import service.cart.CheckoutService;
 import service.shop.PaymentService;
+import util.ActorAccessPolicy;
 import util.ErrorMessageUtil;
 import util.JsonUtil;
 import util.LoggerUtil;
@@ -30,6 +31,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +71,7 @@ public class CheckoutServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8));
             return;
         }
-        if (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(user)) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Ban khong co quyen thuc hien thanh toan.");
             return;
         }
@@ -89,7 +91,9 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         try {
-            CheckoutViewData viewData = checkoutService.buildCheckoutView(user, parseVariantIds(req.getParameter("variantIds")));
+            CheckoutViewData viewData = checkoutService.buildCheckoutView(
+                    user,
+                    parseSelectionIds(req.getParameter("cartItemIds")));
             req.setAttribute("userAddresses", viewData.getUserAddresses());
             req.setAttribute("cartSummary", viewData.getCartSummary());
             req.setAttribute("userAddress", user.getUserAddress());
@@ -119,7 +123,7 @@ public class CheckoutServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/auth/login");
             return;
         }
-        if (!AppConfig.ROLE_CUSTOMER.equals(user.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(user)) {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Ban khong co quyen thuc hien thanh toan.");
             return;
         }
@@ -139,7 +143,8 @@ public class CheckoutServlet extends HttpServlet {
         try {
             CheckoutResultDTO result = checkoutService.placeOrder(user, checkoutRequest, req.getRemoteAddr());
             SessionUtil.setCurrentUser(session, user);
-            session.setAttribute("_purgedVariantIds", result.getPurgedVariantIds());
+            session.setAttribute("_purgedCartItemIds", result.getPurgedCartItemIds());
+            session.setAttribute("_purgedVariantIds", result.getPurgedCartItemIds());
             SessionUtil.flashSuccess(session, result.getSuccessMessage());
             if (result.isPaymentRequired()) {
                 resp.sendRedirect(req.getContextPath() + "/checkout?action=payment&orderId=" + result.getOrderId());
@@ -153,7 +158,11 @@ public class CheckoutServlet extends HttpServlet {
             String userMsg = ErrorMessageUtil.logAndGetUserMessage(log,
                     "Failed to place order for customer=" + user.getUserId(), e);
             SessionUtil.flashError(session, userMsg);
-            resp.sendRedirect(req.getContextPath() + buildCheckoutRedirect(checkoutRequest.getVariantIds()));
+            if (!checkoutRequest.getCartItemIds().isEmpty()) {
+                resp.sendRedirect(req.getContextPath() + buildCheckoutRedirect(checkoutRequest.getCartItemIds()));
+            } else {
+                resp.sendRedirect(req.getContextPath() + buildLegacyCheckoutRedirect(checkoutRequest.getVariantIds()));
+            }
         }
     }
 
@@ -218,8 +227,8 @@ public class CheckoutServlet extends HttpServlet {
         PaymentTransaction paymentTx = null;
         try {
             paymentTx = paymentService.getPaymentByOrder(summary.getOrderId());
-            if (paymentTx == null) {
-                paymentTx = paymentService.initPayment(summary.getOrderId(), "SEPAY", req.getRemoteAddr());
+            if (paymentTx == null || isQrExpired(paymentTx)) {
+                paymentTx = paymentService.renewQr(summary.getOrderId(), user.getUserId());
             }
         } catch (Exception e) {
             LoggerUtil.warn(log, "Không thể tải thông tin giao dịch thanh toán cho đơn hàng", e);
@@ -345,7 +354,8 @@ public class CheckoutServlet extends HttpServlet {
         request.setSystemCouponCodes(parseCouponCodes(req.getParameterValues("systemCouponCodes"), req.getParameter("systemCouponCode")));
         request.setShopCouponCode(req.getParameter("shopCouponCode"));
         request.setSystemCouponCode(req.getParameter("systemCouponCode"));
-        request.setVariantIds(parseVariantIds(req.getParameter("variantIds")));
+        request.setCartItemIds(parseIdList(req.getParameter("cartItemIds")));
+        request.setVariantIds(parseIdList(req.getParameter("variantIds")));
         request.setSaveAddressToBook("true".equals(req.getParameter("saveAddressToBook")));
         return request;
     }
@@ -374,19 +384,32 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    private List<Integer> parseVariantIds(String variantIdsParam) {
-        List<Integer> variantIds = new ArrayList<>();
-        if (variantIdsParam == null || variantIdsParam.trim().isEmpty()) {
-            return variantIds;
+    private List<Integer> parseSelectionIds(String cartItemIdsParam) {
+        return parseIdList(cartItemIdsParam);
+    }
+
+    private List<Integer> parseIdList(String idsParam) {
+        List<Integer> ids = new ArrayList<>();
+        if (idsParam == null || idsParam.trim().isEmpty()) {
+            return ids;
         }
-        for (String part : variantIdsParam.split(",")) {
+        for (String part : idsParam.split(",")) {
             try {
-                variantIds.add(Integer.parseInt(part.trim()));
+                int parsed = Integer.parseInt(part.trim());
+                if (parsed > 0) {
+                    ids.add(parsed);
+                }
             } catch (NumberFormatException e) {
-                LoggerUtil.warn(log, "ID biến thể không hợp lệ: " + part, e);
+                LoggerUtil.warn(log, "ID không hợp lệ: " + part, e);
             }
         }
-        return variantIds;
+        return ids;
+    }
+
+    private boolean isQrExpired(PaymentTransaction paymentTx) {
+        return paymentTx != null
+                && (paymentTx.getExpiresAt() == null
+                || LocalDateTime.now().isAfter(paymentTx.getExpiresAt()));
     }
 
     private boolean isValidCsrf(HttpSession session, String csrfParam) {
@@ -394,10 +417,26 @@ public class CheckoutServlet extends HttpServlet {
         if (csrfSession == null || csrfParam == null) {
             return false;
         }
-        return MessageDigest.isEqual(csrfSession.getBytes(), csrfParam.getBytes());
+        return MessageDigest.isEqual(
+                csrfSession.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                csrfParam.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
-    private String buildCheckoutRedirect(List<Integer> variantIds) {
+    private String buildCheckoutRedirect(List<Integer> cartItemIds) {
+        if (cartItemIds == null || cartItemIds.isEmpty()) {
+            return "/cart";
+        }
+        StringBuilder builder = new StringBuilder("/checkout?cartItemIds=");
+        for (int i = 0; i < cartItemIds.size(); i++) {
+            builder.append(cartItemIds.get(i));
+            if (i < cartItemIds.size() - 1) {
+                builder.append(",");
+            }
+        }
+        return builder.toString();
+    }
+
+    private String buildLegacyCheckoutRedirect(List<Integer> variantIds) {
         if (variantIds == null || variantIds.isEmpty()) {
             return "/cart";
         }

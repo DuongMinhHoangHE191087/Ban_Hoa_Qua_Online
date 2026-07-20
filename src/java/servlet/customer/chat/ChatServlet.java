@@ -1,10 +1,10 @@
 package servlet.customer.chat;
 
-import config.AppConfig;
 import dao.chat.ChatDAO;
 import dao.auth.UserDAO;
 import model.entity.chat.ChatSession;
 import model.entity.auth.User;
+import util.ActorAccessPolicy;
 import util.SessionUtil;
 
 import util.LoggerUtil;
@@ -44,7 +44,7 @@ public class ChatServlet extends HttpServlet {
             return;
         }
         // Chỉ CUSTOMER được vào màn hình này
-        if (!AppConfig.ROLE_CUSTOMER.equals(customer.getRole())) {
+        if (!ActorAccessPolicy.canAccessCustomerArea(customer)) {
             resp.sendRedirect(req.getContextPath() + "/");
             return;
         }

@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="ft" uri="/WEB-INF/tld/fruitmkt.tld" %>
@@ -47,21 +47,28 @@
 
             <%-- CRITICAL SCRIPT: RESET GIỎ HÀNG LOCAL STORAGE CHỌN LỌC --%>
             <%-- [FIX] Đọc purgedVariantIds từ session attribute (không lộ trên URL) --%>
-            <c:set var="purgedIds" value="${sessionScope._purgedVariantIds}"/>
+            <c:set var="purgedIds" value="${not empty sessionScope._purgedCartItemIds ? sessionScope._purgedCartItemIds : sessionScope._purgedVariantIds}"/>
+            <c:remove var="_purgedCartItemIds" scope="session"/>
             <c:remove var="_purgedVariantIds" scope="session"/>
             <script>
                 document.addEventListener('DOMContentLoaded', () => {
-                    const purgedVariantIdsParam = '<c:out value="${purgedIds}" default=""/>';
-                    if (purgedVariantIdsParam) {
-                        const purgedIds = purgedVariantIdsParam.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-                        console.log('[FruitMkt] Selective local cart purge. Variant IDs:', purgedIds);
+                    const purgedIdsRaw = '<c:out value="${purgedIds}" default=""/>';
+                    const purgedIds = (purgedIdsRaw.match(/\d+/g) || []).map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0);
+                    if (purgedIds.length > 0) {
+                        console.log('[FruitMkt] Selective local cart purge. Selection IDs:', purgedIds);
 
                         const keys = ['userCart', 'guestCart'];
                         keys.forEach(key => {
                             try {
                                 let items = JSON.parse(localStorage.getItem(key)) || [];
                                 if (items.length > 0) {
-                                    items = items.filter(item => !purgedIds.includes(item.variantId));
+                                    items = items.filter(item => {
+                                        const itemCartItemId = parseInt(item.cartItemId, 10);
+                                        if (!isNaN(itemCartItemId) && itemCartItemId > 0) {
+                                            return !purgedIds.includes(itemCartItemId);
+                                        }
+                                        return !purgedIds.includes(parseInt(item.variantId, 10));
+                                    });
                                     localStorage.setItem(key, JSON.stringify(items));
                                 }
                             } catch (e) {
@@ -105,6 +112,7 @@
 
             <form id="checkoutForm" action="${pageContext.request.contextPath}/checkout" method="post" onsubmit="return validateCheckoutForm()" class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
                 <input type="hidden" name="_csrf" value="${sessionScope._csrfToken}">
+                <input type="hidden" name="cartItemIds" value="<c:out value="${param.cartItemIds}"/>">
                 <input type="hidden" name="variantIds" value="<c:out value="${param.variantIds}"/>">
 
                 <!-- LEFT COLUMN: Forms -->
@@ -382,7 +390,7 @@
                                                 <span class="material-symbols-outlined text-lg text-primary">storefront</span>
                                                 <c:choose>
                                                     <c:when test="${sId > 0}">
-                                                        <a href="${pageContext.request.contextPath}/shop-view?id=${sId}" class="hover:underline text-primary-dark transition-all">
+                                                        <a href="${pageContext.request.contextPath}/shop-view?id=${sId}&idType=owner" class="hover:underline text-primary-dark transition-all">
                                                             Cửa hàng: <c:out value="${sName != null ? sName : 'Chưa có'}"/>
                                                         </a>
                                                     </c:when>
@@ -675,11 +683,21 @@ let systemDiscount   = 0;
 let paymentDiscount   = 0;
 let shippingDiscount  = 0;
 
-function getSelectedVariantIds() {
-    const raw = document.querySelector('input[name="variantIds"]')?.value || '';
-    return raw.split(',')
+function parseSelectionIdList(raw) {
+    return String(raw || '')
+        .split(',')
         .map(value => parseInt(value.trim(), 10))
         .filter(value => !Number.isNaN(value) && value > 0);
+}
+
+function getSelectedCartItemIds() {
+    const raw = document.querySelector('input[name="cartItemIds"]')?.value || '';
+    return parseSelectionIdList(raw);
+}
+
+function getSelectedVariantIds() {
+    const raw = document.querySelector('input[name="variantIds"]')?.value || '';
+    return parseSelectionIdList(raw);
 }
 
 function getSelectedPaymentMethod() {
@@ -782,6 +800,7 @@ function buildQuoteRequest() {
     const deliveryAddress = document.getElementById('deliveryAddress')?.value || '';
     const deliveryTimeSlot = document.getElementById('deliveryTimeSlot')?.value || '';
     return {
+        cartItemIds: getSelectedCartItemIds(),
         variantIds: getSelectedVariantIds(),
         deliveryAddress: deliveryAddress.trim(),
         deliveryTimeSlot: deliveryTimeSlot.trim(),
@@ -874,7 +893,10 @@ function renderQuoteSummary(quote) {
 
 function refreshQuotePreview(options = {}) {
     const payload = buildQuoteRequest();
-    if (!payload.variantIds || payload.variantIds.length === 0) {
+    const selectionIds = Array.isArray(payload.cartItemIds) && payload.cartItemIds.length > 0
+        ? payload.cartItemIds
+        : payload.variantIds;
+    if (!selectionIds || selectionIds.length === 0) {
         return Promise.resolve(null);
     }
 

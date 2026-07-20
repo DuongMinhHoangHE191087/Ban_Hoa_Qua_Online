@@ -69,7 +69,7 @@ public class SettlementServlet extends HttpServlet {
                         resp,
                         java.util.logging.Logger.getLogger(SettlementServlet.class.getName()),
                         "SettlementServlet#doGet",
-                        "Lỗi hệ thống: " + e.getMessage(),
+                        "Lỗi hệ thống khi tải đối soát.",
                         e);
             }
             return;
@@ -91,7 +91,13 @@ public class SettlementServlet extends HttpServlet {
                     if (s.getGrossAmount() != null) totalGross = totalGross.add(s.getGrossAmount());
                     if (s.getPlatformFeeAmount() != null) totalFee = totalFee.add(s.getPlatformFeeAmount());
                     if (s.getRefundAmount() != null) totalRefund = totalRefund.add(s.getRefundAmount());
-                    if (s.getNetAmount() != null) totalNet = totalNet.add(s.getNetAmount());
+                    if (s.getNetAmount() != null) {
+                        boolean isPaid = "PAID".equalsIgnoreCase(s.getStatus());
+                        boolean isResolved = "NONE".equalsIgnoreCase(s.getPaymentIssueStatus()) || "RESOLVED".equalsIgnoreCase(s.getPaymentIssueStatus());
+                        if (isPaid && isResolved) {
+                            totalNet = totalNet.add(s.getNetAmount());
+                        }
+                    }
                 }
             }
             req.setAttribute("totalGross", totalGross);
@@ -102,7 +108,7 @@ public class SettlementServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/jsp/shop/settlement.jsp").forward(req, resp);
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi khi tải lịch sử đối soát", e);
-            SessionUtil.flashError(session, "Lỗi khi tải lịch sử đối soát: " + e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.MSG_DB_ERROR);
             resp.sendRedirect(req.getContextPath() + "/shop/dashboard");
         }
     }
@@ -144,7 +150,7 @@ public class SettlementServlet extends HttpServlet {
             SessionUtil.flashError(session, "Mã settlement không hợp lệ.");
         } catch (Exception e) {
             LoggerUtil.error(log, "Lỗi xử lý settlement của shop", e);
-            SessionUtil.flashError(session, e.getMessage());
+            SessionUtil.flashError(session, util.ErrorMessageUtil.getUserMessage(e));
         }
 
         resp.sendRedirect(req.getContextPath() + "/shop/settlement");

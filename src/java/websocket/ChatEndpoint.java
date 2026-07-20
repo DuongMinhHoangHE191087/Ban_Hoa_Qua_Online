@@ -24,6 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import service.chat.ChatDeliveryService;
+import util.ErrorMessageUtil;
 
 /**
  * ChatEndpoint — WebSocket endpoint cho hệ thống chat real-time.
@@ -198,7 +199,7 @@ public class ChatEndpoint {
             );
             return;
         } catch (IllegalArgumentException e) {
-            sendError(wsSession, e.getMessage());
+            sendError(wsSession, ErrorMessageUtil.getUserMessage(e));
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "ChatEndpoint.onMessage: lỗi lưu tin nhắn", e);
             sendError(wsSession, "Lỗi lưu tin nhắn.");
@@ -212,7 +213,7 @@ public class ChatEndpoint {
 
     @OnError
     public void onError(Session wsSession, Throwable throwable) {
-        LOG.log(Level.WARNING, "ChatEndpoint.onError: " + throwable.getMessage(), throwable);
+        LOG.log(Level.WARNING, "ChatEndpoint.onError", throwable);
         removeFromRoom(wsSession);
     }
 
@@ -251,7 +252,7 @@ public class ChatEndpoint {
         try {
             wsSession.getBasicRemote().sendText("{\"error\":\"" + escapeJson(msg) + "\"}");
         } catch (IOException e) {
-            LOG.log(Level.WARNING, "ChatEndpoint.sendError: " + e.getMessage());
+            LOG.log(Level.WARNING, "ChatEndpoint.sendError", e);
         }
     }
 

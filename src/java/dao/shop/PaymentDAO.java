@@ -44,11 +44,18 @@ public class PaymentDAO extends BaseDAO {
     public int initTransaction(int orderId, String paymentMethod,
                                BigDecimal amount, String sepayReference,
                                String ipAddress, LocalDateTime expiresAt) throws SQLException {
+        try (Connection conn = getConnection()) {
+            return initTransaction(conn, orderId, paymentMethod, amount, sepayReference, ipAddress, expiresAt);
+        }
+    }
+
+    public int initTransaction(Connection conn, int orderId, String paymentMethod,
+                               BigDecimal amount, String sepayReference,
+                               String ipAddress, LocalDateTime expiresAt) throws SQLException {
         String sql = "INSERT INTO payment_transactions "
                    + "(order_id, payment_method, sepay_reference, amount, currency, status, initiated_at, expires_at, ip_address) "
                    + "VALUES (?, ?, ?, ?, 'VND', 'pending', GETDATE(), ?, ?)";
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, orderId);
             ps.setString(2, paymentMethod);
             ps.setString(3, sepayReference);

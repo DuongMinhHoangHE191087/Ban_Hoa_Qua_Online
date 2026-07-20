@@ -323,7 +323,7 @@
                     <c:if test="${order.orderType != 'PARENT'}">
                         <c:choose>
                             <c:when test="${order.ownerId > 0}">
-                                <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="text-xs font-bold text-primary bg-primary-container hover:bg-primary hover:text-on-primary px-3 py-1 rounded-full flex items-center gap-1 transition-all">
+                                <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}&idType=owner" class="text-xs font-bold text-primary bg-primary-container hover:bg-primary hover:text-on-primary px-3 py-1 rounded-full flex items-center gap-1 transition-all">
                                     <span class="material-symbols-outlined text-[14px]">store</span>
                                     ${shopName}
                                 </a>
@@ -352,7 +352,7 @@
                                                 <h4 class="font-bold text-inverse-surface text-base flex items-center gap-2">
                                                     <c:choose>
                                                         <c:when test="${child.ownerId > 0}">
-                                                            <a href="${pageContext.request.contextPath}/shop-view?id=${child.ownerId}" class="hover:underline hover:text-primary transition-all" onclick="event.stopPropagation();">
+                                                            <a href="${pageContext.request.contextPath}/shop-view?id=${child.ownerId}&idType=owner" class="hover:underline hover:text-primary transition-all" onclick="event.stopPropagation();">
                                                                 ${shopNamesMap[child.orderId]}
                                                             </a>
                                                         </c:when>
@@ -450,7 +450,7 @@
                                 <c:when test="${not empty shopName}">
                                     <c:choose>
                                         <c:when test="${order.ownerId > 0}">
-                                            <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}" class="hover:underline text-primary transition-all">
+                                            <a href="${pageContext.request.contextPath}/shop-view?id=${order.ownerId}&idType=owner" class="hover:underline text-primary transition-all">
                                                 <c:out value="${shopName}"/>
                                             </a>
                                         </c:when>

@@ -66,8 +66,8 @@ public class AdminUserRevokeSessionsAPI extends HttpServlet {
                     response,
                     log,
                     "AdminUserRevokeSessionsAPI#doPost",
-                    "Lỗi server: " + e.getMessage(),
-                    e);
+                        "Lỗi hệ thống khi thu hồi phiên đăng nhập.",
+                        e);
         }
     }
 }

@@ -78,11 +78,9 @@ public class UserService {
         user.setAvatarUrl(persistedUser.getAvatarUrl());
         
         boolean profileUpdated = false;
-        if (user.getPhone() == null || user.getPhone().trim().isEmpty()) {
-            user.setPhone(phone.trim());
-            profileUpdated = true;
-        }
-        
+        // Checkout phone is the recipient's contact, not necessarily the account phone.
+        // Keep it in user_addresses; copying it into users.phone can violate UX_users_phone
+        // when the same recipient number is already used by another account.
         if (user.getUserAddress() == null || user.getUserAddress().trim().isEmpty()) {
             user.setUserAddress(addressDetail.trim());
             profileUpdated = true;

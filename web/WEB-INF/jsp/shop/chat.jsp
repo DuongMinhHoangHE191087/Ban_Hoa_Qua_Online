@@ -362,7 +362,17 @@
                     appendMessage(msg, isMine);
                     // Nếu là tin của đối tác → đánh dấu tin của mình là "Đã xem"
                     if (!isMine && lastMsgEl) setMsgStatus(lastMsgEl, 'seen');
-                    if (!isMine) fetch(CTX + '/api/chat?action=markRead&sessionId=' + sessionId).catch(() => {});
+                    if (!isMine) {
+                        fetch(CTX + '/api/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRF-Token': CSRF_TOKEN,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: new URLSearchParams({ action: 'markRead', sessionId: sessionId }).toString()
+                        }).catch(() => {});
+                    }
                     if (msg.mediaUrl) trackMedia(msg);
                     refreshSidebar();
                 }
