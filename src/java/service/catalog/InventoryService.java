@@ -1,9 +1,11 @@
 package service.catalog;
 
 import dao.catalog.InventoryDAO;
+import dao.catalog.InventoryBatchDAO;
 import dao.catalog.ProductVariantDAO;
 import dao.catalog.ProductDAO;
 import model.entity.catalog.InventoryLog;
+import model.entity.catalog.InventoryBatch;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -25,6 +27,7 @@ public class InventoryService {
     private static final Logger log = LoggerUtil.getLogger(InventoryService.class);
 
     private final InventoryDAO inventoryDAO = new InventoryDAO();
+    private final InventoryBatchDAO inventoryBatchDAO = new InventoryBatchDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
     private final ProductDAO productDAO = new ProductDAO();
 
@@ -92,9 +95,19 @@ public class InventoryService {
                 int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
                 int stockAfter = currentStock + quantity;
 
-                // 2. Ghi nhận lịch sử thay đổi tồn kho kèm hạn dùng
+                // 2. Create an InventoryBatch
+                InventoryBatch batch = new InventoryBatch();
+                batch.setVariantId(variantId);
+                batch.setInitialQuantity(quantity);
+                batch.setRemainingQuantity(quantity);
+                batch.setExpiresAt(expiresAt);
+                batch.setExpired(false);
+                int batchId = inventoryBatchDAO.createBatch(conn, batch);
+
+                // 3. Ghi nhận lịch sử thay đổi tồn kho kèm hạn dùng
                 InventoryLog logEntry = new InventoryLog();
                 logEntry.setVariantId(variantId);
+                logEntry.setBatchId(batchId);
                 logEntry.setChangedBy(userId);
                 logEntry.setChangeType("MANUAL_ADJUST");
                 logEntry.setQuantityDelta(quantity);
@@ -106,12 +119,72 @@ public class InventoryService {
 
                 inventoryDAO.save(conn, logEntry);
 
-                // 3. Cập nhật tồn kho thực tế
+                // 4. Cập nhật tồn kho thực tế
                 productVariantDAO.updateStock(conn, variantId, quantity);
 
                 // 4. Cập nhật ngày thu hoạch và trạng thái sản phẩm sang ACTIVE
                 int productId = productVariantDAO.getProductId(conn, variantId);
                 productDAO.updateHarvestDateAndStatus(conn, productId, changedAt, "ACTIVE");
+
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    /**
+     * Giảm tồn kho từ một lô hàng cụ thể.
+     */
+    public void reduceFromBatch(int variantId, int batchId, int quantity, String note, int userId) throws SQLException {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Số lượng giảm kho phải lớn hơn 0.");
+        }
+
+        try (Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Fetch batch and validate quantity
+                InventoryBatch batch = inventoryBatchDAO.getBatchById(conn, batchId);
+                if (batch == null || batch.getVariantId() != variantId) {
+                    throw new IllegalArgumentException("Lô hàng không tồn tại hoặc không thuộc sản phẩm này.");
+                }
+                if (batch.getRemainingQuantity() < quantity) {
+                    throw new IllegalArgumentException("Số lượng giảm vượt quá số lượng tồn của lô hàng này (Tồn lô: " + batch.getRemainingQuantity() + ").");
+                }
+
+                // 2. Reduce from batch
+                int newRemaining = batch.getRemainingQuantity() - quantity;
+                inventoryBatchDAO.updateRemainingQuantity(conn, batchId, newRemaining);
+
+                // 3. Update total stock
+                int stockAfter;
+                try {
+                    stockAfter = productVariantDAO.decrementStockQuantity(conn, variantId, quantity);
+                } catch (SQLException e) {
+                    throw new IllegalArgumentException("Không đủ số lượng hàng tồn kho tổng cho sản phẩm.");
+                }
+
+                // 4. Log the transaction
+                InventoryLog logEntry = new InventoryLog();
+                logEntry.setVariantId(variantId);
+                logEntry.setBatchId(batchId);
+                logEntry.setChangedBy(userId);
+                logEntry.setChangeType("MANUAL_ADJUST");
+                logEntry.setQuantityDelta(-quantity);
+                logEntry.setQuantityAfter(stockAfter);
+                logEntry.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Giảm kho (Thủ công)");
+                logEntry.setChangedAt(LocalDateTime.now());
+                logEntry.setExpiresAt(batch.getExpiresAt());
+                logEntry.setExpired(batch.isExpired());
+
+                inventoryDAO.save(conn, logEntry);
+
+                // 5. Check stock alert
+                checkAndSendLowStockAlert(conn, variantId, stockAfter);
 
                 conn.commit();
             } catch (SQLException | RuntimeException e) {
@@ -152,45 +225,22 @@ public class InventoryService {
     }
 
     /**
-     * Lấy danh sách lô hàng nhập kho còn hiệu lực (chưa hết hạn / chưa bị đánh dấu expired).
+     * Lấy danh sách lô hàng nhập kho còn hiệu lực (chưa hết hạn / chưa bị đánh dấu expired) cho 1 variant.
      * Dùng cho bảng quản lý lô hàng / ngày hết hạn trên trang Tồn kho.
      */
-    public List<InventoryLog> getActiveBatches(int ownerId) throws SQLException {
-        if (ownerId <= 0) {
-            throw new IllegalArgumentException("Owner ID không hợp lệ.");
+    public List<InventoryBatch> getActiveBatchesForVariant(int variantId) throws SQLException {
+        if (variantId <= 0) {
+            throw new IllegalArgumentException("Variant ID không hợp lệ.");
         }
-        return inventoryDAO.findActiveBatchesByOwner(ownerId);
-    }
-
-    public List<InventoryLog> getActiveBatches(int ownerId, int limit) throws SQLException {
-        if (ownerId <= 0) {
-            throw new IllegalArgumentException("Owner ID không hợp lệ.");
+        try (Connection conn = inventoryDAO.openConnection()) {
+            return inventoryBatchDAO.getActiveBatchesByVariant(conn, variantId);
         }
-        if (limit <= 0) {
-            throw new IllegalArgumentException("Limit không hợp lệ.");
-        }
-        return inventoryDAO.findActiveBatchesByOwner(ownerId, limit);
     }
 
     public void reserve(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
 
-        // FIFO audit: tìm lô có ngày HH sớm nhất để ghi vào note
-        String fifoNote = "Giữ hàng cho đơn hàng #" + orderId;
-        try {
-            InventoryLog fifoLog = inventoryDAO.findOldestActiveBatchForVariant(conn, variantId);
-            if (fifoLog != null) {
-                fifoNote += " [FIFO: Lô #" + fifoLog.getLogId();
-                if (fifoLog.getExpiresAt() != null) {
-                    fifoNote += ", HH: " + fifoLog.getFormattedExpiresAt();
-                }
-                fifoNote += "]";
-            }
-        } catch (Exception ex) {
-            LoggerUtil.warn(log, "Không thể tra cứu FIFO batch cho variantId=" + variantId, ex);
-        }
-
-        // Trực tiếp cập nhật nguyên tử tồn kho và lấy ra tồn kho mới sau cập nhật
+        // Trực tiếp cập nhật nguyên tử tồn kho tổng
         int stockAfter;
         try {
             stockAfter = productVariantDAO.decrementStockQuantity(conn, variantId, qty);
@@ -198,16 +248,35 @@ public class InventoryService {
             throw new RuntimeException("Không đủ số lượng hàng tồn kho cho sản phẩm.");
         }
 
-        InventoryLog logEntry = new InventoryLog();
-        logEntry.setVariantId(variantId);
-        logEntry.setChangedBy(userId);
-        logEntry.setChangeType("ORDER_RESERVE");
-        logEntry.setQuantityDelta(-qty);
-        logEntry.setQuantityAfter(stockAfter);
-        logEntry.setNote(fifoNote);
-        logEntry.setChangedAt(LocalDateTime.now());
+        // Trừ số lượng từ các lô (batches) theo FIFO
+        List<InventoryBatch> activeBatches = inventoryBatchDAO.getActiveBatchesByVariant(conn, variantId);
+        int remainingQtyToDeduct = qty;
+        
+        for (InventoryBatch batch : activeBatches) {
+            if (remainingQtyToDeduct <= 0) break;
+            
+            int deductFromBatch = Math.min(batch.getRemainingQuantity(), remainingQtyToDeduct);
+            int newRemaining = batch.getRemainingQuantity() - deductFromBatch;
+            
+            inventoryBatchDAO.updateRemainingQuantity(conn, batch.getBatchId(), newRemaining);
+            
+            String note = "Giữ hàng cho đơn hàng #" + orderId + " [FIFO: Lô #" + batch.getBatchId() + "]";
+            
+            InventoryLog logEntry = new InventoryLog();
+            logEntry.setVariantId(variantId);
+            logEntry.setBatchId(batch.getBatchId());
+            logEntry.setChangedBy(userId);
+            logEntry.setChangeType("ORDER_RESERVE");
+            logEntry.setQuantityDelta(-deductFromBatch);
+            logEntry.setQuantityAfter(stockAfter); // Approximate after for multiple logs
+            logEntry.setNote(note);
+            logEntry.setChangedAt(LocalDateTime.now());
+            
+            inventoryDAO.save(conn, logEntry);
+            
+            remainingQtyToDeduct -= deductFromBatch;
+        }
 
-        inventoryDAO.save(conn, logEntry);
         checkAndSendLowStockAlert(conn, variantId, stockAfter);
     }
 
@@ -228,20 +297,64 @@ public class InventoryService {
 
     public void release(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
-        int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
-        int stockAfter = currentStock + qty;
-
-        InventoryLog logEntry = new InventoryLog();
-        logEntry.setVariantId(variantId);
-        logEntry.setChangedBy(userId);
-        logEntry.setChangeType("ORDER_RELEASE");
-        logEntry.setQuantityDelta(qty);
-        logEntry.setQuantityAfter(stockAfter);
-        logEntry.setNote("Hoàn kho từ đơn hàng #" + orderId);
-        logEntry.setChangedAt(LocalDateTime.now());
-
-        inventoryDAO.save(conn, logEntry);
+        
+        // Find the specific batches that were deducted for this order
+        List<InventoryLog> reserveLogs = inventoryDAO.findLogsByOrder(conn, variantId, "ORDER_RESERVE", orderId);
+        
+        // Hoàn lại tồn kho tổng
         productVariantDAO.updateStock(conn, variantId, qty);
+        int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
+
+        int remainingQtyToRefund = qty;
+        
+        // Hoàn lại vào từng lô đã bị trừ
+        if (reserveLogs != null && !reserveLogs.isEmpty()) {
+            for (InventoryLog rLog : reserveLogs) {
+                if (remainingQtyToRefund <= 0) break;
+                
+                int batchId = rLog.getBatchId() != null ? rLog.getBatchId() : -1;
+                if (batchId != -1) {
+                    int deductedAmt = Math.abs(rLog.getQuantityDelta());
+                    int refundAmt = Math.min(deductedAmt, remainingQtyToRefund);
+                    
+                    // Increment batch quantity
+                    inventoryBatchDAO.incrementRemainingQuantity(conn, batchId, refundAmt);
+                    
+                    InventoryLog logEntry = new InventoryLog();
+                    logEntry.setVariantId(variantId);
+                    logEntry.setBatchId(batchId);
+                    logEntry.setChangedBy(userId);
+                    logEntry.setChangeType("ORDER_RELEASE");
+                    logEntry.setQuantityDelta(refundAmt);
+                    logEntry.setQuantityAfter(currentStock);
+                    logEntry.setNote("Hoàn kho từ đơn hàng #" + orderId + " [Lô #" + batchId + "]");
+                    logEntry.setChangedAt(LocalDateTime.now());
+                    inventoryDAO.save(conn, logEntry);
+                    
+                    remainingQtyToRefund -= refundAmt;
+                }
+            }
+        }
+        
+        // Nếu không tìm thấy log cũ (do lỗi data) hoặc vẫn còn dư, tạo log hoàn kho chung
+        if (remainingQtyToRefund > 0) {
+            InventoryLog logEntry = new InventoryLog();
+            logEntry.setVariantId(variantId);
+            logEntry.setChangedBy(userId);
+            logEntry.setChangeType("ORDER_RELEASE");
+            logEntry.setQuantityDelta(remainingQtyToRefund);
+            logEntry.setQuantityAfter(currentStock);
+            logEntry.setNote("Hoàn kho từ đơn hàng #" + orderId + " (Không xác định lô)");
+            logEntry.setChangedAt(LocalDateTime.now());
+            inventoryDAO.save(conn, logEntry);
+            
+            // Cố gắng hoàn vào lô gần nhất
+            List<InventoryBatch> activeBatches = inventoryBatchDAO.getActiveBatchesByVariant(conn, variantId);
+            if (!activeBatches.isEmpty()) {
+                InventoryBatch batch = activeBatches.get(0);
+                inventoryBatchDAO.incrementRemainingQuantity(conn, batch.getBatchId(), remainingQtyToRefund);
+            }
+        }
     }
 
     public void release(int variantId, int qty, int orderId) throws SQLException {

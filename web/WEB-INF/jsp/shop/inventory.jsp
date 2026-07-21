@@ -91,8 +91,10 @@
                                                 </label>
                                                 <select name="actionType" id="actionType" required
                                                     class="w-full px-4 py-2.5 border border-border rounded-xl text-sm bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
-                                                    <option value="RESTOCK" ${oldActionType == 'RESTOCK' ? 'selected' : ''}>Nhập hàng</option>
-                                                    <option value="REDUCE" ${oldActionType == 'REDUCE' ? 'selected' : ''}>Báo cáo Hao hụt/Hỏng</option>
+                                                    <option value="RESTOCK" ${oldActionType=='RESTOCK' ? 'selected' : ''
+                                                        }>Nhập hàng</option>
+                                                    <option value="REDUCE" ${oldActionType=='REDUCE' ? 'selected' : ''
+                                                        }>Báo cáo Hao hụt/Hỏng</option>
                                                 </select>
                                             </div>
 
@@ -102,10 +104,15 @@
                                                 </label>
                                                 <select name="variantId" id="variantId" required
                                                     class="w-full px-4 py-2.5 border border-border rounded-xl text-sm bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
-                                                    <option value="" disabled ${empty oldVariantId ? 'selected' : ''}>-- Chọn phân loại sản phẩm --</option>
+                                                    <option value="" disabled ${empty oldVariantId ? 'selected' : '' }>
+                                                        -- Chọn phân loại sản phẩm --</option>
                                                     <c:forEach var="v" items="${variants}">
-                                                        <option value="${v.variantId}" data-shelflife="${v.shelfLifeDays}" data-name="${v.productName} - ${v.variantLabel}" ${oldVariantId == v.variantId ? 'selected' : ''}>
-                                                            ${v.productName} - ${v.variantLabel} (Hiện tại: ${v.stockQuantity})
+                                                        <option value="${v.variantId}"
+                                                            data-shelflife="${v.shelfLifeDays}"
+                                                            data-name="${v.productName} - ${v.variantLabel}"
+                                                            ${oldVariantId==v.variantId ? 'selected' : '' }>
+                                                            ${v.productName} - ${v.variantLabel} (Hiện tại:
+                                                            ${v.stockQuantity})
                                                         </option>
                                                     </c:forEach>
                                                 </select>
@@ -124,8 +131,20 @@
                                                 <label class="block text-xs font-bold text-txt-2 mb-2" for="expiresAt">
                                                     Ngày hết hạn <span class="text-txt-3 font-normal">(Tùy chọn)</span>
                                                 </label>
-                                                <input type="date" name="expiresAt" id="expiresAt" value="${oldExpiresAt}"
+                                                <input type="date" name="expiresAt" id="expiresAt"
+                                                    value="${oldExpiresAt}"
                                                     class="w-full px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+                                            </div>
+
+                                            <div class="mb-4" id="batchGroup" style="display: none;">
+                                                <label class="block text-xs font-bold text-txt-2 mb-2" for="batchId">
+                                                    Lô hàng <span class="text-red-500">*</span>
+                                                </label>
+                                                <select name="batchId" id="batchId"
+                                                    class="w-full px-4 py-2.5 border border-border rounded-xl text-sm bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+                                                    <option value="" disabled selected>-- Chọn lô hàng cần giảm --</option>
+                                                </select>
+                                                <div id="batchHint" class="text-[11px] text-txt-3 mt-1.5 font-medium"></div>
                                             </div>
 
                                             <%-- Ngày nhập kho ẩn, tự động lấy ngày hôm nay qua JS --%>
@@ -180,49 +199,63 @@
                                                 </thead>
                                                 <tbody>
                                                     <c:forEach var="v" items="${variants}">
-                                                        <tr data-row class="hover:bg-primary/5 transition-colors cursor-pointer variant-row" data-variant-id="${v.variantId}">
+                                                        <tr data-row
+                                                            class="hover:bg-primary/5 transition-colors cursor-pointer variant-row"
+                                                            data-variant-id="${v.variantId}">
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
                                                                 <div class="flex items-center gap-2">
                                                                     <c:choose>
                                                                         <c:when test="${not empty v.batches}">
-                                                                            <i class="fa-solid fa-chevron-right transition-transform duration-200 text-txt-3 text-xs w-4 inline-block" id="arrow-${v.variantId}"></i>
+                                                                            <i class="fa-solid fa-chevron-right transition-transform duration-200 text-txt-3 text-xs w-4 inline-block"
+                                                                                id="arrow-${v.variantId}"></i>
                                                                         </c:when>
                                                                         <c:otherwise>
                                                                             <span class="w-4 inline-block"></span>
                                                                         </c:otherwise>
                                                                     </c:choose>
                                                                     <div>
-                                                                        <strong class="text-txt font-bold">${v.productName}</strong>
-                                                                        <div class="text-[#94a3b8] text-xs">${v.variantLabel}</div>
+                                                                        <strong
+                                                                            class="text-txt font-bold">${v.productName}</strong>
+                                                                        <div class="text-[#94a3b8] text-xs">
+                                                                            ${v.variantLabel}</div>
                                                                     </div>
                                                                 </div>
                                                             </td>
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
-                                                                <code>${v.sku}</code></td>
+                                                                <code>${v.sku}</code>
+                                                            </td>
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
                                                                 <div class="flex items-center justify-between">
                                                                     <c:choose>
                                                                         <c:when test="${v.stockQuantity <= 0}">
-                                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-sm whitespace-nowrap">
-                                                                                <i class="fa-solid fa-circle-xmark mr-1 text-[10px]"></i>
+                                                                            <span
+                                                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200 shadow-sm whitespace-nowrap">
+                                                                                <i
+                                                                                    class="fa-solid fa-circle-xmark mr-1 text-[10px]"></i>
                                                                                 Hết hàng (0)
                                                                             </span>
                                                                         </c:when>
                                                                         <c:when test="${v.stockQuantity < 10}">
-                                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">
-                                                                                <i class="fa-solid fa-triangle-exclamation mr-1 text-[10px]"></i>
+                                                                            <span
+                                                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">
+                                                                                <i
+                                                                                    class="fa-solid fa-triangle-exclamation mr-1 text-[10px]"></i>
                                                                                 Sắp hết (${v.stockQuantity})
                                                                             </span>
                                                                         </c:when>
                                                                         <c:otherwise>
-                                                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm whitespace-nowrap">
-                                                                                <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i>
+                                                                            <span
+                                                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm whitespace-nowrap">
+                                                                                <i
+                                                                                    class="fa-solid fa-circle-check mr-1 text-[10px]"></i>
                                                                                 Còn hàng (${v.stockQuantity})
                                                                             </span>
                                                                         </c:otherwise>
                                                                     </c:choose>
                                                                     <c:if test="${not empty v.batches}">
-                                                                        <span class="text-xs text-primary font-medium hover:underline ml-2">Chi tiết lô (${v.batches.size()})</span>
+                                                                        <span
+                                                                            class="text-xs text-primary font-medium hover:underline ml-2">Chi
+                                                                            tiết lô (${v.batches.size()})</span>
                                                                     </c:if>
                                                                 </div>
                                                             </td>
@@ -230,57 +263,92 @@
 
                                                         <!-- Collapsible Batches Row -->
                                                         <c:if test="${not empty v.batches}">
-                                                            <tr id="batches-row-${v.variantId}" class="hidden bg-slate-50/50" data-parent-row>
-                                                                <td colspan="3" class="px-8 py-4 border-b border-border">
-                                                                    <div class="text-xs font-bold text-txt-2 mb-2 uppercase tracking-wider">Danh sách các lô hàng đang lưu trữ:</div>
-                                                                    <div class="overflow-x-auto rounded-xl border border-border bg-white shadow-inner">
-                                                                        <table class="w-full text-left text-xs border-collapse">
+                                                            <tr id="batches-row-${v.variantId}"
+                                                                class="hidden bg-slate-50/50" data-parent-row>
+                                                                <td colspan="3"
+                                                                    class="px-8 py-4 border-b border-border">
+                                                                    <div
+                                                                        class="text-xs font-bold text-txt-2 mb-2 uppercase tracking-wider">
+                                                                        Danh sách các lô hàng đang lưu trữ:</div>
+                                                                    <div
+                                                                        class="overflow-x-auto rounded-xl border border-border bg-white shadow-inner">
+                                                                        <table
+                                                                            class="w-full text-left text-xs border-collapse">
                                                                             <thead>
-                                                                                <tr class="bg-slate-100/80 border-b border-border text-txt-2 font-bold uppercase tracking-wider">
+                                                                                <tr
+                                                                                    class="bg-slate-100/80 border-b border-border text-txt-2 font-bold uppercase tracking-wider">
                                                                                     <th class="px-4 py-2">Mã Lô</th>
                                                                                     <th class="px-4 py-2">Ngày Nhập</th>
-                                                                                    <th class="px-4 py-2">Ngày Hết Hạn</th>
-                                                                                    <th class="px-4 py-2">Trạng Thái</th>
-                                                                                    <th class="px-4 py-2 text-right">Số Lượng Còn Lại / Đã Nhập</th>
+                                                                                    <th class="px-4 py-2">Ngày Hết Hạn
+                                                                                    </th>
+                                                                                    <th class="px-4 py-2">Trạng Thái
+                                                                                    </th>
+                                                                                    <th class="px-4 py-2 text-right">Số
+                                                                                        Lượng Còn Lại / Đã Nhập</th>
                                                                                 </tr>
                                                                             </thead>
                                                                             <tbody>
-                                                                                <c:forEach var="batch" items="${v.batches}">
-                                                                                    <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0">
-                                                                                        <td class="px-4 py-2.5 font-mono text-txt-2">#${batch.logId}</td>
-                                                                                        <td class="px-4 py-2.5 text-txt-2">${batch.formattedChangedAt}</td>
+                                                                                <c:forEach var="batch"
+                                                                                    items="${v.batches}">
+                                                                                    <tr
+                                                                                        class="hover:bg-slate-50 border-b border-slate-100 last:border-0">
+                                                                                        <td
+                                                                                            class="px-4 py-2.5 font-mono text-txt-2">
+                                                                                            #${batch.batchId}</td>
+                                                                                        <td
+                                                                                            class="px-4 py-2.5 text-txt-2">
+                                                                                            ${batch.formattedCreatedAt}
+                                                                                        </td>
                                                                                         <td class="px-4 py-2.5">
                                                                                             <c:choose>
-                                                                                                <c:when test="${empty batch.expiresAt}">
-                                                                                                    <span class="text-txt-3 italic">Không có</span>
+                                                                                                <c:when
+                                                                                                    test="${empty batch.expiresAt}">
+                                                                                                    <span
+                                                                                                        class="text-txt-3 italic">Không
+                                                                                                        có</span>
                                                                                                 </c:when>
                                                                                                 <c:otherwise>
-                                                                                                    <span class="font-medium">${batch.formattedExpiresAt}</span>
+                                                                                                    <span
+                                                                                                        class="font-medium">${batch.formattedExpiresAt}</span>
                                                                                                 </c:otherwise>
                                                                                             </c:choose>
                                                                                         </td>
                                                                                         <td class="px-4 py-2.5">
                                                                                             <c:choose>
-                                                                                                <c:when test="${batch.expiringSoon}">
-                                                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                                                                        <i class="fa-solid fa-triangle-exclamation mr-1 text-[8px]"></i>Sắp hết hạn
+                                                                                                <c:when
+                                                                                                    test="${batch.expiringSoon}">
+                                                                                                    <span
+                                                                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                                                                        <i
+                                                                                                            class="fa-solid fa-triangle-exclamation mr-1 text-[8px]"></i>Sắp
+                                                                                                        hết hạn
                                                                                                     </span>
                                                                                                 </c:when>
-                                                                                                <c:when test="${not empty batch.expiresAt}">
-                                                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                                                                        <i class="fa-solid fa-circle-check mr-1 text-[8px]"></i>Còn hạn
+                                                                                                <c:when
+                                                                                                    test="${not empty batch.expiresAt}">
+                                                                                                    <span
+                                                                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                                                        <i
+                                                                                                            class="fa-solid fa-circle-check mr-1 text-[8px]"></i>Còn
+                                                                                                        hạn
                                                                                                     </span>
                                                                                                 </c:when>
                                                                                                 <c:otherwise>
-                                                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-50 text-slate-500 border border-slate-200">
-                                                                                                        <i class="fa-solid fa-minus mr-1 text-[8px]"></i>Không hạn
+                                                                                                    <span
+                                                                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-50 text-slate-500 border border-slate-200">
+                                                                                                        <i
+                                                                                                            class="fa-solid fa-minus mr-1 text-[8px]"></i>Không
+                                                                                                        hạn
                                                                                                     </span>
                                                                                                 </c:otherwise>
                                                                                             </c:choose>
                                                                                         </td>
-                                                                                        <td class="px-4 py-2.5 text-right font-medium">
-                                                                                            <span class="text-emerald-700 font-bold">${batch.remainingQuantity}</span>
-                                                                                            <span class="text-txt-3"> / ${batch.quantityDelta}</span>
+                                                                                        <td
+                                                                                            class="px-4 py-2.5 text-right font-medium">
+                                                                                            <span
+                                                                                                class="text-emerald-700 font-bold">${batch.remainingQuantity}</span>
+                                                                                            <span class="text-txt-3"> /
+                                                                                                ${batch.initialQuantity}</span>
                                                                                         </td>
                                                                                     </tr>
                                                                                 </c:forEach>
@@ -305,7 +373,7 @@
                                     </div>
                                 </div>
 
-                                 <!-- History Column -->
+                                <!-- History Column -->
                                 <div class="bg-white border border-border rounded-2xl shadow-sm overflow-hidden h-fit">
                                     <div
                                         class="p-5 border-b border-border bg-[#f9fdf9] flex items-center justify-between gap-3">
@@ -339,7 +407,11 @@
                                                     <c:forEach var="log" items="${restockLogs}">
                                                         <tr data-row class="hover:bg-primary/5 transition-colors">
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
-                                                                #${log.logId}</td>
+                                                                <div>#${log.logId}</div>
+                                                                <c:if test="${not empty log.batchId}">
+                                                                    <div class="text-[10px] text-txt-3 font-mono mt-0.5">Lô: #${log.batchId}</div>
+                                                                </c:if>
+                                                            </td>
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
                                                                 <strong
                                                                     class="text-txt font-bold">${log.productName}</strong>
@@ -406,11 +478,13 @@
                                                                 ${log.formattedChangedAt}</td>
                                                             <td class="px-5 py-3.5 border-b border-border text-sm">
                                                                 <c:choose>
-                                                                    <c:when test="${log.changeType == 'MANUAL_ADJUST' || log.changeType == 'SPOILED'}">
+                                                                    <c:when
+                                                                        test="${log.changeType == 'MANUAL_ADJUST' || log.changeType == 'SPOILED'}">
                                                                         ${log.changedByName}
                                                                     </c:when>
                                                                     <c:otherwise>
-                                                                        <span class="text-[#94a3b8] italic">Hệ thống</span>
+                                                                        <span class="text-[#94a3b8] italic">Hệ
+                                                                            thống</span>
                                                                     </c:otherwise>
                                                                 </c:choose>
                                                             </td>
@@ -436,7 +510,7 @@
                         <script>
                             window.csrfToken = '${sessionScope._csrfToken}';
 
-                            window.toggleBatches = function(variantId) {
+                            window.toggleBatches = function (variantId) {
                                 const row = document.getElementById('batches-row-' + variantId);
                                 const arrow = document.getElementById('arrow-' + variantId);
                                 if (row) {
@@ -449,6 +523,20 @@
 
                             document.addEventListener('DOMContentLoaded', function () {
                                 const todayStr = new Date().toISOString().split('T')[0];
+
+                                const variantBatchesMap = {
+                                    <c:forEach var="v" items="${variants}" varStatus="vStatus">
+                                        "${v.variantId}": [
+                                            <c:forEach var="batch" items="${v.batches}" varStatus="bStatus">
+                                                {
+                                                    id: "${batch.batchId}",
+                                                    remaining: ${batch.remainingQuantity},
+                                                    expiresAt: "${batch.formattedExpiresAt}"
+                                                }${!bStatus.last ? ',' : ''}
+                                            </c:forEach>
+                                        ]${!vStatus.last ? ',' : ''}
+                                    </c:forEach>
+                                };
 
                                 // 1. Tự động set ngày nhập kho = hôm nay (hidden input)
                                 const changedAtInput = document.getElementById('changedAt');
@@ -465,6 +553,10 @@
                                 const noteInput = document.getElementById('note');
                                 const noteLabel = document.getElementById('noteLabel');
                                 const variantSelect = document.getElementById('variantId');
+                                const batchGroup = document.getElementById('batchGroup');
+                                const batchSelect = document.getElementById('batchId');
+                                const batchHint = document.getElementById('batchHint');
+                                const quantityInput = document.getElementById('quantity');
 
                                 const expiryHint = document.createElement('div');
                                 expiryHint.className = 'text-[11px] text-txt-3 mt-1.5 font-medium';
@@ -477,7 +569,63 @@
                                     expiresInput.min = todayStr;
                                 }
 
+                                function updateBatchesDropdown() {
+                                    if (!batchSelect) return;
+                                    batchSelect.innerHTML = '<option value="" disabled selected>-- Chọn lô hàng cần giảm --</option>';
+                                    if (batchHint) batchHint.innerHTML = '';
+                                    if (quantityInput) quantityInput.removeAttribute('max');
+
+                                    if (!variantSelect || !variantSelect.value) return;
+                                    const variantId = variantSelect.value;
+                                    const batches = variantBatchesMap[variantId];
+                                    if (batches && batches.length > 0) {
+                                        batches.forEach(b => {
+                                            const opt = document.createElement('option');
+                                            opt.value = b.id;
+                                            opt.setAttribute('data-max', b.remaining);
+                                            opt.textContent = 'Lô #' + b.id + ' - Tồn: ' + b.remaining + ' (HSD: ' + (b.expiresAt ? b.expiresAt : 'Không có') + ')';
+                                            batchSelect.appendChild(opt);
+                                        });
+                                    } else {
+                                        const opt = document.createElement('option');
+                                        opt.value = "";
+                                        opt.disabled = true;
+                                        opt.textContent = "Không có lô hàng nào";
+                                        batchSelect.appendChild(opt);
+                                    }
+                                }
+
+                                if (batchSelect) {
+                                    batchSelect.addEventListener('change', function() {
+                                        const selectedOpt = batchSelect.options[batchSelect.selectedIndex];
+                                        if (selectedOpt && selectedOpt.value) {
+                                            const max = selectedOpt.getAttribute('data-max');
+                                            if (quantityInput && max) {
+                                                quantityInput.max = max;
+                                                if (parseInt(quantityInput.value) > parseInt(max)) {
+                                                    quantityInput.value = max;
+                                                }
+                                                if (batchHint) batchHint.innerHTML = '<i class="fa-solid fa-circle-info mr-1 text-primary"></i>Số lượng giảm tối đa của lô này: <strong>' + max + '</strong>';
+                                            }
+                                        }
+                                    });
+                                }
+
+                                if (quantityInput) {
+                                    quantityInput.addEventListener('input', function() {
+                                        if (this.hasAttribute('max')) {
+                                            const max = parseInt(this.getAttribute('max'));
+                                            const val = parseInt(this.value);
+                                            if (val > max) {
+                                                this.value = max;
+                                            }
+                                        }
+                                    });
+                                }
+
                                 function updateMaxExpiry() {
+                                    updateBatchesDropdown();
+                                    
                                     if (!variantSelect || !expiresInput) return;
                                     const selectedOpt = variantSelect.options[variantSelect.selectedIndex];
                                     if (!selectedOpt || selectedOpt.disabled) {
@@ -485,19 +633,19 @@
                                         expiryHint.innerHTML = '';
                                         return;
                                     }
-                                    
+
                                     const shelfLifeDays = selectedOpt.getAttribute('data-shelflife');
                                     if (shelfLifeDays && shelfLifeDays > 0) {
                                         const maxDate = new Date();
                                         maxDate.setDate(maxDate.getDate() + parseInt(shelfLifeDays));
                                         const maxDateStr = maxDate.toISOString().split('T')[0];
-                                        
+
                                         expiresInput.max = maxDateStr;
-                                        
-                                        const formattedMaxDate = maxDate.getDate().toString().padStart(2, '0') + '/' + 
-                                                                 (maxDate.getMonth() + 1).toString().padStart(2, '0') + '/' + 
-                                                                 maxDate.getFullYear();
-                                        expiryHint.innerHTML = `<i class="fa-solid fa-circle-info mr-1 text-primary"></i>Hạn sử dụng tối đa của sản phẩm này: <strong>${shelfLifeDays} ngày</strong> (đến ngày <strong>${formattedMaxDate}</strong>)`;
+
+                                        const formattedMaxDate = maxDate.getDate().toString().padStart(2, '0') + '/' +
+                                            (maxDate.getMonth() + 1).toString().padStart(2, '0') + '/' +
+                                            maxDate.getFullYear();
+                                        expiryHint.innerHTML = '<i class="fa-solid fa-circle-info mr-1 text-primary"></i>Hạn sử dụng tối đa của sản phẩm này: <strong>' + shelfLifeDays + ' ngày</strong> (đến ngày <strong>' + formattedMaxDate + '</strong>)';
                                     } else {
                                         expiresInput.removeAttribute('max');
                                         expiryHint.innerHTML = '';
@@ -516,6 +664,8 @@
                                         submitBtnText.textContent = 'Nhập kho sản phẩm';
                                         submitBtnIcon.className = 'fa-solid fa-circle-arrow-down text-base';
                                         if (expiryGroup) expiryGroup.style.display = 'block';
+                                        if (batchGroup) batchGroup.style.display = 'none';
+                                        if (batchSelect) batchSelect.required = false;
                                         if (expiresInput) expiresInput.disabled = false;
                                         if (noteInput) {
                                             noteInput.placeholder = 'Ghi chú (ví dụ: Nhập hàng từ nhà cung cấp A)';
@@ -526,6 +676,8 @@
                                         submitBtnText.textContent = 'Giảm kho sản phẩm';
                                         submitBtnIcon.className = 'fa-solid fa-circle-minus text-base';
                                         if (expiryGroup) expiryGroup.style.display = 'none';
+                                        if (batchGroup) batchGroup.style.display = 'block';
+                                        if (batchSelect) batchSelect.required = true;
                                         if (expiresInput) {
                                             expiresInput.disabled = true;
                                             expiresInput.value = '';
@@ -609,7 +761,7 @@
                                         document.querySelectorAll('#stockTable tbody tr[data-row].variant-row').forEach(function (tr) {
                                             const isMatch = !q || tr.textContent.toLowerCase().includes(q);
                                             tr.style.display = isMatch ? '' : 'none';
-                                            
+
                                             // Handle parent row display for matching rows
                                             const variantId = tr.getAttribute('data-variant-id');
                                             if (variantId) {

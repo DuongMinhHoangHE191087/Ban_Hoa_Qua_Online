@@ -10,7 +10,11 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * InventoryDAO — DAO cho entity InventoryLog.
@@ -36,29 +40,34 @@ public class InventoryDAO extends BaseDAO {
      * Saves an inventory log entry using an active transactional connection.
      */
     public int save(Connection conn, InventoryLog log) throws SQLException {
-        String sql = "INSERT INTO inventory_logs (variant_id, changed_by, change_type, quantity_delta, quantity_after, note, expires_at, is_expired, changed_at) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO inventory_logs (variant_id, batch_id, changed_by, change_type, quantity_delta, quantity_after, note, expires_at, is_expired, changed_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, log.getVariantId());
-            ps.setInt(2, log.getChangedBy());
-            ps.setString(3, log.getChangeType());
-            ps.setInt(4, log.getQuantityDelta());
-            ps.setInt(5, log.getQuantityAfter());
-            if (log.getNote() != null) {
-                ps.setString(6, log.getNote());
+            if (log.getBatchId() != null) {
+                ps.setInt(2, log.getBatchId());
             } else {
-                ps.setNull(6, Types.NVARCHAR);
+                ps.setNull(2, Types.INTEGER);
+            }
+            ps.setInt(3, log.getChangedBy());
+            ps.setString(4, log.getChangeType());
+            ps.setInt(5, log.getQuantityDelta());
+            ps.setInt(6, log.getQuantityAfter());
+            if (log.getNote() != null) {
+                ps.setString(7, log.getNote());
+            } else {
+                ps.setNull(7, Types.NVARCHAR);
             }
             if (log.getExpiresAt() != null) {
-                ps.setDate(7, java.sql.Date.valueOf(log.getExpiresAt()));
+                ps.setDate(8, java.sql.Date.valueOf(log.getExpiresAt()));
             } else {
-                ps.setNull(7, Types.DATE);
+                ps.setNull(8, Types.DATE);
             }
-            ps.setBoolean(8, log.isExpired());
+            ps.setBoolean(9, log.isExpired());
             if (log.getChangedAt() != null) {
-                ps.setTimestamp(9, Timestamp.valueOf(log.getChangedAt()));
+                ps.setTimestamp(10, Timestamp.valueOf(log.getChangedAt()));
             } else {
-                ps.setTimestamp(9, new Timestamp(System.currentTimeMillis()));
+                ps.setTimestamp(10, new Timestamp(System.currentTimeMillis()));
             }
 
             ps.executeUpdate();
@@ -163,6 +172,10 @@ public class InventoryDAO extends BaseDAO {
         InventoryLog log = new InventoryLog();
         log.setLogId(rs.getInt("log_id"));
         log.setVariantId(rs.getInt("variant_id"));
+        int batchIdVal = rs.getInt("batch_id");
+        if (!rs.wasNull()) {
+            log.setBatchId(batchIdVal);
+        }
         log.setChangedBy(rs.getInt("changed_by"));
         log.setChangeType(rs.getString("change_type"));
         log.setQuantityDelta(rs.getInt("quantity_delta"));
@@ -329,5 +342,64 @@ public class InventoryDAO extends BaseDAO {
             ps.setInt(1, logId);
             ps.executeUpdate();
         }
+    }
+
+    public List<InventoryLog> findLogsByOrder(Connection conn, int variantId, String changeType, int orderId) throws SQLException {
+        String notePattern = "%#" + orderId + "%";
+        String sql = "SELECT * FROM inventory_logs WHERE variant_id = ? AND change_type = ? AND note LIKE ? ORDER BY changed_at ASC";
+        
+        List<InventoryLog> logs = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            ps.setString(2, changeType);
+            ps.setString(3, notePattern);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    logs.add(mapRow(rs));
+                }
+            }
+        }
+        return logs;
+    }
+
+    /**
+     * Lấy tất cả log tiêu thụ (quantity_delta < 0) cho một tập variantId,
+     * sắp xếp theo thời gian tăng dần. Dùng để phát lại lịch sử FIFO
+     * và tính đúng số lượng còn lại của từng lô nhập kho.
+     */
+    public Map<Integer, List<InventoryLog>> findConsumptionLogsByVariantIds(Collection<Integer> variantIds) throws SQLException {
+        Map<Integer, List<InventoryLog>> map = new HashMap<>();
+        if (variantIds == null || variantIds.isEmpty()) {
+            return map;
+        }
+
+        Set<Integer> distinctIds = new java.util.LinkedHashSet<>(variantIds);
+        StringBuilder placeholders = new StringBuilder();
+        int size = distinctIds.size();
+        for (int i = 0; i < size; i++) {
+            if (i > 0) placeholders.append(",");
+            placeholders.append("?");
+        }
+
+        String sql = "SELECT log_id, variant_id, changed_by, change_type, quantity_delta, quantity_after, "
+                + "note, expires_at, is_expired, changed_at "
+                + "FROM inventory_logs "
+                + "WHERE variant_id IN (" + placeholders + ") "
+                + "  AND quantity_delta < 0 "
+                + "ORDER BY changed_at ASC, log_id ASC";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            int paramIndex = 1;
+            for (Integer vid : distinctIds) {
+                ps.setInt(paramIndex++, vid);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    InventoryLog log = mapRow(rs);
+                    map.computeIfAbsent(log.getVariantId(), k -> new ArrayList<>()).add(log);
+                }
+            }
+        }
+        return map;
     }
 }

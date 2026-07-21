@@ -2,12 +2,13 @@ package servlet.shop.product;
 
 import service.catalog.InventoryService;
 import config.AppConfig;
-import util.SessionUtil;
+import dao.catalog.InventoryDAO;
 import dao.catalog.ProductDAO;
 import dao.catalog.ProductVariantDAO;
 import model.entity.catalog.Product;
 import model.entity.catalog.ProductVariant;
 import model.entity.catalog.InventoryLog;
+import model.entity.catalog.InventoryBatch;
 import model.entity.auth.User;
 import util.LoggerUtil;
 import jakarta.servlet.ServletException;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import util.SessionUtil;
 
 /**
  * InventoryServlet — Controller for Restock Management and inventory logs.
@@ -36,6 +38,7 @@ public class InventoryServlet extends HttpServlet {
     private static final int RESTOCK_HISTORY_LIMIT = 50;
 
     private final InventoryService inventoryService = new InventoryService();
+    private final InventoryDAO inventoryDAO = new InventoryDAO();
     private final ProductDAO productDAO = new ProductDAO();
     private final ProductVariantDAO productVariantDAO = new ProductVariantDAO();
 
@@ -62,54 +65,11 @@ public class InventoryServlet extends HttpServlet {
             // 2. Fetch past restock history logs
             history = inventoryService.getRestockHistory(currentUser.getUserId(), RESTOCK_HISTORY_LIMIT);
 
-            // 3. Fetch all active batches (no limit)
-            List<InventoryLog> activeBatches = inventoryService.getActiveBatches(currentUser.getUserId());
-            
-            // Group active batches by variant_id
-            Map<Integer, List<InventoryLog>> batchesByVariant = new HashMap<>();
-            if (activeBatches != null) {
-                for (InventoryLog batch : activeBatches) {
-                    batchesByVariant.computeIfAbsent(batch.getVariantId(), k -> new ArrayList<>()).add(batch);
-                }
-            }
-
-            // Distribute stock quantity using FIFO logic
+            // 3. Fetch active batches for each variant
             for (Map<String, Object> vMap : variantsWithProduct) {
                 int variantId = (Integer) vMap.get("variantId");
-                int stockQuantity = (Integer) vMap.get("stockQuantity");
-                
-                List<InventoryLog> vBatches = batchesByVariant.get(variantId);
-                List<InventoryLog> filteredBatches = new ArrayList<>();
-                
-                if (vBatches != null) {
-                    // Sort batches by FIFO order: expiresAt ASC (nulls last) then changedAt ASC
-                    vBatches.sort((b1, b2) -> {
-                        LocalDate d1 = b1.getExpiresAt();
-                        LocalDate d2 = b2.getExpiresAt();
-                        if (d1 == null && d2 == null) {
-                            return b1.getChangedAt().compareTo(b2.getChangedAt());
-                        }
-                        if (d1 == null) return 1;
-                        if (d2 == null) return -1;
-                        int comp = d1.compareTo(d2);
-                        if (comp != 0) return comp;
-                        return b1.getChangedAt().compareTo(b2.getChangedAt());
-                    });
-                    
-                    int tempStock = stockQuantity;
-                    for (InventoryLog batch : vBatches) {
-                        int delta = batch.getQuantityDelta();
-                        int remaining = 0;
-                        if (tempStock > 0) {
-                            remaining = Math.min(delta, tempStock);
-                            tempStock -= remaining;
-                        }
-                        batch.setRemainingQuantity(remaining);
-                        // Add to filtered batches to show in view
-                        filteredBatches.add(batch);
-                    }
-                }
-                vMap.put("batches", filteredBatches);
+                List<InventoryBatch> batches = inventoryService.getActiveBatchesForVariant(variantId);
+                vMap.put("batches", batches);
             }
 
         } catch (SQLException e) {
@@ -243,7 +203,24 @@ public class InventoryServlet extends HttpServlet {
                     resp.sendRedirect(req.getContextPath() + "/shop/inventory");
                     return;
                 }
-                inventoryService.manualAdjust(variantId, -quantity, note, currentUser.getUserId());
+                String batchIdStr = req.getParameter("batchId");
+                if (batchIdStr == null || batchIdStr.trim().isEmpty()) {
+                    saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
+                    SessionUtil.flashError(session, "Vui lòng chọn lô hàng cần giảm.");
+                    resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+                    return;
+                }
+                int batchId;
+                try {
+                    batchId = Integer.parseInt(batchIdStr);
+                } catch (NumberFormatException e) {
+                    saveFlashParams(session, actionType, variantIdStr, quantityStr, expiresAtStr, note);
+                    SessionUtil.flashError(session, "Mã lô hàng không hợp lệ.");
+                    resp.sendRedirect(req.getContextPath() + "/shop/inventory");
+                    return;
+                }
+
+                inventoryService.reduceFromBatch(variantId, batchId, quantity, note, currentUser.getUserId());
                 SessionUtil.flashSuccess(session, "Cập nhật giảm tồn kho thành công!");
             } else {
                 inventoryService.restockWithExpiry(variantId, quantity, note, changedAt, expiresAt,

@@ -9,6 +9,7 @@ public class InventoryLog {
 
     private int logId;
     private int variantId;
+    private Integer batchId;
     private int changedBy;
     private String changeType;
     private int quantityDelta;
@@ -40,6 +41,9 @@ public class InventoryLog {
 
     public int getVariantId() { return variantId; }
     public void setVariantId(int variantId) { this.variantId = variantId; }
+
+    public Integer getBatchId() { return batchId; }
+    public void setBatchId(Integer batchId) { this.batchId = batchId; }
 
     public int getChangedBy() { return changedBy; }
     public void setChangedBy(int changedBy) { this.changedBy = changedBy; }
