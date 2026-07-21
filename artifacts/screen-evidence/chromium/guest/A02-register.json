@@ -14,11 +14,11 @@
       "status": 200
     },
     {
-      "url": "/Ban_Hoa_Qua_Online/assets/css/auth-overrides.css",
+      "url": "/Ban_Hoa_Qua_Online/assets/css/material-symbols-outlined.css",
       "status": 200
     },
     {
-      "url": "/Ban_Hoa_Qua_Online/assets/css/material-symbols-outlined.css",
+      "url": "/Ban_Hoa_Qua_Online/assets/css/auth-overrides.css",
       "status": 200
     },
     {
@@ -26,31 +26,14 @@
       "status": 200
     },
     {
-      "url": "/css2?…",
-      "status": 200
-    },
-    {
       "url": "/Ban_Hoa_Qua_Online/assets/webfonts/material-symbols-outlined.ttf",
-      "status": 200
-    },
-    {
-      "url": "/aida-public/AB6AXuDbzTRH5MPfxXQnED9OhayiGIhydHTVZL2CgybXiVn-iGcwBhA-qLCSGyekLQAVcm_RUpEDJtEv1_dACfRuWo4Utwsq8I5P2LdCjSPImoyUi9-ZwkMLix_Tor9bQei6zL2uFzVk6hMIf55qGhWqNDePckWeNBL3FpIcPmUalFvXnu98oImfdEpYZ05NsZqqwDPlzhQWXpUx0A0uTgqMNLhwXCQa8vYL5qKzl33ZDymr54KIJvNsO7tkF4BM8QHEctyj4Mzaizwus24",
-      "status": 200
-    },
-    {
-      "url": "/s/lexend/v26/wlpwgwvFAVdoq2_v9KQU4Wc.woff2",
-      "status": 200
-    },
-    {
-      "url": "/s/lexend/v26/wlpwgwvFAVdoq2_v-6QU.woff2",
-      "status": 200
-    },
-    {
-      "url": "/s/lexend/v26/wlpwgwvFAVdoq2_v9aQU4Wc.woff2",
       "status": 200
     }
   ],
-  "consoleErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_NETWORK_ACCESS_DENIED",
+    "Failed to load resource: net::ERR_NETWORK_ACCESS_DENIED"
+  ],
   "uiEvidence": [
     {
       "evidenceId": "A02-FUNC-01-UI",
@@ -63,7 +46,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-02-UI",
@@ -77,7 +61,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-03-UI",
@@ -91,7 +76,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-04-UI",
@@ -105,7 +91,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-05-UI",
@@ -119,7 +106,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-06-UI",
@@ -133,7 +121,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-07-UI",
@@ -147,7 +136,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-08-UI",
@@ -161,7 +151,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-09-UI",
@@ -174,7 +165,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-10-UI",
@@ -188,7 +180,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-11-UI",
@@ -202,7 +195,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-12-UI",
@@ -216,7 +210,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-13-UI",
@@ -230,7 +225,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-14-UI",
@@ -243,7 +239,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-15-UI",
@@ -256,7 +253,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-16-UI",
@@ -269,7 +267,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-17-UI",
@@ -282,7 +281,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-18-UI",
@@ -295,7 +295,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-19-UI",
@@ -308,7 +309,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-20-UI",
@@ -321,7 +323,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-21-UI",
@@ -334,7 +337,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-22-UI",
@@ -347,7 +351,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-23-UI",
@@ -360,7 +365,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-24-UI",
@@ -373,7 +379,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-25-UI",
@@ -387,7 +394,8 @@
       "role": null,
       "visible": false,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-26-UI",
@@ -401,7 +409,8 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     },
     {
       "evidenceId": "A02-FUNC-27-UI",
@@ -414,9 +423,10 @@
       "role": null,
       "visible": true,
       "disabled": false,
-      "screenScoped": true
+      "screenScoped": true,
+      "category": "TRANSACTION"
     }
   ],
   "annotatedScreenshot": "artifacts\\screenshots\\chromium\\guest\\A02-register-annotated.png",
-  "capturedAt": "2026-07-20T07:09:45.805Z"
+  "capturedAt": "2026-07-20T17:57:29.879Z"
 }

@@ -95,6 +95,7 @@ async function login(page: Page, actor: Screen['actor']) {
 async function collectUiEvidence(page: Page, screenId: string) {
   return page.locator('input, select, textarea, button, a[role="button"]')
     .evaluateAll((elements, id) => {
+      const utilityPattern = /search|find|sort|filter|lọc|tìm|sắp xếp|pagination|page|trang|next|previous|tiếp|trước/i;
       const keyFor = (element: Element) => {
         const input = element as HTMLInputElement;
         const onclick = element.getAttribute('onclick') || '';
@@ -110,13 +111,21 @@ async function collectUiEvidence(page: Page, screenId: string) {
           label.replace(/\s+/g, ' ').slice(0, 80).toLowerCase(),
         ].join('|');
       };
+      const isUtility = (element: Element) => {
+        if (element.closest('nav, header, footer, #ai-chat-widget, .ai-chat')) return true;
+        const text = [element.getAttribute('aria-label'), element.getAttribute('title'), element.getAttribute('name'), element.textContent]
+          .filter(Boolean).join(' ');
+        const action = element.getAttribute('data-action') || '';
+        return utilityPattern.test(`${text} ${action}`) && !/add.?cart|checkout|submit|save|delete|remove|approve|reject|update|create/i.test(`${text} ${action}`);
+      };
       const counts = new Map<string, number>();
-      elements.forEach(element => counts.set(keyFor(element), (counts.get(keyFor(element)) || 0) + 1));
+      elements.filter(element => !isUtility(element)).forEach(element => counts.set(keyFor(element), (counts.get(keyFor(element)) || 0) + 1));
       const seen = new Set<string>();
       return elements.flatMap((element, index) => {
       const node = element as HTMLElement;
       const input = element as HTMLInputElement;
-      const functionKey = keyFor(element);
+        const functionKey = keyFor(element);
+        if (isUtility(element)) return [];
       const duplicateCount = counts.get(functionKey) || 1;
       if (seen.has(functionKey)) return [];
       seen.add(functionKey);
@@ -125,6 +134,9 @@ async function collectUiEvidence(page: Page, screenId: string) {
         || element.getAttribute('name')
         || element.textContent?.trim()
         || '';
+      const tag = element.tagName.toLowerCase();
+      const isTransaction = tag === 'button' || element.getAttribute('role') === 'button'
+          || Boolean(element.getAttribute('onclick') || element.getAttribute('data-action'));
       return {
         evidenceId: `${id}-FUNC-${String(seen.size).padStart(2, '0')}-UI`,
         functionKey,
@@ -138,6 +150,7 @@ async function collectUiEvidence(page: Page, screenId: string) {
         visible: Boolean(node.offsetWidth || node.offsetHeight || node.getClientRects().length),
         disabled: input.disabled,
         screenScoped: !element.closest('nav, header, footer, #ai-chat-widget, .ai-chat'),
+        category: isTransaction ? 'TRANSACTION' : 'FIELD',
       };
       });
     }, screenId);
@@ -152,6 +165,7 @@ async function markUiEvidence(page: Page) {
         return Boolean(node.offsetWidth || node.offsetHeight || node.getClientRects().length);
       });
     const seen = new Set<string>();
+    const utilityPattern = /search|find|sort|filter|lọc|tìm|sắp xếp|pagination|page|trang|next|previous|tiếp|trước/i;
     const keyFor = (element: Element) => {
       const input = element as HTMLInputElement;
       const onclick = element.getAttribute('onclick') || '';
@@ -162,6 +176,11 @@ async function markUiEvidence(page: Page) {
     };
     elements.forEach((element, index) => {
       const functionKey = keyFor(element);
+      if (element.closest('nav, header, footer, #ai-chat-widget, .ai-chat')) return;
+      const text = [element.getAttribute('aria-label'), element.getAttribute('title'), element.getAttribute('name'), element.textContent]
+        .filter(Boolean).join(' ');
+      const action = element.getAttribute('data-action') || '';
+      if (utilityPattern.test(`${text} ${action}`) && !/add.?cart|checkout|submit|save|delete|remove|approve|reject|update|create/i.test(`${text} ${action}`)) return;
       if (seen.has(functionKey)) return;
       seen.add(functionKey);
       const node = element as HTMLElement;

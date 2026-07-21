@@ -29,8 +29,8 @@ Ma trận này áp dụng quy tắc từ bảng LOC được cung cấp:
 | G05 | Guest | Register | 8 | 4 | 8 | L3 | 90 | Validate và ghi customer |
 | G06 | Guest | Access denied/error | 0 | 0 | 0 | L1 | 45 | Render lỗi, không ghi DB |
 | G07 | Guest | Static/help | 5 | 1 | 5 | L1 | 45 | Đọc nội dung tĩnh |
-| A01 | Auth | Profile | 6 | 3 | 6 | L2 | 68 | Đọc/cập nhật profile |
-| A02 | Auth | Change password | 10 | 4 | 10 | L4 | 113 | Kiểm tra mật khẩu, cập nhật credential |
+| A01 | Auth | Login | 4 | 2 | 4 | L1 | 60 | Local POST xác thực và Google OAuth callback/login |
+| A02 | Auth | Register | 13 | 4 | 13 | L5 | 180 | Đăng ký customer/shop, tạo cart, gửi verify và tạo shop application |
 | A03 | Auth | Logout | 6 | 3 | 6 | L2 | 68 | Hủy session |
 | A17 | Auth | Forgot password | 5 | 3 | 6 | L2 | 68 | Tạo token, gửi/ghi reset state |
 | A18 | Auth | Reset password | 6 | 3 | 6 | L2 | 68 | Kiểm tra token, cập nhật password |
