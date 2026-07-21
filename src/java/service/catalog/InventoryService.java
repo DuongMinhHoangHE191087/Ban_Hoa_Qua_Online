@@ -101,6 +101,7 @@ public class InventoryService {
                 logEntry.setQuantityAfter(stockAfter);
                 logEntry.setExpiresAt(expiresAt);
                 logEntry.setExpired(false);
+                logEntry.setRemainingQuantity(quantity); // full qty available in this batch
                 logEntry.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Nhập kho");
                 logEntry.setChangedAt(changedAt.atTime(LocalTime.now()));
 
@@ -175,21 +176,6 @@ public class InventoryService {
     public void reserve(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
 
-        // FIFO audit: tìm lô có ngày HH sớm nhất để ghi vào note
-        String fifoNote = "Giữ hàng cho đơn hàng #" + orderId;
-        try {
-            InventoryLog fifoLog = inventoryDAO.findOldestActiveBatchForVariant(conn, variantId);
-            if (fifoLog != null) {
-                fifoNote += " [FIFO: Lô #" + fifoLog.getLogId();
-                if (fifoLog.getExpiresAt() != null) {
-                    fifoNote += ", HH: " + fifoLog.getFormattedExpiresAt();
-                }
-                fifoNote += "]";
-            }
-        } catch (Exception ex) {
-            LoggerUtil.warn(log, "Không thể tra cứu FIFO batch cho variantId=" + variantId, ex);
-        }
-
         // Trực tiếp cập nhật nguyên tử tồn kho và lấy ra tồn kho mới sau cập nhật
         int stockAfter;
         try {
@@ -197,6 +183,28 @@ public class InventoryService {
         } catch (SQLException e) {
             throw new RuntimeException("Không đủ số lượng hàng tồn kho cho sản phẩm.");
         }
+
+        // FIFO deduction from active batches in database
+        int qtyNeeded = qty;
+        List<InventoryLog> activeBatches = inventoryDAO.findActiveBatchesForVariant(conn, variantId);
+        StringBuilder fifoDetails = new StringBuilder(" [FIFO: ");
+        boolean first = true;
+        for (InventoryLog batch : activeBatches) {
+            if (qtyNeeded <= 0) break;
+            int batchRemaining = batch.getRemainingQuantity();
+            int deduct = Math.min(batchRemaining, qtyNeeded);
+            inventoryDAO.updateRemainingQuantity(conn, batch.getLogId(), batchRemaining - deduct);
+            qtyNeeded -= deduct;
+
+            if (!first) {
+                fifoDetails.append(", ");
+            }
+            fifoDetails.append("Lô #").append(batch.getLogId()).append(" (-").append(deduct).append(")");
+            first = false;
+        }
+        fifoDetails.append("]");
+
+        String fifoNote = "Giữ hàng cho đơn hàng #" + orderId + (first ? "" : fifoDetails.toString());
 
         InventoryLog logEntry = new InventoryLog();
         logEntry.setVariantId(variantId);
@@ -279,6 +287,10 @@ public class InventoryService {
     }
 
     public void manualAdjust(int variantId, int delta, String note, int userId) throws SQLException {
+        manualAdjust(variantId, delta, note, userId, 0);
+    }
+
+    public void manualAdjust(int variantId, int delta, String note, int userId, int batchId) throws SQLException {
         if (delta == 0) return;
         try (Connection conn = inventoryDAO.openConnection()) {
             conn.setAutoCommit(false);
@@ -289,13 +301,47 @@ public class InventoryService {
                     throw new IllegalArgumentException("Số lượng tồn kho sau điều chỉnh không được âm.");
                 }
 
+                String finalNote = note != null ? note : "Điều chỉnh kho thủ công";
+                if (delta < 0) {
+                    int qtyToDeduct = Math.abs(delta);
+                    if (batchId > 0) {
+                        InventoryLog batch = inventoryDAO.findActiveBatchById(conn, batchId);
+                        if (batch == null) {
+                            throw new IllegalArgumentException("Lô hàng được chọn (Mã #" + batchId + ") không tồn tại hoặc đã hết hạn.");
+                        }
+                        if (batch.getRemainingQuantity() < qtyToDeduct) {
+                            throw new IllegalArgumentException("Số lượng giảm (" + qtyToDeduct 
+                                    + ") vượt quá số lượng tồn còn lại của Lô #" + batchId 
+                                    + " (chỉ còn " + batch.getRemainingQuantity() + " sản phẩm).");
+                        }
+                        int newRem = batch.getRemainingQuantity() - qtyToDeduct;
+                        inventoryDAO.updateRemainingQuantity(conn, batchId, newRem);
+                        finalNote += " [Trừ lô #" + batchId + "]";
+                    } else {
+                        if (currentStock < qtyToDeduct) {
+                            throw new IllegalArgumentException("Số lượng giảm (" + qtyToDeduct 
+                                    + ") vượt quá số lượng tồn kho hiện tại (chỉ còn " + currentStock + " sản phẩm).");
+                        }
+                        // FIFO deduction across active batches
+                        int qtyNeeded = qtyToDeduct;
+                        List<InventoryLog> activeBatches = inventoryDAO.findActiveBatchesForVariant(conn, variantId);
+                        for (InventoryLog b : activeBatches) {
+                            if (qtyNeeded <= 0) break;
+                            int bRem = b.getRemainingQuantity();
+                            int deduct = Math.min(bRem, qtyNeeded);
+                            inventoryDAO.updateRemainingQuantity(conn, b.getLogId(), bRem - deduct);
+                            qtyNeeded -= deduct;
+                        }
+                    }
+                }
+
                 InventoryLog logEntry = new InventoryLog();
                 logEntry.setVariantId(variantId);
                 logEntry.setChangedBy(userId);
                 logEntry.setChangeType("MANUAL_ADJUST");
                 logEntry.setQuantityDelta(delta);
                 logEntry.setQuantityAfter(stockAfter);
-                logEntry.setNote(note != null ? note : "Điều chỉnh kho thủ công");
+                logEntry.setNote(finalNote);
                 logEntry.setChangedAt(LocalDateTime.now());
 
                 inventoryDAO.save(conn, logEntry);

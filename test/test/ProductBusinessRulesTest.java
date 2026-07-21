@@ -445,4 +445,50 @@ public class ProductBusinessRulesTest {
         assertTrue(filteredByIds.containsKey(testProductId1));
         assertFalse(filteredByIds.containsKey(testProductId2));
     }
+
+    /**
+     * Nghiệp vụ bổ sung: Sản phẩm tự động chuyển trạng thái OUT_OF_SEASON/ACTIVE
+     * dựa trên mùa vụ (Seasonal Availability) khi lấy thông tin qua ProductService.
+     */
+    @Test
+    public void testSeasonalAutoTransition() throws SQLException {
+        int currentMonth = LocalDate.now().getMonthValue();
+        int outOfSeasonMonth = currentMonth == 12 ? 1 : currentMonth + 1;
+
+        // 1. Sản phẩm ACTIVE nhưng ngoài mùa vụ -> Phải tự động chuyển thành OUT_OF_SEASON
+        Product pDeact = new Product();
+        pDeact.setOwnerId(testOwnerId);
+        pDeact.setCategoryId(testCategoryId);
+        pDeact.setName("Cam Sành Ngoài Vụ");
+        pDeact.setStatus("ACTIVE");
+        pDeact.setApprovalStatus("APPROVED");
+        pDeact.setSeasonStartMonth(outOfSeasonMonth);
+        pDeact.setSeasonEndMonth(outOfSeasonMonth);
+        int pDeactId = productDAO.save(pDeact);
+
+        // 2. Sản phẩm OUT_OF_SEASON nhưng đang trong mùa vụ -> Phải tự động chuyển thành ACTIVE
+        Product pReact = new Product();
+        pReact.setOwnerId(testOwnerId);
+        pReact.setCategoryId(testCategoryId);
+        pReact.setName("Cam Sành Trong Vụ");
+        pReact.setStatus("OUT_OF_SEASON");
+        pReact.setApprovalStatus("APPROVED");
+        pReact.setSeasonStartMonth(currentMonth);
+        pReact.setSeasonEndMonth(currentMonth);
+        int pReactId = productDAO.save(pReact);
+
+        // Kích hoạt quét tự động qua ProductService
+        Product fetchedDeact = productService.getProductById(pDeactId);
+        Product fetchedReact = productService.getProductById(pReactId);
+
+        // Dọn dẹp các sản phẩm tạm thời này
+        deleteProductHard(pDeactId);
+        deleteProductHard(pReactId);
+
+        assertNotNull(fetchedDeact);
+        assertEquals("Sản phẩm ngoài mùa vụ phải tự động chuyển thành OUT_OF_SEASON", "OUT_OF_SEASON", fetchedDeact.getStatus());
+
+        assertNotNull(fetchedReact);
+        assertEquals("Sản phẩm trong mùa vụ phải tự động quay về ACTIVE", "ACTIVE", fetchedReact.getStatus());
+    }
 }

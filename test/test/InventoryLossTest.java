@@ -111,30 +111,53 @@ public class InventoryLossTest {
 
     @Test
     public void autoExpiryBatch_pastExpiryDate_deductsStock() throws Exception {
-        // 1. Nhập kho một lô hàng có ngày hết hạn là ngày hôm qua (đã hết hạn)
+        // 1. Insert a batch with yesterday's expiry directly via DAO (bypasses UI validation correctly)
         dao.catalog.ProductVariantDAO variantDAO = new dao.catalog.ProductVariantDAO();
+        dao.catalog.InventoryDAO inventoryDAO = new dao.catalog.InventoryDAO();
         int variantId = 1;
         int restockQty = 15;
-        java.time.LocalDate today = java.time.LocalDate.now();
-        java.time.LocalDate fiveDaysAgo = today.minusDays(5);
-        java.time.LocalDate yesterday = today.minusDays(1);
+        java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
+        java.time.LocalDate fiveDaysAgo = java.time.LocalDate.now().minusDays(5);
 
-        // Lấy tồn kho hiện tại trước khi nhập
         int stockBeforeRestock = variantDAO.getStockQuantity(variantId);
 
-        inventoryService.restockWithExpiry(variantId, restockQty, "Lô hàng test hết hạn tự động", fiveDaysAgo, yesterday, 1);
+        try (java.sql.Connection conn = inventoryDAO.openConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Insert the expired batch log directly
+                model.entity.catalog.InventoryLog batch = new model.entity.catalog.InventoryLog();
+                batch.setVariantId(variantId);
+                batch.setChangedBy(1);
+                batch.setChangeType("MANUAL_ADJUST");
+                batch.setQuantityDelta(restockQty);
+                batch.setQuantityAfter(stockBeforeRestock + restockQty);
+                batch.setExpiresAt(yesterday);
+                batch.setExpired(false);
+                batch.setRemainingQuantity(restockQty);
+                batch.setNote("Lô hàng test hết hạn tự động");
+                batch.setChangedAt(fiveDaysAgo.atStartOfDay());
+                inventoryDAO.save(conn, batch);
+                // Update stock_quantity in product_variants
+                variantDAO.updateStock(conn, variantId, restockQty);
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
 
-        // Tồn kho sau khi nhập
         int stockAfterRestock = variantDAO.getStockQuantity(variantId);
         assertEquals(stockBeforeRestock + restockQty, stockAfterRestock);
 
         // 2. Chạy tiến trình xử lý hết hạn tự động
         int processed = inventoryService.processExpiredBatches();
-        assertTrue(processed >= 1); // Phải xử lý ít nhất lô hàng vừa nhập hết hạn
+        assertTrue(processed >= 1);
 
         // 3. Kiểm tra xem tồn kho đã bị trừ tương ứng
         int stockAfterExpiry = variantDAO.getStockQuantity(variantId);
-        assertEquals(stockAfterRestock - restockQty, stockAfterExpiry); // Trừ đi đúng lượng hết hạn
+        assertEquals(stockAfterRestock - restockQty, stockAfterExpiry);
 
         // 4. Kiểm tra log biến động kho mới nhất
         List<InventoryLog> finalLogs = inventoryService.getLogs(variantId);
