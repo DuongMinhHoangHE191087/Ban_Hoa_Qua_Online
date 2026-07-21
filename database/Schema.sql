@@ -184,22 +184,10 @@ CREATE TABLE product_packaging_options (
     is_active    BIT NOT NULL DEFAULT 1
 );
 
--- 9. inventory_batches [cite: 65]
-CREATE TABLE inventory_batches (
-    batch_id INT IDENTITY(1,1) PRIMARY KEY,
-    variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id),
-    initial_quantity INT NOT NULL,
-    remaining_quantity INT NOT NULL CHECK (remaining_quantity >= 0),
-    expires_at DATE NULL,
-    is_expired BIT NOT NULL DEFAULT 0,
-    created_at DATETIME NOT NULL DEFAULT GETDATE()
-);
-
--- 10. inventory_logs [cite: 65]
+-- 9. inventory_logs [cite: 65]
 CREATE TABLE inventory_logs (
     log_id INT IDENTITY(1,1) PRIMARY KEY,
     variant_id INT NOT NULL FOREIGN KEY REFERENCES product_variants(variant_id),
-    batch_id INT NULL FOREIGN KEY REFERENCES inventory_batches(batch_id),
     changed_by INT NOT NULL FOREIGN KEY REFERENCES users(user_id),
     change_type NVARCHAR(20) NOT NULL CHECK (change_type IN ('MANUAL_ADJUST','ORDER_RESERVE','ORDER_RELEASE','ORDER_CONFIRM','RETURN','EXPIRED','SPOILED')),
     quantity_delta INT NOT NULL,
