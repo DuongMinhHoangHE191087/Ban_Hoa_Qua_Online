@@ -417,7 +417,9 @@ public class CheckoutServlet extends HttpServlet {
         if (csrfSession == null || csrfParam == null) {
             return false;
         }
-        return MessageDigest.isEqual(csrfSession.getBytes(), csrfParam.getBytes());
+        return MessageDigest.isEqual(
+                csrfSession.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                csrfParam.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private String buildCheckoutRedirect(List<Integer> cartItemIds) {

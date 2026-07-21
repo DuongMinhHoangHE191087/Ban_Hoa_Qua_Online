@@ -390,7 +390,7 @@
                                                 <span class="material-symbols-outlined text-lg text-primary">storefront</span>
                                                 <c:choose>
                                                     <c:when test="${sId > 0}">
-                                                        <a href="${pageContext.request.contextPath}/shop-view?id=${sId}" class="hover:underline text-primary-dark transition-all">
+                                                        <a href="${pageContext.request.contextPath}/shop-view?id=${sId}&idType=owner" class="hover:underline text-primary-dark transition-all">
                                                             Cửa hàng: <c:out value="${sName != null ? sName : 'Chưa có'}"/>
                                                         </a>
                                                     </c:when>

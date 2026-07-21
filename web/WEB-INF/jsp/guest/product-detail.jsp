@@ -397,7 +397,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}" class="btn-visit-shop-hero">
+                        <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.userId}&idType=owner" class="btn-visit-shop-hero">
                             <i class="fa-solid fa-store"></i> Ghé Thăm Shop
                         </a>
                         <button type="button" id="btnChatWithShop" data-owner-id="${shopProfile.userId}" class="btn-visit-shop-hero !bg-white !text-primary !border-2 !border-primary !px-5 !py-2.5 !gap-1.5 hover:!bg-emerald-50">
@@ -537,7 +537,7 @@
                     <div class="shop-body-section">
                         <div class="shop-section-label justify-between w-full">
                             <span><i class="fa-solid fa-layer-group"></i> Xem thêm sản phẩm từ cửa hàng này</span>
-                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}"
+                            <a href="${pageContext.request.contextPath}/shop-view?id=${shopProfile.profileId}&idType=profile"
                                class="text-[10px] text-primary font-bold normal-case tracking-normal no-underline">
                                 Xem tất cả <i class="fa-solid fa-arrow-right ml-1"></i>
                             </a>

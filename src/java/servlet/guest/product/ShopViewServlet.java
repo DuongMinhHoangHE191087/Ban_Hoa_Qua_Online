@@ -54,11 +54,11 @@ public class ShopViewServlet extends HttpServlet {
             int parsedId = Integer.parseInt(idStr.trim());
             model.entity.auth.User currentUser = (model.entity.auth.User) req.getSession().getAttribute(AppConfig.SESSION_USER);
             boolean isAdminPreview = currentUser != null && AppConfig.ROLE_ADMIN.equals(currentUser.getRole());
-            // Ưu tiên tìm theo userId của chủ cửa hàng (owner_id) trước vì các liên kết từ giỏ hàng/đơn hàng truyền owner_id/userId
-            ShopProfile profile = shopService.getShopByUserId(parsedId);
-            if (profile == null || (!isAdminPreview && !"APPROVED".equals(profile.getApprovalStatus()))) {
-                // Nếu không có hoặc chưa duyệt theo userId, thử tìm theo profileId
-                ShopProfile profileById = shopService.getShopById(parsedId);
+            boolean ownerIdReference = "owner".equalsIgnoreCase(req.getParameter("idType"));
+            // Các liên kết mua hàng dùng owner_id; liên kết quản trị có thể dùng profile_id.
+            ShopProfile profile = ownerIdReference ? shopService.getShopByUserId(parsedId) : shopService.getShopById(parsedId);
+            if (!ownerIdReference && (profile == null || (!isAdminPreview && !"APPROVED".equals(profile.getApprovalStatus())))) {
+                ShopProfile profileById = ownerIdReference ? shopService.getShopById(parsedId) : shopService.getShopByUserId(parsedId);
                 if (profileById != null && (isAdminPreview || "APPROVED".equals(profileById.getApprovalStatus()))) {
                     profile = profileById;
                 }

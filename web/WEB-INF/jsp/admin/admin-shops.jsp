@@ -115,7 +115,7 @@
                                     <tr class="hover:bg-slate-50 transition-colors">
                                         <td class="px-6 py-4">
                                             <strong class="shop-name-col block text-slate-800">
-                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}"
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}&idType=profile"
                                                    class="hover:text-primary transition-colors">
                                                     <c:out value="${shop.shopName}"/>
                                                 </a>
@@ -124,7 +124,7 @@
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="font-semibold text-txt">
-                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}"
+                                                <a href="${pageContext.request.contextPath}/shop-view?id=${shop.profileId}&idType=profile"
                                                    class="hover:text-primary transition-colors">
                                                     <c:out value="${shop.ownerName}"/>
                                                 </a>
@@ -302,7 +302,7 @@
                 Swal.close();
                 if (data.success && data.data) {
                     const shop = data.data;
-                    document.getElementById('detailPublicLink').href = '${pageContext.request.contextPath}/shop-view?id=' + shop.shopId;
+                    document.getElementById('detailPublicLink').href = '${pageContext.request.contextPath}/shop-view?id=' + shop.shopId + '&idType=profile';
                     document.getElementById('detailName').textContent = shop.shopName || '';
                     document.getElementById('detailOwnerName').textContent = shop.ownerName || '';
                     document.getElementById('detailEmail').textContent = shop.businessEmail || '';

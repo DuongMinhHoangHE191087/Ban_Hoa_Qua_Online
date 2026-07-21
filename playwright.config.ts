@@ -26,6 +26,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'mobile-screens',
+      testMatch: /screen-capture\.spec\.ts/,
+      use: { ...devices['iPhone 12'] },
+    },
   ],
 });
-

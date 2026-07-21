@@ -1,3 +1,4 @@
+<%@ page pageEncoding="UTF-8" %>
 <%-- Shared order item card.
      Expects a page-scoped `item` variable and JSTL fn/ft taglibs in the host JSP. --%>
 <c:set var="itemImageSrc" value="${pageContext.request.contextPath}/assets/img/placeholder.png" />

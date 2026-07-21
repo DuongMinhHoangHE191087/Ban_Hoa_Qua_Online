@@ -511,6 +511,17 @@ BEGIN
     );
 END
 
+IF NOT EXISTS (SELECT 1 FROM system_config WHERE config_key = 'product_auto_approve')
+BEGIN
+    INSERT INTO system_config (config_key, config_value, description, data_type)
+    VALUES (
+        'product_auto_approve',
+        'false',
+        N'Tự động duyệt sản phẩm khi tạo mới hoặc cập nhật (true/false). Mặc định false.',
+        'BOOLEAN'
+    );
+END
+
 -- 18. audit_logs
 CREATE TABLE audit_logs (
     log_id INT IDENTITY(1,1) PRIMARY KEY,

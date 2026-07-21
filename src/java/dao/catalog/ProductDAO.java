@@ -1477,9 +1477,11 @@ public class ProductDAO extends BaseDAO {
                 + "    FROM product_variants "
                 + "    WHERE is_active = 1 AND stock_quantity > 0 "
                 + ") pv ON pv.product_id = p.product_id AND pv.rn = 1 "
-                + "JOIN promotions pr ON pr.product_id = p.product_id "
+                + "CROSS APPLY (SELECT TOP 1 pr.discount_type, pr.discount_value, pr.discount_max, pr.valid_until "
+                + "    FROM promotions pr WHERE pr.product_id = p.product_id "
                 + "    AND pr.scope = 'PRODUCT' AND pr.is_active = 1 AND pr.is_deleted = 0 "
                 + "    AND pr.valid_from <= GETDATE() AND pr.valid_until >= GETDATE() "
+                + "    ORDER BY pr.discount_value DESC, pr.promo_id DESC) pr "
                 + "WHERE " + buildPublicVisibilityClause("p") + " "
                 + "  AND pv.product_id IS NOT NULL "
                 + "ORDER BY p.product_id DESC";

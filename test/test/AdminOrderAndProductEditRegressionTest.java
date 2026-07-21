@@ -409,15 +409,15 @@ public class AdminOrderAndProductEditRegressionTest {
         }
     }
 
-    private String resolveDbUser() {
+    private static String resolveDbUser() {
         return resolveRequiredConfig("DB_USER");
     }
 
-    private String resolveDbPassword() {
+    private static String resolveDbPassword() {
         return resolveRequiredConfig("DB_PASSWORD");
     }
 
-    private String resolveRequiredConfig(String key) {
+    private static String resolveRequiredConfig(String key) {
         String value = System.getProperty(key);
         if (value == null || value.trim().isEmpty()) {
             value = System.getenv(key);
