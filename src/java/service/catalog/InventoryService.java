@@ -16,9 +16,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.logging.Logger;
 import util.LoggerUtil;
-import config.AppConfig;
-import dao.chat.NotificationDAO;
-import service.chat.NotificationService;
 
 /**
  * InventoryService — Tầng business logic cho nghiệp vụ tương ứng.
@@ -449,7 +446,7 @@ public class InventoryService {
                 service.chat.NotificationService notificationService = new service.chat.NotificationService();
                 String title = "Cảnh báo tồn kho thấp";
                 String message = "Sản phẩm \"" + productName + "\" (SKU: " + sku + ") sắp hết hàng. Chỉ còn " + stockAfter + " sản phẩm trong kho.";
-                notificationService.send(ownerId, AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/products");
+                notificationService.send(ownerId, config.AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/products");
             }
         } catch (Exception ex) {
             LoggerUtil.warn(log, "Không thể gửi cảnh báo tồn kho thấp cho variantId=" + variantId, ex);
@@ -476,7 +473,7 @@ public class InventoryService {
                 InventoryLog logEntry = new InventoryLog();
                 logEntry.setVariantId(variantId);
                 logEntry.setChangedBy(userId);
-                logEntry.setChangeType(AppConfig.INVENTORY_CHANGE_EXPIRED);
+                logEntry.setChangeType(config.AppConfig.INVENTORY_CHANGE_EXPIRED);
                 logEntry.setQuantityDelta(-qty);
                 logEntry.setQuantityAfter(stockAfter);
                 logEntry.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Hao hụt do hết hạn");
@@ -515,7 +512,7 @@ public class InventoryService {
                 InventoryLog logEntry = new InventoryLog();
                 logEntry.setVariantId(variantId);
                 logEntry.setChangedBy(userId);
-                logEntry.setChangeType(AppConfig.INVENTORY_CHANGE_SPOILED);
+                logEntry.setChangeType(config.AppConfig.INVENTORY_CHANGE_SPOILED);
                 logEntry.setQuantityDelta(-qty);
                 logEntry.setQuantityAfter(stockAfter);
                 logEntry.setNote(note != null && !note.trim().isEmpty() ? note.trim() : "Hao hụt do thối hỏng");
@@ -565,7 +562,7 @@ public class InventoryService {
                     InventoryLog expiryEntry = new InventoryLog();
                     expiryEntry.setVariantId(variantId);
                     expiryEntry.setChangedBy(logEntry.getChangedBy());
-                    expiryEntry.setChangeType(AppConfig.INVENTORY_CHANGE_EXPIRED);
+                    expiryEntry.setChangeType(config.AppConfig.INVENTORY_CHANGE_EXPIRED);
                     expiryEntry.setQuantityDelta(-deductQty);
                     expiryEntry.setQuantityAfter(stockAfter);
                     expiryEntry.setNote("Tự động trừ kho: Lô nhập #" + logEntry.getLogId() + " hết hạn ngày " + logEntry.getExpiresAt());
@@ -635,8 +632,8 @@ public class InventoryService {
                 String message = "Lô hàng #" + logId + " của sản phẩm \"" + productName + "\" (Phân loại: " + variantLabel + ") sắp hết hạn vào ngày " + expiresAt + ". Vui lòng kiểm tra tồn kho.";
 
                 // Check if already notified to avoid spamming the seller daily
-                if (!notificationDAO.isNotificationSent(ownerId, AppConfig.NOTIF_INVENTORY_ALERT, "%Lô hàng #" + logId + "%")) {
-                    notificationService.send(ownerId, AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/inventory");
+                if (!notificationDAO.isNotificationSent(ownerId, config.AppConfig.NOTIF_INVENTORY_ALERT, "%Lô hàng #" + logId + "%")) {
+                    notificationService.send(ownerId, config.AppConfig.NOTIF_INVENTORY_ALERT, title, message, "/shop/inventory");
                     alertCount++;
                 }
             }
