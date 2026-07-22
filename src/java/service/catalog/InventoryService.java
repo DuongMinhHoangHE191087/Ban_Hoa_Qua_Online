@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import util.LoggerUtil;
 
 /**
@@ -238,6 +240,18 @@ public class InventoryService {
         if (qty <= 0) return;
         int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
         int stockAfter = currentStock + qty;
+
+        // Bóc tách ghi chú để hoàn lại remaining_quantity
+        String reserveNote = inventoryDAO.findReserveLogNote(conn, orderId, variantId);
+        if (reserveNote != null) {
+            Pattern pattern = Pattern.compile("Lô #(\\d+) \\(-(\\d+)\\)");
+            Matcher matcher = pattern.matcher(reserveNote);
+            while (matcher.find()) {
+                int batchLogId = Integer.parseInt(matcher.group(1));
+                int deductQty = Integer.parseInt(matcher.group(2));
+                inventoryDAO.incrementRemainingQuantity(conn, batchLogId, deductQty);
+            }
+        }
 
         InventoryLog logEntry = new InventoryLog();
         logEntry.setVariantId(variantId);
