@@ -1165,11 +1165,18 @@ function Setup-Tunnel {
 # Cloudflare Tunnel Config - MetaFruit (Tu dong cap nhat boi build-tools)
 tunnel: $uuid
 credentials-file: $escapedCredPath
+protocol: http2
+edge-ip-version: "4"
 
 ingress:
   # Map ten mien co dinh vao Tomcat local
   - hostname: $customDomain
-    service: http://localhost:8080
+    service: http://127.0.0.1:8080
+    originRequest:
+      http2Origin: false
+      connectTimeout: 30s
+      keepAliveTimeout: 90s
+      keepAliveConnections: 100
   # Mac dinh tra ve 404 cho cac truy cap khac
   - service: http_status:404
 "@
@@ -1178,10 +1185,17 @@ ingress:
 # Cloudflare Tunnel Config - MetaFruit (Tu dong cap nhat boi build-tools)
 tunnel: $uuid
 credentials-file: $escapedCredPath
+protocol: http2
+edge-ip-version: "4"
 
 ingress:
   # Route mac dinh toan bo traffic ve Tomcat local
-  - service: http://localhost:8080
+  - service: http://127.0.0.1:8080
+    originRequest:
+      http2Origin: false
+      connectTimeout: 30s
+      keepAliveTimeout: 90s
+      keepAliveConnections: 100
 "@
         }
         
