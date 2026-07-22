@@ -465,7 +465,7 @@
                                                     class="block text-xs font-bold text-txt-2 mb-1.5">Tên sản phẩm hoa
                                                     quả <span class="text-red-500">*</span></label>
                                                 <input type="text" name="name" id="modal-name" required
-                                                    placeholder="Ví dụ: Sầu Riêng Ri6 Chín Hóa"
+                                                    placeholder="Ví dụ: Sầu Riêng Chín Hóa"
                                                     class="form-control-custom">
                                             </div>
 
@@ -475,7 +475,7 @@
                                                     class="block text-xs font-bold text-txt-2 mb-1.5">Mô tả sản
                                                     phẩm</label>
                                                 <textarea name="description" id="modal-description" rows="3"
-                                                    placeholder="Nhập câu chuyện sản phẩm, hương vị, chứng chỉ..."
+                                                    placeholder="Nhập mô tả sản phẩm, hương vị, chứng chỉ..."
                                                     class="form-control-custom"></textarea>
                                             </div>
 
