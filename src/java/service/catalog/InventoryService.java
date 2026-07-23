@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import util.LoggerUtil;
 
 /**
@@ -234,10 +236,22 @@ public class InventoryService {
         }
     }
 
-    public void release(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
+    public void restore(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
         int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
         int stockAfter = currentStock + qty;
+
+        // Bóc tách ghi chú để hoàn lại remaining_quantity
+        String reserveNote = inventoryDAO.findReserveLogNote(conn, orderId, variantId);
+        if (reserveNote != null) {
+            Pattern pattern = Pattern.compile("Lô #(\\d+) \\(-(\\d+)\\)");
+            Matcher matcher = pattern.matcher(reserveNote);
+            while (matcher.find()) {
+                int batchLogId = Integer.parseInt(matcher.group(1));
+                int deductQty = Integer.parseInt(matcher.group(2));
+                inventoryDAO.incrementRemainingQuantity(conn, batchLogId, deductQty);
+            }
+        }
 
         InventoryLog logEntry = new InventoryLog();
         logEntry.setVariantId(variantId);
@@ -252,11 +266,11 @@ public class InventoryService {
         productVariantDAO.updateStock(conn, variantId, qty);
     }
 
-    public void release(int variantId, int qty, int orderId) throws SQLException {
+    public void restore(int variantId, int qty, int orderId) throws SQLException {
         try (Connection conn = inventoryDAO.openConnection()) {
             conn.setAutoCommit(false);
             try {
-                release(conn, variantId, qty, orderId, 1);
+                restore(conn, variantId, qty, orderId, 1);
                 conn.commit();
             } catch (SQLException | RuntimeException e) {
                 conn.rollback();

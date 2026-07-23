@@ -134,7 +134,7 @@ public class DeliveryService {
                         InventoryService inventoryService = new InventoryService();
                         for (model.entity.order.OrderItem item : items) {
                             if (item.getVariantId() != null) {
-                                inventoryService.release(conn, item.getVariantId(), item.getQuantity(), order.getOrderId(), staffId);
+                                inventoryService.restore(conn, item.getVariantId(), item.getQuantity(), order.getOrderId(), staffId);
                             }
                         }
 
