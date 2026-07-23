@@ -272,9 +272,6 @@ public class PromotionService {
             if (BENEFIT_TARGET_PRODUCT.equals(benefitTarget)) {
                 throw new IllegalArgumentException("Khuyến mãi theo sản phẩm chỉ áp dụng với phạm vi PRODUCT.");
             }
-            if (BENEFIT_TARGET_PAYMENT_METHOD.equals(benefitTarget)) {
-                throw new IllegalArgumentException("Voucher phương thức thanh toán chỉ áp dụng cho đơn hàng.");
-            }
         }
         normalizeBenefitTarget(promo);
         if (promo.getDiscountValue() == null

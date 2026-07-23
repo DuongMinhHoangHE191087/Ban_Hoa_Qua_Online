@@ -50,7 +50,7 @@ public final class ErrorMessageUtil {
             return MSG_FILE_ERROR;
         }
         if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) {
-            return MSG_VALIDATION_ERROR;
+            return MSG_VALIDATION_ERROR + " (" + e.getMessage() + ")";
         }
         if (e instanceof SecurityException) {
             return MSG_UNAUTHORIZED;
