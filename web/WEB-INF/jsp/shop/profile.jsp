@@ -206,33 +206,26 @@
                                             lệ 16:5</span>
                                     </div>
 
-                                    <div class="relative mb-4 img-wrap rounded-[24px] h-[220px] overflow-hidden bg-[#b7f7c3]">
-                                        <img id="banner-preview-img"
-                                            src="${not empty shopProfile.coverUrl ? pageContext.request.contextPath.concat('/').concat(shopProfile.coverUrl) : pageContext.request.contextPath.concat('/assets/images/default-banner.png')}"
-                                            alt="Ảnh bìa" class="w-full h-full object-cover">
-                                        <div class="img-overlay">
-                                            <label for="banner-file-input"
-                                                class="bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold px-3 py-2 cursor-pointer">
-                                                <span
-                                                    class="material-symbols-outlined text-sm align-middle">upload</span>
-                                                Thay đổi
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <input type="file" id="banner-file-input" accept="image/*" class="hidden"
-                                        onchange="uploadImage(this, 'cover')">
-
-                                    <div class="upload-zone p-6 flex flex-col items-center justify-center gap-2"
+                                    <div class="relative mb-2 img-wrap rounded-[24px] h-[220px] overflow-hidden bg-[#b7f7c3]"
                                         onclick="document.getElementById('banner-file-input').click()"
                                         ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)"
                                         ondrop="dropHandler(event, 'cover')">
-                                        <span
-                                            class="material-symbols-outlined text-3xl text-outline">add_photo_alternate</span>
-                                        <p class="text-xs font-semibold text-on-surface-variant">Kéo thả ảnh vào đây
-                                            hoặc <span class="text-primary underline cursor-pointer">chọn file</span>
-                                        </p>
-                                        <p class="text-[10px] text-outline">JPG, PNG, WebP · Tối đa 5MB</p>
+                                        <img id="banner-preview-img"
+                                            src="${not empty shopProfile.coverUrl ? pageContext.request.contextPath.concat('/').concat(shopProfile.coverUrl) : pageContext.request.contextPath.concat('/assets/images/default-banner.png')}"
+                                            alt="Ảnh bìa" class="w-full h-full object-cover">
+                                        <div class="img-overlay flex-col pointer-events-none">
+                                            <span class="bg-primary text-white rounded-xl text-xs font-bold px-3 py-2">
+                                                <span class="material-symbols-outlined text-sm align-middle">upload</span>
+                                                Thay đổi
+                                            </span>
+                                            <p class="text-white text-[11px] font-medium drop-shadow-md mt-1">Kéo thả ảnh vào đây</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-end">
+                                        <input type="file" id="banner-file-input" accept="image/*" class="hidden"
+                                            onchange="uploadImage(this, 'cover')">
+                                        <p class="text-[10px] text-outline font-medium">JPG, PNG, WebP · Tối đa 5MB</p>
                                     </div>
                                 </div>
 
@@ -252,33 +245,24 @@
                                     </div>
 
                                     <div class="flex gap-6 items-center">
-                                        <div class="img-wrap shrink-0 w-28 h-28 rounded-[24px] overflow-hidden border-[3px] border-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+                                        <div class="img-wrap shrink-0 w-28 h-28 rounded-[24px] overflow-hidden border-[3px] border-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+                                            onclick="document.getElementById('logo-file-input').click()"
+                                            ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)"
+                                            ondrop="dropHandler(event, 'logo')">
                                             <img id="avatar-preview-img"
                                                 src="${not empty shopProfile.logoUrl ? pageContext.request.contextPath.concat('/').concat(shopProfile.logoUrl) : pageContext.request.contextPath.concat('/assets/images/default-logo.png')}"
                                                 alt="Logo" class="w-full h-full object-cover">
-                                            <div class="img-overlay">
-                                                <label for="logo-file-input" class="cursor-pointer">
-                                                    <span
-                                                        class="material-symbols-outlined text-white text-2xl">edit</span>
-                                                </label>
+                                            <div class="img-overlay pointer-events-none flex-col">
+                                                <span class="material-symbols-outlined text-white text-3xl drop-shadow-md">upload</span>
                                             </div>
                                         </div>
 
-                                        <div class="flex-1">
+                                        <div class="flex-1 flex flex-col justify-center">
                                             <input type="file" id="logo-file-input" accept="image/*" class="hidden"
                                                 onchange="uploadImage(this, 'logo')">
-                                            <div class="upload-zone p-4 flex flex-col items-center justify-center gap-1"
-                                                onclick="document.getElementById('logo-file-input').click()"
-                                                ondragover="dragOverHandler(event)"
-                                                ondragleave="dragLeaveHandler(event)"
-                                                ondrop="dropHandler(event, 'logo')">
-                                                <span
-                                                    class="material-symbols-outlined text-2xl text-outline">upload_file</span>
-                                                <p class="text-xs font-semibold text-on-surface-variant text-center">Kéo
-                                                    thả hoặc <span class="text-primary underline">chọn ảnh</span></p>
-                                                <p class="text-[10px] text-outline text-center">JPG, PNG · Tối đa 2MB
-                                                </p>
-                                            </div>
+                                            <h3 class="text-sm font-semibold text-on-surface">Cập nhật Logo</h3>
+                                            <p class="text-xs text-outline mt-1">Kéo thả ảnh vào hình vuông bên cạnh hoặc nhấp để chọn.</p>
+                                            <p class="text-[10px] text-outline mt-2 font-medium bg-surface rounded-md px-2 py-1 w-fit border border-outline-variant/30">JPG, PNG, WebP · Tối đa 2MB</p>
                                         </div>
                                     </div>
                                 </div>
