@@ -21,8 +21,8 @@ Công thức: `E = max(F, T × 2)` → Level → `Evaluated LOC = Base LOC × Qu
 | G05 | Guest | Register | 8 | 4 | 8 | L3 | 120 | Normal | 75% | 90 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
 | G06 | Guest | Access denied/error | 0 | 0 | 0 | L1 | 60 | Failed | 50% | 30 | Màn public/static hoặc chưa có đủ unhappy-path/transaction evidence để chốt Normal. |
 | G07 | Guest | Static/help | 5 | 1 | 5 | L1 | 60 | Failed | 50% | 30 | Màn public/static hoặc chưa có đủ unhappy-path/transaction evidence để chốt Normal. |
-| A01 | Auth | Profile | 6 | 3 | 6 | L2 | 90 | Normal | 75% | 68 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
-| A02 | Auth | Change password | 10 | 4 | 10 | L4 | 150 | Normal | 75% | 113 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
+| A01 | Auth | Login | 4 | 2 | 4 | L1 | 60 | Normal | 75% | 45 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
+| A02 | Auth | Register | 13 | 4 | 13 | L5 | 180 | Normal | 75% | 135 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
 | A03 | Auth | Logout | 6 | 3 | 6 | L2 | 90 | Normal | 75% | 68 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
 | A17 | Auth | Forgot password | 5 | 3 | 6 | L2 | 90 | Normal | 75% | 68 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
 | A18 | Auth | Reset password | 6 | 3 | 6 | L2 | 90 | Normal | 75% | 68 | Có render, input/route và xử lý dữ liệu; cần giữ evidence error/permission theo checklist. |
@@ -85,9 +85,9 @@ Công thức: `E = max(F, T × 2)` → Level → `Evaluated LOC = Base LOC × Qu
 | Normal screens | 47 |
 | Best screens | 10 |
 | Failed LOC nếu toàn bộ dự án ở 50% | 4065 |
-| Normal LOC nếu toàn bộ dự án ở 75% | 6113 |
+| Normal LOC nếu toàn bộ dự án ở 75% | 6112 |
 | Best LOC nếu toàn bộ dự án ở 100% | 8130 |
-| Evaluated LOC theo quality assessment hiện tại | 6455 |
+| Evaluated LOC theo quality assessment hiện tại | 6454 |
 
 ## 4. Kết luận dùng để báo cáo
 
