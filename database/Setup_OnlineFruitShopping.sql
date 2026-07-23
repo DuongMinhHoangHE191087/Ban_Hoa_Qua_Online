@@ -1753,23 +1753,24 @@ BEGIN TRY
     SET IDENTITY_INSERT dbo.product_variants OFF;
 
     SET IDENTITY_INSERT dbo.inventory_logs ON;
-    INSERT INTO dbo.inventory_logs (log_id, variant_id, changed_by, change_type, quantity_delta, quantity_after, note, changed_at)
+    INSERT INTO dbo.inventory_logs (log_id, variant_id, changed_by, change_type, quantity_delta, quantity_after, remaining_quantity, note, expires_at, is_expired, changed_at)
     VALUES
-        (1, 1, 3, N'MANUAL_ADJUST', 150, 150, N'Nhập kho ban đầu', '2026-05-12T08:00:00'),
-        (2, 3, 3, N'MANUAL_ADJUST', 120, 120, N'Nhập kho đầu mùa bưởi', '2026-05-15T09:05:00'),
-        (3, 8, 4, N'MANUAL_ADJUST', 75, 75, N'Nhập lô dâu tây Mỹ kiểm dịch', '2026-05-16T08:20:00'),
-        (4, 12, 7, N'MANUAL_ADJUST', 85, 85, N'Nhập container Cherry Chile', '2026-05-15T10:00:00'),
-        (5, 19, 7, N'MANUAL_ADJUST', 35, 35, N'Đóng hộp quà tết', '2026-05-14T18:00:00'),
-        (6, 24, 7, N'MANUAL_ADJUST', 120, 120, N'Nhập kho táo Envy Mỹ', '2026-05-18T09:00:00'),
-        (7, 26, 7, N'MANUAL_ADJUST', 90, 90, N'Nhập kho Kiwi Vàng', '2026-05-19T09:00:00'),
+        (1, 1, 3, N'MANUAL_ADJUST', 150, 150, 150, N'Nhập kho ban đầu', DATEADD(day, 15, GETDATE()), 0, '2026-05-12T08:00:00'),
+        (2, 3, 3, N'MANUAL_ADJUST', 120, 120, 120, N'Nhập kho đầu mùa bưởi', DATEADD(day, 15, GETDATE()), 0, '2026-05-15T09:05:00'),
+        (3, 8, 4, N'MANUAL_ADJUST', 75, 75, 75, N'Nhập lô dâu tây Mỹ kiểm dịch', DATEADD(day, 15, GETDATE()), 0, '2026-05-16T08:20:00'),
+        (4, 12, 7, N'MANUAL_ADJUST', 85, 85, 85, N'Nhập container Cherry Chile', DATEADD(day, 15, GETDATE()), 0, '2026-05-15T10:00:00'),
+        (5, 19, 7, N'MANUAL_ADJUST', 35, 35, 35, N'Đóng hộp quà tết', DATEADD(day, 15, GETDATE()), 0, '2026-05-14T18:00:00'),
+        (6, 24, 7, N'MANUAL_ADJUST', 120, 120, 120, N'Nhập kho táo Envy Mỹ', DATEADD(day, 15, GETDATE()), 0, '2026-05-18T09:00:00'),
+        (7, 26, 7, N'MANUAL_ADJUST', 90, 90, 90, N'Nhập kho Kiwi Vàng', DATEADD(day, 15, GETDATE()), 0, '2026-05-19T09:00:00'),
 
-        (8, 28, 3, N'MANUAL_ADJUST', 90, 90, N'Nhập kho Cam Navel', GETDATE()),
-        (9, 30, 3, N'MANUAL_ADJUST', 300, 300, N'Nhập kho Chanh Long An', GETDATE()),
-        (10, 33, 3, N'MANUAL_ADJUST', 85, 85, N'Nhập kho sầu riêng Ri6 quả', GETDATE()),
-        (11, 35, 4, N'MANUAL_ADJUST', 120, 120, N'Nhập kho Măng Cụt', GETDATE()),
-        (12, 37, 4, N'MANUAL_ADJUST', 400, 400, N'Nhập kho Vải Thiều Bắc Giang', GETDATE()),
-        (13, 54, 7, N'MANUAL_ADJUST', 30, 30, N'Nhập kho Dâu Bạch Tuyết Nhật', GETDATE()),
-        (14, 58, 7, N'MANUAL_ADJUST', 110, 110, N'Nhập kho Nho sapphire ngón tay', GETDATE());
+        (8, 28, 3, N'MANUAL_ADJUST', 90, 90, 90, N'Nhập kho Cam Navel', DATEADD(day, 15, GETDATE()), 0, GETDATE()),
+        (9, 30, 3, N'MANUAL_ADJUST', 300, 300, 300, N'Nhập kho Chanh Long An', DATEADD(day, 15, GETDATE()), 0, GETDATE()),
+        (10, 33, 3, N'MANUAL_ADJUST', 85, 85, 85, N'Nhập kho sầu riêng Ri6 quả', DATEADD(day, 15, GETDATE()), 0, GETDATE()),
+        (11, 35, 4, N'MANUAL_ADJUST', 120, 120, 120, N'Nhập kho Măng Cụt', DATEADD(day, 15, GETDATE()), 0, GETDATE()),
+        (12, 37, 4, N'MANUAL_ADJUST', 400, 400, 400, N'Nhập kho Vải Thiều Bắc Giang', DATEADD(day, 15, GETDATE()), 0, GETDATE()),
+        (13, 54, 7, N'MANUAL_ADJUST', 30, 30, 30, N'Nhập kho Dâu Bạch Tuyết Nhật', DATEADD(day, 15, GETDATE()), 0, GETDATE()),
+        (14, 58, 7, N'MANUAL_ADJUST', 110, 110, 110, N'Nhập kho Nho sapphire ngón tay', DATEADD(day, 15, GETDATE()), 0, GETDATE()),
+        (15, 32, 3, N'MANUAL_ADJUST', 110, 110, 110, N'Nhập kho Bưởi Năm Roi', DATEADD(day, 15, GETDATE()), 0, GETDATE());
     SET IDENTITY_INSERT dbo.inventory_logs OFF;
 
     SET IDENTITY_INSERT dbo.promotions ON;

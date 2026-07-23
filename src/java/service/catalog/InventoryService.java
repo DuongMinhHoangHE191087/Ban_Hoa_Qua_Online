@@ -236,7 +236,7 @@ public class InventoryService {
         }
     }
 
-    public void release(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
+    public void restore(Connection conn, int variantId, int qty, int orderId, int userId) throws SQLException {
         if (qty <= 0) return;
         int currentStock = productVariantDAO.getStockQuantity(conn, variantId);
         int stockAfter = currentStock + qty;
@@ -266,11 +266,11 @@ public class InventoryService {
         productVariantDAO.updateStock(conn, variantId, qty);
     }
 
-    public void release(int variantId, int qty, int orderId) throws SQLException {
+    public void restore(int variantId, int qty, int orderId) throws SQLException {
         try (Connection conn = inventoryDAO.openConnection()) {
             conn.setAutoCommit(false);
             try {
-                release(conn, variantId, qty, orderId, 1);
+                restore(conn, variantId, qty, orderId, 1);
                 conn.commit();
             } catch (SQLException | RuntimeException e) {
                 conn.rollback();
