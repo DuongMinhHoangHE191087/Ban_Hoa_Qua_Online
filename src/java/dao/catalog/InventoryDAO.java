@@ -392,4 +392,33 @@ public class InventoryDAO extends BaseDAO {
             ps.executeUpdate();
         }
     }
+
+    /**
+     * Lấy chuỗi note của ORDER_RESERVE
+     */
+    public String findReserveLogNote(Connection conn, int orderId, int variantId) throws SQLException {
+        String sql = "SELECT TOP 1 note FROM inventory_logs WHERE change_type = 'ORDER_RESERVE' AND variant_id = ? AND note LIKE ? ORDER BY log_id DESC";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, variantId);
+            ps.setString(2, "Giữ hàng cho đơn hàng #" + orderId + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("note");
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Cộng lại số lượng vào remaining_quantity của một lô.
+     */
+    public void incrementRemainingQuantity(Connection conn, int logId, int incrementQty) throws SQLException {
+        String sql = "UPDATE inventory_logs SET remaining_quantity = ISNULL(remaining_quantity, 0) + ? WHERE log_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, incrementQty);
+            ps.setInt(2, logId);
+            ps.executeUpdate();
+        }
+    }
 }
