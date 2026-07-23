@@ -44,7 +44,7 @@ public final class ErrorMessageUtil {
             return message == null || message.isBlank() ? MSG_INTERNAL_ERROR : message;
         }
         if (e instanceof java.sql.SQLException) {
-            return MSG_DB_ERROR;
+            return MSG_DB_ERROR + " (" + e.getMessage() + ")";
         }
         if (e instanceof java.io.IOException) {
             return MSG_FILE_ERROR;
