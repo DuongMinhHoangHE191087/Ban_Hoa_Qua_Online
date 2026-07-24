@@ -17,6 +17,8 @@
 /artifacts/
 /memory/
 /scratch/
+/tools/
+/cloudflare/
 
 # Non-source / Documentation & Test folders
 /docs/
@@ -33,6 +35,20 @@
 /*.jpeg
 /tailieu_15_chucnang_googledocs.html
 /java_files.txt
+
+# Redundant Root Docs & Tools
+/EXCEPTION_TEST_SCENARIOS.md
+/IMPLEMENTATION_GUIDE.md
+/PHASE_1_SUMMARY.md
+/PHASE_2_SUMMARY.md
+/PRODUCT.md
+/REFACTORING_PLAN.md
+/SECURITY_IMPROVEMENTS.md
+/build-tools.*
+/build_tools.*
+/tomcat_config.ini.template
+/package*.json
+/playwright.config.ts
 
 # Compiled class files & Java test entry points
 *.class
@@ -79,4 +95,5 @@ tomcat_config.ini
 docker-compose.override.yml
 .obsidian/
 /node_modules/
+
 
