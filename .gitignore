@@ -1,23 +1,42 @@
-# Virtual environment / AI Agent metadata & cache
+# AI Agent & IDE Metadata / Caches
 /.agent
 /.agents
 /.antigravity
 /.claude
+/.codex
 /.codegraph
 /.context
 /.continue
 /.gemini
 /.github
+/.idea
 /.impeccable
 /.playwright-cli
 /.understand-anything
+/.vscode
+/artifacts/
+/memory/
+/scratch/
 
 # Non-source / Documentation & Test folders
 /docs/
 /test/
+/playwright-tests/
+/playwright-report/
+/test-results/
+/System Test/
+/System Test*/
 
-# Compiled class files
+# Temporary Root Screenshots & HTML documentation dumps
+/*.png
+/*.jpg
+/*.jpeg
+/tailieu_15_chucnang_googledocs.html
+/java_files.txt
+
+# Compiled class files & Java test entry points
 *.class
+/TestDB.java
 
 # Log files & Build outputs
 *.log
@@ -47,6 +66,7 @@ replay_pid*
 /build/
 /dist/
 /out/
+*.iml
 
 # NetBeans / IDE Project settings
 nbproject/private/
@@ -59,3 +79,4 @@ tomcat_config.ini
 docker-compose.override.yml
 .obsidian/
 /node_modules/
+

@@ -14,9 +14,10 @@ Tài liệu này đóng vai trò là **Source of Truth** (Cẩm nang tối cao) 
 1. [🏗️ Kiến Trúc Hệ Thống & Luồng Request](#-kiến-trúc-hệ-thống--luồng-request)
 2. [⚙️ Cài Đặt Hệ Thống & Tech Stack](#%EF%B8%8F-cài-đặt-hệ-thống--tech-stack)
 3. [👥 5 Vai Trò & Phân Hệ Chức Năng (Platform Scope)](#-5-vai-trò--phân-hệ-chức-năng-platform-scope)
-4. [🛠️ Bộ Quy Tắc Code Tránh Trùng Lặp (DRY Rules)](#%EF%B8%8F-bộ-quy-tắc-code-tránh-trùng-lặp-dry-rules)
-5. [🤝 Quy Trình Phối Hợp Git & Quản Trị Nhóm (Anti-Conflict Workflow)](#-quy-trình-phối-hợp-git--quản-trị-nhóm-anti-conflict-workflow)
-6. [🎓 Hướng Dẫn Nộp Bài & Bảo Vệ Đồ Án](#-hướng-dẫn-nộp-bài--bảo-vệ-đồ-án)
+4. [🖼️ Hướng Dẫn Đính Kèm Ảnh Màn Hình & Giữ Sạch Repository](#%EF%B8%8F-hướng-dẫn-đính-kèm-ảnh-màn-hình--giữ-sạch-repository)
+5. [🛠️ Bộ Quy Tắc Code Tránh Trùng Lặp (DRY Rules)](#%EF%B8%8F-bộ-quy-tắc-code-tránh-trùng-lặp-dry-rules)
+6. [🤝 Quy Trình Phối Hợp Git & Quản Trị Nhóm (Anti-Conflict Workflow)](#-quy-trình-phối-hợp-git--quản-trị-nhóm-anti-conflict-workflow)
+7. [🎓 Hướng Dẫn Nộp Bài & Bảo Vệ Đồ Án](#-hướng-dẫn-nộp-bài--bảo-vệ-đồ-án)
 
 ---
 
@@ -146,6 +147,49 @@ Nền tảng được cấu hình chi tiết phân hệ nghiệp vụ cho **5 đ
     *   **Thương Hiệu Nhất Quán**: Tích hợp Logo chính thức của dự án cùng dòng chữ thương hiệu `MetaFruit` (với điểm nhấn chữ `Fruit` màu xanh lá non `#84cc16`) đồng nhất với Navbar khách hàng.
     *   **Header Banners Độc Quyền**: Tất cả banner đầu trang được nâng cấp sang tông màu lá non dịu mát (`from-[#f0faf3] to-[#dcfce7]`) phối chữ xanh lục đậm (`#364e03`) thân thiện với thị giác.
     *   **SweetAlert2 Premium**: Thay thế toàn bộ hộp thoại `confirm()` và `alert()` mặc định của trình duyệt bằng hệ thống thông báo SweetAlert2 local cao cấp, mượt mà và trực quan.
+
+---
+
+## 🖼️ HƯỚNG DẪN ĐÍNH KÈM ẢNH MÀN HÌNH & GIỮ SẠCH REPOSITORY
+
+Để giữ thư mục gốc (Root) của dự án luôn sạch đẹp, không bị lẫn lộn các file ảnh hay log rác, nhóm tuân thủ quy chuẩn đính kèm ảnh như sau:
+
+### 1. Quy định Thư mục Lưu trữ Ảnh
+*   **TUYỆT ĐỐI KHÔNG** lưu các file ảnh screenshot (`.png`, `.jpg`, `.jpeg`) trực tiếp tại thư mục gốc repository.
+*   Tất cả ảnh minh họa màn hình giao diện phải được lưu trữ trong thư mục asset của web hoặc thư mục tài liệu:
+    *   `web/assets/images/screenshots/` (Dành cho ảnh minh họa hệ thống công khai)
+    *   `docs/<TênHọcViên>/images/` (Dành cho báo cáo/bằng chứng cá nhân)
+
+### 2. Cú pháp Đính kèm Ảnh vào README hoặc Markdown
+Sử dụng cú pháp Markdown chuẩn kết hợp relative path hoặc HTML tag để căn chỉnh kích thước hiển thị:
+
+```markdown
+<!-- Cách 1: Markdown thuần (Ảnh căn lề trái) -->
+![Trang chủ FruitMkt](web/assets/images/screenshots/home-preview.png)
+
+<!-- Cách 2: Thẻ HTML (Hỗ trợ căn giữa và đặt chiều rộng) -->
+<p align="center">
+  <img src="web/assets/images/screenshots/admin-dashboard.png" alt="Admin Dashboard" width="800"/>
+  <br>
+  <em>Hình 1: Giao diện Quản trị hệ thống MetaFruit Dashboard</em>
+</p>
+```
+
+### 3. Thư mục Gốc Sạch (Clean Root Architecture)
+Thư mục gốc của repository chỉ bao gồm các thành phần cốt lõi:
+```text
+Ban_Hoa_Qua_Online/
+├── .gitignore          # File cấu hình bỏ qua tệp rác (IDE, AI log, build log, docs, test)
+├── AGENTS.md           # Quy chuẩn làm việc dành cho AI Agents & Team
+├── GEMINI.md           # Cấu hình bộ luật cốt lõi Antigravity
+├── README.md           # Tài liệu hướng dẫn chính của dự án
+├── build.xml           # Kịch bản Build Ant
+├── database/           # Chứa các file SQL khởi tạo và Schema CSDL
+├── lib/                # Thư viện phụ trợ (.jar)
+├── nbproject/          # Cấu hình dự án NetBeans
+├── src/java/           # 100% Mã nguồn Java (Servlet, Service, DAO, Entity)
+└── web/                # Giao diện JSP, CSS, JS, Images, WEB-INF
+```
 
 ---
 
