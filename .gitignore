@@ -52,6 +52,9 @@
 /tomcat_config.ini.template
 /package*.json
 /playwright.config.ts
+/Dockerfile
+/docker-compose.yml
+/.dockerignore
 
 # Compiled class files & Java test entry points
 *.class
