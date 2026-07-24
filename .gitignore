@@ -37,6 +37,9 @@
 /java_files.txt
 
 # Redundant Root Docs & Tools
+/CLAUDE.md
+/GEMINI.md
+/IDE_GUIDE.md
 /EXCEPTION_TEST_SCENARIOS.md
 /IMPLEMENTATION_GUIDE.md
 /PHASE_1_SUMMARY.md
