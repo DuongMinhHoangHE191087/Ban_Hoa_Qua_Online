@@ -1,10 +1,10 @@
-# 📁 FruitMkt — Hệ Thống Bán Hoa Quả Online Toàn Diện
+# 📁 MetaFruit — Hệ Thống Bán Hoa Quả Online Toàn Diện
 
-[![Tech Stack](https://img.shields.io/badge/Tech%20Stack-Java%2025%20%7C%20Tomcat%2010%20%7C%20SQL%20Server-orange.svg?style=for-the-badge)](file:///README.md)
+[![Tech Stack](https://img.shields.io/badge/Tech%20Stack-Java%2017%2F25%20%7C%20Tomcat%2010%20%7C%20SQL%20Server-orange.svg?style=for-the-badge)](file:///README.md)
 [![Jakarta EE](https://img.shields.io/badge/Jakarta%20EE-10%20(Servlet%206%2C%20JSP%203)-blue.svg?style=for-the-badge)](file:///README.md)
 [![NetBeans](https://img.shields.io/badge/IDE-NetBeans%2021%2B%20%2F%20Ant%20Build-green.svg?style=for-the-badge)](file:///README.md)
 
-Chào mừng bạn đến với **FruitMkt**, nền tảng thương mại điện tử chuyên biệt dành cho thị trường hoa quả online. Dự án được phát triển theo mô hình phân lớp chuẩn công nghiệp, tối ưu hóa trải nghiệm người dùng trên cả 5 vai trò hệ thống, tích hợp thanh toán tự động VietQR (SePay Webhook) và bảo mật nghiêm ngặt.
+Chào mừng bạn đến với **MetaFruit**, nền tảng thương mại điện tử chuyên biệt dành cho thị trường hoa quả online. Dự án được phát triển theo mô hình phân lớp chuẩn công nghiệp, tối ưu hóa trải nghiệm người dùng trên cả 5 vai trò hệ thống, tích hợp thanh toán tự động VietQR (SePay Webhook) và bảo mật nghiêm ngặt.
 
 Tài liệu này đóng vai trò là **Source of Truth** (Cẩm nang tối cao) hướng dẫn kiến trúc, sơ đồ chức năng, quy định viết code và quy trình Git phối hợp nhóm nhằm triệt tiêu xung đột (conflict) và trùng lặp mã nguồn.
 
