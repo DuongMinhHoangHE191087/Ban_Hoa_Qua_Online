@@ -1,14 +1,35 @@
-# Compiled class file
+# Virtual environment / AI Agent metadata & cache
+/.agent
+/.agents
+/.antigravity
+/.claude
+/.codegraph
+/.context
+/.continue
+/.gemini
+/.github
+/.impeccable
+/.playwright-cli
+/.understand-anything
+
+# Non-source / Documentation & Test folders
+/docs/
+/test/
+
+# Compiled class files
 *.class
 
-# Log file
+# Log files & Build outputs
 *.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+/build_tools.log
+/build_output.log
+/checkout-multishop.log
+/debug.log
+/deploy-live.err.log
+/deploy-live.out.log
+/full-test*.log
+/tomcat-start.err.log
+/tomcat-start.out.log
 
 # Package Files #
 *.war
@@ -18,36 +39,23 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Virtual machine crash logs
 hs_err_pid*
 replay_pid*
-/.agent
-/.agents
-/.antigravity
-/.context
-/.continue
-/.gemini
-/.github
-/.understand-anything
+
+# Build output directories
 /build/
 /dist/
-nbproject/project.properties
-nbproject/private/private.xml
-nbproject/private/private.properties
-nbproject/project.properties
-nbproject/project.xml
-nbproject/build-impl.xml
-nbproject/genfiles.properties
-nbproject/private/private.properties
-/nbproject/private/
-/build
-/dist
-/out
+/out/
+
+# NetBeans / IDE Project settings
+nbproject/private/
 /nbproject/private
+
+# Local Config & Environment
 tomcat_config.ini
 .env
 .docker-build/
 docker-compose.override.yml
-*.log
 .obsidian/
-/node_modules
+/node_modules/
